@@ -61,29 +61,35 @@ def get_magv_from_email(client, email):
 
 @st.cache_data
 def load_all_data():
+    """Tải tất cả các file Parquet cơ sở dữ liệu."""
+    st.write("Bắt đầu tải dữ liệu cơ sở...") # Thêm dòng này để gỡ lỗi
+    
+    # SỬA LỖI: Tạm thời chỉ tải 2 file quan trọng nhất để kiểm tra
     files_to_load = {
-        'df_hesosiso': 'data_base/df_hesosiso.parquet',
-        'df_khoa': 'data_base/df_khoa.parquet',
-        'df_lop': 'data_base/df_lop.parquet',
-        'df_lopgheptach': 'data_base/df_lopgheptach.parquet',
-        'df_mon': 'data_base/df_mon.parquet',
-        'df_nangnhoc': 'data_base/df_nangnhoc.parquet',
-        'df_ngaytuan': 'data_base/df_ngaytuan.parquet',
-        'df_quydoi_hd': 'data_base/df_quydoi_hd.parquet',
-        'df_quydoi_hd_them': 'data_base/df_quydoi_hd_them.parquet',
         'df_giaovien': 'data_base/df_giaovien.parquet',
-        'mau_kelop': 'data_base/mau_kelop.parquet',
-        'mau_quydoi': 'data_base/mau_quydoi.parquet',
+        'df_khoa': 'data_base/df_khoa.parquet',
+        # --- TẠM THỜI VÔ HIỆU HÓA CÁC FILE KHÁC ĐỂ GỠ LỖI ---
+        # 'df_hesosiso': 'data_base/df_hesosiso.parquet',
+        # 'df_lop': 'data_base/df_lop.parquet',
+        # 'df_lopgheptach': 'data_base/df_lopgheptach.parquet',
+        # 'df_mon': 'data_base/df_mon.parquet',
+        # 'df_nangnhoc': 'data_base/df_nangnhoc.parquet',
+        # 'df_ngaytuan': 'data_base/df_ngaytuan.parquet',
+        # 'df_quydoi_hd': 'data_base/df_quydoi_hd.parquet',
+        # 'df_quydoi_hd_them': 'data_base/df_quydoi_hd_them.parquet',
+        # 'mau_kelop': 'data_base/mau_kelop.parquet',
+        # 'mau_quydoi': 'data_base/mau_quydoi.parquet',
     }
     loaded_dfs = {}
     for df_name, file_path in files_to_load.items():
         try:
-            # ... (logic đọc file của bạn) ...
+            st.write(f"Đang tải file: {file_path}") # Thêm dòng này để gỡ lỗi
             df = pd.read_parquet(file_path, engine='pyarrow')
             loaded_dfs[df_name] = df
         except Exception as e:
             st.error(f"Lỗi khi tải '{file_path}': {e}")
             loaded_dfs[df_name] = pd.DataFrame()
+    st.write("Tải dữ liệu cơ sở hoàn tất.") # Thêm dòng này để gỡ lỗi
     return loaded_dfs
 
 def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
@@ -113,8 +119,6 @@ def laykhoatu_magv(df_khoa, magv):
         return matching_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
     return "Không tìm thấy khoa"
 
-
-
 # --- GIAO DIỆN ỨNG DỤNG ---
 st.title("Hệ thống Kê khai Giờ dạy")
 
@@ -133,7 +137,7 @@ if not st.session_state.data_loaded:
     for df_name, df_data in all_dfs.items():
         st.session_state[df_name] = df_data
     st.session_state.data_loaded = True
-
+    st.rerun() # Chạy lại để xóa các thông báo gỡ lỗi
 
 # Nếu chưa có token, hiển thị nút đăng nhập
 if st.session_state.token is None:
@@ -154,14 +158,12 @@ if st.session_state.token is None:
 
 # Nếu đã có token, tức là đã đăng nhập
 else:
-   
     user_info = st.session_state.user_info
     if user_info:
         # Tra cứu mã giảng viên (chỉ chạy 1 lần)
         if st.session_state.magv is None:
             client = connect_to_gsheet()
             magv = get_magv_from_email(client, user_info.get('email'))
-            st.write(magv)
             if magv:
                 st.session_state.magv = magv
                 st.rerun()
