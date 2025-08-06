@@ -6,6 +6,9 @@ from streamlit_oauth import OAuth2Component
 import asyncio
 import os
 
+# --- BƯỚC GỠ LỖI ---
+st.write("Bắt đầu thực thi script...")
+
 # --- CẤU HÌNH BAN ĐẦU ---
 st.set_page_config(layout="wide")
 
@@ -16,6 +19,7 @@ try:
     REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
     SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
+    st.write("Đã tải secrets thành công.") # Gỡ lỗi
 except KeyError as e:
     st.error(f"Lỗi: Không tìm thấy thông tin cấu hình cần thiết trong st.secrets. Vui lòng kiểm tra file secrets.toml. Chi tiết lỗi: {e}")
     st.stop()
