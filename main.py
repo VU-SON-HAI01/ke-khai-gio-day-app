@@ -140,7 +140,7 @@ def laykhoatu_magv(df_khoa, magv):
 #col1, col2 = st.columns([1, 4])
 #with col1:
     # Giả sử bạn có thư mục 'image' cùng cấp với file app.py
-st.image("image/banner-top.jpg", width=1000)
+st.image("image/banner-top.jpg", width=1600)
 #with col2:
 st.markdown("<h1 style='text-align: center; color: green;'>KÊ GIỜ NĂM HỌC 2025</h1>", unsafe_allow_html=True)
 
