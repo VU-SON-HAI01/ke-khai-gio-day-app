@@ -153,8 +153,8 @@ if st.session_state.token is None:
         st.rerun()
 
 # Nếu đã có token, tức là đã đăng nhập
-st.write('sssss')
 else:
+    st.write('sssss')
     user_info = st.session_state.user_info
     if user_info:
         # Tra cứu mã giảng viên (chỉ chạy 1 lần)
