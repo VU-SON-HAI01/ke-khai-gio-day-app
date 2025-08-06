@@ -138,11 +138,11 @@ def laykhoatu_magv(df_khoa, magv):
 
 # --- GIAO DIỆN ỨNG DỤNG ---
 #col1, col2 = st.columns([1, 4])
-#with col1:
+with col1:
     # Giả sử bạn có thư mục 'image' cùng cấp với file app.py
-st.image("image/banner-top.jpg", use_container_width = True)
-#with col2:
-st.markdown("<h1 style='text-align: center; color: orange;'>KÊ GIỜ NĂM HỌC 2025</h1>", unsafe_allow_html=True)
+    st.image("image/Logo_caodangdaklak.jpg", width = 150)
+with col2:
+    st.markdown("<h1 style='text-align: center; color: orange;'>KÊ GIỜ NĂM HỌC 2025</h1>", unsafe_allow_html=True)
 
 # Khởi tạo OAuth2Component
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
@@ -157,7 +157,7 @@ for key in keys_to_init:
 
 # Bước 1: Kiểm tra token. Nếu chưa có, hiển thị nút đăng nhập.
 if 'token' not in st.session_state or st.session_state.token is None:
-    st.info("Vui lòng đăng nhập để tiếp tục")
+    #st.info("Vui lòng đăng nhập để tiếp tục")
     result = oauth2.authorize_button(
         name="Đăng nhập với Google",
         icon="https://www.google.com.tw/favicon.ico",
