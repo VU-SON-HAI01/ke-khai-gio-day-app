@@ -174,7 +174,7 @@ else:
         # Hiển thị thông tin giảng viên và điều hướng trang
         if st.session_state.tengv:
             with st.sidebar:
-                st.header(":green[THÔNG TIN GIÁO VIÊN]")
+                st.header(":green[THÔNG TIN]")
                 st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
                 st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
                 st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
