@@ -1,8 +1,6 @@
 import streamlit as st
 import gspread
 import pandas as pd
-# SỬA LỖI: Bỏ thư viện cũ
-# from oauth2client.service_account import ServiceAccountCredentials
 from streamlit_oauth import OAuth2Component
 import asyncio
 import os
@@ -137,12 +135,12 @@ def laykhoatu_magv(df_khoa, magv):
     return "Không tìm thấy khoa"
 
 # --- GIAO DIỆN ỨNG DỤNG ---
-#col1, col2 = st.columns([1, 4])
-#with col1:
+col1, col2, col3 = st.columns([2, 3, 2])
+with col2:
     # Giả sử bạn có thư mục 'image' cùng cấp với file app.py
-st.image("image/Logo_caodangdaklak_top.png", width = 150)
-#with col2:
-st.markdown("<h1 style='text-align: center; color: orange;'>KÊ GIỜ NĂM HỌC 2025</h1>", unsafe_allow_html=True)
+    st.image("image/Logo_caodangdaklak_top.png",width = 150)
+
+st.markdown("<h1 style='text-align: center; color: green;'>KÊ GIỜ NĂM HỌC 2025</h1>", unsafe_allow_html=True)
 
 # Khởi tạo OAuth2Component
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
