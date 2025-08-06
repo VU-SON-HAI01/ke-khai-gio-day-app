@@ -154,14 +154,14 @@ if st.session_state.token is None:
 
 # Nếu đã có token, tức là đã đăng nhập
 else:
-    st.write('sssss')
+   
     user_info = st.session_state.user_info
     if user_info:
         # Tra cứu mã giảng viên (chỉ chạy 1 lần)
         if st.session_state.magv is None:
             client = connect_to_gsheet()
             magv = get_magv_from_email(client, user_info.get('email'))
-
+            st.write(magv)
             if magv:
                 st.session_state.magv = magv
                 st.rerun()
