@@ -123,7 +123,7 @@ for key in keys_to_init:
     if key not in st.session_state:
         st.session_state[key] = None
 
-# --- SỬA LẠI: BỎ CẤU TRÚC ASYNC/AWAIT ---
+# --- SỬA LẠI: TÁI CẤU TRÚC LUỒNG ĐĂNG NHẬP ---
 
 # Bước 1: Kiểm tra token. Nếu chưa có, hiển thị nút đăng nhập.
 if 'token' not in st.session_state or st.session_state.token is None:
@@ -136,20 +136,28 @@ if 'token' not in st.session_state or st.session_state.token is None:
         key="google",
         use_container_width=True,
     )
+    
+    # Thêm dòng gỡ lỗi để xem kết quả trả về
     if result:
-        st.session_state.token = result.get('token')
-        st.session_state.user_info = result.get('user')
-        st.rerun()
+        st.write("Kết quả trả về từ Google:")
+        st.json(result)
+        # Kiểm tra chặt chẽ hơn
+        if result and "token" in result and result.get("user") is not None:
+            st.session_state.token = result.get('token')
+            st.session_state.user_info = result.get('user')
+            st.rerun()
+        else:
+            st.error("Quá trình xác thực không trả về đủ thông tin. Vui lòng thử lại.")
+
+# Nếu đã có token, tiếp tục xử lý
 else:
-    # Nếu đã có token, tiếp tục xử lý
     user_info = st.session_state.user_info
     if not user_info:
-        # SỬA LẠI: Cung cấp thông báo lỗi chi tiết hơn
         st.error(
             """
             **Lỗi: Không thể lấy thông tin người dùng sau khi đăng nhập.**
 
-            Điều này thường xảy ra do cấu hình trên Google Cloud Console. Vui lòng kiểm tra:
+            Điều này thường xảy ra do cấu hình trên Google Cloud Console. Vui lòng kiểm tra lại:
             1.  **OAuth Consent Screen:** Nếu ứng dụng của bạn đang ở chế độ "Testing", hãy đảm bảo email bạn dùng để đăng nhập đã được thêm vào danh sách "Test users".
             2.  **APIs:** Đảm bảo "Google People API" đã được bật (Enabled) trong dự án của bạn.
             """
@@ -207,24 +215,4 @@ else:
             st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
             st.write(f"(Chuẩn: {st.session_state.chuangv})")
             st.divider()
-            st.write(f"Đăng nhập với email: {user_info.get('email')}")
-            if st.button("Đăng xuất", use_container_width=True):
-                for key in keys_to_init:
-                    st.session_state[key] = None
-                st.rerun()
-
-        # --- Điều hướng trang ---
-        pages = {
-            "Kê khai": [
-                st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
-                st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động"),
-            ],
-            "Báo cáo": [
-                st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file"),
-            ],
-            "Trợ giúp": [
-                st.Page("huongdan.py", title="Hướng dẫn"),
-            ]
-        }
-        pg = st.navigation(pages)
-        pg.run()
+            st.write(f"Đăng nhập với email: {user_info.get('email')
