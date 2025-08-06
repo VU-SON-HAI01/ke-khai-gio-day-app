@@ -5,12 +5,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 from streamlit_oauth import OAuth2Component
 import asyncio
 import os
-
+st.set_page_config(layout="wide")
 # --- BƯỚC GỠ LỖI ---
 st.write("Bắt đầu thực thi script...")
 
 # --- CẤU HÌNH BAN ĐẦU ---
-st.set_page_config(layout="wide")
+
 
 # Lấy thông tin từ Streamlit Secrets
 try:
