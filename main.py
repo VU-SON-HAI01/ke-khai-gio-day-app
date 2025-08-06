@@ -1,7 +1,8 @@
 import streamlit as st
 import gspread
 import pandas as pd
-from oauth2client.service_account import ServiceAccountCredentials
+# SỬA LỖI: Bỏ thư viện cũ
+# from oauth2client.service_account import ServiceAccountCredentials
 from streamlit_oauth import OAuth2Component
 import asyncio
 import os
@@ -31,11 +32,9 @@ REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 def connect_to_gsheet():
     """Hàm kết nối tới Google Sheet sử dụng Service Account."""
     try:
-        scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
-                 "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+        # SỬA LỖI: Sử dụng phương thức xác thực mới của gspread
         creds_dict = st.secrets["gcp_service_account"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-        client = gspread.authorize(creds)
+        client = gspread.service_account_from_dict(creds_dict)
         return client
     except Exception as e:
         st.error(f"Lỗi kết nối tới Google Sheet: {e}")
@@ -53,20 +52,17 @@ def get_magv_from_email(client, email):
         
         df = pd.DataFrame(data)
         
-        # SỬA LỖI: Chuẩn hóa email để tra cứu chính xác
-        # 1. Đảm bảo cột 'email' tồn tại
+        # Chuẩn hóa email để tra cứu chính xác
         if 'email' not in df.columns:
             st.error(f"Lỗi: Cột 'email' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
             return None
             
-        # 2. Chuyển đổi cả hai email về chữ thường và xóa khoảng trắng thừa
         search_email = email.lower().strip()
         df['email_normalized'] = df['email'].astype(str).str.lower().str.strip()
         
         user_row = df[df['email_normalized'] == search_email]
         
         if not user_row.empty:
-            # Đảm bảo cột 'magv' tồn tại
             if 'magv' not in user_row.columns:
                 st.error(f"Lỗi: Cột 'magv' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
                 return None
@@ -144,7 +140,7 @@ for key in keys_to_init:
     if key not in st.session_state:
         st.session_state[key] = None
 
-# --- SỬA LẠI: TÁI CẤU TRÚC LUỒNG ĐĂNG NHẬP ---
+# --- LUỒNG ĐĂNG NHẬP ---
 
 # Bước 1: Kiểm tra token. Nếu chưa có, hiển thị nút đăng nhập.
 if 'token' not in st.session_state or st.session_state.token is None:
