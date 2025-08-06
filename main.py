@@ -137,7 +137,7 @@ def laykhoatu_magv(df_khoa, magv):
     return "Không tìm thấy khoa"
 
 # --- GIAO DIỆN ỨNG DỤNG ---
-#col1, col2 = st.columns([1, 4])
+col1, col2 = st.columns([1, 4])
 with col1:
     # Giả sử bạn có thư mục 'image' cùng cấp với file app.py
     st.image("image/Logo_caodangdaklak.jpg", width = 150)
