@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import numpy as np
-import new10 as fun_lopghep
+import fun_lopghep as fun_lopghep
 import random
 from datetime import date
 
