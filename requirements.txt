@@ -60,3 +60,4 @@ streamlit-oauth
 gspread==5.12.4
 oauth2client
 streamlit-oauth
+google-auth
