@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import numpy as np
-import new10 as fun_lopghep
+import fun_lopghep as fun_lopghep
 import random
 from datetime import date
 
@@ -18,7 +18,7 @@ df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
 # --- Giả định các biến đầu vào (Bạn cần định nghĩa chúng ở đâu đó trong code thực tế của mình) ---
 
 if 'magv' in st.session_state and 'chuangv' in st.session_state and 'giochuan' in st.session_state:
-    st.write(st.session_state.magv)
+    # st.write(st.session_state.magv)
     # Nếu có, gán chúng vào các biến cục bộ để sử dụng trong trang này.
     magv = st.session_state['magv']
     chuangv = st.session_state['chuangv']
