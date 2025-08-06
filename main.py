@@ -5,12 +5,9 @@ from oauth2client.service_account import ServiceAccountCredentials
 from streamlit_oauth import OAuth2Component
 import asyncio
 import os
-st.set_page_config(layout="wide")
-# --- BƯỚC GỠ LỖI ---
-st.write("Bắt đầu thực thi script...")
 
 # --- CẤU HÌNH BAN ĐẦU ---
-
+st.set_page_config(layout="wide")
 
 # Lấy thông tin từ Streamlit Secrets
 try:
@@ -19,7 +16,6 @@ try:
     REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
     SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
-    st.write("Đã tải secrets thành công.") # Gỡ lỗi
 except KeyError as e:
     st.error(f"Lỗi: Không tìm thấy thông tin cấu hình cần thiết trong st.secrets. Vui lòng kiểm tra file secrets.toml. Chi tiết lỗi: {e}")
     st.stop()
@@ -115,57 +111,65 @@ def laykhoatu_magv(df_khoa, magv):
         return matching_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
     return "Không tìm thấy khoa"
 
-# --- GIAO DIỆN ỨNG DỤNG ---
-st.title("Hệ thống Kê khai Giờ dạy")
+# --- TÁI CẤU TRÚC LOGIC VÀO HÀM ASYNC ---
+async def main():
+    st.title("Hệ thống Kê khai Giờ dạy")
 
-# Khởi tạo OAuth2Component
-oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
+    # Khởi tạo OAuth2Component
+    oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
 
-# Khởi tạo các giá trị trong session state
-keys_to_init = ['token', 'user_info', 'magv', 'tengv', 'ten_khoa', 'chuangv', 'giochuan', 'data_loaded']
-for key in keys_to_init:
-    if key not in st.session_state:
-        st.session_state[key] = None
+    # Khởi tạo các giá trị trong session state
+    keys_to_init = ['token', 'user_info', 'magv', 'tengv', 'ten_khoa', 'chuangv', 'giochuan', 'data_loaded']
+    for key in keys_to_init:
+        if key not in st.session_state:
+            st.session_state[key] = None
 
-# Nếu chưa có token, hiển thị nút đăng nhập
-if st.session_state.token is None:
-    st.info("Vui lòng đăng nhập để tiếp tục")
-    result = oauth2.authorize_button(
-        name="Đăng nhập với Google",
-        icon="https://www.google.com.tw/favicon.ico",
-        redirect_uri=REDIRECT_URI,
-        scope="openid email profile",
-        key="google",
-        use_container_width=True,
-    )
-    if result:
-        st.session_state.token = result.get('token')
-        st.session_state.user_info = result.get('user')
-        st.rerun()
+    # --- SỬA LẠI: LUỒNG XỬ LÝ TUẦN TỰ ---
 
-# Nếu đã có token, tức là đã đăng nhập
-else:
+    # Bước 1: Kiểm tra token. Nếu chưa có, hiển thị nút đăng nhập.
+    if st.session_state.token is None:
+        st.info("Vui lòng đăng nhập để tiếp tục")
+        result = await oauth2.authorize_button(
+            name="Đăng nhập với Google",
+            icon="https://www.google.com.tw/favicon.ico",
+            redirect_uri=REDIRECT_URI,
+            scope="openid email profile",
+            key="google",
+            use_container_width=True,
+        )
+        if result:
+            st.session_state.token = result.get('token')
+            st.session_state.user_info = result.get('user')
+            st.rerun()
+        return # Dừng thực thi ở đây cho đến khi có token
+
+    # Nếu đã có token, tiếp tục xử lý
     user_info = st.session_state.user_info
-    if user_info:
-        # Tra cứu mã giảng viên (chỉ chạy 1 lần)
-        if st.session_state.magv is None:
+    if not user_info:
+        st.error("Lỗi: Không thể lấy thông tin người dùng. Vui lòng thử đăng nhập lại.")
+        st.session_state.token = None # Xóa token lỗi
+        return
+
+    # Bước 2: Tra cứu mã giảng viên (chỉ chạy 1 lần)
+    if st.session_state.magv is None:
+        with st.spinner("Đang xác thực và tra cứu mã giảng viên..."):
             client = connect_to_gsheet()
             magv = get_magv_from_email(client, user_info.get('email'))
-            if magv:
-                st.session_state.magv = magv
-                st.rerun()
-            else:
-                st.error(f"Không tìm thấy Mã giảng viên cho email: {user_info.get('email')}. Vui lòng liên hệ quản trị viên.")
-                st.stop()
+        
+        if magv:
+            st.session_state.magv = magv
+            st.rerun()
+        else:
+            st.error(f"Không tìm thấy Mã giảng viên cho email: {user_info.get('email')}. Vui lòng liên hệ quản trị viên.")
+            st.stop()
 
-        # SỬA LẠI: Tải dữ liệu và lấy thông tin chi tiết sau khi có magv
-        if st.session_state.magv and not st.session_state.data_loaded:
-            with st.spinner("Đang tải dữ liệu cơ sở..."):
-                all_dfs = load_all_data()
-                for df_name, df_data in all_dfs.items():
-                    st.session_state[df_name] = df_data
-                st.session_state.data_loaded = True
-
+    # Bước 3: Tải dữ liệu và lấy thông tin chi tiết (chỉ chạy 1 lần sau khi có magv)
+    if st.session_state.magv and not st.session_state.data_loaded:
+        with st.spinner("Đang tải dữ liệu cơ sở và thông tin giảng viên..."):
+            all_dfs = load_all_data()
+            for df_name, df_data in all_dfs.items():
+                st.session_state[df_name] = df_data
+            
             df_giaovien_g = st.session_state.get('df_giaovien', pd.DataFrame())
             df_khoa_g = st.session_state.get('df_khoa', pd.DataFrame())
             teacher_info = get_teacher_info_from_local(st.session_state.magv, df_giaovien_g, df_khoa_g)
@@ -177,39 +181,44 @@ else:
                 
                 giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
                 st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
+                st.session_state.data_loaded = True # Đánh dấu đã tải xong
                 st.rerun()
             else:
                 st.error(f"Không tìm thấy thông tin chi tiết cho Mã giảng viên: {st.session_state.magv} trong file dữ liệu.")
                 st.stop()
-        
-        # Hiển thị thông tin giảng viên và điều hướng trang
-        if st.session_state.tengv:
-            with st.sidebar:
-                st.header(":green[THÔNG TIN GIÁO VIÊN]")
-                st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
-                st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
-                st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
-                st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
-                st.write(f"(Chuẩn: {st.session_state.chuangv})")
-                st.divider()
-                st.write(f"Đăng nhập với email: {user_info.get('email')}")
-                if st.button("Đăng xuất", use_container_width=True):
-                    for key in keys_to_init:
-                        st.session_state[key] = None
-                    st.rerun()
+    
+    # Bước 4: Hiển thị giao diện chính khi đã có đầy đủ thông tin
+    if st.session_state.tengv:
+        with st.sidebar:
+            st.header(":green[THÔNG TIN GIÁO VIÊN]")
+            st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
+            st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
+            st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
+            st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
+            st.write(f"(Chuẩn: {st.session_state.chuangv})")
+            st.divider()
+            st.write(f"Đăng nhập với email: {user_info.get('email')}")
+            if st.button("Đăng xuất", use_container_width=True):
+                for key in keys_to_init:
+                    st.session_state[key] = None
+                st.rerun()
 
-            # --- Điều hướng trang ---
-            pages = {
-                "Kê khai": [
-                    st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
-                    st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động"),
-                ],
-                "Báo cáo": [
-                    st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file"),
-                ],
-                "Trợ giúp": [
-                    st.Page("huongdan.py", title="Hướng dẫn"),
-                ]
-            }
-            pg = st.navigation(pages)
-            pg.run()
+        # --- Điều hướng trang ---
+        pages = {
+            "Kê khai": [
+                st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
+                st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động"),
+            ],
+            "Báo cáo": [
+                st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file"),
+            ],
+            "Trợ giúp": [
+                st.Page("huongdan.py", title="Hướng dẫn"),
+            ]
+        }
+        pg = st.navigation(pages)
+        pg.run()
+
+# Chạy hàm main bằng asyncio.run()
+if __name__ == '__main__':
+    asyncio.run(main())
