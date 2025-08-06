@@ -42,16 +42,36 @@ def connect_to_gsheet():
         return None
 
 def get_magv_from_email(client, email):
-    """Tra cứu mã giảng viên (magv) từ email trong Google Sheet."""
-    if not client:
+    """Tra cứu mã giảng viên (magv) từ email trong Google Sheet một cách mạnh mẽ hơn."""
+    if not client or not email:
         return None
     try:
         sheet = client.open(SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
         data = sheet.get_all_records()
+        if not data:
+            return None
+        
         df = pd.DataFrame(data)
-        user_row = df[df['email'] == email]
+        
+        # SỬA LỖI: Chuẩn hóa email để tra cứu chính xác
+        # 1. Đảm bảo cột 'email' tồn tại
+        if 'email' not in df.columns:
+            st.error(f"Lỗi: Cột 'email' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
+            return None
+            
+        # 2. Chuyển đổi cả hai email về chữ thường và xóa khoảng trắng thừa
+        search_email = email.lower().strip()
+        df['email_normalized'] = df['email'].astype(str).str.lower().str.strip()
+        
+        user_row = df[df['email_normalized'] == search_email]
+        
         if not user_row.empty:
+            # Đảm bảo cột 'magv' tồn tại
+            if 'magv' not in user_row.columns:
+                st.error(f"Lỗi: Cột 'magv' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
+                return None
             return user_row.iloc[0]['magv']
+        
         return None
     except gspread.exceptions.WorksheetNotFound:
         st.error(f"Lỗi: Không tìm thấy trang tính '{USER_MAPPING_WORKSHEET}' trong file Google Sheet.")
@@ -139,21 +159,19 @@ if 'token' not in st.session_state or st.session_state.token is None:
     )
     
     if result:
-        # Nếu có kết quả, lưu token
         st.session_state.token = result.get('token')
         
-        # SỬA LẠI: Nếu không có user_info, tự lấy bằng access_token
         if 'user' not in result or result.get('user') is None:
             access_token = st.session_state.token.get('access_token')
             user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
             headers = {"Authorization": f"Bearer {access_token}"}
             try:
                 user_response = requests.get(user_info_url, headers=headers)
-                user_response.raise_for_status() # Gây lỗi nếu request thất bại
+                user_response.raise_for_status()
                 st.session_state.user_info = user_response.json()
             except requests.exceptions.RequestException as e:
                 st.error(f"Lỗi khi tự lấy thông tin người dùng: {e}")
-                st.session_state.token = None # Xóa token lỗi
+                st.session_state.token = None
         else:
             st.session_state.user_info = result.get('user')
         st.rerun()
