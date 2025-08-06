@@ -58,6 +58,6 @@ vega-datasets==0.9.0
 watchdog==6.0.0
 streamlit-oauth
 gspread==5.12.4
-oauth2client
 streamlit-oauth
 google-auth
+
