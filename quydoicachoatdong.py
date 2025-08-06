@@ -1,18 +1,11 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pandas
-from datetime import date
 import datetime
-import time
-from datetime import date
-from numpy.ma.core import append
-
 import os
 import glob
 import re
 import altair as alt
-from kegio import chuangv
 
 # Sử dụng cache_data để tối ưu hóa việc tải data_base .parquet
 df_giaovien_g = st.session_state.get('df_giaovien', pd.DataFrame())
