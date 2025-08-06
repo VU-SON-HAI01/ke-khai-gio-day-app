@@ -236,7 +236,7 @@ else:
             st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
             st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
             st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
-            st.write(f"**Chuẩn GV:** green[{st.session_state.chuangv}]")
+            st.write(f"**Chuẩn GV:** :green[{st.session_state.chuangv}]")
             st.divider()
             st.write(f"Đăng nhập với email: {user_info.get('email')}")
             if st.button("Đăng xuất", use_container_width=True):
