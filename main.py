@@ -218,7 +218,7 @@ else:
             if teacher_info:
                 st.session_state.tengv = teacher_info.get('Tên giảng viên')
                 st.session_state.ten_khoa = teacher_info.get('ten_khoa')
-                st.session_state.chuangv = teacher_info.get('Chuẩn GV')
+                st.session_state.chuangv = teacher_info.get('Chuẩn GV','Cao đẳng')
                 
                 giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
                 st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
