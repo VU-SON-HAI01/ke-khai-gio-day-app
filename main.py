@@ -215,4 +215,24 @@ else:
             st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
             st.write(f"(Chuẩn: {st.session_state.chuangv})")
             st.divider()
-            st.write(f"Đăng nhập với email: {user_info.get('email')
+            st.write(f"Đăng nhập với email: {user_info.get('email')}")
+            if st.button("Đăng xuất", use_container_width=True):
+                for key in keys_to_init:
+                    st.session_state[key] = None
+                st.rerun()
+
+        # --- Điều hướng trang ---
+        pages = {
+            "Kê khai": [
+                st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
+                st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động"),
+            ],
+            "Báo cáo": [
+                st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file"),
+            ],
+            "Trợ giúp": [
+                st.Page("huongdan.py", title="Hướng dẫn"),
+            ]
+        }
+        pg = st.navigation(pages)
+        pg.run()
