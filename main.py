@@ -5,6 +5,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from streamlit_oauth import OAuth2Component
 import asyncio
 import os
+import requests # Thêm thư viện requests
 
 # --- CẤU HÌNH BAN ĐẦU ---
 st.set_page_config(layout="wide")
@@ -137,31 +138,31 @@ if 'token' not in st.session_state or st.session_state.token is None:
         use_container_width=True,
     )
     
-    # Thêm dòng gỡ lỗi để xem kết quả trả về
     if result:
-        st.write("Kết quả trả về từ Google:")
-        st.json(result)
-        # Kiểm tra chặt chẽ hơn
-        if result and "token" in result and result.get("user") is not None:
-            st.session_state.token = result.get('token')
-            st.session_state.user_info = result.get('user')
-            st.rerun()
+        # Nếu có kết quả, lưu token
+        st.session_state.token = result.get('token')
+        
+        # SỬA LẠI: Nếu không có user_info, tự lấy bằng access_token
+        if 'user' not in result or result.get('user') is None:
+            access_token = st.session_state.token.get('access_token')
+            user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+            headers = {"Authorization": f"Bearer {access_token}"}
+            try:
+                user_response = requests.get(user_info_url, headers=headers)
+                user_response.raise_for_status() # Gây lỗi nếu request thất bại
+                st.session_state.user_info = user_response.json()
+            except requests.exceptions.RequestException as e:
+                st.error(f"Lỗi khi tự lấy thông tin người dùng: {e}")
+                st.session_state.token = None # Xóa token lỗi
         else:
-            st.error("Quá trình xác thực không trả về đủ thông tin. Vui lòng thử lại.")
+            st.session_state.user_info = result.get('user')
+        st.rerun()
 
 # Nếu đã có token, tiếp tục xử lý
 else:
     user_info = st.session_state.user_info
     if not user_info:
-        st.error(
-            """
-            **Lỗi: Không thể lấy thông tin người dùng sau khi đăng nhập.**
-
-            Điều này thường xảy ra do cấu hình trên Google Cloud Console. Vui lòng kiểm tra lại:
-            1.  **OAuth Consent Screen:** Nếu ứng dụng của bạn đang ở chế độ "Testing", hãy đảm bảo email bạn dùng để đăng nhập đã được thêm vào danh sách "Test users".
-            2.  **APIs:** Đảm bảo "Google People API" đã được bật (Enabled) trong dự án của bạn.
-            """
-        )
+        st.error("Lỗi: Không thể lấy thông tin người dùng. Vui lòng thử đăng nhập lại.")
         if st.button("Đăng xuất và thử lại"):
             st.session_state.token = None
             st.session_state.user_info = None
