@@ -142,7 +142,7 @@ def laykhoatu_magv(df_khoa, magv):
     # Giả sử bạn có thư mục 'image' cùng cấp với file app.py
 st.image("image/banner-top.jpg", use_container_width = True)
 #with col2:
-st.markdown("<h1 style='text-align: center; color: green;'>KÊ GIỜ NĂM HỌC 2025</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: orange;'>KÊ GIỜ NĂM HỌC 2025</h1>", unsafe_allow_html=True)
 
 # Khởi tạo OAuth2Component
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
