@@ -137,7 +137,7 @@ def laykhoatu_magv(df_khoa, magv):
     return "Không tìm thấy khoa"
 
 # --- GIAO DIỆN ỨNG DỤNG ---
-st.title("Hệ thống Kê khai Giờ dạy")
+st.markdown("<h1 style='text-align: center; color: green;'>KÊ GIỜ NĂM HỌC 2025</h1>", unsafe_allow_html=True)
 
 # Khởi tạo OAuth2Component
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
