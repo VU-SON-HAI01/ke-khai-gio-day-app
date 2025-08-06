@@ -134,7 +134,6 @@ if not st.session_state.data_loaded:
         st.session_state[df_name] = df_data
     st.session_state.data_loaded = True
 
-st.write('sssss')
 
 # Nếu chưa có token, hiển thị nút đăng nhập
 if st.session_state.token is None:
@@ -154,6 +153,7 @@ if st.session_state.token is None:
         st.rerun()
 
 # Nếu đã có token, tức là đã đăng nhập
+st.write('sssss')
 else:
     user_info = st.session_state.user_info
     if user_info:
