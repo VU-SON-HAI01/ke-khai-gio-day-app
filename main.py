@@ -144,9 +144,20 @@ else:
     # Nếu đã có token, tiếp tục xử lý
     user_info = st.session_state.user_info
     if not user_info:
-        st.error("Lỗi: Không thể lấy thông tin người dùng. Vui lòng thử đăng nhập lại.")
-        st.session_state.token = None # Xóa token lỗi
-        st.button("Thử lại")
+        # SỬA LẠI: Cung cấp thông báo lỗi chi tiết hơn
+        st.error(
+            """
+            **Lỗi: Không thể lấy thông tin người dùng sau khi đăng nhập.**
+
+            Điều này thường xảy ra do cấu hình trên Google Cloud Console. Vui lòng kiểm tra:
+            1.  **OAuth Consent Screen:** Nếu ứng dụng của bạn đang ở chế độ "Testing", hãy đảm bảo email bạn dùng để đăng nhập đã được thêm vào danh sách "Test users".
+            2.  **APIs:** Đảm bảo "Google People API" đã được bật (Enabled) trong dự án của bạn.
+            """
+        )
+        if st.button("Đăng xuất và thử lại"):
+            st.session_state.token = None
+            st.session_state.user_info = None
+            st.rerun()
         st.stop()
 
     # Bước 2: Tra cứu mã giảng viên (chỉ chạy 1 lần)
