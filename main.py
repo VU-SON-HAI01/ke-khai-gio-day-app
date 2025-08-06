@@ -62,34 +62,28 @@ def get_magv_from_email(client, email):
 @st.cache_data
 def load_all_data():
     """Tải tất cả các file Parquet cơ sở dữ liệu."""
-    st.write("Bắt đầu tải dữ liệu cơ sở...") # Thêm dòng này để gỡ lỗi
-    
-    # SỬA LỖI: Tạm thời chỉ tải 2 file quan trọng nhất để kiểm tra
     files_to_load = {
         'df_giaovien': 'data_base/df_giaovien.parquet',
         'df_khoa': 'data_base/df_khoa.parquet',
-        # --- TẠM THỜI VÔ HIỆU HÓA CÁC FILE KHÁC ĐỂ GỠ LỖI ---
-        # 'df_hesosiso': 'data_base/df_hesosiso.parquet',
-        # 'df_lop': 'data_base/df_lop.parquet',
-        # 'df_lopgheptach': 'data_base/df_lopgheptach.parquet',
-        # 'df_mon': 'data_base/df_mon.parquet',
-        # 'df_nangnhoc': 'data_base/df_nangnhoc.parquet',
-        # 'df_ngaytuan': 'data_base/df_ngaytuan.parquet',
-        # 'df_quydoi_hd': 'data_base/df_quydoi_hd.parquet',
-        # 'df_quydoi_hd_them': 'data_base/df_quydoi_hd_them.parquet',
-        # 'mau_kelop': 'data_base/mau_kelop.parquet',
-        # 'mau_quydoi': 'data_base/mau_quydoi.parquet',
+        'df_hesosiso': 'data_base/df_hesosiso.parquet',
+        'df_lop': 'data_base/df_lop.parquet',
+        'df_lopgheptach': 'data_base/df_lopgheptach.parquet',
+        'df_mon': 'data_base/df_mon.parquet',
+        'df_nangnhoc': 'data_base/df_nangnhoc.parquet',
+        'df_ngaytuan': 'data_base/df_ngaytuan.parquet',
+        'df_quydoi_hd': 'data_base/df_quydoi_hd.parquet',
+        'df_quydoi_hd_them': 'data_base/df_quydoi_hd_them.parquet',
+        'mau_kelop': 'data_base/mau_kelop.parquet',
+        'mau_quydoi': 'data_base/mau_quydoi.parquet',
     }
     loaded_dfs = {}
     for df_name, file_path in files_to_load.items():
         try:
-            st.write(f"Đang tải file: {file_path}") # Thêm dòng này để gỡ lỗi
             df = pd.read_parquet(file_path, engine='pyarrow')
             loaded_dfs[df_name] = df
         except Exception as e:
-            st.error(f"Lỗi khi tải '{file_path}': {e}")
+            st.error(f"Lỗi khi tải file dữ liệu '{file_path}': {e}")
             loaded_dfs[df_name] = pd.DataFrame()
-    st.write("Tải dữ liệu cơ sở hoàn tất.") # Thêm dòng này để gỡ lỗi
     return loaded_dfs
 
 def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
@@ -97,14 +91,12 @@ def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
     if not magv or df_giaovien.empty or df_khoa.empty:
         return None
     
-    # Đảm bảo kiểu dữ liệu nhất quán
     df_giaovien['Magv'] = df_giaovien['Magv'].astype(str)
     magv = str(magv)
 
     teacher_row = df_giaovien[df_giaovien['Magv'] == magv]
     if not teacher_row.empty:
         info = teacher_row.iloc[0].to_dict()
-        # Lấy tên khoa từ hàm laykhoatu_magv
         info['ten_khoa'] = laykhoatu_magv(df_khoa, magv)
         return info
     return None
@@ -131,18 +123,9 @@ for key in keys_to_init:
     if key not in st.session_state:
         st.session_state[key] = None
 
-# Tải dữ liệu Parquet một lần duy nhất
-if not st.session_state.data_loaded:
-    all_dfs = load_all_data()
-    for df_name, df_data in all_dfs.items():
-        st.session_state[df_name] = df_data
-    st.session_state.data_loaded = True
-    st.rerun() # Chạy lại để xóa các thông báo gỡ lỗi
-
 # Nếu chưa có token, hiển thị nút đăng nhập
 if st.session_state.token is None:
     st.info("Vui lòng đăng nhập để tiếp tục")
-    # SỬA LỖI: Bỏ asyncio.run()
     result = oauth2.authorize_button(
         name="Đăng nhập với Google",
         icon="https://www.google.com.tw/favicon.ico",
@@ -171,11 +154,18 @@ else:
                 st.error(f"Không tìm thấy Mã giảng viên cho email: {user_info.get('email')}. Vui lòng liên hệ quản trị viên.")
                 st.stop()
 
-        # Lấy thông tin chi tiết của giảng viên từ file Parquet (chỉ chạy 1 lần sau khi có magv)
-        if st.session_state.magv and st.session_state.tengv is None:
+        # SỬA LẠI: Tải dữ liệu và lấy thông tin chi tiết sau khi có magv
+        if st.session_state.magv and not st.session_state.data_loaded:
+            with st.spinner("Đang tải dữ liệu cơ sở..."):
+                all_dfs = load_all_data()
+                for df_name, df_data in all_dfs.items():
+                    st.session_state[df_name] = df_data
+                st.session_state.data_loaded = True
+
             df_giaovien_g = st.session_state.get('df_giaovien', pd.DataFrame())
             df_khoa_g = st.session_state.get('df_khoa', pd.DataFrame())
             teacher_info = get_teacher_info_from_local(st.session_state.magv, df_giaovien_g, df_khoa_g)
+            
             if teacher_info:
                 st.session_state.tengv = teacher_info.get('Tên giảng viên')
                 st.session_state.ten_khoa = teacher_info.get('ten_khoa')
