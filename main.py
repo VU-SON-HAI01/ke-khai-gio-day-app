@@ -134,7 +134,7 @@ if not st.session_state.data_loaded:
         st.session_state[df_name] = df_data
     st.session_state.data_loaded = True
 
-st.write(df_giaovien)
+st.write(st.session_state[df_giaovien])
 
 # Nếu chưa có token, hiển thị nút đăng nhập
 if st.session_state.token is None:
