@@ -6,13 +6,8 @@ import os # Để kiểm tra đường dẫn file font
 from pathlib import Path
 from datetime import datetime
 import glob
-import io
 import re
 
-from kegio import giochuan
-
-#loaded_df1 = pd.read_parquet(f'data_parquet/1001mon1.parquet')
-#loaded_df2 = pd.read_parquet(f'data_parquet/1001mon2.parquet')
 IMAGE_FILE = "image/Logo_caodangdaklak_top.png"
 IMAGE_backgroud = "image/Logo_caodangdaklak_nen.png"
 
