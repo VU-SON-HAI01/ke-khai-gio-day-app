@@ -7,6 +7,8 @@ import asyncio
 import os
 
 # --- CẤU HÌNH BAN ĐẦU ---
+st.set_page_config(layout="wide")
+
 # Lấy thông tin từ Streamlit Secrets
 try:
     CLIENT_ID = st.secrets["google_oauth"]["clientId"]
@@ -103,8 +105,7 @@ def laykhoatu_magv(df_khoa, magv):
     return "Không tìm thấy khoa"
 
 # --- GIAO DIỆN ỨNG DỤNG ---
-
-st.set_page_config(layout="wide")
+st.title("Hệ thống Kê khai Giờ dạy")
 
 # Khởi tạo OAuth2Component
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
@@ -124,16 +125,16 @@ if not st.session_state.data_loaded:
 
 # Nếu chưa có token, hiển thị nút đăng nhập
 if st.session_state.token is None:
-    st.title("Hệ thống Kê khai Giờ dạy")
     st.info("Vui lòng đăng nhập để tiếp tục")
-    result = asyncio.run(oauth2.authorize_button(
+    # SỬA LỖI: Bỏ asyncio.run()
+    result = oauth2.authorize_button(
         name="Đăng nhập với Google",
         icon="https://www.google.com.tw/favicon.ico",
         redirect_uri=REDIRECT_URI,
         scope="openid email profile",
         key="google",
         use_container_width=True,
-    ))
+    )
     if result:
         st.session_state.token = result.get('token')
         st.session_state.user_info = result.get('user')
@@ -174,7 +175,7 @@ else:
         # Hiển thị thông tin giảng viên và điều hướng trang
         if st.session_state.tengv:
             with st.sidebar:
-                st.header(":green[THÔNG TIN]")
+                st.header(":green[THÔNG TIN GIÁO VIÊN]")
                 st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
                 st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
                 st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
