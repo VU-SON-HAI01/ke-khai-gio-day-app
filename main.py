@@ -61,15 +61,24 @@ def get_magv_from_email(client, email):
 
 @st.cache_data
 def load_all_data():
-    """Tải tất cả các file Parquet cơ sở dữ liệu."""
     files_to_load = {
-        'df_giaovien': 'data_base/df_giaovien.parquet',
+        'df_hesosiso': 'data_base/df_hesosiso.parquet',
         'df_khoa': 'data_base/df_khoa.parquet',
-        # Thêm các file parquet khác của bạn ở đây
+        'df_lop': 'data_base/df_lop.parquet',
+        'df_lopgheptach': 'data_base/df_lopgheptach.parquet',
+        'df_mon': 'data_base/df_mon.parquet',
+        'df_nangnhoc': 'data_base/df_nangnhoc.parquet',
+        'df_ngaytuan': 'data_base/df_ngaytuan.parquet',
+        'df_quydoi_hd': 'data_base/df_quydoi_hd.parquet',
+        'df_quydoi_hd_them': 'data_base/df_quydoi_hd_them.parquet',
+        'df_giaovien': 'data_base/df_giaovien.parquet',
+        'mau_kelop': 'data_base/mau_kelop.parquet',
+        'mau_quydoi': 'data_base/mau_quydoi.parquet',
     }
     loaded_dfs = {}
     for df_name, file_path in files_to_load.items():
         try:
+            # ... (logic đọc file của bạn) ...
             df = pd.read_parquet(file_path, engine='pyarrow')
             loaded_dfs[df_name] = df
         except Exception as e:
