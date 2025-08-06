@@ -73,7 +73,15 @@ def get_magv_from_email(client, email):
         st.error(f"Lỗi: Không tìm thấy trang tính '{USER_MAPPING_WORKSHEET}' trong file Google Sheet.")
         return None
     except Exception as e:
-        st.error(f"Lỗi khi tra cứu mã giảng viên: {e}")
+        # SỬA LỖI: Thêm logic gỡ lỗi chi tiết
+        error_type = type(e).__name__
+        error_details = str(e)
+        
+        # Cố gắng lấy thêm thông tin chi tiết nếu lỗi là một đối tượng Response
+        if hasattr(e, 'response'):
+             error_details = f"HTTP Status: {e.response.status_code}, Content: {e.response.text[:500]}..."
+        
+        st.error(f"Lỗi khi tra cứu mã giảng viên (Loại lỗi: {error_type}): {error_details}")
         return None
 
 @st.cache_data
