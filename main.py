@@ -111,44 +111,43 @@ def laykhoatu_magv(df_khoa, magv):
         return matching_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
     return "Không tìm thấy khoa"
 
-# --- TÁI CẤU TRÚC LOGIC VÀO HÀM ASYNC ---
-async def main():
-    st.title("Hệ thống Kê khai Giờ dạy")
+# --- GIAO DIỆN ỨNG DỤNG ---
+st.title("Hệ thống Kê khai Giờ dạy")
 
-    # Khởi tạo OAuth2Component
-    oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
+# Khởi tạo OAuth2Component
+oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
 
-    # Khởi tạo các giá trị trong session state
-    keys_to_init = ['token', 'user_info', 'magv', 'tengv', 'ten_khoa', 'chuangv', 'giochuan', 'data_loaded']
-    for key in keys_to_init:
-        if key not in st.session_state:
-            st.session_state[key] = None
+# Khởi tạo các giá trị trong session state
+keys_to_init = ['token', 'user_info', 'magv', 'tengv', 'ten_khoa', 'chuangv', 'giochuan', 'data_loaded']
+for key in keys_to_init:
+    if key not in st.session_state:
+        st.session_state[key] = None
 
-    # --- SỬA LẠI: LUỒNG XỬ LÝ TUẦN TỰ ---
+# --- SỬA LẠI: BỎ CẤU TRÚC ASYNC/AWAIT ---
 
-    # Bước 1: Kiểm tra token. Nếu chưa có, hiển thị nút đăng nhập.
-    if st.session_state.token is None:
-        st.info("Vui lòng đăng nhập để tiếp tục")
-        result = await oauth2.authorize_button(
-            name="Đăng nhập với Google",
-            icon="https://www.google.com.tw/favicon.ico",
-            redirect_uri=REDIRECT_URI,
-            scope="openid email profile",
-            key="google",
-            use_container_width=True,
-        )
-        if result:
-            st.session_state.token = result.get('token')
-            st.session_state.user_info = result.get('user')
-            st.rerun()
-        return # Dừng thực thi ở đây cho đến khi có token
-
+# Bước 1: Kiểm tra token. Nếu chưa có, hiển thị nút đăng nhập.
+if 'token' not in st.session_state or st.session_state.token is None:
+    st.info("Vui lòng đăng nhập để tiếp tục")
+    result = oauth2.authorize_button(
+        name="Đăng nhập với Google",
+        icon="https://www.google.com.tw/favicon.ico",
+        redirect_uri=REDIRECT_URI,
+        scope="openid email profile",
+        key="google",
+        use_container_width=True,
+    )
+    if result:
+        st.session_state.token = result.get('token')
+        st.session_state.user_info = result.get('user')
+        st.rerun()
+else:
     # Nếu đã có token, tiếp tục xử lý
     user_info = st.session_state.user_info
     if not user_info:
         st.error("Lỗi: Không thể lấy thông tin người dùng. Vui lòng thử đăng nhập lại.")
         st.session_state.token = None # Xóa token lỗi
-        return
+        st.button("Thử lại")
+        st.stop()
 
     # Bước 2: Tra cứu mã giảng viên (chỉ chạy 1 lần)
     if st.session_state.magv is None:
@@ -218,7 +217,3 @@ async def main():
         }
         pg = st.navigation(pages)
         pg.run()
-
-# Chạy hàm main bằng asyncio.run()
-if __name__ == '__main__':
-    asyncio.run(main())
