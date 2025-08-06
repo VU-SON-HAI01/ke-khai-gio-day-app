@@ -117,7 +117,7 @@ def laykhoatu_magv(df_khoa, magv):
 
 # --- GIAO DIỆN ỨNG DỤNG ---
 st.title("Hệ thống Kê khai Giờ dạy")
-st.write(df_giaovien)
+
 # Khởi tạo OAuth2Component
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
 
@@ -133,6 +133,8 @@ if not st.session_state.data_loaded:
     for df_name, df_data in all_dfs.items():
         st.session_state[df_name] = df_data
     st.session_state.data_loaded = True
+
+st.write(df_giaovien)
 
 # Nếu chưa có token, hiển thị nút đăng nhập
 if st.session_state.token is None:
@@ -159,6 +161,7 @@ else:
         if st.session_state.magv is None:
             client = connect_to_gsheet()
             magv = get_magv_from_email(client, user_info.get('email'))
+
             if magv:
                 st.session_state.magv = magv
                 st.rerun()
