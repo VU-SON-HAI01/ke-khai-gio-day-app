@@ -194,7 +194,7 @@ else:
             st.session_state.magv = magv
             st.rerun()
         else:
-            # SỬA LẠI: Hiển thị form đăng ký cho người dùng mới
+            # Hiển thị form đăng ký cho người dùng mới
             st.error("Email chưa được đăng ký. Yêu cầu giảng viên gửi tin nhắn cho admin thông tin để được cập nhật.")
             
             if 'registration_sent' in st.session_state and st.session_state.registration_sent:
@@ -220,7 +220,6 @@ else:
                             mailto_link = f"mailto:admin@cdktdaklak.edu.vn?subject={subject}&body={body_encoded}"
                             
                             st.session_state.registration_sent = True
-                            # SỬA LẠI: Cung cấp hướng dẫn rõ ràng hơn
                             link_html = f'<p style="text-align: center;"><a href="{mailto_link}" target="_blank" style="background-color: #4CAF50; color: white; padding: 14px 25px; text-align: center; text-decoration: none; display: inline-block; border-radius: 8px; font-weight: bold;">Nhấn vào đây để mở ứng dụng Email</a></p>'
                             st.markdown(link_html, unsafe_allow_html=True)
                             st.info("Sau khi nhấn vào nút trên, một cửa sổ email sẽ mở ra. Vui lòng kiểm tra lại thông tin và nhấn GỬI để hoàn tất.")
