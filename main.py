@@ -26,11 +26,10 @@ REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 
 # --- CÁC HÀM KẾT NỐI VÀ XỬ LÝ DỮ LIỆU ---
 
-@st.cache_data
+# SỬA LỖI: Bỏ cache khỏi hàm kết nối để đảm bảo kết nối luôn mới, tránh lỗi xác thực
 def connect_to_gsheet():
     """Hàm kết nối tới Google Sheet sử dụng Service Account."""
     try:
-        # SỬA LỖI: Sử dụng phương thức xác thực mới của gspread
         creds_dict = st.secrets["gcp_service_account"]
         client = gspread.service_account_from_dict(creds_dict)
         return client
@@ -50,7 +49,6 @@ def get_magv_from_email(client, email):
         
         df = pd.DataFrame(data)
         
-        # Chuẩn hóa email để tra cứu chính xác
         if 'email' not in df.columns:
             st.error(f"Lỗi: Cột 'email' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
             return None
@@ -71,14 +69,10 @@ def get_magv_from_email(client, email):
         st.error(f"Lỗi: Không tìm thấy trang tính '{USER_MAPPING_WORKSHEET}' trong file Google Sheet.")
         return None
     except Exception as e:
-        # SỬA LỖI: Thêm logic gỡ lỗi chi tiết
         error_type = type(e).__name__
         error_details = str(e)
-        
-        # Cố gắng lấy thêm thông tin chi tiết nếu lỗi là một đối tượng Response
         if hasattr(e, 'response'):
              error_details = f"HTTP Status: {e.response.status_code}, Content: {e.response.text[:500]}..."
-        
         st.error(f"Lỗi khi tra cứu mã giảng viên (Loại lỗi: {error_type}): {error_details}")
         return None
 
@@ -135,7 +129,6 @@ def laykhoatu_magv(df_khoa, magv):
     return "Không tìm thấy khoa"
 
 # --- GIAO DIỆN ỨNG DỤNG ---
-
 st.image("image/banner-top-kegio.jpg", use_container_width=True)
 
 # Khởi tạo OAuth2Component
@@ -151,7 +144,7 @@ for key in keys_to_init:
 
 # Bước 1: Kiểm tra token. Nếu chưa có, hiển thị nút đăng nhập.
 if 'token' not in st.session_state or st.session_state.token is None:
-    #st.info("Vui lòng đăng nhập để tiếp tục")
+    st.info("Vui lòng đăng nhập để tiếp tục")
     result = oauth2.authorize_button(
         name="Đăng nhập với Google",
         icon="https://www.google.com.tw/favicon.ico",
@@ -217,11 +210,11 @@ else:
             if teacher_info:
                 st.session_state.tengv = teacher_info.get('Tên giảng viên')
                 st.session_state.ten_khoa = teacher_info.get('ten_khoa')
-                st.session_state.chuangv = teacher_info.get('Chuẩn GV','Cao đẳng')
+                st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
                 
                 giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
                 st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
-                st.session_state.data_loaded = True # Đánh dấu đã tải xong
+                st.session_state.data_loaded = True
                 st.rerun()
             else:
                 st.error(f"Không tìm thấy thông tin chi tiết cho Mã giảng viên: {st.session_state.magv} trong file dữ liệu.")
@@ -235,7 +228,7 @@ else:
             st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
             st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
             st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
-            st.write(f"**Chuẩn GV:** :green[{st.session_state.chuangv}]")
+            st.write(f"(Chuẩn GV: {st.session_state.chuangv})")
             st.divider()
             st.write(f"Đăng nhập với email: {user_info.get('email')}")
             if st.button("Đăng xuất", use_container_width=True):
