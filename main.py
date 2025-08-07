@@ -40,18 +40,18 @@ def connect_to_gsheet():
 def get_magv_from_email(client, email):
     """Tra cứu mã giảng viên (magv) từ email trong Google Sheet một cách mạnh mẽ hơn."""
     if not client or not email:
-        return None
+        return None, None
     try:
         sheet = client.open(SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
         data = sheet.get_all_records()
         if not data:
-            return None
+            return None, pd.DataFrame()
         
         df = pd.DataFrame(data)
         
         if 'email' not in df.columns:
             st.error(f"Lỗi: Cột 'email' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
-            return None
+            return None, df
             
         search_email = email.lower().strip()
         df['email_normalized'] = df['email'].astype(str).str.lower().str.strip()
@@ -61,20 +61,20 @@ def get_magv_from_email(client, email):
         if not user_row.empty:
             if 'magv' not in user_row.columns:
                 st.error(f"Lỗi: Cột 'magv' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
-                return None
-            return user_row.iloc[0]['magv']
+                return None, df
+            return user_row.iloc[0]['magv'], df
         
-        return None
+        return None, df
     except gspread.exceptions.WorksheetNotFound:
         st.error(f"Lỗi: Không tìm thấy trang tính '{USER_MAPPING_WORKSHEET}' trong file Google Sheet.")
-        return None
+        return None, None
     except Exception as e:
         error_type = type(e).__name__
         error_details = str(e)
         if hasattr(e, 'response'):
              error_details = f"HTTP Status: {e.response.status_code}, Content: {e.response.text[:500]}..."
         st.error(f"Lỗi khi tra cứu mã giảng viên (Loại lỗi: {error_type}): {error_details}")
-        return None
+        return None, None
 
 @st.cache_data
 def load_all_data():
@@ -187,13 +187,22 @@ else:
     if st.session_state.magv is None:
         with st.spinner("Đang xác thực và tra cứu mã giảng viên..."):
             client = connect_to_gsheet()
-            magv = get_magv_from_email(client, user_info.get('email'))
+            magv, df_users = get_magv_from_email(client, user_info.get('email'))
         
         if magv:
             st.session_state.magv = magv
             st.rerun()
         else:
             st.error(f"Không tìm thấy Mã giảng viên cho email: {user_info.get('email')}. Vui lòng liên hệ quản trị viên.")
+            # SỬA LỖI: Thêm phần gỡ lỗi chi tiết
+            with st.expander("Chi tiết gỡ lỗi (Dành cho quản trị viên)"):
+                st.write("Thông tin người dùng nhận được từ Google:")
+                st.json(user_info)
+                st.write("Dữ liệu email trong Google Sheet (đã chuẩn hóa):")
+                if df_users is not None and not df_users.empty:
+                    st.dataframe(df_users[['email', 'magv', 'email_normalized']])
+                else:
+                    st.warning("Không đọc được dữ liệu từ Google Sheet.")
             st.stop()
 
     # Bước 3: Tải dữ liệu và lấy thông tin chi tiết (chỉ chạy 1 lần sau khi có magv)
