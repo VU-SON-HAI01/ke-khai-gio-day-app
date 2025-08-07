@@ -4,7 +4,8 @@ import pandas as pd
 from streamlit_oauth import OAuth2Component
 import asyncio
 import os
-import requests # Thêm thư viện requests
+import requests 
+import urllib.parse # Thêm thư viện để xử lý URL
 
 # --- CẤU HÌNH BAN ĐẦU ---
 st.set_page_config(layout="wide")
@@ -193,16 +194,34 @@ else:
             st.session_state.magv = magv
             st.rerun()
         else:
-            st.error(f"Không tìm thấy Mã giảng viên cho email: {user_info.get('email')}. Vui lòng liên hệ quản trị viên.")
-            # SỬA LỖI: Thêm phần gỡ lỗi chi tiết
-            with st.expander("Chi tiết gỡ lỗi (Dành cho quản trị viên)"):
-                st.write("Thông tin người dùng nhận được từ Google:")
-                st.json(user_info)
-                st.write("Dữ liệu email trong Google Sheet (đã chuẩn hóa):")
-                if df_users is not None and not df_users.empty:
-                    st.dataframe(df_users[['email', 'magv', 'email_normalized']])
-                else:
-                    st.warning("Không đọc được dữ liệu từ Google Sheet.")
+            # SỬA LẠI: Hiển thị form đăng ký cho người dùng mới
+            st.error("Email chưa được đăng ký. Yêu cầu giảng viên gửi tin nhắn cho admin thông tin để được cập nhật.")
+            
+            if 'registration_sent' in st.session_state and st.session_state.registration_sent:
+                st.success("Bạn đã gửi thông tin cho quản trị viên. Xin vui lòng chờ xác thực!")
+            else:
+                with st.form("registration_form"):
+                    st.write("Vui lòng điền thông tin dưới đây để gửi yêu cầu đăng ký:")
+                    ho_ten = st.text_input("Họ tên GV", value=user_info.get('name', ''))
+                    khoa = st.text_input("Khoa/Phòng")
+                    dien_thoai = st.text_input("Điện thoại")
+                    email = st.text_input("Email", value=user_info.get('email'), disabled=True)
+                    
+                    submitted = st.form_submit_button("Gửi thông tin cho Admin")
+                    
+                    if submitted:
+                        if not all([ho_ten, khoa, dien_thoai]):
+                            st.warning("Vui lòng điền đầy đủ thông tin.")
+                        else:
+                            subject = f"Yeu cau dang ky tai khoan Ke khai: {ho_ten}"
+                            body = f"Vui long cap nhat thong tin giang vien sau vao he thong:\n\n- Ho ten: {ho_ten}\n- Khoa: {khoa}\n- Dien thoai: {dien_thoai}\n- Email: {email}\n\nXin cam on."
+                            body_encoded = urllib.parse.quote(body)
+                            mailto_link = f"mailto:admin@cdktdaklak.edu.vn?subject={subject}&body={body_encoded}"
+                            
+                            st.session_state.registration_sent = True
+                            st.markdown(f'<a href="{mailto_link}" target="_blank">Nhấn vào đây để mở ứng dụng email và gửi yêu cầu</a>', unsafe_allow_html=True)
+                            st.info("Sau khi nhấn vào link trên, vui lòng nhấn gửi email để hoàn tất.")
+                            st.rerun()
             st.stop()
 
     # Bước 3: Tải dữ liệu và lấy thông tin chi tiết (chỉ chạy 1 lần sau khi có magv)
@@ -243,6 +262,7 @@ else:
             if st.button("Đăng xuất", use_container_width=True):
                 for key in keys_to_init:
                     st.session_state[key] = None
+                st.session_state.registration_sent = False # Reset trạng thái đăng ký
                 st.rerun()
 
         # --- Điều hướng trang ---
