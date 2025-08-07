@@ -136,22 +136,7 @@ def laykhoatu_magv(df_khoa, magv):
 
 # --- GIAO DIỆN ỨNG DỤNG ---
 
-st.markdown(
-    """
-    <style>
-        /* Canh giữa container của ảnh */
-        div[data-testid="stImage"] {
-            text-align: center;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
-    </style>
-    """, unsafe_allow_html=True
-)
-st.image("image/Logo_caodangdaklak_top.png", width=150)
-
-st.markdown("<h1 style='text-align: center; color: green;'>KÊ GIỜ NĂM HỌC 2025</h1>", unsafe_allow_html=True)
+st.image("image/banner-top-kegio.jpg", use_container_width=True)
 
 # Khởi tạo OAuth2Component
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
