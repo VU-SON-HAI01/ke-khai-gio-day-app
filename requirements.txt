@@ -1,7 +1,7 @@
 streamlit
 pandas
-gspread
-google-auth
+gspread==5.12.4
+google-auth==2.27.0
 streamlit-oauth
 requests
 pyarrow
