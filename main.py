@@ -216,7 +216,7 @@ else:
                             subject = f"Yeu cau dang ky tai khoan Ke khai: {ho_ten}"
                             body = f"Vui long cap nhat thong tin giang vien sau vao he thong:\n\n- Ho ten: {ho_ten}\n- Khoa: {khoa}\n- Dien thoai: {dien_thoai}\n- Email: {email}\n\nXin cam on."
                             body_encoded = urllib.parse.quote(body)
-                            mailto_link = f"mailto:admin@cdktdaklak.edu.vn?subject={subject}&body={body_encoded}"
+                            mailto_link = f"mailto:vshai48dk1@gmail.com?subject={subject}&body={body_encoded}"
                             
                             st.session_state.registration_sent = True
                             st.markdown(f'<a href="{mailto_link}" target="_blank">Nhấn vào đây để mở ứng dụng email và gửi yêu cầu</a>', unsafe_allow_html=True)
