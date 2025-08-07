@@ -5,7 +5,8 @@ from streamlit_oauth import OAuth2Component
 import asyncio
 import os
 import requests 
-import urllib.parse # Thêm thư viện để xử lý URL
+import smtplib # Thêm thư viện để gửi email
+from email.mime.text import MIMEText # Thêm thư viện để tạo email
 
 # --- CẤU HÌNH BAN ĐẦU ---
 st.set_page_config(layout="wide")
@@ -129,6 +130,30 @@ def laykhoatu_magv(df_khoa, magv):
         return matching_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
     return "Không tìm thấy khoa"
 
+# --- THÊM MỚI: HÀM GỬI EMAIL TỰ ĐỘNG ---
+def send_registration_email(ho_ten, khoa, dien_thoai, email):
+    """Gửi email thông báo đăng ký về cho admin."""
+    try:
+        sender_email = st.secrets["admin_email"]["address"]
+        sender_password = st.secrets["admin_email"]["app_password"]
+        receiver_email = st.secrets["admin_email"]["address"] 
+
+        subject = f"Yeu cau dang ky tai khoan Ke khai: {ho_ten}"
+        body = f"Vui long cap nhat thong tin giang vien sau vao he thong:\n\n- Ho ten: {ho_ten}\n- Khoa: {khoa}\n- Dien thoai: {dien_thoai}\n- Email: {email}\n\nXin cam on."
+
+        msg = MIMEText(body, 'plain', 'utf-8')
+        msg['Subject'] = subject
+        msg['From'] = sender_email
+        msg['To'] = receiver_email
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        st.error(f"Lỗi khi gửi email thông báo: {e}")
+        return False
+
 # --- GIAO DIỆN ỨNG DỤNG ---
 st.image("image/banner-top-kegio.jpg", use_container_width=True)
 
@@ -194,12 +219,11 @@ else:
             st.session_state.magv = magv
             st.rerun()
         else:
-            # Hiển thị form đăng ký cho người dùng mới
+            # SỬA LẠI: Hiển thị form đăng ký và gửi email tự động
             st.error("Email chưa được đăng ký. Yêu cầu giảng viên gửi tin nhắn cho admin thông tin để được cập nhật.")
             
             if 'registration_sent' in st.session_state and st.session_state.registration_sent:
                 st.success("Bạn đã gửi thông tin cho quản trị viên. Xin vui lòng chờ xác thực!")
-                st.info("Hãy kiểm tra ứng dụng email của bạn và nhấn GỬI để hoàn tất yêu cầu.")
             else:
                 with st.form("registration_form"):
                     st.write("Vui lòng điền thông tin dưới đây để gửi yêu cầu đăng ký:")
@@ -208,22 +232,17 @@ else:
                     dien_thoai = st.text_input("Điện thoại")
                     email = st.text_input("Email", value=user_info.get('email'), disabled=True)
                     
-                    submitted = st.form_submit_button("Chuẩn bị Email gửi cho Admin")
+                    submitted = st.form_submit_button("Gửi thông tin cho Admin")
                     
                     if submitted:
                         if not all([ho_ten, khoa, dien_thoai]):
                             st.warning("Vui lòng điền đầy đủ thông tin.")
                         else:
-                            subject = f"Yeu cau dang ky tai khoan Ke khai: {ho_ten}"
-                            body = f"Vui long cap nhat thong tin giang vien sau vao he thong:\n\n- Ho ten: {ho_ten}\n- Khoa: {khoa}\n- Dien thoai: {dien_thoai}\n- Email: {email}\n\nXin cam on."
-                            body_encoded = urllib.parse.quote(body)
-                            mailto_link = f"mailto:admin@cdktdaklak.edu.vn?subject={subject}&body={body_encoded}"
-                            
-                            st.session_state.registration_sent = True
-                            link_html = f'<p style="text-align: center;"><a href="{mailto_link}" target="_blank" style="background-color: #4CAF50; color: white; padding: 14px 25px; text-align: center; text-decoration: none; display: inline-block; border-radius: 8px; font-weight: bold;">Nhấn vào đây để mở ứng dụng Email</a></p>'
-                            st.markdown(link_html, unsafe_allow_html=True)
-                            st.info("Sau khi nhấn vào nút trên, một cửa sổ email sẽ mở ra. Vui lòng kiểm tra lại thông tin và nhấn GỬI để hoàn tất.")
-                            st.rerun()
+                            # Gửi email tự động
+                            email_sent = send_registration_email(ho_ten, khoa, dien_thoai, email)
+                            if email_sent:
+                                st.session_state.registration_sent = True
+                                st.rerun()
             st.stop()
 
     # Bước 3: Tải dữ liệu và lấy thông tin chi tiết (chỉ chạy 1 lần sau khi có magv)
