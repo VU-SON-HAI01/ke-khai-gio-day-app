@@ -1,16 +1,90 @@
 import streamlit as st
+import gspread
 import pandas as pd
+from streamlit_oauth import OAuth2Component
+import asyncio
 import os
+import requests 
+import smtplib # Thêm thư viện để gửi email
+from email.mime.text import MIMEText # Thêm thư viện để tạo email
 
+# --- CẤU HÌNH BAN ĐẦU ---
+st.set_page_config(layout="wide")
 
-# ... các import khác của bạn
+# Lấy thông tin từ Streamlit Secrets
+try:
+    CLIENT_ID = st.secrets["google_oauth"]["clientId"]
+    CLIENT_SECRET = st.secrets["google_oauth"]["clientSecret"]
+    REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
+    SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
+    USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
+except KeyError as e:
+    st.error(f"Lỗi: Không tìm thấy thông tin cấu hình cần thiết trong st.secrets. Vui lòng kiểm tra file secrets.toml. Chi tiết lỗi: {e}")
+    st.stop()
 
-# Sử dụng cache_data để tối ưu hóa việc tải data_base .parquet
+AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+TOKEN_URL = "https://oauth2.googleapis.com/token"
+REVOKE_URL = "https://oauth2.googleapis.com/revoke"
+
+# --- CÁC HÀM KẾT NỐI VÀ XỬ LÝ DỮ LIỆU ---
+
+# SỬA LỖI: Bỏ cache khỏi hàm kết nối để đảm bảo kết nối luôn mới, tránh lỗi xác thực
+def connect_to_gsheet():
+    """Hàm kết nối tới Google Sheet sử dụng Service Account."""
+    try:
+        creds_dict = st.secrets["gcp_service_account"]
+        client = gspread.service_account_from_dict(creds_dict)
+        return client
+    except Exception as e:
+        st.error(f"Lỗi kết nối tới Google Sheet: {e}")
+        return None
+
+def get_magv_from_email(client, email):
+    """Tra cứu mã giảng viên (magv) từ email trong Google Sheet một cách mạnh mẽ hơn."""
+    if not client or not email:
+        return None, None
+    try:
+        sheet = client.open(SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+        data = sheet.get_all_records()
+        if not data:
+            return None, pd.DataFrame()
+        
+        df = pd.DataFrame(data)
+        
+        if 'email' not in df.columns:
+            st.error(f"Lỗi: Cột 'email' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
+            return None, df
+            
+        search_email = email.lower().strip()
+        df['email_normalized'] = df['email'].astype(str).str.lower().str.strip()
+        
+        user_row = df[df['email_normalized'] == search_email]
+        
+        if not user_row.empty:
+            if 'magv' not in user_row.columns:
+                st.error(f"Lỗi: Cột 'magv' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
+                return None, df
+            return user_row.iloc[0]['magv'], df
+        
+        return None, df
+    except gspread.exceptions.WorksheetNotFound:
+        st.error(f"Lỗi: Không tìm thấy trang tính '{USER_MAPPING_WORKSHEET}' trong file Google Sheet.")
+        return None, None
+    except Exception as e:
+        error_type = type(e).__name__
+        error_details = str(e)
+        if hasattr(e, 'response'):
+             error_details = f"HTTP Status: {e.response.status_code}, Content: {e.response.text[:500]}..."
+        st.error(f"Lỗi khi tra cứu mã giảng viên (Loại lỗi: {error_type}): {error_details}")
+        return None, None
+
 @st.cache_data
 def load_all_data():
+    """Tải tất cả các file Parquet cơ sở dữ liệu."""
     files_to_load = {
-        'df_hesosiso': 'data_base/df_hesosiso.parquet',
+        'df_giaovien': 'data_base/df_giaovien.parquet',
         'df_khoa': 'data_base/df_khoa.parquet',
+        'df_hesosiso': 'data_base/df_hesosiso.parquet',
         'df_lop': 'data_base/df_lop.parquet',
         'df_lopgheptach': 'data_base/df_lopgheptach.parquet',
         'df_mon': 'data_base/df_mon.parquet',
@@ -18,127 +92,212 @@ def load_all_data():
         'df_ngaytuan': 'data_base/df_ngaytuan.parquet',
         'df_quydoi_hd': 'data_base/df_quydoi_hd.parquet',
         'df_quydoi_hd_them': 'data_base/df_quydoi_hd_them.parquet',
-        'df_giaovien': 'data_base/df_giaovien.parquet',
         'mau_kelop': 'data_base/mau_kelop.parquet',
         'mau_quydoi': 'data_base/mau_quydoi.parquet',
     }
     loaded_dfs = {}
     for df_name, file_path in files_to_load.items():
         try:
-            # ... (logic đọc file của bạn) ...
             df = pd.read_parquet(file_path, engine='pyarrow')
             loaded_dfs[df_name] = df
         except Exception as e:
-            st.error(f"Lỗi khi tải '{file_path}': {e}")
+            st.error(f"Lỗi khi tải file dữ liệu '{file_path}': {e}")
             loaded_dfs[df_name] = pd.DataFrame()
     return loaded_dfs
 
-# --- HÀM ĐÃ ĐƯỢC SỬA LỖI ---
+def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
+    """Tra cứu thông tin giảng viên từ các DataFrame cục bộ."""
+    if not magv or df_giaovien.empty or df_khoa.empty:
+        return None
+    
+    df_giaovien['Magv'] = df_giaovien['Magv'].astype(str)
+    magv = str(magv)
+
+    teacher_row = df_giaovien[df_giaovien['Magv'] == magv]
+    if not teacher_row.empty:
+        info = teacher_row.iloc[0].to_dict()
+        info['ten_khoa'] = laykhoatu_magv(df_khoa, magv)
+        return info
+    return None
+
 def laykhoatu_magv(df_khoa, magv):
-    """
-    Lấy tên khoa/phòng từ mã giảng viên một cách an toàn.
-    """
-    # Đảm bảo magv là chuỗi và không rỗng
+    """Lấy tên khoa/phòng từ mã giảng viên một cách an toàn."""
     if not isinstance(magv, str) or not magv:
         return "Không xác định"
-
-    # Trích xuất mã khoa (ký tự đầu tiên)
     ma_khoa = magv[0]
-
-    # Lọc DataFrame khoa
     matching_khoa = df_khoa[df_khoa['Mã'] == ma_khoa]
-
-    # Kiểm tra xem có tìm thấy kết quả hay không
     if not matching_khoa.empty:
-        # Lấy tên khoa từ dòng đầu tiên tìm thấy
-        ten_khoa = matching_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
-        return ten_khoa
-    else:
-        # Trả về giá trị mặc định nếu không tìm thấy
-        return "Không tìm thấy khoa"
+        return matching_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
+    return "Không tìm thấy khoa"
 
-giochuan_map = {
-    "Cao đẳng": 594,
-    "Cao đẳng (MC)": 616,
-    "Trung cấp": 594,
-    "Trung cấp (MC)": 616
-}
+# --- THÊM MỚI: HÀM GỬI EMAIL TỰ ĐỘNG ---
+def send_registration_email(ho_ten, khoa, dien_thoai, email):
+    """Gửi email thông báo đăng ký về cho admin."""
+    try:
+        sender_email = st.secrets["admin_email"]["address"]
+        sender_password = st.secrets["admin_email"]["app_password"]
+        receiver_email = st.secrets["admin_email"]["address"] 
 
+        subject = f"Yeu cau dang ky tai khoan Ke khai: {ho_ten}"
+        body = f"Vui long cap nhat thong tin giang vien sau vao he thong:\n\n- Ho ten: {ho_ten}\n- Khoa: {khoa}\n- Dien thoai: {dien_thoai}\n- Email: {email}\n\nXin cam on."
 
-# --- LOGIC CHÍNH CỦA main.py ---
+        msg = MIMEText(body, 'plain', 'utf-8')
+        msg['Subject'] = subject
+        msg['From'] = sender_email
+        msg['To'] = receiver_email
 
-st.set_page_config(layout="wide")
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        st.error(f"Lỗi khi gửi email thông báo: {e}")
+        return False
 
-# 1. Tải và lưu dữ liệu vào session_state một lần duy nhất
-if 'data_loaded' not in st.session_state:
-    st.write("Đang tải dữ liệu cơ sở...")
-    all_dfs = load_all_data()
-    # Lưu từng DataFrame vào session_state
-    for df_name, df_data in all_dfs.items():
-        st.session_state[df_name] = df_data
+# --- GIAO DIỆN ỨNG DỤNG ---
+st.image("image/banner-top-kegio.jpg", use_container_width=True)
 
-    # Đánh dấu là đã tải xong
-    st.session_state.data_loaded = True
-    st.success("Tải dữ liệu cơ sở thành công!")
+# Khởi tạo OAuth2Component
+oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
 
-df_giaovien_g = st.session_state.get('df_giaovien', pd.DataFrame())
-df_khoa_g = st.session_state.get('df_khoa', pd.DataFrame())
-dsach_giaovien = df_giaovien_g['Tên giảng viên'].tolist()
+# Khởi tạo các giá trị trong session state
+keys_to_init = ['token', 'user_info', 'magv', 'tengv', 'ten_khoa', 'chuangv', 'giochuan', 'data_loaded']
+for key in keys_to_init:
+    if key not in st.session_state:
+        st.session_state[key] = None
 
-# --- Sidebar để chọn giảng viên ---
-st.sidebar.header(":green[THÔNG TIN GIÁO VIÊN]")
-with st.sidebar:
-    if 'chuangv' not in st.session_state:
-        st.session_state['chuangv'] = 'Cao đẳng'
-    # --- GIAO DIỆN VÀ LOGIC CHÍNH ---
-    # Chọn tên giảng viên
-    tengv = st.selectbox("Chọn tên giảng viên:", dsach_giaovien, key='tengiaovien_selector')
-    # --- LOGIC CẬP NHẬT STATE ---
-    # Logic 1: Cập nhật thông tin cơ bản (Mã GV, Khoa) chỉ khi tên giảng viên thay đổi
-    if tengv and tengv != st.session_state.get('tengv'):
-        index_gv = df_giaovien_g[df_giaovien_g['Tên giảng viên'] == tengv].index
-        magv = df_giaovien_g.loc[index_gv, 'Magv'].iloc[0]
-        ten_khoa = laykhoatu_magv(df_khoa_g, magv)
+# --- LUỒNG ĐĂNG NHẬP ---
 
-        # Cập nhật các thông tin liên quan đến giảng viên vào session_state
-        st.session_state['magv'] = magv
-        st.session_state['ten_khoa'] = ten_khoa
-        st.session_state['tengv'] = tengv
-        st.session_state.quydoi_gioday = {}
-        st.toast("Đã reset state của trang Quy đổi giờ dạy!")
-        #st.rerun()  # Chạy lại script để thấy sự thay đổi trên sidebar ngay lập tức
+# Bước 1: Kiểm tra token. Nếu chưa có, hiển thị nút đăng nhập.
+if 'token' not in st.session_state or st.session_state.token is None:
+    st.info("Vui lòng đăng nhập để tiếp tục")
+    result = oauth2.authorize_button(
+        name="Đăng nhập với Google",
+        icon="https://www.google.com.tw/favicon.ico",
+        redirect_uri=REDIRECT_URI,
+        scope="openid email profile",
+        key="google",
+        use_container_width=True,
+    )
+    
+    if result:
+        st.session_state.token = result.get('token')
+        
+        if 'user' not in result or result.get('user') is None:
+            access_token = st.session_state.token.get('access_token')
+            user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+            headers = {"Authorization": f"Bearer {access_token}"}
+            try:
+                user_response = requests.get(user_info_url, headers=headers)
+                user_response.raise_for_status()
+                st.session_state.user_info = user_response.json()
+            except requests.exceptions.RequestException as e:
+                st.error(f"Lỗi khi tự lấy thông tin người dùng: {e}")
+                st.session_state.token = None
+        else:
+            st.session_state.user_info = result.get('user')
+        st.rerun()
 
-    # Logic 2: Luôn tính toán lại giờ chuẩn dựa trên 'chuangv' hiện tại.
-    # Điều này đảm bảo giờ chuẩn được cập nhật ngay khi 'chuangv' thay đổi từ trang khác.
-    # Logic 2: Luôn tính toán lại giờ chuẩn dựa trên state chung 'chuangv'
-    current_chuangv = st.session_state.get('chuangv', 'Cao đẳng')
-    giochuan_calculated = giochuan_map.get(current_chuangv, 594)
-    # SỬA LỖI: Lưu giờ chuẩn vào state của trang main
+# Nếu đã có token, tiếp tục xử lý
+else:
+    user_info = st.session_state.user_info
+    if not user_info:
+        st.error("Lỗi: Không thể lấy thông tin người dùng. Vui lòng thử đăng nhập lại.")
+        if st.button("Đăng xuất và thử lại"):
+            st.session_state.token = None
+            st.session_state.user_info = None
+            st.rerun()
+        st.stop()
 
-    st.session_state['giochuan'] = giochuan_calculated
+    # Bước 2: Tra cứu mã giảng viên (chỉ chạy 1 lần)
+    if st.session_state.magv is None:
+        with st.spinner("Đang xác thực và tra cứu mã giảng viên..."):
+            client = connect_to_gsheet()
+            magv, df_users = get_magv_from_email(client, user_info.get('email'))
+        
+        if magv:
+            st.session_state.magv = magv
+            st.rerun()
+        else:
+            # SỬA LẠI: Hiển thị form đăng ký và gửi email tự động
+            st.error("Email chưa được đăng ký. Yêu cầu giảng viên gửi tin nhắn cho admin thông tin để được cập nhật.")
+            
+            if 'registration_sent' in st.session_state and st.session_state.registration_sent:
+                st.success("Bạn đã gửi thông tin cho quản trị viên. Xin vui lòng chờ xác thực!")
+            else:
+                with st.form("registration_form"):
+                    st.write("Vui lòng điền thông tin dưới đây để gửi yêu cầu đăng ký:")
+                    ho_ten = st.text_input("Họ tên GV", value=user_info.get('name', ''))
+                    khoa = st.text_input("Khoa/Phòng")
+                    dien_thoai = st.text_input("Điện thoại")
+                    email = st.text_input("Email", value=user_info.get('email'), disabled=True)
+                    
+                    submitted = st.form_submit_button("Gửi thông tin cho Admin")
+                    
+                    if submitted:
+                        if not all([ho_ten, khoa, dien_thoai]):
+                            st.warning("Vui lòng điền đầy đủ thông tin.")
+                        else:
+                            # Gửi email tự động
+                            email_sent = send_registration_email(ho_ten, khoa, dien_thoai, email)
+                            if email_sent:
+                                st.session_state.registration_sent = True
+                                st.rerun()
+            st.stop()
 
-    # --- HIỂN THỊ THÔNG TIN ---
+    # Bước 3: Tải dữ liệu và lấy thông tin chi tiết (chỉ chạy 1 lần sau khi có magv)
+    if st.session_state.magv and not st.session_state.data_loaded:
+        with st.spinner("Đang tải dữ liệu cơ sở và thông tin giảng viên..."):
+            all_dfs = load_all_data()
+            for df_name, df_data in all_dfs.items():
+                st.session_state[df_name] = df_data
+            
+            df_giaovien_g = st.session_state.get('df_giaovien', pd.DataFrame())
+            df_khoa_g = st.session_state.get('df_khoa', pd.DataFrame())
+            teacher_info = get_teacher_info_from_local(st.session_state.magv, df_giaovien_g, df_khoa_g)
+            
+            if teacher_info:
+                st.session_state.tengv = teacher_info.get('Tên giảng viên')
+                st.session_state.ten_khoa = teacher_info.get('ten_khoa')
+                st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
+                
+                giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
+                st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
+                st.session_state.data_loaded = True
+                st.rerun()
+            else:
+                st.error(f"Không tìm thấy thông tin chi tiết cho Mã giảng viên: {st.session_state.magv} trong file dữ liệu.")
+                st.stop()
+    
+    # Bước 4: Hiển thị giao diện chính khi đã có đầy đủ thông tin
+    if st.session_state.tengv:
+        with st.sidebar:
+            st.header(":green[THÔNG TIN GIÁO VIÊN]")
+            st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
+            st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
+            st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
+            st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
+            st.write(f"(Chuẩn GV: {st.session_state.chuangv})")
+            st.divider()
+            st.write(f"Đăng nhập với email: {user_info.get('email')}")
+            if st.button("Đăng xuất", use_container_width=True):
+                for key in keys_to_init:
+                    st.session_state[key] = None
+                st.session_state.registration_sent = False # Reset trạng thái đăng ký
+                st.rerun()
 
-    # SỬA LỖI: Đọc thông tin từ state của trang main
-    magv_display = st.session_state.get('magv', 'Chưa chọn')
-    khoa_display = st.session_state.get('ten_khoa', 'Chưa chọn')
-
-    st.session_state.magv = magv_display
-
-    st.write(f"Mã GV: :green[{magv_display}]")
-    st.write(f"Khoa/Phòng: :green[{khoa_display}]")
-    st.write(f"Chuẩn giảng viên: :green[{current_chuangv}]")
-    st.write(f"Giờ chuẩn: :green[{giochuan_calculated}]")
-
-
-# --- Điều hướng trang ---
-pages = {
-    "": [
-        st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
-        st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động"),
-        st.Page("fun_to_pdf.py", title="Tổng hợp "),
-        st.Page("huongdan.py", title="Hướng dẫn"),
-    ]
-}
-pg = st.navigation(pages)
-pg.run()
+        # --- Điều hướng trang ---
+        pages = {
+            "Kê khai": [
+                st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
+                st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động"),
+            ],
+            "Báo cáo": [
+                st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file"),
+            ],
+            "Trợ giúp": [
+                st.Page("huongdan.py", title="Hướng dẫn"),
+            ]
+        }
+        pg = st.navigation(pages)
+        pg.run()
