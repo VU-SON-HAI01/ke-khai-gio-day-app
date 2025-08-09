@@ -1,6 +1,5 @@
 streamlit
 pandas
-gspread==5.12.4
 google-auth==2.27.0
 streamlit-oauth
 requests
@@ -9,3 +8,5 @@ fpdf2
 openpyxl
 google-api-python-client
 google-auth-oauthlib
+gspread-dataframe
+
