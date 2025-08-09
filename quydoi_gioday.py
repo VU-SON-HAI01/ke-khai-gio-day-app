@@ -854,6 +854,7 @@ def taonhaplop_mon_par(i1, chuangv_f):
     # NHẬP DỮ LIỆU TUẦN VÀ TIẾT
     kt_tuan_tontai = False
     if kt_mon_tontai:
+        # --- THAY ĐỔI: Hàm phân bổ đều thay vì ngẫu nhiên ---
         def generate_even_distribution(total_sum, num_items):
             """Phân bổ đều tổng số vào các mục."""
             if num_items <= 0:
@@ -867,35 +868,24 @@ def taonhaplop_mon_par(i1, chuangv_f):
             return result
 
         if (not quydoi_data_old.empty) and laymau_quydoi == False:
-
+            # ... (Phần code xử lý dữ liệu đã có của bạn giữ nguyên)
             quydoi_tuan = quydoi_data_old['Tuần']
             quydoi_tiet = quydoi_data_old['Tiết']
-
-            # --- SỬA LỖI TẠI ĐÂY ---
-            # Chuyển đổi an toàn sang chuỗi và xử lý
-            quydoi_tuan_beginx = str(quydoi_tuan.iloc[0])  # Đảm bảo là chuỗi
-            quydoi_tuna_endx = str(quydoi_tuan.iloc[-1])  # Đảm bảo là chuỗi
-
+            quydoi_tuan_beginx = str(quydoi_tuan.iloc[0])
+            quydoi_tuna_endx = str(quydoi_tuan.iloc[-1])
             str_begin = quydoi_tuan_beginx.replace('Tuần ', '').strip()
             str_end = quydoi_tuna_endx.replace('Tuần ', '').strip()
-
-            # Kiểm tra xem chuỗi có phải là số không trước khi chuyển đổi
             quydoi_tuan_begin = int(str_begin) if str_begin.isdigit() else 1
             quydoi_tuna_end = int(str_end) if str_end.isdigit() else 12
-
-            # Chuyển đổi an toàn cho tiết
             valid_tiet = pd.to_numeric(quydoi_tiet, errors='coerce').fillna(0).astype(int)
             str_tiet_defu = ' '.join(str(tiet) for tiet in valid_tiet if tiet != 0)
         else:
-
+            # --- THAY ĐỔI: Sử dụng giá trị mặc định cố định ---
             quydoi_tuan_begin = 1
             quydoi_tuna_end = 12
 
-            # Tính số tuần mặc định
-            default_num_weeks = quydoi_tuna_end - quydoi_tuan_begin + 1
-
-            # Gọi hàm mới để tạo danh sách tiết học được phân bổ đều
-            list_tiet_defu = generate_even_distribution(int(tongtiet_mon), default_num_weeks)
+            # Gán danh sách tiết học mặc định cố định
+            list_tiet_defu = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 8]
 
             # Chuyển danh sách thành chuỗi để hiển thị
             str_tiet_defu = ' '.join(map(str, list_tiet_defu))
