@@ -168,7 +168,7 @@ if gspread_client and drive_service:
                 st.markdown(f"**Tên file:** `{new_spreadsheet.title}`")
                 st.markdown(f"**Đường dẫn:** [Mở file trong Google Sheet]({new_spreadsheet.url})")
                 
-           except HttpError as e:
+            except HttpError as e:
                 st.error("❌ DỪNG LẠI: Đã xảy ra lỗi HTTP khi tạo file.")
                 # Hiển thị chi tiết lỗi để chẩn đoán
                 st.exception(e)
