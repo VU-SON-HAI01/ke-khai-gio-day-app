@@ -871,17 +871,23 @@ def taonhaplop_mon_par(i1, chuangv_f):
         if (not quydoi_data_old.empty) and laymau_quydoi == False:
 
             quydoi_tuan = quydoi_data_old['Tuần']
-            quydoi_tiet = quydoi_data_old['Tiết'].astype(int)
+            quydoi_tiet = quydoi_data_old['Tiết']
 
-            quydoi_tiet_LT = quydoi_data_old['Tiết_LT'].astype(int)
-            quydoi_tiet_TH = quydoi_data_old['Tiết_TH'].astype(int)
+            # --- SỬA LỖI TẠI ĐÂY ---
+            # Chuyển đổi an toàn sang chuỗi và xử lý
+            quydoi_tuan_beginx = str(quydoi_tuan.iloc[0])  # Đảm bảo là chuỗi
+            quydoi_tuna_endx = str(quydoi_tuan.iloc[-1])  # Đảm bảo là chuỗi
 
-            quydoi_tuan_beginx = quydoi_tuan.iloc[0]
-            quydoi_tuna_endx = quydoi_tuan.iloc[-1]
+            str_begin = quydoi_tuan_beginx.replace('Tuần ', '').strip()
+            str_end = quydoi_tuna_endx.replace('Tuần ', '').strip()
 
-            quydoi_tuan_begin = int(quydoi_tuan_beginx.replace('Tuần ', ''))
-            quydoi_tuna_end = int(quydoi_tuna_endx.replace('Tuần ', ''))
-            str_tiet_defu = ' '.join(str(tiet) for tiet in quydoi_tiet if tiet != 0)
+            # Kiểm tra xem chuỗi có phải là số không trước khi chuyển đổi
+            quydoi_tuan_begin = int(str_begin) if str_begin.isdigit() else 1
+            quydoi_tuna_end = int(str_end) if str_end.isdigit() else 12
+
+            # Chuyển đổi an toàn cho tiết
+            valid_tiet = pd.to_numeric(quydoi_tiet, errors='coerce').fillna(0).astype(int)
+            str_tiet_defu = ' '.join(str(tiet) for tiet in valid_tiet if tiet != 0)
         else:
 
             quydoi_tuan_begin = 1
