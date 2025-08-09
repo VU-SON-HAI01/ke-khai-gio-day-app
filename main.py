@@ -88,20 +88,36 @@ def get_folder_id(_drive_service, folder_name):
     except Exception as e:
         st.error(f"Lỗi khi tìm kiếm thư mục '{folder_name}': {e}")
         return None
-
 def get_or_create_spreadsheet_in_folder(gspread_client, drive_service, folder_id, sheet_name):
-    """Mở hoặc tạo một spreadsheet BÊN TRONG một thư mục cụ thể."""
+    """Mở hoặc tạo một spreadsheet BÊN TRONG một thư mục cụ thể một cách đáng tin cậy hơn."""
     try:
+        # Bước 1: Tìm kiếm file trước
         query = f"name='{sheet_name}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
         response = drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
         files = response.get('files', [])
+        
         if files:
-            return gspread_client.open_by_key(files[0].get('id'))
+            # Nếu tìm thấy, mở file bằng gspread
+            sheet_id = files[0].get('id')
+            return gspread_client.open_by_key(sheet_id)
         else:
-            return gspread_client.create(sheet_name, folder_id=folder_id)
+            # Nếu không tìm thấy, tạo file mới bằng Google Drive API
+            st.info(f"File '{sheet_name}' không tồn tại. Đang tạo file mới...")
+            file_metadata = {
+                'name': sheet_name,
+                'parents': [folder_id],
+                'mimeType': 'application/vnd.google-apps.spreadsheet'
+            }
+            new_file = drive_service.files().create(body=file_metadata).execute()
+            new_file_id = new_file.get('id')
+            
+            # Mở file vừa tạo bằng gspread
+            return gspread_client.open_by_key(new_file_id)
+            
     except Exception as e:
-        st.error(f"Lỗi khi tạo file Sheet mới '{sheet_name}': {e}")
+        st.error(f"Lỗi khi truy cập hoặc tạo file Sheet '{sheet_name}': {e}")
         return None
+
 
 def send_registration_email(ho_ten, khoa, dien_thoai, email):
     """Gửi email thông báo đăng ký về cho admin."""
