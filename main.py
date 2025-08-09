@@ -10,7 +10,7 @@ st.title("📝 Tạo Google Sheet mới")
 @st.cache_resource
 def connect_to_gsheet():
     """Hàm kết nối tới Google Sheets API sử dụng Service Account."""
-    try
+    try:
         # Lấy thông tin credentials từ st.secrets
         creds_dict = st.secrets["gcp_service_account"]
         
