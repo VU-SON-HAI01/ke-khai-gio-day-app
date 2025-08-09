@@ -855,18 +855,6 @@ def taonhaplop_mon_par(i1, chuangv_f):
     kt_tuan_tontai = False
     if kt_mon_tontai:
         # --- THAY ĐỔI: Hàm phân bổ đều thay vì ngẫu nhiên ---
-        def generate_even_distribution(total_sum, num_items):
-            """Phân bổ đều tổng số vào các mục."""
-            if num_items <= 0:
-                return []
-            base_value = total_sum // num_items
-            remainder = total_sum % num_items
-
-            result = [base_value] * num_items
-            for i in range(remainder):
-                result[i] += 1
-            return result
-
         if (not quydoi_data_old.empty) and laymau_quydoi == False:
             # ... (Phần code xử lý dữ liệu đã có của bạn giữ nguyên)
             quydoi_tuan = quydoi_data_old['Tuần']
