@@ -10,6 +10,8 @@ openpyxl
 # Google Integration
 gspread[drive]
 gspread-dataframe
+google-api-python-client
 
 # PDF Generation
 fpdf2
+
