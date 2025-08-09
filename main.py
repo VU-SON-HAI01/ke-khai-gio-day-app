@@ -7,23 +7,25 @@ import smtplib
 from email.mime.text import MIMEText
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
-import os # Thêm thư viện os để xử lý đường dẫn file
+import os
+
 # --- CẤU HÌNH BAN ĐẦU ---
 st.set_page_config(layout="wide", page_title="Hệ thống Kê khai Giờ giảng")
 st.image("image/banner-top-kegio.jpg", use_container_width=True)
 
 # --- TẢI CẤU HÌNH TỪ STREAMLIT SECRETS ---
 try:
-    # Cấu hình cho OAuth
     CLIENT_ID = st.secrets["google_oauth"]["clientId"]
     CLIENT_SECRET = st.secrets["google_oauth"]["clientSecret"]
     REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
     
-    # Cấu hình cho Google Sheets
-    SHEET_NAME = st.secrets["google_sheet"]["sheet_name"] # Tên file Google Sheet
-    USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"] # Tên trang tính (tab)
+    SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
+    USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
+    # QUAN TRỌNG: Đảm bảo file secrets.toml có dòng này
+    # [google_sheet]
+    # target_folder_name = "KE_GIO_2025"
+    TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"]
 
-    # Cấu hình email admin
     SENDER_EMAIL = st.secrets["admin_email"]["address"]
     SENDER_PASSWORD = st.secrets["admin_email"]["app_password"]
     RECEIVER_EMAIL = st.secrets["admin_email"]["address"]
@@ -36,74 +38,70 @@ AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 
-# --- CÁC HÀM KẾT NỐI VÀ XỬ LÝ DỮ LIỆU ---
+# --- CÁC HÀM XỬ LÝ DỮ LIỆU ---
 
 @st.cache_resource
 def connect_to_google_apis():
-    """Kết nối tới cả Google Sheets và Google Drive API."""
+    """Hàm kết nối tới cả Google Sheets và Google Drive API."""
     try:
         creds_dict = st.secrets["gcp_service_account"]
-        # Thêm scope của Google Drive
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         gspread_client = gspread.authorize(creds)
-        # Thêm kết nối tới Drive service
         drive_service = build('drive', 'v3', credentials=creds)
         return gspread_client, drive_service
     except Exception as e:
         st.error(f"Lỗi kết nối tới Google APIs: {e}")
         return None, None
-        
+
 def get_magv_from_email(client, email):
-    """Tra cứu mã giảng viên (magv) từ email trong Google Sheet."""
-    if not client or not email:
-        return None
+    """Tra cứu mã giảng viên từ email."""
+    if not client or not email: return None
     try:
-        # Mở file Google Sheet bằng TÊN FILE
         spreadsheet = client.open(SHEET_NAME)
-        # Mở trang tính (tab) bằng TÊN TRANG TÍNH
         worksheet = spreadsheet.worksheet(USER_MAPPING_WORKSHEET)
-        
         data = worksheet.get_all_records()
-        if not data:
-            return None
-        
+        if not data: return None
         df = pd.DataFrame(data)
-        
-        if 'email' not in df.columns:
-            st.error(f"Lỗi: Cột 'email' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
-            return None
-            
+        if 'email' not in df.columns: return None
         search_email = email.lower().strip()
         user_row = df[df['email'].astype(str).str.lower().str.strip() == search_email]
-        
         if not user_row.empty:
-            if 'magv' not in user_row.columns:
-                st.error(f"Lỗi: Cột 'magv' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
-                return None
+            if 'magv' not in user_row.columns: return None
             return user_row.iloc[0]['magv']
-        
         return None
-    except gspread.exceptions.SpreadsheetNotFound:
-        st.error(f"Lỗi: Không tìm thấy file Google Sheet có tên '{SHEET_NAME}'.")
-    except gspread.exceptions.WorksheetNotFound:
-        st.error(f"Lỗi: Không tìm thấy trang tính '{USER_MAPPING_WORKSHEET}' trong file '{SHEET_NAME}'.")
     except Exception as e:
         st.error(f"Lỗi khi tra cứu mã giảng viên: {e}")
-    return None
-    
-def get_or_create_spreadsheet(gspread_client, sheet_name):
-    """Mở một spreadsheet theo tên, nếu chưa có thì tạo mới."""
+        return None
+
+def get_folder_id(_drive_service, folder_name):
+    """Lấy ID của thư mục đã được chia sẻ."""
     try:
-        return gspread_client.open(sheet_name)
-    except gspread.exceptions.SpreadsheetNotFound:
-        try:
-            return gspread_client.create(sheet_name)
-        except Exception as e:
-            st.error(f"Lỗi khi tạo file Sheet mới '{sheet_name}': {e}")
+        query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false"
+        response = _drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
+        folders = response.get('files', [])
+        if folders:
+            return folders[0].get('id')
+        else:
+            st.error(f"Không tìm thấy thư mục '{folder_name}'. Vui lòng tạo và chia sẻ thư mục này với email của Service Account.")
+            return None
     except Exception as e:
-        st.error(f"Lỗi khi mở file Sheet '{sheet_name}': {e}")
-    return None
+        st.error(f"Lỗi khi tìm kiếm thư mục '{folder_name}': {e}")
+        return None
+
+def get_or_create_spreadsheet_in_folder(gspread_client, drive_service, folder_id, sheet_name):
+    """Mở hoặc tạo một spreadsheet BÊN TRONG một thư mục cụ thể."""
+    try:
+        query = f"name='{sheet_name}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
+        response = drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
+        files = response.get('files', [])
+        if files:
+            return gspread_client.open_by_key(files[0].get('id'))
+        else:
+            return gspread_client.create(sheet_name, folder_id=folder_id)
+    except Exception as e:
+        st.error(f"Lỗi khi tạo file Sheet mới '{sheet_name}': {e}")
+        return None
 
 def send_registration_email(ho_ten, khoa, dien_thoai, email):
     """Gửi email thông báo đăng ký về cho admin."""
@@ -121,38 +119,6 @@ def send_registration_email(ho_ten, khoa, dien_thoai, email):
     except Exception as e:
         st.error(f"Lỗi khi gửi email thông báo: {e}")
         return False
-        
-def get_folder_id(_drive_service, folder_name):
-    """Lấy ID của thư mục KE_GIO_2025 mà bạn đã chia sẻ."""
-    try:
-        query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false"
-        response = _drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
-        folders = response.get('files', [])
-        if folders:
-            return folders[0].get('id')
-        else:
-            st.error(f"Không tìm thấy thư mục '{folder_name}'. Vui lòng tạo và chia sẻ thư mục này với email của Service Account: {st.secrets['gcp_service_account']['client_email']}")
-            return None
-    except Exception as e:
-        st.error(f"Lỗi khi tìm kiếm thư mục '{folder_name}': {e}")
-        return None
-
-def get_or_create_spreadsheet_in_folder(gspread_client, drive_service, folder_id, sheet_name):
-    """Mở hoặc tạo một spreadsheet BÊN TRONG một thư mục cụ thể."""
-    try:
-        # Tìm file Sheet trong thư mục cha
-        query = f"name='{sheet_name}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
-        response = drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
-        files = response.get('files', [])
-        if files:
-            # Nếu tìm thấy, mở bằng gspread
-            return gspread_client.open_by_key(files[0].get('id'))
-        else:
-            # Nếu không, tạo file mới và chỉ định folder_id
-            return gspread_client.create(sheet_name, folder_id=folder_id)
-    except Exception as e:
-        st.error(f"Lỗi khi tạo file Sheet mới '{sheet_name}': {e}")
-        return None
 
 @st.cache_data
 def load_all_parquet_data(base_path='data_base/'):
@@ -164,32 +130,25 @@ def load_all_parquet_data(base_path='data_base/'):
         'df_quydoi_hd.parquet', 'df_quydoi_hd_them.parquet',
         'mau_kelop.parquet', 'mau_quydoi.parquet'
     ]
-    
     loaded_dfs = {}
-    st.write("Bắt đầu tải dữ liệu cơ sở...")
-    progress_bar = st.progress(0, text="Đang tải dữ liệu...")
-    
+    progress_bar = st.progress(0, text="Đang tải dữ liệu cơ sở...")
     for i, file_name in enumerate(files_to_load):
         file_path = os.path.join(base_path, file_name)
-        key_name = file_name.replace('.parquet', '') # Ví dụ: 'df_giaovien'
+        key_name = file_name.replace('.parquet', '')
         try:
             df = pd.read_parquet(file_path, engine='pyarrow')
             loaded_dfs[key_name] = df
         except Exception as e:
             st.warning(f"Không thể tải file '{file_path}': {e}")
-            loaded_dfs[key_name] = pd.DataFrame() # Tạo DataFrame rỗng nếu có lỗi
+            loaded_dfs[key_name] = pd.DataFrame()
         progress_bar.progress((i + 1) / len(files_to_load), text=f"Đang tải {file_name}...")
-        
     progress_bar.empty()
-    st.write("✅ Dữ liệu cơ sở đã được tải xong.")
     return loaded_dfs
-
 
 def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
     """Tra cứu thông tin giảng viên từ các DataFrame cục bộ."""
     if not magv or df_giaovien.empty or df_khoa.empty:
         return None
-    
     teacher_row = df_giaovien[df_giaovien['Magv'].astype(str) == str(magv)]
     if not teacher_row.empty:
         info = teacher_row.iloc[0].to_dict()
@@ -242,6 +201,7 @@ else:
 
             gspread_client, drive_service = connect_to_google_apis()
             if not gspread_client or not drive_service:
+                st.error("Không thể kết nối tới Google APIs. Dừng ứng dụng.")
                 st.stop()
 
             magv = get_magv_from_email(gspread_client, user_info['email'])
@@ -249,7 +209,6 @@ else:
             if magv:
                 st.session_state.magv = str(magv)
                 
-                # THAY ĐỔI: Logic tìm thư mục và tạo file trong thư mục
                 folder_id = get_folder_id(drive_service, TARGET_FOLDER_NAME)
                 if not folder_id:
                     st.stop()
@@ -264,7 +223,7 @@ else:
                 all_base_data = load_all_parquet_data()
                 for key, df_data in all_base_data.items():
                     st.session_state[key] = df_data
-                # Lấy thông tin chi tiết của giáo viên
+                
                 teacher_info = get_teacher_info_from_local(
                     magv, 
                     st.session_state.get('df_giaovien', pd.DataFrame()), 
@@ -318,7 +277,6 @@ else:
                 st.session_state.registration_sent = False
                 st.rerun()
         
-        # SỬA LỖI: Bỏ tiền tố 'pages/' khỏi đường dẫn file
         pages = {
             "Kê khai": [
                 st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
