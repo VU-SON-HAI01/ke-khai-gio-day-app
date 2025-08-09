@@ -139,25 +139,48 @@ if gspread_client and drive_service:
                 folder_id = folders[0]['id']
                 st.success(f"✔️ Đã tìm thấy Folder ID: `{folder_id}`")
 
-                # BƯỚC 2: TẠO FILE MỚI
-                st.info(f"✍️ Đang tạo file Google Sheet mới với tên: `{new_file_name}`...")
-                new_spreadsheet = gspread_client.create(new_file_name)
-                st.success("🎉 Tạo file thành công!")
+                    if st.button("Tạo File & Ghi Dữ Liệu", use_container_width=True, type="secondary"):
+        if not new_file_name:
+            st.warning("Vui lòng nhập tên file.")
+        else:
+            try:
+                # BƯỚC 1: TÌM FOLDER ID
+                st.info(f"🔎 Đang tìm Folder ID của thư mục '{FOLDER_NAME}' để đặt file vào...")
+                folder_query = f"mimeType='application/vnd.google-apps.folder' and name='{FOLDER_NAME}' and trashed=false"
+                response = drive_service.files().list(
+                    q=folder_query,
+                    spaces='drive',
+                    fields='files(id, name)'
+                ).execute()
+                folders = response.get('files', [])
 
-                # BƯỚC 3: DI CHUYỂN FILE VÀO THƯ MỤC
-                st.info(f"🚚 Đang di chuyển file `{new_file_name}` vào thư mục `{FOLDER_NAME}`...")
+                if not folders:
+                    st.error(f"❌ DỪNG LẠI: Không tìm thấy thư mục nào tên '{FOLDER_NAME}'.")
+                    st.stop()
+
+                folder_id = folders[0]['id']
+                st.success(f"✔️ Đã tìm thấy Folder ID: `{folder_id}`")
+
+                # BƯỚC 2: TẠO FILE GOOGLE SHEET MỚI SỬ DỤNG GOOGLE DRIVE API TRỰC TIẾP
+                st.info(f"✍️ Đang tạo file Google Sheet mới với tên: `{new_file_name}`...")
                 
-                # Để di chuyển file, ta cần remove parent cũ (root) và add parent mới
-                drive_service.files().update(
-                    fileId=new_spreadsheet.id,
-                    addParents=folder_id,
-                    removeParents='root'
+                file_metadata = {
+                    'name': new_file_name,
+                    'mimeType': 'application/vnd.google-apps.spreadsheet',
+                    'parents': [folder_id] # Chỉ định folder_id ngay khi tạo
+                }
+                
+                new_file = drive_service.files().create(
+                    body=file_metadata,
+                    fields='id, name'
                 ).execute()
                 
-                st.success("✅ Di chuyển file thành công!")
+                new_file_id = new_file.get('id')
+                st.success(f"🎉 Tạo file thành công với ID: `{new_file_id}`")
 
-                # BƯỚC 4: GHI DỮ LIỆU VÀO Ô A1
-                st.info(f"✍️ Đang ghi giá trị `{cell_a1_value}` vào ô A1 của file mới...")
+                # BƯỚC 3: MỞ FILE VỪA TẠO VỚI GSPREAD VÀ GHI DỮ LIỆU
+                st.info(f"✍️ Đang mở file vừa tạo và ghi giá trị `{cell_a1_value}` vào ô A1...")
+                new_spreadsheet = gspread_client.open_by_key(new_file_id)
                 worksheet = new_spreadsheet.sheet1
                 worksheet.update_acell('A1', cell_a1_value)
                 st.success("✅ Ghi dữ liệu thành công!")
@@ -168,7 +191,7 @@ if gspread_client and drive_service:
                 st.markdown(f"**Đường dẫn:** [Mở file trong Google Sheet]({new_spreadsheet.url})")
                 
             except HttpError as e:
-                st.error(f"❌ DỪNG LẠI: Đã xảy ra lỗi HTTP khi tạo hoặc di chuyển file.")
+                st.error(f"❌ DỪNG LẠI: Đã xảy ra lỗi HTTP khi tạo file.")
                 st.exception(e)
             except Exception as e:
                 st.error(f"❌ DỪNG LẠI: Đã xảy ra lỗi không mong muốn.")
