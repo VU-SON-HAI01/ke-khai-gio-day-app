@@ -45,7 +45,7 @@ if gspread_client and drive_service:
 
     # --- GÁN TRỰC TIẾP TÊN FOLDER VÀ FILE TẠI ĐÂY ---
     FOLDER_NAME = "KE_GIO_2025"
-    TEMPLATE_NAME = "Mẫu báo cáo tuần"  # <-- THAY TÊN FILE CỦA BẠN VÀO ĐÂY
+    TEMPLATE_NAME = "template"  # <-- THAY TÊN FILE CỦA BẠN VÀO ĐÂY
 
     st.info(f"Sẵn sàng đọc file **'{TEMPLATE_NAME}'** từ folder **'{FOLDER_NAME}'**.")
 
