@@ -260,14 +260,14 @@ else:
         
         pages = {
             "Kê khai": [
-                st.Page("pages/quydoi_gioday.py", title="Kê giờ dạy"),
-                st.Page("pages/quydoicachoatdong.py", title="Kê giờ hoạt động"),
+                st.Page("quydoigioday.py", title="Kê giờ dạy"),
+                st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động"),
             ],
             "Báo cáo": [
-                st.Page("pages/fun_to_pdf.py", title="Tổng hợp & Xuất file"),
+                st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file"),
             ],
             "Trợ giúp": [
-                st.Page("pages/huongdan.py", title="Hướng dẫn"),
+                st.Page("huongdan.py", title="Hướng dẫn"),
             ]
         }
         pg = st.navigation(pages)
