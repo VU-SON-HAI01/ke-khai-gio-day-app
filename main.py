@@ -218,7 +218,9 @@ else:
                     st.stop()
                 st.session_state.spreadsheet = spreadsheet
                 
-                all_dfs = load_all_parquet_data()
+                all_base_data = load_all_parquet_data()
+                for key, df_data in all_base_data.items():
+                    st.session_state[key] = df_data
                 teacher_info = get_teacher_info_from_local(
                     st.session_state.magv, 
                     all_dfs.get('df_giaovien', pd.DataFrame()), 
