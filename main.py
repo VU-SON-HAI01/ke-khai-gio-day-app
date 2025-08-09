@@ -6,9 +6,9 @@ from googleapiclient.errors import HttpError
 from gspread.exceptions import SpreadsheetNotFound
 
 # --- CẤU HÌNH BAN ĐẦU ---
-st.set_page_config(layout="centered", page_title="Đọc File Template")
-st.title("📖 Đọc File từ Folder Cụ Thể")
-st.write("Nhấn nút để đọc file đã được gán sẵn trong code.")
+st.set_page_config(layout="centered", page_title="Đọc & Ghi File Google Sheet")
+st.title("📖 Đọc & Ghi File từ Folder Cụ Thể")
+st.write("Sử dụng ứng dụng để đọc hoặc tạo file Google Sheet.")
 
 
 # --- HÀM KẾT NỐI (Sử dụng cache để không kết nối lại mỗi lần tương tác) ---
@@ -45,20 +45,18 @@ if gspread_client and drive_service:
 
     # --- GÁN TRỰC TIẾP TÊN FOLDER VÀ FILE TẠI ĐÂY ---
     FOLDER_NAME = "KE_GIO_2025"
-    TEMPLATE_NAME = "template"  # <-- THAY TÊN FILE CỦA BẠN VÀO ĐÂY
+    TEMPLATE_NAME = "template"
 
+    # --- SECTION 1: ĐỌC VÀ GHI VÀO FILE TỒN TẠI ---
+    st.header("1. Đọc và Ghi vào File Đã Tồn Tại")
     st.info(f"Sẵn sàng đọc file **'{TEMPLATE_NAME}'** từ folder **'{FOLDER_NAME}'**.")
 
-    # Nút nhấn để bắt đầu quá trình
-    if st.button("Bắt đầu đọc file", use_container_width=True, type="primary"):
+    if st.button("Bắt đầu đọc & ghi file", use_container_width=True, type="primary"):
         try:
-            # --- BƯỚC 1: TÌM FOLDER ID TỪ TÊN FOLDER (SỬ DỤNG GOOGLE DRIVE API) ---
+            # BƯỚC 1: TÌM FOLDER ID TỪ TÊN FOLDER
             st.info(f"🔎 Bắt đầu tìm kiếm thư mục có tên: '{FOLDER_NAME}'")
             
             folder_query = f"mimeType='application/vnd.google-apps.folder' and name='{FOLDER_NAME}' and trashed=false"
-            st.code(f"Câu truy vấn Google Drive:\n{folder_query}", language="text")
-
-            # Thực thi truy vấn
             response = drive_service.files().list(
                 q=folder_query,
                 spaces='drive',
@@ -67,89 +65,111 @@ if gspread_client and drive_service:
             
             folders = response.get('files', [])
 
-            st.write(f"➡️ Kết quả: Tìm thấy {len(folders)} thư mục khớp với tên trên.")
-
             if not folders:
                 st.error(f"❌ DỪNG LẠI: Không tìm thấy thư mục nào tên '{FOLDER_NAME}'.")
-                st.info(
-                    "Kiểm tra lại các khả năng sau:\n1. Tên thư mục có bị gõ sai không?\n2. Bạn đã chia sẻ thư mục này với email của Service Account chưa?\n3. Service Account có được cấp quyền 'Người xem' (Viewer) hoặc 'Người chỉnh sửa' (Editor) không?")
                 st.stop()
-
-            if len(folders) > 1:
-                st.warning(
-                    f"⚠️ Cảnh báo: Tìm thấy {len(folders)} thư mục cùng tên '{FOLDER_NAME}'. Hệ thống sẽ chỉ lấy thư mục đầu tiên trong danh sách.")
-                with st.expander("Nhấn để xem danh sách các thư mục trùng tên"):
-                    st.json(folders)
 
             folder_id = folders[0]['id']
             st.success(f"✔️ Bước 1 hoàn tất: Đã xác định được Folder ID là `{folder_id}`")
 
-            # --- BƯỚC 2: TÌM VÀ MỞ FILE BÊN TRONG FOLDER ĐÓ (SỬ DỤNG GSPREAD) ---
-            st.info(f"🔎 Bắt đầu tìm file '{TEMPLATE_NAME}' bên trong thư mục vừa tìm thấy...")
+            # BƯỚC 2: TÌM VÀ MỞ FILE BÊN TRONG FOLDER
+            st.info(f"🔎 Bắt đầu tìm file '{TEMPLATE_NAME}' bên trong thư mục...")
 
             try:
-                
-                # Tìm file theo tên trước
                 spreadsheet = gspread_client.open(TEMPLATE_NAME)
-                
-                # Lấy metadata của file vừa mở để kiểm tra 'parents'
                 file_metadata = drive_service.files().get(
                     fileId=spreadsheet.id, 
                     fields='parents'
                 ).execute()
                 
                 if folder_id not in file_metadata.get('parents', []):
-                     st.error(f"❌ DỪNG LẠI: Tìm thấy file '{TEMPLATE_NAME}' nhưng nó không nằm trong thư mục '{FOLDER_NAME}'.")
-                     st.info("Vui lòng kiểm tra lại vị trí của file.")
+                     st.error(f"❌ DỪNG LẠI: File '{TEMPLATE_NAME}' không nằm trong thư mục '{FOLDER_NAME}'.")
                      st.stop()
 
-                st.write(f"✔️ Đã mở được spreadsheet: '{spreadsheet.title}' và xác nhận nó nằm trong đúng thư mục.")
-
+                st.success(f"✔️ Đã mở được spreadsheet: '{spreadsheet.title}' và xác nhận vị trí.")
                 worksheet = spreadsheet.sheet1
-                st.write(f"✔️ Đã truy cập được vào sheet đầu tiên: '{worksheet.title}'")
 
+                # Đọc dữ liệu
                 cell_a1 = worksheet.get('A1').first()
-                st.write(f"✔️ Đã đọc được dữ liệu từ ô A1.")
-
-                st.success(f"🎉 Đọc file thành công!")
-                st.markdown("---")
-                st.markdown(f"**Tên file:** `{spreadsheet.title}`")
-                st.markdown(f"**Đường dẫn:** [Mở file trong Google Sheet]({spreadsheet.url})")
-                st.markdown(f"**Dữ liệu tại ô A1:**")
-                st.info(f"{cell_a1}")
+                st.info(f"**Dữ liệu hiện tại tại ô A1:** `{cell_a1}`")
                 
-                # --- PHẦN MỚI: GHI DỮ LIỆU VÀO Ô A1 ---
-                st.markdown("---")
-                st.info("✍️ Bắt đầu ghi dữ liệu mới vào ô A1...")
-                
-                # Định nghĩa dữ liệu mới muốn ghi
-                data_to_write = "Đây là dữ liệu mới được ghi từ ứng dụng Streamlit!"
-                
-                # Thực hiện ghi dữ liệu
+                # Ghi dữ liệu
+                data_to_write = "Đây là dữ liệu mới được ghi từ Streamlit!"
                 worksheet.update_acell('A1', data_to_write)
-                
                 st.success(f"✅ Ghi dữ liệu thành công! Đã cập nhật ô A1 với nội dung: `{data_to_write}`")
                 
-                # Đọc lại dữ liệu để xác nhận
-                new_cell_a1 = worksheet.get('A1').first()
-                st.markdown("**Dữ liệu tại ô A1 sau khi ghi:**")
-                st.info(f"{new_cell_a1}")
-                
             except SpreadsheetNotFound:
-                st.error(
-                    f"❌ DỪNG LẠI: Không tìm thấy file nào có tên '{TEMPLATE_NAME}' mà Service Account có quyền truy cập.")
-                st.info(
-                    "Kiểm tra lại:\n1. Tên file có bị gõ sai không?\n2. Bạn đã chia sẻ file Google Sheet này với email của Service Account chưa?")
-            except HttpError as e:
-                st.error(f"❌ DỪNG LẠI: Đã xảy ra lỗi HTTP khi truy cập file.")
-                st.exception(e)
+                st.error(f"❌ DỪNG LẠI: Không tìm thấy file '{TEMPLATE_NAME}'.")
             except Exception as e:
-                st.error(f"❌ DỪNG LẠI: Đã xảy ra lỗi không mong muốn ở Bước 2.")
+                st.error(f"❌ DỪNG LẠI: Đã xảy ra lỗi không mong muốn.")
                 st.exception(e)
 
-        except HttpError as e:
-            st.error("❌ DỪNG LẠI: Đã xảy ra lỗi HTTP ở Bước 1 (Tìm thư mục).")
-            st.exception(e)
         except Exception as e:
-            st.error("❌ DỪNG LẠI: Đã xảy ra lỗi nghiêm trọng ở Bước 1 (Tìm thư mục).")
+            st.error("❌ DỪNG LẠI: Đã xảy ra lỗi.")
             st.exception(e)
+
+    st.markdown("---")
+    
+    # --- SECTION 2: TẠO FILE MỚI ---
+    st.header("2. Tạo File Google Sheet Mới")
+    st.write(f"File mới sẽ được tạo trong thư mục **'{FOLDER_NAME}'**.")
+
+    new_file_name = st.text_input("Nhập tên cho file Google Sheet mới:", value="File_Moi_Tao")
+    cell_a1_value = st.text_input("Nhập giá trị cho ô A1:", value="Chào thế giới!")
+
+    if st.button("Tạo File & Ghi Dữ Liệu", use_container_width=True, type="secondary"):
+        if not new_file_name:
+            st.warning("Vui lòng nhập tên file.")
+        else:
+            try:
+                # BƯỚC 1: TÌM FOLDER ID
+                st.info(f"🔎 Đang tìm Folder ID của thư mục '{FOLDER_NAME}' để đặt file vào...")
+                folder_query = f"mimeType='application/vnd.google-apps.folder' and name='{FOLDER_NAME}' and trashed=false"
+                response = drive_service.files().list(
+                    q=folder_query,
+                    spaces='drive',
+                    fields='files(id, name)'
+                ).execute()
+                folders = response.get('files', [])
+
+                if not folders:
+                    st.error(f"❌ DỪNG LẠI: Không tìm thấy thư mục nào tên '{FOLDER_NAME}'.")
+                    st.stop()
+
+                folder_id = folders[0]['id']
+                st.success(f"✔️ Đã tìm thấy Folder ID: `{folder_id}`")
+
+                # BƯỚC 2: TẠO FILE MỚI
+                st.info(f"✍️ Đang tạo file Google Sheet mới với tên: `{new_file_name}`...")
+                new_spreadsheet = gspread_client.create(new_file_name)
+                st.success("🎉 Tạo file thành công!")
+
+                # BƯỚC 3: DI CHUYỂN FILE VÀO THƯ MỤC
+                st.info(f"🚚 Đang di chuyển file `{new_file_name}` vào thư mục `{FOLDER_NAME}`...")
+                
+                # Để di chuyển file, ta cần remove parent cũ (root) và add parent mới
+                drive_service.files().update(
+                    fileId=new_spreadsheet.id,
+                    addParents=folder_id,
+                    removeParents='root'
+                ).execute()
+                
+                st.success("✅ Di chuyển file thành công!")
+
+                # BƯỚC 4: GHI DỮ LIỆU VÀO Ô A1
+                st.info(f"✍️ Đang ghi giá trị `{cell_a1_value}` vào ô A1 của file mới...")
+                worksheet = new_spreadsheet.sheet1
+                worksheet.update_acell('A1', cell_a1_value)
+                st.success("✅ Ghi dữ liệu thành công!")
+                
+                st.markdown("---")
+                st.success("🎉 **Tạo và Cập nhật file thành công!**")
+                st.markdown(f"**Tên file:** `{new_spreadsheet.title}`")
+                st.markdown(f"**Đường dẫn:** [Mở file trong Google Sheet]({new_spreadsheet.url})")
+                
+            except HttpError as e:
+                st.error(f"❌ DỪNG LẠI: Đã xảy ra lỗi HTTP khi tạo hoặc di chuyển file.")
+                st.exception(e)
+            except Exception as e:
+                st.error(f"❌ DỪNG LẠI: Đã xảy ra lỗi không mong muốn.")
+                st.exception(e)
