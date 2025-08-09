@@ -21,6 +21,7 @@ giochuan = st.session_state.giochuan
 spreadsheet = st.session_state.spreadsheet # Đối tượng Google Sheet đã được mở
 
 # --- LẤY CÁC DATAFRAME CƠ SỞ DỮ LIỆU ---
+mau_kelop_g = st.session_state.get('mau_kelop', pd.DataFrame())
 mau_quydoi_g = st.session_state.get('mau_quydoi', pd.DataFrame())
 df_nangnhoc_g = st.session_state.get('df_nangnhoc', pd.DataFrame())
 df_hesosiso_g = st.session_state.get('df_hesosiso', pd.DataFrame())
@@ -473,12 +474,6 @@ def clean_numeric_columns_for_display(df_input, numeric_cols_list):
 # Hàm chính để tạo giao diện nhập lớp/môn ---
 def taonhaplop_mon_par(i1,chuangv_f):
     chuangv = chuangv_tat(chuangv_f)
-    # Đảm bảo i1 tồn tại trong index của df_quydoi_l
-    
-    # Lấy giá trị 'Chọn nhóm' hiện tại từ session_state
-        """Hàm chính để tạo giao diện nhập lớp/môn."""
-    
-    # --- SỬA LỖI: KIỂM TRA AN TOÀN TRƯỚC KHI TRUY CẬP ---
     df_source = st.session_state.quydoi_gioday.get('df_quydoi_l', pd.DataFrame())
     quydoi_data_old = pd.DataFrame() # Khởi tạo là DataFrame rỗng
 
