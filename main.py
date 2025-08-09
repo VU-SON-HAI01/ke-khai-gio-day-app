@@ -88,9 +88,6 @@ if gspread_client and drive_service:
             st.info(f"🔎 Bắt đầu tìm file '{TEMPLATE_NAME}' bên trong thư mục vừa tìm thấy...")
 
             try:
-                # gspread.open() không trực tiếp dùng folder_id để tìm kiếm.
-                # Nó sẽ tìm file theo tên trong toàn bộ Drive mà SA có quyền truy cập.
-                # Để chắc chắn file nằm trong folder, ta cần thực hiện thêm một bước kiểm tra.
                 
                 # Tìm file theo tên trước
                 spreadsheet = gspread_client.open(TEMPLATE_NAME)
@@ -120,7 +117,24 @@ if gspread_client and drive_service:
                 st.markdown(f"**Đường dẫn:** [Mở file trong Google Sheet]({spreadsheet.url})")
                 st.markdown(f"**Dữ liệu tại ô A1:**")
                 st.info(f"{cell_a1}")
-
+                
+                # --- PHẦN MỚI: GHI DỮ LIỆU VÀO Ô A1 ---
+                st.markdown("---")
+                st.info("✍️ Bắt đầu ghi dữ liệu mới vào ô A1...")
+                
+                # Định nghĩa dữ liệu mới muốn ghi
+                data_to_write = "Đây là dữ liệu mới được ghi từ ứng dụng Streamlit!"
+                
+                # Thực hiện ghi dữ liệu
+                worksheet.update_acell('A1', data_to_write)
+                
+                st.success(f"✅ Ghi dữ liệu thành công! Đã cập nhật ô A1 với nội dung: `{data_to_write}`")
+                
+                # Đọc lại dữ liệu để xác nhận
+                new_cell_a1 = worksheet.get('A1').first()
+                st.markdown("**Dữ liệu tại ô A1 sau khi ghi:**")
+                st.info(f"{new_cell_a1}")
+                
             except SpreadsheetNotFound:
                 st.error(
                     f"❌ DỪNG LẠI: Không tìm thấy file nào có tên '{TEMPLATE_NAME}' mà Service Account có quyền truy cập.")
@@ -139,4 +153,3 @@ if gspread_client and drive_service:
         except Exception as e:
             st.error("❌ DỪNG LẠI: Đã xảy ra lỗi nghiêm trọng ở Bước 1 (Tìm thư mục).")
             st.exception(e)
-
