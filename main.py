@@ -109,7 +109,9 @@ def get_or_create_spreadsheet_in_folder(gspread_client, drive_service, folder_id
                 'parents': [folder_id],
                 'mimeType': 'application/vnd.google-apps.spreadsheet'
             }
+            st.write("AA")
             new_file = drive_service.files().create(body=file_metadata).execute()
+            st.write("AAA")
             new_file_id = new_file.get('id')
             # Mở file vừa tạo bằng gspread
             return gspread_client.open_by_key(new_file_id)
