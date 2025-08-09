@@ -88,6 +88,7 @@ def get_folder_id(_drive_service, folder_name):
     except Exception as e:
         st.error(f"Lỗi khi tìm kiếm thư mục '{folder_name}': {e}")
         return None
+        
 def get_or_create_spreadsheet_in_folder(gspread_client, drive_service, folder_id, sheet_name):
     """Mở hoặc tạo một spreadsheet BÊN TRONG một thư mục cụ thể một cách đáng tin cậy hơn."""
     try:
@@ -110,9 +111,12 @@ def get_or_create_spreadsheet_in_folder(gspread_client, drive_service, folder_id
             }
             new_file = drive_service.files().create(body=file_metadata).execute()
             new_file_id = new_file.get('id')
-            
             # Mở file vừa tạo bằng gspread
             return gspread_client.open_by_key(new_file_id)
+            
+    except Exception as e:
+        st.error(f"Lỗi khi truy cập hoặc tạo file Sheet '{sheet_name}': {e}")
+        return None
             
     except Exception as e:
         st.error(f"Lỗi khi truy cập hoặc tạo file Sheet '{sheet_name}': {e}")
