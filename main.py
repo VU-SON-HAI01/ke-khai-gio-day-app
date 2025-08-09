@@ -258,6 +258,7 @@ else:
                 st.session_state.registration_sent = False
                 st.rerun()
         
+        # SỬA LỖI: Bỏ tiền tố 'pages/' khỏi đường dẫn file
         pages = {
             "Kê khai": [
                 st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
