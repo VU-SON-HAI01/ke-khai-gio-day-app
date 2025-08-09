@@ -20,8 +20,8 @@ try:
     REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
     
     # Cấu hình cho Google Sheets
-    USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
-    TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"] # Ví dụ: "KE_GIO_2025"
+    SHEET_NAME = st.secrets["google_sheet"]["sheet_name"] # Tên file Google Sheet
+    USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"] # Tên trang tính (tab)
 
     # Cấu hình email admin
     SENDER_EMAIL = st.secrets["admin_email"]["address"]
@@ -39,44 +39,65 @@ REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 # --- CÁC HÀM KẾT NỐI VÀ XỬ LÝ DỮ LIỆU ---
 
 @st.cache_resource
-def connect_to_google_apis():
-    """Kết nối tới cả Google Sheets và Google Drive API sử dụng Service Account."""
+def connect_to_gsheet():
+    """Kết nối tới Google Sheets API sử dụng Service Account."""
     try:
         creds_dict = st.secrets["gcp_service_account"]
-        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        gspread_client = gspread.authorize(creds)
-        drive_service = build('drive', 'v3', credentials=creds)
-        return gspread_client, drive_service
+        client = gspread.service_account_from_dict(creds_dict)
+        return client
     except Exception as e:
-        st.error(f"Lỗi kết nối tới Google APIs: {e}")
-        return None, None
-
-def get_user_mapping_data(gspread_client):
-    """Lấy toàn bộ dữ liệu từ sheet user mapping."""
-    try:
-        spreadsheet = gspread_client.open(USER_MAPPING_WORKSHEET)
-        worksheet = spreadsheet.sheet1
-        data = worksheet.get_all_records()
-        return pd.DataFrame(data)
-    except gspread.exceptions.SpreadsheetNotFound:
-        st.error(f"Lỗi: Không tìm thấy file Google Sheet có tên '{USER_MAPPING_WORKSHEET}'.")
-        return pd.DataFrame()
-    except Exception as e:
-        st.error(f"Lỗi khi lấy dữ liệu user mapping: {e}")
-        return pd.DataFrame()
-
-def get_magv_from_email(df_users, email):
-    """Tra cứu mã giảng viên từ DataFrame user mapping."""
-    if df_users.empty or 'email' not in df_users.columns or not email:
+        st.error(f"Lỗi kết nối tới Google Sheets API: {e}")
         return None
-    search_email = email.lower().strip()
-    user_row = df_users[df_users['email'].astype(str).str.lower().str.strip() == search_email]
-    if not user_row.empty:
-        if 'magv' not in user_row.columns:
-            st.error("Lỗi: Cột 'magv' không được tìm thấy trong trang tính user mapping.")
+
+def get_magv_from_email(client, email):
+    """Tra cứu mã giảng viên (magv) từ email trong Google Sheet."""
+    if not client or not email:
+        return None
+    try:
+        # Mở file Google Sheet bằng TÊN FILE
+        spreadsheet = client.open(SHEET_NAME)
+        # Mở trang tính (tab) bằng TÊN TRANG TÍNH
+        worksheet = spreadsheet.worksheet(USER_MAPPING_WORKSHEET)
+        
+        data = worksheet.get_all_records()
+        if not data:
             return None
-        return user_row.iloc[0]['magv']
+        
+        df = pd.DataFrame(data)
+        
+        if 'email' not in df.columns:
+            st.error(f"Lỗi: Cột 'email' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
+            return None
+            
+        search_email = email.lower().strip()
+        user_row = df[df['email'].astype(str).str.lower().str.strip() == search_email]
+        
+        if not user_row.empty:
+            if 'magv' not in user_row.columns:
+                st.error(f"Lỗi: Cột 'magv' không được tìm thấy trong trang tính '{USER_MAPPING_WORKSHEET}'.")
+                return None
+            return user_row.iloc[0]['magv']
+        
+        return None
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error(f"Lỗi: Không tìm thấy file Google Sheet có tên '{SHEET_NAME}'.")
+    except gspread.exceptions.WorksheetNotFound:
+        st.error(f"Lỗi: Không tìm thấy trang tính '{USER_MAPPING_WORKSHEET}' trong file '{SHEET_NAME}'.")
+    except Exception as e:
+        st.error(f"Lỗi khi tra cứu mã giảng viên: {e}")
+    return None
+    
+def get_or_create_spreadsheet(gspread_client, sheet_name):
+    """Mở một spreadsheet theo tên, nếu chưa có thì tạo mới."""
+    try:
+        return gspread_client.open(sheet_name)
+    except gspread.exceptions.SpreadsheetNotFound:
+        try:
+            return gspread_client.create(sheet_name)
+        except Exception as e:
+            st.error(f"Lỗi khi tạo file Sheet mới '{sheet_name}': {e}")
+    except Exception as e:
+        st.error(f"Lỗi khi mở file Sheet '{sheet_name}': {e}")
     return None
 
 def send_registration_email(ho_ten, khoa, dien_thoai, email):
@@ -96,7 +117,6 @@ def send_registration_email(ho_ten, khoa, dien_thoai, email):
         st.error(f"Lỗi khi gửi email thông báo: {e}")
         return False
 
-# *** BỔ SUNG: CÁC HÀM TẢI DỮ LIỆU CỤC BỘ ***
 @st.cache_data
 def load_all_data():
     """Tải tất cả các file Parquet cơ sở dữ liệu."""
@@ -169,17 +189,21 @@ else:
                 st.session_state.token = None
                 st.stop()
 
-            gspread_client, drive_service = connect_to_google_apis()
+            gspread_client = connect_to_gsheet()
             if not gspread_client:
                 st.stop()
 
-            df_users = get_user_mapping_data(gspread_client)
-            magv = get_magv_from_email(df_users, user_info['email'])
+            magv = get_magv_from_email(gspread_client, user_info['email'])
             
             if magv:
                 st.session_state.magv = str(magv)
                 
-                # *** BỔ SUNG: TẢI DỮ LIỆU CỤC BỘ VÀ LẤY THÔNG TIN CHI TIẾT ***
+                spreadsheet = get_or_create_spreadsheet(gspread_client, st.session_state.magv)
+                if not spreadsheet:
+                    st.error(f"Không thể truy cập hoặc tạo file làm việc cho Mã GV: {st.session_state.magv}")
+                    st.stop()
+                st.session_state.spreadsheet = spreadsheet
+                
                 all_dfs = load_all_data()
                 teacher_info = get_teacher_info_from_local(
                     st.session_state.magv, 
@@ -219,7 +243,6 @@ else:
                 st.stop()
 
     if st.session_state.initialized:
-        # *** BỔ SUNG: HIỂN THỊ THÔNG TIN GIÁO VIÊN TRÊN SIDEBAR ***
         with st.sidebar:
             st.header(":green[THÔNG TIN GIÁO VIÊN]")
             st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
@@ -235,7 +258,6 @@ else:
                 st.session_state.registration_sent = False
                 st.rerun()
         
-        # Điều hướng trang
         pages = {
             "Kê khai": [
                 st.Page("pages/quydoi_gioday.py", title="Kê giờ dạy"),
