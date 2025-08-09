@@ -474,15 +474,29 @@ def clean_numeric_columns_for_display(df_input, numeric_cols_list):
 def taonhaplop_mon_par(i1,chuangv_f):
     chuangv = chuangv_tat(chuangv_f)
     # Đảm bảo i1 tồn tại trong index của df_quydoi_l
+    
     # Lấy giá trị 'Chọn nhóm' hiện tại từ session_state
-    quydoi_data_old = st.session_state.quydoi_gioday['df_quydoi_l'][st.session_state.quydoi_gioday['df_quydoi_l']['Stt_Mon'] == i1 + 1].iloc[:-1]
+        """Hàm chính để tạo giao diện nhập lớp/môn."""
+    
+    # --- SỬA LỖI: KIỂM TRA AN TOÀN TRƯỚC KHI TRUY CẬP ---
+    df_source = st.session_state.quydoi_gioday.get('df_quydoi_l', pd.DataFrame())
+    quydoi_data_old = pd.DataFrame() # Khởi tạo là DataFrame rỗng
+
+    # Chỉ lọc nếu df_source hợp lệ và có cột 'Stt_Mon'
+    if isinstance(df_source, pd.DataFrame) and not df_source.empty and 'Stt_Mon' in df_source.columns:
+        # Lọc dữ liệu cho môn học hiện tại (i1 + 1)
+        quydoi_data_old = df_source[df_source['Stt_Mon'] == (i1 + 1)]
+    
     laymau_quydoi = False
     if quydoi_data_old.empty:
-        quydoi_data_old = mau_quydoi_g.iloc[:-1]
-        quydoi_data_old['Stt_Mon'] = i1 + 1
+        # Nếu không tìm thấy dữ liệu cho môn này, sử dụng dữ liệu mẫu
+        quydoi_data_old = mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame()
+        if not quydoi_data_old.empty:
+            quydoi_data_old['Stt_Mon'] = i1 + 1
         laymau_quydoi = True
-
-    quydoi_data_old.reset_index(drop=True,inplace=True)
+    
+    # Reset index để truy cập bằng .iloc[0] an toàn
+    quydoi_data_old.reset_index(drop=True, inplace=True)
     chonnhom_value_old = int(quydoi_data_old['Nhóm_chọn'][0])
 
     # Đảm bảo giá trị này nằm trong range của options radio button
