@@ -1,13 +1,26 @@
 import streamlit as st
 import pandas as pd
-import os
 import numpy as np
+import gspread
+from gspread_dataframe import set_with_dataframe
 import fun_lopghep as fun_lopghep
 import random
 from datetime import date
+import os # Giữ lại để xử lý đường dẫn file lớp ghép tạm thời
 
-# Sử dụng cache_data để tối ưu hóa việc tải data_base .parquet
-mau_kelop_g = st.session_state.get('mau_kelop', pd.DataFrame())
+# --- KIỂM TRA TRẠNG THÁI KHỞI TẠO ---
+# Đảm bảo người dùng đã đăng nhập và main.py đã chạy thành công
+if not st.session_state.get('initialized', False):
+    st.warning("Vui lòng đăng nhập từ trang chính để tiếp tục.")
+    st.stop()
+
+# --- LẤY CÁC BIẾN TOÀN CỤC TỪ SESSION STATE ---
+magv = st.session_state.magv
+chuangv = st.session_state.chuangv
+giochuan = st.session_state.giochuan
+spreadsheet = st.session_state.spreadsheet # Đối tượng Google Sheet đã được mở
+
+# --- LẤY CÁC DATAFRAME CƠ SỞ DỮ LIỆU ---
 mau_quydoi_g = st.session_state.get('mau_quydoi', pd.DataFrame())
 df_nangnhoc_g = st.session_state.get('df_nangnhoc', pd.DataFrame())
 df_hesosiso_g = st.session_state.get('df_hesosiso', pd.DataFrame())
@@ -127,20 +140,22 @@ def load_df_from_parquet(file_path):
             st.error(f"Lỗi khi đọc tệp Parquet: {e}. Vui lòng kiểm tra định dạng tệp.")
     st.info("Tệp Parquet chưa tồn tại, sẽ tạo DataFrame trống.")
     return df
+
+WORKSHEET_NAME = "giangday"
+
 if 'quydoi_gioday' not in st.session_state:
     st.session_state.quydoi_gioday = {}
 if 'df_quydoi_l' not in st.session_state.quydoi_gioday:
-    st.session_state.quydoi_gioday['df_quydoi_l'] = load_df_from_parquet (GV_PARQUET_FILE_QUYDOI)
+    st.session_state.quydoi_gioday['df_quydoi_l'] = load_data_from_gsheet(spreadsheet, WORKSHEET_NAME)
+# ... (Các khởi tạo session state khác giữ nguyên)
 if 'list_of_df_quydoi_l' not in st.session_state.quydoi_gioday:
     st.session_state.quydoi_gioday['list_of_df_quydoi_l'] = []
 if 'selectbox_count' not in st.session_state.quydoi_gioday:
-    # Kiểm tra xem df_quydoi_l có phải là DataFrame không trước khi truy cập
     df = st.session_state.quydoi_gioday.get('df_quydoi_l')
-    if isinstance(df, pd.DataFrame) and not df.empty:
+    if isinstance(df, pd.DataFrame) and not df.empty and 'Stt_Mon' in df.columns:
         st.session_state.quydoi_gioday['selectbox_count'] = df['Stt_Mon'].nunique()
     else:
-        st.session_state.quydoi_gioday['selectbox_count'] = 1 # Giá trị mặc định
-
+        st.session_state.quydoi_gioday['selectbox_count'] = 1
     if st.session_state.quydoi_gioday['selectbox_count'] == 0:
         st.session_state.quydoi_gioday['selectbox_count'] = 1
 if 'list_of_malop_mamon' not in st.session_state.quydoi_gioday:
@@ -277,22 +292,25 @@ def timhesomon_siso(mamon, tuan_siso, malop_khoa):
 
     return hesomon_siso_LT, hesomon_siso_TH
 # Hàm tạo file parquet ban đầu nếu chưa có
-# Hàm lưu DataFrame vào Parquet
-def save_df_quydoi_to_parquet(list_of_df_quydoi_ls,file_path):
-    #st.write(list_of_df_quydoi_ls)
+def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
+    """Lưu một DataFrame vào một trang tính cụ thể."""
+    if df_to_save.empty:
+        st.warning("Không có dữ liệu tổng hợp để lưu.")
+        return
     try:
-        if not list_of_df_quydoi_ls.empty:
-            # Kiểm tra xem danh sách có rỗng không
-            list_of_df_quydoi_ls.to_parquet(file_path, index=True)
-            #st.header("DataFrame Tổng hợp (final_combined_df)")
-            #st.dataframe(final_combined_df)
-            pass
-        else:
-            st.warning("Không có DataFrame nào được tạo trong vòng lặp để nối.")
-        # Đảm bảo DataFrame có một cột index rõ ràng nếu bạn muốn lưu và khôi phục nó
-        #st.success(f"Dữ liệu đã được lưu thành công!")
+        # Cố gắng lấy worksheet, nếu không có thì tạo mới
+        try:
+            worksheet = spreadsheet_obj.worksheet(worksheet_name)
+        except gspread.exceptions.WorksheetNotFound:
+            worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=1, cols=1)
+        
+        # Chuyển đổi tất cả dữ liệu sang chuỗi trước khi lưu để tránh lỗi định dạng
+        df_to_save_str = df_to_save.astype(str)
+        set_with_dataframe(worksheet, df_to_save_str, include_index=False)
+        st.success(f"Dữ liệu đã được lưu thành công vào trang tính '{worksheet_name}'!")
     except Exception as e:
-        st.error(f"Lỗi 101 "f"khi lưu dữ liệu vào Parquet: {e}")
+        st.error(f"Lỗi khi lưu dữ liệu vào trang tính '{worksheet_name}': {e}")
+
 # --- Hàm Callbacks cho các nút hành động ---
 def add_callback():
     # 1. Xác định giá trị 'Stt_Mon' tiếp theo
@@ -397,23 +415,28 @@ def delete_callback():
     # 6. Thông báo cho người dùng và làm mới giao diện
     st.toast(f"Đã xóa thành công Môn thứ {int(mon_can_xoa)}.")
 
-def reset_session_state_callback():
-    # Xóa toàn bộ session_state để đảm bảo trạng thái sạch
-    # Đảm bảo không xóa các biến toàn cục quan trọng nếu chúng không nằm trong session_state
-    st.session_state.quydoi_gioday = {}
-    # --- Khởi tạo/Tải lại df_quydoi_l và selectbox_count ---
-    # 1. Tải lại df_quydoi_l
-    st.session_state.quydoi_gioday['df_quydoi_l'] = load_df_from_parquet(GV_PARQUET_FILE_QUYDOI)
-    # 2. Xử lý trường hợp df_quydoi_l rỗng hoặc không có cột 'Stt_Mon'
-    if st.session_state.quydoi_gioday['df_quydoi_l'].empty or 'Stt_Mon' not in st.session_state.quydoi_gioday['df_quydoi_l'].columns:
-        st.warning("df_quydoi_l rỗng hoặc thiếu cột 'Stt_Mon'. Thêm một hàng mặc định.")
-        # Gọi add_callback để thêm hàng và cập nhật selectbox_count
-        add_callback()
+def reload_data_callback():
+    """Tải lại dữ liệu gốc từ Google Sheet và reset trạng thái của trang."""
+    st.toast("Đang tải lại dữ liệu từ Google Sheet...")
+    
+    # 1. Tải lại dữ liệu từ worksheet "giangday"
+    df_reloaded = load_data_from_gsheet(spreadsheet, WORKSHEET_NAME)
+    st.session_state.quydoi_gioday['df_quydoi_l'] = df_reloaded
+    
+    # 2. Reset các trạng thái liên quan
+    st.session_state.quydoi_gioday['list_of_df_quydoi_l'] = []
+    st.session_state.quydoi_gioday['list_of_malop_mamon'] = []
+    if 'combined_quydoi_df' in st.session_state.quydoi_gioday:
+        st.session_state.quydoi_gioday['combined_quydoi_df'] = pd.DataFrame()
+    
+    # 3. Tính toán lại số lượng môn học
+    if isinstance(df_reloaded, pd.DataFrame) and not df_reloaded.empty and 'Stt_Mon' in df_reloaded.columns:
+        st.session_state.quydoi_gioday['selectbox_count'] = df_reloaded['Stt_Mon'].nunique()
     else:
-        # Nếu df_quydoi_l hợp lệ và có dữ liệu, tính soluongmon
-        st.session_state.quydoi_gioday['selectbox_count'] = st.session_state.quydoi_gioday['df_quydoi_l']['Stt_Mon'].nunique()
-    #st.success(f"Dữ liệu của GV hiện có :green[**{st.session_state.quydoi_gioday['selectbox_count']} Môn học**].")
-    #st.rerun()  # Rerun để cập nhật giao diện người dùng ngay lập tức
+        st.session_state.quydoi_gioday['selectbox_count'] = 1
+        
+    if st.session_state.quydoi_gioday['selectbox_count'] == 0:
+        st.session_state.quydoi_gioday['selectbox_count'] = 1
 
 # Hàm làm sạch các cột số (giữ nguyên)
 def clean_numeric_columns_for_display(df_input, numeric_cols_list):
@@ -1360,15 +1383,21 @@ st.header("KÊ GIỜ GIẢNG GV 2025",divider=True)
 # Nút thêm/xóa/cập nhật/đặt lại
 col_buttons = st.columns(4)
 with col_buttons[0]:
-    st.button("➕ Thêm môn",on_click=add_callback,key="add_tab_button",use_container_width=True)
+    # Nút này cần hàm add_callback
+    st.button("➕ Thêm môn", key="add_tab_button", use_container_width=True) 
 with col_buttons[1]:
-    st.button("➖ Xóa môn",on_click=delete_callback, key="remove_tab_button",use_container_width=True)
+    # Nút này cần hàm delete_callback
+    st.button("➖ Xóa môn", key="remove_tab_button", use_container_width=True)
 with col_buttons[2]:
-    # Nút "Cập nhật" sẽ lưu df_quydoi_l vào file Parquet
+    # NÚT CẬP NHẬT ĐÃ ĐƯỢC THAY ĐỔI LOGIC
     if st.button("Cập nhật (Lưu)", use_container_width=True):
-        save_df_quydoi_to_parquet(st.session_state.quydoi_gioday['combined_quydoi_df'] ,GV_PARQUET_FILE_QUYDOI)
+        if 'combined_quydoi_df' in st.session_state.quydoi_gioday and not st.session_state.quydoi_gioday['combined_quydoi_df'].empty:
+            save_data_to_gsheet(spreadsheet, WORKSHEET_NAME, st.session_state.quydoi_gioday['combined_quydoi_df'])
+        else:
+            st.warning("Không có dữ liệu tổng hợp để lưu.")
 with col_buttons[3]:
-    st.button("Đặt lại", on_click=reset_session_state_callback, use_container_width=True)
+    # SỬA LỖI: Gán hàm callback mới cho nút "Đặt lại"
+    st.button("Đặt lại", on_click=reload_data_callback, use_container_width=True)
 
 # thường tự ghi nhớ, nhưng việc quản lý tường minh vẫn tốt.
 tab_names = [f"MÔN THỨ {i + 1}" for i in range(st.session_state.quydoi_gioday['selectbox_count'])]+ ['TỔNG HỢP']
