@@ -6,6 +6,45 @@ import os
 import re
 import altair as alt
 import sqlite3 # Thêm thư viện SQLite
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+# --- PHẦN 3: HÀM CHÍNH ĐỂ LẤY HOẶC TẠO GOOGLE SHEET ---
+
+def get_or_create_sheet_in_folder(gspread_client, drive_service, folder_id, sheet_name):
+    """
+    Tìm một Google Sheet theo tên trong một thư mục cụ thể.
+    Nếu không có, tạo mới Sheet đó trong chính thư mục này.
+    Trả về đối tượng spreadsheet của gspread.
+    """
+    if not drive_service or not gspread_client or not folder_id:
+        return None
+        
+    try:
+        # Tìm kiếm file Sheet trong thư mục cha
+        query = f"name='{sheet_name}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
+        response = drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
+        files = response.get('files', [])
+
+        if files:
+            # Nếu tìm thấy file, mở nó bằng gspread
+            sheet_id = files[0].get('id')
+            st.info(f"Đã tìm thấy file Sheet '{sheet_name}' trong thư mục.")
+            spreadsheet = gspread_client.open_by_key(sheet_id)
+            return spreadsheet
+        else:
+            # Nếu không tìm thấy, tạo file Sheet mới trong thư mục đó
+            st.warning(f"Không tìm thấy file Sheet '{sheet_name}'. Đang tạo mới trong thư mục được chỉ định...")
+            spreadsheet = gspread_client.create(sheet_name, folder_id=folder_id)
+            st.success(f"Đã tạo thành công file Sheet '{sheet_name}'.")
+            
+            # Chia sẻ file với email của bạn để dễ dàng truy cập (tùy chọn)
+            # spreadsheet.share('your-main-email@gmail.com', perm_type='user', role='writer')
+            return spreadsheet
+            
+    except Exception as e:
+        st.error(f"Lỗi khi xử lý file Sheet '{sheet_name}': {e}")
+        return None
+
 
 # Sử dụng cache_data để tối ưu hóa việc tải data_base .parquet
 df_giaovien_g = st.session_state.get('df_giaovien', pd.DataFrame())
