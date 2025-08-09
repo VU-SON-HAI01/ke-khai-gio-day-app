@@ -52,7 +52,7 @@ if gspread_client:
                     admin_email = st.secrets.get("gcp_service_account", {}).get("client_email")
                     if admin_email:
                          # Bạn có thể thay admin_email bằng email cá nhân của bạn
-                        spreadsheet.share(admin_email, perm_type='user', role='writer')
+                        spreadsheet.share(vshai48kd1@gmail.com, perm_type='user', role='writer')
 
                     st.success(f"🎉 Đã tạo thành công file Google Sheet '{new_sheet_name}'!")
                     st.markdown(f"🔗 **[Mở file vừa tạo]({spreadsheet.url})**")
