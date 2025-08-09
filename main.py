@@ -154,11 +154,6 @@ def get_or_create_spreadsheet_in_folder(gspread_client, drive_service, folder_id
         st.error(f"Lỗi khi tạo file Sheet mới '{sheet_name}': {e}")
         return None
 
-
-
-
-
-
 @st.cache_data
 def load_all_parquet_data(base_path='data_base/'):
     """Tải tất cả các file Parquet từ thư mục data_base."""
