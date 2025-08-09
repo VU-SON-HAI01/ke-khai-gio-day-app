@@ -854,19 +854,17 @@ def taonhaplop_mon_par(i1, chuangv_f):
     # NHẬP DỮ LIỆU TUẦN VÀ TIẾT
     kt_tuan_tontai = False
     if kt_mon_tontai:
-        def generate_simple_random_list(total_sum, list_size):
-            if list_size <= 0:
+        def generate_even_distribution(total_sum, num_items):
+            """Phân bổ đều tổng số vào các mục."""
+            if num_items <= 0:
                 return []
-            if total_sum < 0:
-                raise ValueError("Tổng không thể âm.")
-            if list_size == 1:
-                return [total_sum]  # Nếu chỉ có 1 phần tử, nó phải bằng tổng
-            numbers = [0] * list_size
-            remaining_sum = total_sum
-            for _ in range(remaining_sum):
-                idx = random.randrange(list_size)  # Chọn một chỉ mục ngẫu nhiên
-                numbers[idx] += 1
-            return numbers
+            base_value = total_sum // num_items
+            remainder = total_sum % num_items
+
+            result = [base_value] * num_items
+            for i in range(remainder):
+                result[i] += 1
+            return result
 
         if (not quydoi_data_old.empty) and laymau_quydoi == False:
 
@@ -893,17 +891,15 @@ def taonhaplop_mon_par(i1, chuangv_f):
             quydoi_tuan_begin = 1
             quydoi_tuna_end = 12
 
-            if 'random_numbers_list' not in st.session_state.quydoi_gioday:
-                st.info("Đang tạo danh sách ngẫu nhiên lần đầu tiên trong phiên...")
-                st.session_state.quydoi_gioday['random_numbers_list'] = generate_simple_random_list(
-                    int(tongtiet_mon), 12
-                )
-            else:
-                pass
-                # st.info("Danh sách đã tồn tại trong session_state. Không tạo lại.")
+            # Tính số tuần mặc định
+            default_num_weeks = quydoi_tuna_end - quydoi_tuan_begin + 1
 
-            list_tiet_defu = st.session_state.quydoi_gioday['random_numbers_list']
+            # Gọi hàm mới để tạo danh sách tiết học được phân bổ đều
+            list_tiet_defu = generate_even_distribution(int(tongtiet_mon), default_num_weeks)
+
+            # Chuyển danh sách thành chuỗi để hiển thị
             str_tiet_defu = ' '.join(map(str, list_tiet_defu))
+
         # Tuần nghỉ tết
         tuannghitet_batdau = 24
         tuannghitet_ketthuc = 25
