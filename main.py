@@ -45,23 +45,25 @@ if gspread_client:
     )
 
     # Nút để thực hiện hành động tạo file
-    if st.button("Tạo File Ngay", use_container_width=True):
-        if new_sheet_name:
-            with st.spinner(f"Đang tạo file '{new_sheet_name}'..."):
-                try:
-                    # Lệnh chính để tạo spreadsheet mới
-                    spreadsheet = gspread_client.create(new_sheet_name)
-                    
-                    # QUAN TRỌNG: Chia sẻ file với email của bạn để dễ dàng tìm thấy
-                    # Lấy email từ file secrets để chia sẻ
-                    admin_email = st.secrets.get("admin_email", {}).get("address")
-                    if admin_email:
-                        spreadsheet.share(admin_email, perm_type='user', role='writer')
+if st.button("Tạo File Ngay", use_container_width=True):
+    if new_sheet_name:
+        with st.spinner(f"Đang tạo file '{new_sheet_name}'..."):
+            try:
+                # --- THAY ĐỔI Ở ĐÂY ---
+                # Dán ID thư mục bạn đã sao chép ở Bước 3 vào đây
+                folder_id = "11YZPS2392sHh3gks7t7uAjPxchJBvg8K" # THAY ID CỦA BẠN VÀO ĐÂY
 
-                    st.success(f"🎉 Đã tạo thành công file Google Sheet '{new_sheet_name}'!")
-                    st.markdown(f"🔗 **[Mở file vừa tạo]({spreadsheet.url})**")
+                # Lệnh create bây giờ có thêm tham số folder_id
+                spreadsheet = gspread_client.create(new_sheet_name, folder_id=folder_id)
+                
+                # Bạn không cần chia sẻ lại file nữa vì nó đã nằm trong thư mục của bạn
+                # Dòng spreadsheet.share(...) có thể xóa đi hoặc giữ lại nếu bạn muốn
+                # chia sẻ thêm cho người khác.
 
-                except Exception as e:
-                    st.error(f"Đã xảy ra lỗi khi tạo file: {e}")
-        else:
-            st.warning("Vui lòng nhập tên cho file mới.")
+                st.success(f"🎉 Đã tạo thành công file Google Sheet '{new_sheet_name}'!")
+                st.markdown(f"🔗 **[Mở file vừa tạo]({spreadsheet.url})**")
+
+            except Exception as e:
+                st.error(f"Đã xảy ra lỗi khi tạo file: {e}")
+    else:
+        st.warning("Vui lòng nhập tên cho file mới.")
