@@ -90,31 +90,40 @@ def get_folder_id(_drive_service, folder_name):
         return None
         
 def get_or_create_spreadsheet_in_folder(gspread_client, drive_service, folder_id, sheet_name):
-    """Mở hoặc tạo một spreadsheet BÊN TRONG một thư mục cụ thể một cách đáng tin cậy hơn."""
+    """Mở hoặc tạo file bằng cách sao chép từ file mẫu."""
     try:
-        # Bước 1: Tìm kiếm file trước
+        # Bước 1: Tìm kiếm file của người dùng trước
         query = f"name='{sheet_name}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
         response = drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
         files = response.get('files', [])
         
         if files:
-            # Nếu tìm thấy, mở file bằng gspread
-            sheet_id = files[0].get('id')
-            return gspread_client.open_by_key(sheet_id)
+            # Nếu tìm thấy, mở file như bình thường
+            return gspread_client.open_by_key(files[0].get('id'))
         else:
-            # Nếu không tìm thấy, tạo file mới bằng Google Drive API
-            st.info(f"File '{sheet_name}' không tồn tại. Đang tạo file mới...")
-            file_metadata = {
-                'name': sheet_name,
-                'parents': [folder_id],
-                'mimeType': 'application/vnd.google-apps.spreadsheet'
-            }
-            st.write("AA")
-            new_file = drive_service.files().create(body=file_metadata).execute()
-            st.write("AAA")
-            new_file_id = new_file.get('id')
+            # Nếu không tìm thấy, tiến hành sao chép từ file mẫu
+            st.info(f"File '{sheet_name}' không tồn tại. Đang sao chép từ file mẫu...")
+            
+            # Bước 2: Tìm ID của file 'template'
+            template_query = f"name='template' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
+            template_response = drive_service.files().list(q=template_query, fields='files(id, name)').execute()
+            template_files = template_response.get('files', [])
+            
+            if not template_files:
+                st.error("Lỗi nghiêm trọng: Không tìm thấy file 'template' trong thư mục được chia sẻ.")
+                return None
+            
+            template_id = template_files[0].get('id')
+            
+            # Bước 3: Sao chép file mẫu và đổi tên
+            copied_file_metadata = {'name': sheet_name, 'parents': [folder_id]}
+            copied_file = drive_service.files().copy(
+                fileId=template_id, 
+                body=copied_file_metadata
+            ).execute()
+            
             # Mở file vừa tạo bằng gspread
-            return gspread_client.open_by_key(new_file_id)
+            return gspread_client.open_by_key(copied_file.get('id'))
             
     except Exception as e:
         st.error(f"Lỗi khi truy cập hoặc tạo file Sheet '{sheet_name}': {e}")
