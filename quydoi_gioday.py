@@ -140,7 +140,28 @@ def load_df_from_parquet(file_path):
             st.error(f"Lỗi khi đọc tệp Parquet: {e}. Vui lòng kiểm tra định dạng tệp.")
     st.info("Tệp Parquet chưa tồn tại, sẽ tạo DataFrame trống.")
     return df
+def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
+    """Tải dữ liệu từ một trang tính cụ thể. Nếu không có, trả về dữ liệu mẫu."""
+    try:
+        worksheet = spreadsheet_obj.worksheet(worksheet_name)
+        data = worksheet.get_all_records()
+        if not data:
+            st.info(f"Trang tính '{worksheet_name}' trống. Sử dụng dữ liệu mẫu.")
+            return mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame()
+        
+        # Chuyển đổi kiểu dữ liệu để đảm bảo tính nhất quán
+        df = pd.DataFrame(data)
+        for col in df.columns:
+            # Cố gắng chuyển đổi sang số, nếu lỗi thì giữ nguyên
+            df[col] = pd.to_numeric(df[col], errors='ignore')
+        return df
 
+    except gspread.exceptions.WorksheetNotFound:
+        st.info(f"Trang tính '{worksheet_name}' không tồn tại. Sử dụng dữ liệu mẫu.")
+        return mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame()
+    except Exception as e:
+        st.error(f"Lỗi khi đọc dữ liệu từ trang tính '{worksheet_name}': {e}")
+        return pd.DataFrame()
 WORKSHEET_NAME = "giangday"
 
 if 'quydoi_gioday' not in st.session_state:
