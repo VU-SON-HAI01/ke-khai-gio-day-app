@@ -7,3 +7,5 @@ requests
 pyarrow
 fpdf2
 openpyxl
+google-api-python-client
+google-auth-oauthlib
