@@ -147,7 +147,10 @@ if gspread_client and drive_service:
                     'mimeType': 'application/vnd.google-apps.spreadsheet',
                     'parents': [folder_id] # Chỉ định folder_id ngay khi tạo
                 }
-                
+
+                new_spreadsheet = gspread_client.create(new_file_name)
+                st.info(f"✍️ Đang tạo file Google Sheetgspread_client: `{new_file_name}`...")
+
                 new_file = drive_service.files().create(
                     body=file_metadata,
                     fields='id, name'
