@@ -153,6 +153,70 @@ def send_registration_email(ho_ten, khoa, dien_thoai, email):
     except Exception as e:
         st.error(f"Lỗi khi gửi email thông báo: {e}")
         return False
+# --- PHẦN 1: KẾT NỐI VÀ XÁC THỰC ---
+@st.cache_resource
+def connect_to_google_apis():
+    """
+    Kết nối tới cả Google Sheets và Google Drive API sử dụng credentials từ st.secrets.
+    Sử dụng @st.cache_resource để không phải kết nối lại mỗi lần rerun.
+    """
+    try:
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        creds = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"], scopes=scopes
+        )
+        # Kết nối gspread cho Sheets
+        gspread_client = gspread.authorize(creds)
+        # Kết nối service cho Drive
+        drive_service = build('drive', 'v3', credentials=creds)
+        
+        st.success("Đã kết nối thành công tới Google APIs!")
+        return gspread_client, drive_service
+    except Exception as e:
+        st.error(f"Lỗi kết nối Google APIs: {e}")
+        return None, None
+
+# --- PHẦN 2: QUẢN LÝ THƯ MỤC TRÊN GOOGLE DRIVE ---
+
+@st.cache_data(ttl=600) # Cache trong 10 phút
+def get_or_create_folder(_drive_service, folder_name):
+    """
+    Lấy ID của một thư mục theo tên (bao gồm cả thư mục được chia sẻ). 
+    Nếu không tồn tại, tạo thư mục mới trong Drive của Service Account.
+    Trả về ID của thư mục.
+    """
+    if not _drive_service:
+        return None
+        
+    try:
+        # Tìm kiếm thư mục
+        query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false"
+        response = _drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
+        folders = response.get('files', [])
+
+        if folders:
+            # Nếu tìm thấy, trả về ID của thư mục đầu tiên
+            folder_id = folders[0].get('id')
+            st.info(f"✅ Đã tìm thấy thư mục '{folder_name}' (có thể là thư mục bạn đã chia sẻ).")
+            return folder_id
+        else:
+            # Nếu không tìm thấy, tạo thư mục mới
+            st.warning(f"⚠️ Không tìm thấy thư mục '{folder_name}'. Vui lòng kiểm tra lại tên hoặc cài đặt chia sẻ.")
+            st.info("Đang tiến hành tạo thư mục mới trong Drive của ứng dụng...")
+            file_metadata = {
+                'name': folder_name,
+                'mimeType': 'application/vnd.google-apps.folder'
+            }
+            folder = _drive_service.files().create(body=file_metadata, fields='id').execute()
+            folder_id = folder.get('id')
+            st.success(f"Đã tạo thành công thư mục '{folder_name}'.")
+            return folder_id
+    except Exception as e:
+        st.error(f"Lỗi khi xử lý thư mục '{folder_name}': {e}")
+        return None
 
 # --- GIAO DIỆN ỨNG DỤNG ---
 st.image("image/banner-top-kegio.jpg", use_container_width=True)
