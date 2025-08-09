@@ -110,7 +110,7 @@ if gspread_client and drive_service:
 
     st.markdown("---")
     
-    # --- SECTION 2: TẠO FILE MỚI ---
+        # --- SECTION 2: TẠO FILE MỚI ---
     st.header("2. Tạo File Google Sheet Mới")
     st.write(f"File mới sẽ được tạo trong thư mục **'{FOLDER_NAME}'**.")
 
@@ -118,28 +118,6 @@ if gspread_client and drive_service:
     cell_a1_value = st.text_input("Nhập giá trị cho ô A1:", value="Chào thế giới!")
 
     if st.button("Tạo File & Ghi Dữ Liệu", use_container_width=True, type="secondary"):
-        if not new_file_name:
-            st.warning("Vui lòng nhập tên file.")
-        else:
-            try:
-                # BƯỚC 1: TÌM FOLDER ID
-                st.info(f"🔎 Đang tìm Folder ID của thư mục '{FOLDER_NAME}' để đặt file vào...")
-                folder_query = f"mimeType='application/vnd.google-apps.folder' and name='{FOLDER_NAME}' and trashed=false"
-                response = drive_service.files().list(
-                    q=folder_query,
-                    spaces='drive',
-                    fields='files(id, name)'
-                ).execute()
-                folders = response.get('files', [])
-
-                if not folders:
-                    st.error(f"❌ DỪNG LẠI: Không tìm thấy thư mục nào tên '{FOLDER_NAME}'.")
-                    st.stop()
-
-                folder_id = folders[0]['id']
-                st.success(f"✔️ Đã tìm thấy Folder ID: `{folder_id}`")
-
-                    if st.button("Tạo File & Ghi Dữ Liệu", use_container_width=True, type="secondary"):
         if not new_file_name:
             st.warning("Vui lòng nhập tên file.")
         else:
