@@ -1,12 +1,15 @@
+# Main App Framework
 streamlit
-pandas
-google-auth==2.27.0
 streamlit-oauth
-requests
+
+# Data Handling
+pandas
 pyarrow
-fpdf2
 openpyxl
-google-api-python-client
-google-auth-oauthlib
-gspread-dataframe
+
+# Google Integration
 gspread[drive]
+gspread-dataframe
+
+# PDF Generation
+fpdf2
