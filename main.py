@@ -260,7 +260,7 @@ else:
         
         pages = {
             "Kê khai": [
-                st.Page("quydoigioday.py", title="Kê giờ dạy"),
+                st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
                 st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động"),
             ],
             "Báo cáo": [
