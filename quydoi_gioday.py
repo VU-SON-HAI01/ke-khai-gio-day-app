@@ -1479,7 +1479,12 @@ with col_buttons[3]:
 
 # thường tự ghi nhớ, nhưng việc quản lý tường minh vẫn tốt.
 tab_names = [f"MÔN THỨ {i + 1}" for i in range(st.session_state.quydoi_gioday['selectbox_count'])] + ['TỔNG HỢP']
+
 tabs = st.tabs(tab_names)
+
+st.session_state.quydoi_gioday['list_of_malop_mamon'].clear()
+st.session_state.quydoi_gioday['list_of_df_quydoi_l'].clear()
+
 for i, tab_obj in enumerate(tabs[:-1]):
     with tab_obj:
         taonhaplop_mon_par(i, st.session_state['chuangv'])
@@ -1599,5 +1604,3 @@ else:
     st.info("Danh sách các DataFrame quy đổi rỗng.")
 
 # st.write(st.session_state.quydoi_gioday['combined_quydoi_df'])
-st.session_state.quydoi_gioday['list_of_malop_mamon'].clear()
-st.session_state.quydoi_gioday['list_of_df_quydoi_l'].clear()
