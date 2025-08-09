@@ -44,7 +44,7 @@ if gspread_client and drive_service:
     st.success("Kết nối tới Google API thành công!")
 
     # --- GÁN TRỰC TIẾP TÊN FOLDER VÀ FILE TẠI ĐÂY ---
-    FOLDER_NAME = "KE_GIO_2025"
+    FOLDER_NAME = "KE_GIO"
     TEMPLATE_NAME = "template"
 
     # --- SECTION 1: ĐỌC VÀ GHI VÀO FILE TỒN TẠI ---
