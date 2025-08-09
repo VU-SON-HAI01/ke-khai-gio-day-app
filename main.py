@@ -118,21 +118,35 @@ def send_registration_email(ho_ten, khoa, dien_thoai, email):
         return False
 
 @st.cache_data
-def load_all_data():
-    """Tải tất cả các file Parquet cơ sở dữ liệu."""
-    files_to_load = {
-        'df_giaovien': 'data_base/df_giaovien.parquet',
-        'df_khoa': 'data_base/df_khoa.parquet',
-        # Thêm các file khác nếu cần
-    }
+def load_all_parquet_data(base_path='data_base/'):
+    """Tải tất cả các file Parquet từ thư mục data_base."""
+    files_to_load = [
+        'df_giaovien.parquet', 'df_hesosiso.parquet', 'df_khoa.parquet',
+        'df_lop.parquet', 'df_lopgheptach.parquet', 'df_manghe.parquet',
+        'df_mon.parquet', 'df_nangnhoc.parquet', 'df_ngaytuan.parquet',
+        'df_quydoi_hd.parquet', 'df_quydoi_hd_them.parquet',
+        'mau_kelop.parquet', 'mau_quydoi.parquet'
+    ]
+    
     loaded_dfs = {}
-    for df_name, file_path in files_to_load.items():
+    st.write("Bắt đầu tải dữ liệu cơ sở...")
+    progress_bar = st.progress(0, text="Đang tải dữ liệu...")
+    
+    for i, file_name in enumerate(files_to_load):
+        file_path = os.path.join(base_path, file_name)
+        key_name = file_name.replace('.parquet', '') # Ví dụ: 'df_giaovien'
         try:
-            loaded_dfs[df_name] = pd.read_parquet(file_path, engine='pyarrow')
+            df = pd.read_parquet(file_path, engine='pyarrow')
+            loaded_dfs[key_name] = df
         except Exception as e:
-            st.error(f"Lỗi khi tải file dữ liệu '{file_path}': {e}")
-            loaded_dfs[df_name] = pd.DataFrame()
+            st.warning(f"Không thể tải file '{file_path}': {e}")
+            loaded_dfs[key_name] = pd.DataFrame() # Tạo DataFrame rỗng nếu có lỗi
+        progress_bar.progress((i + 1) / len(files_to_load), text=f"Đang tải {file_name}...")
+        
+    progress_bar.empty()
+    st.write("✅ Dữ liệu cơ sở đã được tải xong.")
     return loaded_dfs
+
 
 def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
     """Tra cứu thông tin giảng viên từ các DataFrame cục bộ."""
