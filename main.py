@@ -7,7 +7,7 @@ import smtplib
 from email.mime.text import MIMEText
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
-
+import os # Thêm thư viện os để xử lý đường dẫn file
 # --- CẤU HÌNH BAN ĐẦU ---
 st.set_page_config(layout="wide", page_title="Hệ thống Kê khai Giờ giảng")
 st.image("image/banner-top-kegio.jpg", use_container_width=True)
@@ -221,10 +221,11 @@ else:
                 all_base_data = load_all_parquet_data()
                 for key, df_data in all_base_data.items():
                     st.session_state[key] = df_data
+                # Lấy thông tin chi tiết của giáo viên
                 teacher_info = get_teacher_info_from_local(
-                    st.session_state.magv, 
-                    all_dfs.get('df_giaovien', pd.DataFrame()), 
-                    all_dfs.get('df_khoa', pd.DataFrame())
+                    magv, 
+                    st.session_state.get('df_giaovien', pd.DataFrame()), 
+                    st.session_state.get('df_khoa', pd.DataFrame())
                 )
                 
                 if teacher_info:
