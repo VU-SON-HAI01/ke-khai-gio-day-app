@@ -308,16 +308,65 @@ else:
 
     else:
         # GIAO DIỆN CỦA USER THƯỜNG
-        sa_gspread_client = connect_as_service_account()
-        if not sa_gspread_client:
-            st.stop()
+        if 'initialized' not in st.session_state:
+            st.session_state.initialized = False
 
-        with st.spinner("Đang kiểm tra quyền và tải dữ liệu..."):
-            magv, spreadsheet = get_user_spreadsheet(sa_gspread_client, user_email)
+        if not st.session_state.initialized:
+            with st.spinner("Đang kiểm tra quyền và tải dữ liệu..."):
+                sa_gspread_client = connect_as_service_account()
+                if not sa_gspread_client:
+                    st.stop()
 
-        if magv and spreadsheet:
-            st.success(f"Xác thực thành công! Đang làm việc với file: {magv}")
-            st.info("Giao diện làm việc của giáo viên sẽ được hiển thị ở đây.")
-        else:
-            st.error("Tài khoản của bạn chưa được đăng ký trong hệ thống.")
-            st.warning(f"Vui lòng liên hệ Admin ({ADMIN_EMAIL}) để được cấp quyền.")
+                magv, spreadsheet = get_user_spreadsheet(sa_gspread_client, user_email)
+
+                if magv and spreadsheet:
+                    all_base_data = load_all_parquet_data()
+                    teacher_info = get_teacher_info_from_local(magv, all_base_data.get('df_giaovien'), all_base_data.get('df_khoa'))
+
+                    if teacher_info:
+                        st.session_state.magv = magv
+                        st.session_state.spreadsheet = spreadsheet
+                        for key, df_data in all_base_data.items():
+                            st.session_state[key] = df_data
+                        st.session_state.tengv = teacher_info.get('Tên giảng viên')
+                        st.session_state.ten_khoa = teacher_info.get('ten_khoa')
+                        st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
+                        giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
+                        st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
+                        
+                        st.session_state.initialized = True
+                        st.rerun()
+                    else:
+                        st.error(f"Đã xác thực nhưng không tìm thấy thông tin chi tiết cho Mã GV: {magv} trong dữ liệu cục bộ.")
+                        st.stop()
+                else:
+                    st.error("Tài khoản của bạn chưa được đăng ký trong hệ thống.")
+                    st.warning(f"Vui lòng liên hệ Admin ({ADMIN_EMAIL}) để được cấp quyền truy cập.")
+                    st.stop()
+
+        if st.session_state.get('initialized'):
+            with st.sidebar:
+                st.write(f"Đã đăng nhập với:")
+                st.success(user_email)
+                st.header(":green[THÔNG TIN GIÁO VIÊN]")
+                st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
+                st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
+                st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
+                st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
+                st.write(f"(Chuẩn GV: {st.session_state.chuangv})")
+                st.divider()
+                if st.button("Đăng xuất", use_container_width=True, key="user_logout"):
+                    for key in list(st.session_state.keys()):
+                        del st.session_state[key]
+                    st.rerun()
+
+            st.header(f"Chào mừng, {st.session_state.tengv}!")
+            
+            pages = {
+                "Kê khai": [st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
+                            st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động")],
+                "Báo cáo": [st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file")],
+                "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn")]
+            }
+            pg = st.navigation(pages)
+            pg.run()
