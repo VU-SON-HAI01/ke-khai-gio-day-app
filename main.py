@@ -72,43 +72,55 @@ def get_folder_id(drive_service, folder_name):
         return None
 
 def provision_new_user(gspread_client, drive_service, folder_id, new_magv, new_email):
-    """Hàm dành cho Admin: Tạo sheet mới, chia sẻ và cập nhật bảng map."""
+    """
+    Hàm cải tiến: Đảm bảo file và quyền truy cập tồn tại, tạo mới nếu chưa có.
+    Trả về một danh sách các thông báo về hành động đã thực hiện.
+    """
+    messages = []
+    new_magv_str = str(new_magv)
+
     try:
-        # 1. Kiểm tra xem magv hoặc email đã tồn tại chưa
+        # --- BƯỚC 1: Đảm bảo file tồn tại và được chia sẻ ---
+        query = f"name='{new_magv_str}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
+        response = drive_service.files().list(q=query, fields='files(id)').execute()
+        files = response.get('files', [])
+
+        if not files:
+            # Nếu file chưa tồn tại, tạo mới và chia sẻ
+            copied_file_metadata = {'name': new_magv_str, 'parents': [folder_id]}
+            copied_file = drive_service.files().copy(fileId=TEMPLATE_FILE_ID, body=copied_file_metadata).execute()
+            copied_file_id = copied_file.get('id')
+            drive_service.permissions().create(
+                fileId=copied_file_id,
+                body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
+                sendNotificationEmail=True
+            ).execute()
+            messages.append(f"✅ Đã tạo file '{new_magv_str}' và chia sẻ cho {new_email}.")
+        else:
+            messages.append(f"ℹ️ File '{new_magv_str}' đã tồn tại trong Google Drive, không cần tạo mới.")
+
+        # --- BƯỚC 2: Đảm bảo thông tin phân quyền tồn tại trong Sheet Admin ---
         mapping_sheet = gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
         records = mapping_sheet.get_all_records()
         df = pd.DataFrame(records)
-        if not df.empty:
-            if new_magv in df['magv'].astype(str).values:
-                st.error(f"Mã giáo viên '{new_magv}' đã tồn tại.")
-                return False
-            if new_email in df['email'].values:
-                st.error(f"Email '{new_email}' đã được cấp quyền.")
-                return False
 
-        # 2. Tạo file sheet mới bằng cách copy file mẫu
-        st.write(f"Đang tạo file '{new_magv}'...")
-        copied_file_metadata = {'name': str(new_magv), 'parents': [folder_id]}
-        copied_file = drive_service.files().copy(fileId=TEMPLATE_FILE_ID, body=copied_file_metadata).execute()
-        copied_file_id = copied_file.get('id')
+        email_exists = not df.empty and new_email in df['email'].values
+        magv_exists = not df.empty and new_magv_str in df['magv'].astype(str).values
 
-        # 3. Chia sẻ file vừa tạo cho người dùng
-        st.write(f"Đang chia sẻ file cho {new_email}...")
-        drive_service.permissions().create(
-            fileId=copied_file_id,
-            body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
-            sendNotificationEmail=True # Gửi email thông báo cho người dùng
-        ).execute()
+        if not email_exists and not magv_exists:
+            # Nếu cả email và magv đều chưa có, thêm mới
+            mapping_sheet.append_row([new_email, new_magv_str])
+            messages.append(f"✅ Đã cập nhật bảng phân quyền cho: {new_email} -> {new_magv_str}.")
+        elif email_exists or magv_exists:
+            # Nếu một trong hai đã tồn tại, thông báo cho admin
+            messages.append(f"ℹ️ Thông tin của '{new_email}' hoặc Mã GV '{new_magv_str}' đã có trong bảng phân quyền, không cần cập nhật.")
 
-        # 4. Cập nhật vào bảng map
-        st.write("Đang cập nhật bảng phân quyền...")
-        mapping_sheet.append_row([new_email, str(new_magv)])
-        
-        return True
+        return messages
 
     except Exception as e:
         st.error(f"Đã xảy ra lỗi trong quá trình cấp quyền: {e}")
-        return False
+        return []
+
 
 def get_user_spreadsheet(gspread_client, email):
     """Tìm magv và mở file sheet tương ứng cho người dùng."""
@@ -179,26 +191,29 @@ else:
     if user_email == ADMIN_EMAIL:
         # GIAO DIỆN CỦA ADMIN
         st.subheader("👨‍💻 Bảng điều khiển của Admin")
-        st.info("Chức năng này dùng để tạo file Sheet và cấp quyền cho giáo viên mới.")
+        st.info("Chức năng này dùng để tạo file Sheet và cấp quyền cho giáo viên mới nếu chưa tồn tại.")
 
         folder_id = get_folder_id(drive_service, TARGET_FOLDER_NAME)
         if folder_id:
             with st.form("provision_form", border=True):
-                st.write("**Tạo người dùng mới**")
+                st.write("**Tạo hoặc kiểm tra người dùng**")
                 new_magv = st.text_input("Nhập Mã giáo viên (sẽ là tên file Sheet)", placeholder="Ví dụ: 1001")
                 new_email = st.text_input("Nhập email của giáo viên", placeholder="Ví dụ: teacher@example.com")
-                submitted = st.form_submit_button("Tạo và Cấp quyền")
+                submitted = st.form_submit_button("Thực hiện")
 
                 if submitted:
                     if not new_magv or not new_email:
                         st.warning("Vui lòng nhập đầy đủ thông tin.")
                     else:
-                        with st.spinner("Đang xử lý..."):
-                            success = provision_new_user(gspread_client, drive_service, folder_id, new_magv, new_email)
-                        if success:
-                            st.success(f"Hoàn tất! Đã tạo và cấp quyền cho {new_email} thành công.")
+                        with st.spinner("Đang kiểm tra và thực hiện..."):
+                            messages = provision_new_user(gspread_client, drive_service, folder_id, new_magv, new_email)
+                        
+                        if messages:
+                            st.success("Hoàn tất!")
+                            for msg in messages:
+                                st.info(msg)
                         else:
-                            st.error("Quá trình thực hiện có lỗi, vui lòng kiểm tra lại.")
+                            st.error("Quá trình thực hiện có lỗi, vui lòng kiểm tra lại thông báo bên trên.")
 
     else:
         # GIAO DIỆN CỦA USER THƯỜNG
