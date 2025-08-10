@@ -71,13 +71,28 @@ def connect_as_user(_token):
 
 def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file):
     """
-    Hàm dành cho Admin: Xử lý hàng loạt việc tạo file và cấp quyền từ file Excel.
+    Hàm dành cho Admin: Xử lý hàng loạt, dừng ở dòng cuối cùng có email.
     """
     try:
         df_upload = pd.read_excel(uploaded_file)
         if 'email' not in df_upload.columns or 'magv' not in df_upload.columns:
             st.error("Lỗi: File Excel phải chứa 2 cột có tên là 'email' và 'magv'.")
             return
+
+        # --- CẢI TIẾN: TÌM ĐIỂM DỪNG ---
+        # Chuyển cột email sang dạng chuỗi để xử lý nhất quán
+        df_upload['email'] = df_upload['email'].astype(str)
+        # Tìm chỉ số của dòng cuối cùng có email hợp lệ (không rỗng, không phải 'nan')
+        last_valid_index = df_upload[df_upload['email'].str.strip().ne('') & df_upload['email'].str.lower().ne('nan')].last_valid_index()
+
+        if last_valid_index is None:
+            st.warning("Không tìm thấy email hợp lệ nào trong file được tải lên.")
+            return
+
+        # Chỉ xử lý các dòng từ đầu đến dòng cuối cùng có email
+        df_to_process = df_upload.loc[:last_valid_index]
+        st.info(f"Đã tìm thấy dữ liệu. Sẽ xử lý {len(df_to_process)} dòng.")
+        # --- KẾT THÚC CẢI TIẾN ---
 
         # Lấy dữ liệu hiện có để kiểm tra trùng lặp
         mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
@@ -94,12 +109,14 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
         log_messages = []
         rows_to_add = []
 
-        for index, row in df_upload.iterrows():
-            new_email = str(row['email']).strip()
-            new_magv_str = str(row['magv']).strip()
+        # Lặp qua dataframe đã được giới hạn
+        for index, row in df_to_process.iterrows():
+            # Chuyển đổi sang chuỗi và loại bỏ khoảng trắng thừa
+            new_email = str(row.get('email', '')).strip()
+            new_magv_str = str(row.get('magv', '')).strip()
             
-            if not new_email or not new_magv_str:
-                log_messages.append(f"⚠️ Bỏ qua dòng {index + 2}: Dữ liệu trống.")
+            # Bỏ qua dòng nếu thiếu email hoặc magv
+            if not new_email or not new_magv_str or new_email.lower() == 'nan':
                 continue
 
             # --- Xử lý File trên Drive ---
@@ -122,8 +139,8 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
                 rows_to_add.append([new_email, new_magv_str])
                 log_messages.append(f"✅ Sẽ thêm vào bảng phân quyền: {new_email} -> {new_magv_str}.")
             
-            status_area.info("\n".join(log_messages))
-            progress_bar.progress((index + 1) / len(df_upload))
+            status_area.info("\n".join(log_messages[-5:])) # Chỉ hiển thị 5 log gần nhất
+            progress_bar.progress((index + 1) / len(df_to_process))
 
         # Thêm tất cả các dòng mới vào sheet một lần để tăng hiệu suất
         if rows_to_add:
