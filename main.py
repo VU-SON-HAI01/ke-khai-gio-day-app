@@ -51,7 +51,11 @@ def connect_as_service_account():
     """Kết nối bằng Service Account, chỉ dùng để đọc sheet admin."""
     try:
         creds_dict = st.secrets["gcp_service_account"]
-        scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+        # SỬA LỖI: Thêm scope drive.readonly để gspread có thể tìm kiếm file sheet
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive.readonly"
+        ]
         creds = ServiceAccountCredentials.from_service_account_info(creds_dict, scopes=scopes)
         return gspread.authorize(creds)
     except Exception as e:
@@ -88,6 +92,10 @@ def get_magv_from_email(admin_gspread_client, email):
             return None
         user_row = df[df['email'].astype(str).str.lower().str.strip() == email.lower().strip()]
         return user_row.iloc[0]['magv'] if not user_row.empty else None
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error(f"Lỗi: Không tìm thấy file Sheet quản trị có tên '{ADMIN_SHEET_NAME}'.")
+        st.info(f"Hãy chắc chắn rằng bạn đã chia sẻ file này với Service Account: {st.secrets['gcp_service_account']['client_email']}")
+        return None
     except Exception as e:
         st.error(f"Lỗi khi tra cứu mã giảng viên: {e}")
         return None
