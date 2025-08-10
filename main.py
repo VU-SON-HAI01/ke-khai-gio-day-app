@@ -69,48 +69,73 @@ def connect_as_user(_token):
         st.rerun()
         return None, None
 
-def provision_new_user(admin_drive_service, sa_gspread_client, folder_id, new_magv, new_email):
+def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file):
     """
-    Hàm dành cho Admin: Dùng quyền của Admin để tạo file, dùng SA để cập nhật bảng map.
+    Hàm dành cho Admin: Xử lý hàng loạt việc tạo file và cấp quyền từ file Excel.
     """
-    messages = []
-    new_magv_str = str(new_magv)
     try:
-        # --- BƯỚC 1: Dùng quyền của ADMIN để tạo file ---
-        query = f"name='{new_magv_str}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
-        response = admin_drive_service.files().list(q=query, fields='files(id)').execute()
-        files = response.get('files', [])
+        df_upload = pd.read_excel(uploaded_file)
+        if 'email' not in df_upload.columns or 'magv' not in df_upload.columns:
+            st.error("Lỗi: File Excel phải chứa 2 cột có tên là 'email' và 'magv'.")
+            return
 
-        if not files:
-            copied_file_metadata = {'name': new_magv_str, 'parents': [folder_id]}
-            copied_file = admin_drive_service.files().copy(fileId=TEMPLATE_FILE_ID, body=copied_file_metadata).execute()
-            copied_file_id = copied_file.get('id')
-            admin_drive_service.permissions().create(
-                fileId=copied_file_id,
-                body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
-                sendNotificationEmail=True
-            ).execute()
-            messages.append(f"✅ Đã tạo file '{new_magv_str}' và chia sẻ cho {new_email}.")
-        else:
-            messages.append(f"ℹ️ File '{new_magv_str}' đã tồn tại trong Google Drive.")
-
-        # --- BƯỚC 2: Dùng Service Account để cập nhật bảng phân quyền ---
+        # Lấy dữ liệu hiện có để kiểm tra trùng lặp
         mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
         records = mapping_sheet.get_all_records()
-        df = pd.DataFrame(records)
-        email_exists = not df.empty and new_email in df['email'].values
-        magv_exists = not df.empty and new_magv_str in df['magv'].astype(str).values
+        df_map = pd.DataFrame(records)
+        
+        existing_files_q = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
+        response = admin_drive_service.files().list(q=existing_files_q, fields='files(name)').execute()
+        existing_filenames = {file['name'] for file in response.get('files', [])}
 
-        if not email_exists and not magv_exists:
-            mapping_sheet.append_row([new_email, new_magv_str])
-            messages.append(f"✅ Đã cập nhật bảng phân quyền cho: {new_email} -> {new_magv_str}.")
-        else:
-            messages.append(f"ℹ️ Thông tin đã có trong bảng phân quyền.")
+        st.write("--- Bắt đầu xử lý ---")
+        progress_bar = st.progress(0)
+        status_area = st.container()
+        log_messages = []
+        rows_to_add = []
 
-        return messages
+        for index, row in df_upload.iterrows():
+            new_email = str(row['email']).strip()
+            new_magv_str = str(row['magv']).strip()
+            
+            if not new_email or not new_magv_str:
+                log_messages.append(f"⚠️ Bỏ qua dòng {index + 2}: Dữ liệu trống.")
+                continue
+
+            # --- Xử lý File trên Drive ---
+            if new_magv_str not in existing_filenames:
+                copied_file_metadata = {'name': new_magv_str, 'parents': [folder_id]}
+                copied_file = admin_drive_service.files().copy(fileId=TEMPLATE_FILE_ID, body=copied_file_metadata).execute()
+                admin_drive_service.permissions().create(
+                    fileId=copied_file.get('id'),
+                    body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
+                    sendNotificationEmail=True
+                ).execute()
+                log_messages.append(f"✅ Đã tạo file '{new_magv_str}' và chia sẻ cho {new_email}.")
+                existing_filenames.add(new_magv_str)
+            
+            # --- Xử lý Bảng phân quyền ---
+            email_exists = not df_map.empty and new_email in df_map['email'].values
+            magv_exists = not df_map.empty and new_magv_str in df_map['magv'].astype(str).values
+
+            if not email_exists and not magv_exists:
+                rows_to_add.append([new_email, new_magv_str])
+                log_messages.append(f"✅ Sẽ thêm vào bảng phân quyền: {new_email} -> {new_magv_str}.")
+            
+            status_area.info("\n".join(log_messages))
+            progress_bar.progress((index + 1) / len(df_upload))
+
+        # Thêm tất cả các dòng mới vào sheet một lần để tăng hiệu suất
+        if rows_to_add:
+            mapping_sheet.append_rows(rows_to_add)
+            st.success(f"Đã thêm thành công {len(rows_to_add)} người dùng mới vào bảng phân quyền.")
+
+        st.success("--- Xử lý hàng loạt hoàn tất! ---")
+        st.balloons()
+
     except Exception as e:
-        st.error(f"Đã xảy ra lỗi trong quá trình cấp quyền: {e}")
-        return []
+        st.error(f"Đã xảy ra lỗi trong quá trình xử lý hàng loạt: {e}")
+
 
 def get_user_spreadsheet(sa_gspread_client, email):
     """Tìm magv và mở file sheet tương ứng cho người dùng."""
@@ -168,9 +193,8 @@ else:
     # --- PHÂN LUỒNG ADMIN / USER ---
     if user_email == ADMIN_EMAIL:
         st.subheader("👨‍💻 Bảng điều khiển của Admin")
-        st.info("Tạo file Sheet và cấp quyền cho giáo viên mới.")
+        st.info("Tải lên file Excel để tạo và cấp quyền hàng loạt cho giáo viên.")
 
-        # Kết nối với cả 2 quyền: của Admin và của Service Account
         sa_gspread_client = connect_as_service_account()
         admin_gspread_client, admin_drive_service = connect_as_user(st.session_state.token)
 
@@ -178,7 +202,6 @@ else:
             st.error("Lỗi kết nối tới Google API. Vui lòng thử lại.")
             st.stop()
 
-        # Admin dùng quyền của mình để tìm folder
         query = f"mimeType='application/vnd.google-apps.folder' and name='{TARGET_FOLDER_NAME}' and 'me' in owners"
         response = admin_drive_service.files().list(q=query, fields='files(id)').execute()
         folders = response.get('files', [])
@@ -189,24 +212,15 @@ else:
         
         folder_id = folders[0].get('id')
 
-        with st.form("provision_form", border=True):
-            st.write("**Tạo hoặc kiểm tra người dùng**")
-            new_magv = st.text_input("Nhập Mã giáo viên (tên file)", placeholder="Ví dụ: 1001")
-            new_email = st.text_input("Nhập email của giáo viên", placeholder="Ví dụ: teacher@example.com")
-            submitted = st.form_submit_button("Thực hiện")
+        uploaded_file = st.file_uploader(
+            "Chọn file Excel của bạn",
+            type=['xlsx', 'xls'],
+            help="File Excel phải có 2 cột tên là 'email' và 'magv'."
+        )
 
-            if submitted:
-                if not new_magv or not new_email:
-                    st.warning("Vui lòng nhập đầy đủ thông tin.")
-                else:
-                    with st.spinner("Đang kiểm tra và thực hiện..."):
-                        messages = provision_new_user(admin_drive_service, sa_gspread_client, folder_id, new_magv, new_email)
-                    if messages:
-                        st.success("Hoàn tất!")
-                        for msg in messages:
-                            st.info(msg)
-                    else:
-                        st.error("Quá trình có lỗi, vui lòng kiểm tra thông báo.")
+        if uploaded_file is not None:
+            if st.button("🚀 Bắt đầu xử lý hàng loạt"):
+                bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file)
 
     else:
         # GIAO DIỆN CỦA USER THƯỜNG
