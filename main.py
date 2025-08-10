@@ -110,7 +110,8 @@ def get_folder_id(user_drive_service, folder_name):
             return folders[0].get('id')
         else:
             st.error(f"Lỗi: Không tìm thấy thư mục '{folder_name}' trong Google Drive của bạn.")
-            st.info("Vui lòng tạo một thư mục có tên chính xác là '{folder_name}' và thử lại.")
+            # SỬA LỖI HIỂN THỊ
+            st.info(f"Vui lòng tạo một thư mục có tên chính xác là '{folder_name}' và đảm bảo bạn là chủ sở hữu của thư mục đó, sau đó thử lại.")
             return None
     except Exception as e:
         st.error(f"Lỗi khi tìm kiếm thư mục '{folder_name}': {e}")
