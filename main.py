@@ -279,6 +279,13 @@ else:
                     if selected_magv:
                         user_data = df_map[df_map['magv'].astype(str) == selected_magv]
                         old_email = user_data.iloc[0]['email']
+                        
+                        # --- CẬP NHẬT: HIỂN THỊ TÊN GIÁO VIÊN ---
+                        # Kiểm tra xem cột 'tengv' có tồn tại không
+                        if 'tengv' in df_map.columns:
+                            tengv = user_data.iloc[0]['tengv']
+                            st.text_input("Tên giáo viên", value=tengv, disabled=True)
+                        # --- KẾT THÚC CẬP NHẬT ---
 
                         st.text_input("Email cũ", value=old_email, disabled=True)
                         new_email = st.text_input("Nhập Email mới", key=f"new_email_{selected_magv}")
