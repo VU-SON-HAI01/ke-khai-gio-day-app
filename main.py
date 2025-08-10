@@ -146,11 +146,9 @@ def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, ol
     Hàm dành cho Admin: Cập nhật email cho một giáo viên đã có.
     """
     try:
-        # 1. Tìm file sheet của giáo viên
         spreadsheet = sa_gspread_client.open(magv_to_update)
         file_id = spreadsheet.id
 
-        # 2. Lấy danh sách quyền hiện tại của file
         permissions = admin_drive_service.permissions().list(fileId=file_id, fields="permissions(id, emailAddress)").execute()
         permission_id_to_delete = None
         for p in permissions.get('permissions', []):
@@ -158,7 +156,6 @@ def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, ol
                 permission_id_to_delete = p.get('id')
                 break
         
-        # 3. Xóa quyền của email cũ và thêm quyền cho email mới
         if permission_id_to_delete:
             admin_drive_service.permissions().delete(fileId=file_id, permissionId=permission_id_to_delete).execute()
         
@@ -168,7 +165,6 @@ def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, ol
             sendNotificationEmail=True
         ).execute()
 
-        # 4. Cập nhật lại file email_user
         mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
         cell = mapping_sheet.find(old_email)
         if cell:
@@ -181,6 +177,34 @@ def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, ol
     except Exception as e:
         return False, f"Đã xảy ra lỗi trong quá trình cập nhật: {e}"
 
+@st.cache_data
+def load_all_parquet_data(base_path='data_base/'):
+    files_to_load = ['df_giaovien.parquet', 'df_hesosiso.parquet', 'df_khoa.parquet', 'df_lop.parquet',
+                     'df_lopgheptach.parquet', 'df_manghe.parquet', 'df_mon.parquet', 'df_nangnhoc.parquet',
+                     'df_ngaytuan.parquet', 'df_quydoi_hd.parquet', 'df_quydoi_hd_them.parquet', 'mau_kelop.parquet',
+                     'mau_quydoi.parquet']
+    loaded_dfs = {}
+    progress_bar = st.progress(0, text="Đang tải dữ liệu cơ sở...")
+    for i, file_name in enumerate(files_to_load):
+        try:
+            df = pd.read_parquet(os.path.join(base_path, file_name), engine='pyarrow')
+            loaded_dfs[file_name.replace('.parquet', '')] = df
+        except Exception as e:
+            st.warning(f"Không thể tải file '{file_name}': {e}")
+        progress_bar.progress((i + 1) / len(files_to_load), text=f"Đang tải {file_name}...")
+    progress_bar.empty()
+    return loaded_dfs
+
+def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
+    if magv is None or df_giaovien is None or df_khoa is None or df_giaovien.empty or df_khoa.empty:
+        return None
+    teacher_row = df_giaovien[df_giaovien['Magv'].astype(str) == str(magv)]
+    if not teacher_row.empty:
+        info = teacher_row.iloc[0].to_dict()
+        khoa_row = df_khoa[df_khoa['Mã'] == str(magv)[0]]
+        info['ten_khoa'] = khoa_row['Khoa/Phòng/Trung tâm'].iloc[0] if not khoa_row.empty else "Không rõ"
+        return info
+    return None
 
 def get_user_spreadsheet(sa_gspread_client, email):
     """Tìm magv và mở file sheet tương ứng cho người dùng."""
@@ -225,17 +249,15 @@ else:
     user_info = st.session_state.user_info
     user_email = user_info.get('email')
 
-    with st.sidebar:
-        st.write(f"Đã đăng nhập với:")
-        st.success(user_email)
-        if st.button("Đăng xuất", use_container_width=True):
-            st.session_state.token = None
-            st.session_state.user_info = None
-            st.rerun()
-
-    st.header(f"Chào mừng, {user_info.get('name', '')}!")
-
     if user_email == ADMIN_EMAIL:
+        with st.sidebar:
+            st.write(f"Đã đăng nhập với:")
+            st.success(f"ADMIN: {user_email}")
+            if st.button("Đăng xuất", use_container_width=True):
+                for key in list(st.session_state.keys()): del st.session_state[key]
+                st.rerun()
+
+        st.header(f"Chào mừng, {user_info.get('name', '')}!")
         st.subheader("👨‍💻 Bảng điều khiển của Admin")
         
         sa_gspread_client = connect_as_service_account()
@@ -245,7 +267,6 @@ else:
             st.error("Lỗi kết nối tới Google API. Vui lòng thử lại.")
             st.stop()
         
-        # --- Chức năng 1: Cấp quyền hàng loạt ---
         with st.expander("Tạo người dùng hàng loạt từ file Excel", expanded=True):
             uploaded_file = st.file_uploader(
                 "Chọn file Excel của bạn",
@@ -265,7 +286,6 @@ else:
         
         st.divider()
 
-        # --- Chức năng 2: Cập nhật email ---
         with st.expander("Cập nhật Email cho Giáo viên"):
             try:
                 mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
@@ -280,12 +300,9 @@ else:
                         user_data = df_map[df_map['magv'].astype(str) == selected_magv]
                         old_email = user_data.iloc[0]['email']
                         
-                        # --- CẬP NHẬT: HIỂN THỊ TÊN GIÁO VIÊN ---
-                        # Kiểm tra xem cột 'tengv' có tồn tại không
                         if 'tengv' in df_map.columns:
                             tengv = user_data.iloc[0]['tengv']
                             st.text_input("Tên giáo viên", value=tengv, disabled=True)
-                        # --- KẾT THÚC CẬP NHẬT ---
 
                         st.text_input("Email cũ", value=old_email, disabled=True)
                         new_email = st.text_input("Nhập Email mới", key=f"new_email_{selected_magv}")
