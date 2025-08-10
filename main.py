@@ -5,7 +5,8 @@ from streamlit_oauth import OAuth2Component
 import requests
 import smtplib
 from email.mime.text import MIMEText
-from google.oauth2.service_account import Credentials
+from google.oauth2.service_account import Credentials as ServiceAccountCredentials
+from google.oauth2.credentials import Credentials as UserCredentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import os
@@ -24,8 +25,7 @@ try:
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
     TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"]
     TEMPLATE_FILE_ID = st.secrets["google_sheet"]["template_file_id"]
-    CLIENT_EMAIL = st.secrets["gcp_service_account"]["client_email"]
-
+    
     SENDER_EMAIL = st.secrets["admin_email"]["address"]
     SENDER_PASSWORD = st.secrets["admin_email"]["app_password"]
     RECEIVER_EMAIL = st.secrets["admin_email"]["address"]
@@ -38,29 +38,49 @@ except KeyError as e:
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 REVOKE_URL = "https://oauth2.googleapis.com/revoke"
-SCOPES = ["openid", "email", "profile"]
+# CẬP NHẬT QUAN TRỌNG: Yêu cầu quyền truy cập Drive từ người dùng
+SCOPES = [
+    "openid", "email", "profile",
+    "https://www.googleapis.com/auth/drive"
+]
 
 # --- CÁC HÀM KẾT NỐI VÀ XỬ LÝ API ---
 
 @st.cache_resource
-def connect_to_google_apis():
-    """Hàm kết nối duy nhất, sử dụng Service Account cho cả Drive và Sheets."""
+def connect_as_service_account():
+    """Kết nối bằng Service Account, chỉ dùng để đọc sheet admin."""
     try:
         creds_dict = st.secrets["gcp_service_account"]
-        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+        creds = ServiceAccountCredentials.from_service_account_info(creds_dict, scopes=scopes)
+        return gspread.authorize(creds)
+    except Exception as e:
+        st.error(f"Lỗi kết nối với tư cách Service Account: {e}")
+        return None
+
+@st.cache_resource
+def connect_as_user(_token):
+    """Tạo các client API (gspread, drive) từ token của người dùng."""
+    try:
+        # Sử dụng tất cả các scope đã yêu cầu
+        creds = UserCredentials(
+            token=_token['access_token'], refresh_token=_token.get('refresh_token'),
+            token_uri=TOKEN_URL, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES
+        )
         gspread_client = gspread.authorize(creds)
         drive_service = build('drive', 'v3', credentials=creds)
         return gspread_client, drive_service
     except Exception as e:
-        st.error(f"Lỗi kết nối tới Google APIs bằng Service Account: {e}")
+        st.error(f"Lỗi xác thực với tài khoản người dùng: {e}. Token có thể đã hết hạn.")
+        st.session_state.token = None
+        st.rerun()
         return None, None
 
-def get_magv_from_email(gspread_client, email):
-    """Tra cứu mã giảng viên từ email."""
-    if not gspread_client or not email: return None
+def get_magv_from_email(admin_gspread_client, email):
+    """Tra cứu mã giảng viên từ email bằng client của Service Account."""
+    if not admin_gspread_client or not email: return None
     try:
-        spreadsheet = gspread_client.open(ADMIN_SHEET_NAME)
+        spreadsheet = admin_gspread_client.open(ADMIN_SHEET_NAME)
         worksheet = spreadsheet.worksheet(USER_MAPPING_WORKSHEET)
         df = pd.DataFrame(worksheet.get_all_records())
         if 'email' not in df.columns or 'magv' not in df.columns:
@@ -72,64 +92,39 @@ def get_magv_from_email(gspread_client, email):
         st.error(f"Lỗi khi tra cứu mã giảng viên: {e}")
         return None
 
-def get_folder_id(drive_service, folder_name, client_email):
-    """Tìm ID của thư mục đã được chia sẻ với Service Account."""
+def get_folder_id(user_drive_service, folder_name):
+    """Tìm ID của thư mục trong Drive của người dùng."""
     try:
-        query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false"
-        response = drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
+        query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false and 'me' in owners"
+        response = user_drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
         folders = response.get('files', [])
         if folders:
             return folders[0].get('id')
         else:
-            st.error(f"Lỗi: Không tìm thấy thư mục '{folder_name}'.")
-            st.warning(f"Vui lòng đảm bảo bạn đã chia sẻ thư mục '{folder_name}' với email: **{client_email}** và cấp quyền **'Người chỉnh sửa' (Editor)**.")
+            st.error(f"Lỗi: Không tìm thấy thư mục '{folder_name}' trong Google Drive của bạn.")
+            st.info("Vui lòng tạo một thư mục có tên chính xác là '{folder_name}' và thử lại.")
             return None
     except Exception as e:
         st.error(f"Lỗi khi tìm kiếm thư mục '{folder_name}': {e}")
         return None
 
-def get_or_create_spreadsheet(gspread_client, drive_service, folder_id, sheet_name):
-    """Mở hoặc tạo file sheet và chuyển quyền sở hữu cho người dùng."""
+def get_or_create_spreadsheet(user_gspread_client, user_drive_service, folder_id, sheet_name):
+    """Mở hoặc tạo file sheet do chính người dùng sở hữu."""
     try:
         query = f"name='{sheet_name}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
-        response = drive_service.files().list(q=query, spaces='drive', fields='files(id)').execute()
+        response = user_drive_service.files().list(q=query, spaces='drive', fields='files(id)').execute()
         files = response.get('files', [])
         if files:
-            return gspread_client.open_by_key(files[0].get('id'))
+            return user_gspread_client.open_by_key(files[0].get('id'))
         else:
             st.info(f"Đang tạo file làm việc '{sheet_name}' từ file mẫu...")
             copied_file_metadata = {'name': sheet_name, 'parents': [folder_id]}
-            copied_file = drive_service.files().copy(fileId=TEMPLATE_FILE_ID, body=copied_file_metadata).execute()
-            
-            copied_file_id = copied_file.get('id')
-            user_email = st.session_state.user_info.get('email')
-
-            if user_email:
-                try:
-                    # GIẢI PHÁP: Chuyển quyền sở hữu cho người dùng
-                    drive_service.permissions().create(
-                        fileId=copied_file_id,
-                        body={'type': 'user', 'role': 'owner', 'emailAddress': user_email},
-                        transferOwnership=True, # Tham số quan trọng nhất
-                        sendNotificationEmail=False
-                    ).execute()
-                    st.success(f"Đã tạo và chuyển quyền sở hữu file '{sheet_name}' cho bạn.")
-                except HttpError:
-                    # Nếu chuyển quyền thất bại, chỉ cấp quyền chỉnh sửa
-                    st.warning("Không thể chuyển quyền sở hữu file. Đang cấp quyền chỉnh sửa thay thế.")
-                    drive_service.permissions().create(
-                        fileId=copied_file_id,
-                        body={'type': 'user', 'role': 'writer', 'emailAddress': user_email},
-                        sendNotificationEmail=False
-                    ).execute()
-                    st.success(f"Đã tạo và chia sẻ file '{sheet_name}' với bạn.")
-
-            return gspread_client.open_by_key(copied_file_id)
+            # Hành động copy được thực hiện bởi chính người dùng
+            copied_file = user_drive_service.files().copy(fileId=TEMPLATE_FILE_ID, body=copied_file_metadata).execute()
+            st.success(f"Đã tạo thành công file '{sheet_name}' trong thư mục của bạn.")
+            return user_gspread_client.open_by_key(copied_file.get('id'))
     except HttpError as e:
-        if 'storageQuotaExceeded' in str(e):
-             st.error(f"Lỗi: Dung lượng lưu trữ của Service Account ({CLIENT_EMAIL}) đã đầy hoặc không được phép sở hữu tệp. Vui lòng liên hệ quản trị viên.")
-        else:
-             st.error(f"Lỗi HTTP khi tạo file Sheet: {e}.")
+        st.error(f"Lỗi HTTP khi tạo file Sheet: {e}. Hãy chắc chắn rằng bạn có quyền xem file mẫu.")
         return None
     except Exception as e:
         st.error(f"Lỗi không xác định khi tạo file Sheet: {e}")
@@ -203,18 +198,22 @@ else:
             if not user_info or 'email' not in user_info:
                 st.error("Không thể lấy thông tin email. Vui lòng đăng nhập lại."); st.session_state.token = None; st.rerun()
 
-            gspread_client, drive_service = connect_to_google_apis()
-            if not gspread_client or not drive_service: st.stop()
-
-            magv = get_magv_from_email(gspread_client, user_info['email'])
+            # Việc của Service Account: chỉ tra cứu email
+            admin_gspread_client = connect_as_service_account()
+            if not admin_gspread_client: st.stop()
+            magv = get_magv_from_email(admin_gspread_client, user_info['email'])
 
             if magv:
                 st.session_state.magv = str(magv)
                 
-                folder_id = get_folder_id(drive_service, TARGET_FOLDER_NAME, CLIENT_EMAIL)
+                # Việc của Người dùng: tạo file trong Drive của họ
+                user_gspread_client, user_drive_service = connect_as_user(st.session_state.token)
+                if not user_gspread_client or not user_drive_service: st.stop()
+
+                folder_id = get_folder_id(user_drive_service, TARGET_FOLDER_NAME)
                 if not folder_id: st.stop()
                 
-                spreadsheet = get_or_create_spreadsheet(gspread_client, drive_service, folder_id, st.session_state.magv)
+                spreadsheet = get_or_create_spreadsheet(user_gspread_client, user_drive_service, folder_id, st.session_state.magv)
                 if not spreadsheet: st.stop()
                 st.session_state.spreadsheet = spreadsheet
 
