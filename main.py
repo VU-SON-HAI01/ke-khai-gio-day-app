@@ -3,10 +3,7 @@ import gspread
 import pandas as pd
 from streamlit_oauth import OAuth2Component
 import requests
-import smtplib
-from email.mime.text import MIMEText
-from google.oauth2.service_account import Credentials as ServiceAccountCredentials
-from google.oauth2.credentials import Credentials as UserCredentials
+from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import os
@@ -17,18 +14,20 @@ st.image("image/banner-top-kegio.jpg", use_container_width=True)
 
 # --- TẢI CẤU HÌNH TỪ STREAMLIT SECRETS ---
 try:
+    # Cấu hình OAuth cho việc đăng nhập của người dùng
     CLIENT_ID = st.secrets["google_oauth"]["clientId"]
     CLIENT_SECRET = st.secrets["google_oauth"]["clientSecret"]
     REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
 
-    ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
-    USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
-    TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"]
-    TEMPLATE_FILE_ID = st.secrets["google_sheet"]["template_file_id"]
-    
-    SENDER_EMAIL = st.secrets["admin_email"]["address"]
-    SENDER_PASSWORD = st.secrets["admin_email"]["app_password"]
-    RECEIVER_EMAIL = st.secrets["admin_email"]["address"]
+    # Cấu hình Google Sheet
+    ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name"] # File chứa bảng map email -> magv
+    USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"] # Tên worksheet trong file trên
+    TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"] # Thư mục chứa file của các GV
+    TEMPLATE_FILE_ID = st.secrets["google_sheet"]["template_file_id"] # File mẫu để copy
+
+    # Email của Admin - người có quyền tạo người dùng mới
+    ADMIN_EMAIL = "vshai48kd1@gmail.com"
+    CLIENT_EMAIL = st.secrets["gcp_service_account"]["client_email"] # Email của Service Account
 
 except KeyError as e:
     st.error(f"Lỗi: Không tìm thấy thông tin cấu hình '{e.args[0]}' trong st.secrets.")
@@ -38,152 +37,109 @@ except KeyError as e:
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 REVOKE_URL = "https://oauth2.googleapis.com/revoke"
-# CẬP NHẬT QUAN TRỌNG: Yêu cầu quyền truy cập Drive từ người dùng
-SCOPES = [
-    "openid", "email", "profile",
-    "https://www.googleapis.com/auth/drive"
-]
+SCOPES = ["openid", "email", "profile"] # Chỉ cần quyền xác thực, không cần truy cập Drive của user
 
-# --- CÁC HÀM KẾT NỐI VÀ XỬ LÝ API ---
+# --- CÁC HÀM KẾT NỐI VÀ XỬ LÝ API (Dùng Service Account cho mọi thứ) ---
 
 @st.cache_resource
-def connect_as_service_account():
-    """Kết nối bằng Service Account, chỉ dùng để đọc sheet admin."""
+def connect_to_google_apis():
+    """Hàm kết nối duy nhất, sử dụng Service Account cho cả Drive và Sheets."""
     try:
         creds_dict = st.secrets["gcp_service_account"]
-        # SỬA LỖI: Thêm scope drive.readonly để gspread có thể tìm kiếm file sheet
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive.readonly"
-        ]
-        creds = ServiceAccountCredentials.from_service_account_info(creds_dict, scopes=scopes)
-        return gspread.authorize(creds)
-    except Exception as e:
-        st.error(f"Lỗi kết nối với tư cách Service Account: {e}")
-        return None
-
-@st.cache_resource
-def connect_as_user(_token):
-    """Tạo các client API (gspread, drive) từ token của người dùng."""
-    try:
-        # Sử dụng tất cả các scope đã yêu cầu
-        creds = UserCredentials(
-            token=_token['access_token'], refresh_token=_token.get('refresh_token'),
-            token_uri=TOKEN_URL, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES
-        )
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         gspread_client = gspread.authorize(creds)
         drive_service = build('drive', 'v3', credentials=creds)
         return gspread_client, drive_service
     except Exception as e:
-        st.error(f"Lỗi xác thực với tài khoản người dùng: {e}. Token có thể đã hết hạn.")
-        st.session_state.token = None
-        st.rerun()
+        st.error(f"Lỗi kết nối tới Google APIs bằng Service Account: {e}")
         return None, None
 
-def get_magv_from_email(admin_gspread_client, email):
-    """Tra cứu mã giảng viên từ email bằng client của Service Account."""
-    if not admin_gspread_client or not email: return None
+def get_folder_id(drive_service, folder_name):
+    """Tìm ID của thư mục đã được chia sẻ với Service Account."""
     try:
-        spreadsheet = admin_gspread_client.open(ADMIN_SHEET_NAME)
-        worksheet = spreadsheet.worksheet(USER_MAPPING_WORKSHEET)
-        df = pd.DataFrame(worksheet.get_all_records())
-        if 'email' not in df.columns or 'magv' not in df.columns:
-            st.error(f"Sheet '{USER_MAPPING_WORKSHEET}' phải có cột 'email' và 'magv'.")
-            return None
-        user_row = df[df['email'].astype(str).str.lower().str.strip() == email.lower().strip()]
-        return user_row.iloc[0]['magv'] if not user_row.empty else None
-    except gspread.exceptions.SpreadsheetNotFound:
-        st.error(f"Lỗi: Không tìm thấy file Sheet quản trị có tên '{ADMIN_SHEET_NAME}'.")
-        st.info(f"Hãy chắc chắn rằng bạn đã chia sẻ file này với Service Account: {st.secrets['gcp_service_account']['client_email']}")
-        return None
-    except Exception as e:
-        st.error(f"Lỗi khi tra cứu mã giảng viên: {e}")
-        return None
-
-def get_folder_id(user_drive_service, folder_name):
-    """Tìm ID của thư mục trong Drive của người dùng."""
-    try:
-        query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false and 'me' in owners"
-        response = user_drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
+        query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false"
+        response = drive_service.files().list(q=query, fields='files(id)').execute()
         folders = response.get('files', [])
         if folders:
             return folders[0].get('id')
         else:
-            st.error(f"Lỗi: Không tìm thấy thư mục '{folder_name}' trong Google Drive của bạn.")
-            # SỬA LỖI HIỂN THỊ
-            st.info(f"Vui lòng tạo một thư mục có tên chính xác là '{folder_name}' và đảm bảo bạn là chủ sở hữu của thư mục đó, sau đó thử lại.")
+            st.error(f"Lỗi: Không tìm thấy thư mục '{folder_name}'.")
+            st.warning(f"Admin, hãy đảm bảo bạn đã chia sẻ thư mục '{folder_name}' với email: **{CLIENT_EMAIL}** và cấp quyền **'Người chỉnh sửa' (Editor)**.")
             return None
     except Exception as e:
         st.error(f"Lỗi khi tìm kiếm thư mục '{folder_name}': {e}")
         return None
 
-def get_or_create_spreadsheet(user_gspread_client, user_drive_service, folder_id, sheet_name):
-    """Mở hoặc tạo file sheet do chính người dùng sở hữu."""
+def provision_new_user(gspread_client, drive_service, folder_id, new_magv, new_email):
+    """Hàm dành cho Admin: Tạo sheet mới, chia sẻ và cập nhật bảng map."""
     try:
-        query = f"name='{sheet_name}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
-        response = user_drive_service.files().list(q=query, spaces='drive', fields='files(id)').execute()
-        files = response.get('files', [])
-        if files:
-            return user_gspread_client.open_by_key(files[0].get('id'))
-        else:
-            st.info(f"Đang tạo file làm việc '{sheet_name}' từ file mẫu...")
-            copied_file_metadata = {'name': sheet_name, 'parents': [folder_id]}
-            # Hành động copy được thực hiện bởi chính người dùng
-            copied_file = user_drive_service.files().copy(fileId=TEMPLATE_FILE_ID, body=copied_file_metadata).execute()
-            st.success(f"Đã tạo thành công file '{sheet_name}' trong thư mục của bạn.")
-            return user_gspread_client.open_by_key(copied_file.get('id'))
-    except HttpError as e:
-        st.error(f"Lỗi HTTP khi tạo file Sheet: {e}. Hãy chắc chắn rằng bạn có quyền xem file mẫu.")
-        return None
-    except Exception as e:
-        st.error(f"Lỗi không xác định khi tạo file Sheet: {e}")
-        return None
+        # 1. Kiểm tra xem magv hoặc email đã tồn tại chưa
+        mapping_sheet = gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+        records = mapping_sheet.get_all_records()
+        df = pd.DataFrame(records)
+        if not df.empty:
+            if new_magv in df['magv'].astype(str).values:
+                st.error(f"Mã giáo viên '{new_magv}' đã tồn tại.")
+                return False
+            if new_email in df['email'].values:
+                st.error(f"Email '{new_email}' đã được cấp quyền.")
+                return False
 
-# --- Các hàm khác (giữ nguyên) ---
-def send_registration_email(ho_ten, khoa, dien_thoai, email):
-    try:
-        subject = f"Yeu cau dang ky tai khoan Ke khai: {ho_ten}"
-        body = f"Vui long cap nhat thong tin giang vien sau vao he thong:\n\n- Ho ten: {ho_ten}\n- Khoa: {khoa}\n- Dien thoai: {dien_thoai}\n- Email: {email}\n\nXin cam on."
-        msg = MIMEText(body, 'plain', 'utf-8')
-        msg['Subject'] = subject; msg['From'] = SENDER_EMAIL; msg['To'] = RECEIVER_EMAIL
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.send_message(msg)
+        # 2. Tạo file sheet mới bằng cách copy file mẫu
+        st.write(f"Đang tạo file '{new_magv}'...")
+        copied_file_metadata = {'name': str(new_magv), 'parents': [folder_id]}
+        copied_file = drive_service.files().copy(fileId=TEMPLATE_FILE_ID, body=copied_file_metadata).execute()
+        copied_file_id = copied_file.get('id')
+
+        # 3. Chia sẻ file vừa tạo cho người dùng
+        st.write(f"Đang chia sẻ file cho {new_email}...")
+        drive_service.permissions().create(
+            fileId=copied_file_id,
+            body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
+            sendNotificationEmail=True # Gửi email thông báo cho người dùng
+        ).execute()
+
+        # 4. Cập nhật vào bảng map
+        st.write("Đang cập nhật bảng phân quyền...")
+        mapping_sheet.append_row([new_email, str(new_magv)])
+        
         return True
+
     except Exception as e:
-        st.error(f"Lỗi khi gửi email thông báo: {e}"); return False
+        st.error(f"Đã xảy ra lỗi trong quá trình cấp quyền: {e}")
+        return False
 
-@st.cache_data
-def load_all_parquet_data(base_path='data_base/'):
-    files_to_load = ['df_giaovien.parquet', 'df_hesosiso.parquet', 'df_khoa.parquet', 'df_lop.parquet', 'df_lopgheptach.parquet', 'df_manghe.parquet', 'df_mon.parquet', 'df_nangnhoc.parquet', 'df_ngaytuan.parquet', 'df_quydoi_hd.parquet', 'df_quydoi_hd_them.parquet', 'mau_kelop.parquet', 'mau_quydoi.parquet']
-    loaded_dfs = {}
-    progress_bar = st.progress(0, text="Đang tải dữ liệu cơ sở...")
-    for i, file_name in enumerate(files_to_load):
-        try:
-            df = pd.read_parquet(os.path.join(base_path, file_name), engine='pyarrow')
-            loaded_dfs[file_name.replace('.parquet', '')] = df
-        except Exception as e: st.warning(f"Không thể tải file '{file_name}': {e}")
-        progress_bar.progress((i + 1) / len(files_to_load), text=f"Đang tải {file_name}...")
-    progress_bar.empty()
-    return loaded_dfs
+def get_user_spreadsheet(gspread_client, email):
+    """Tìm magv và mở file sheet tương ứng cho người dùng."""
+    try:
+        mapping_sheet = gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+        records = mapping_sheet.get_all_records()
+        if not records:
+            return None, None
+        
+        df = pd.DataFrame(records)
+        user_row = df[df['email'] == email]
 
-def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
-    if not magv or df_giaovien.empty or df_khoa.empty: return None
-    teacher_row = df_giaovien[df_giaovien['Magv'].astype(str) == str(magv)]
-    if not teacher_row.empty:
-        info = teacher_row.iloc[0].to_dict()
-        khoa_row = df_khoa[df_khoa['Mã'] == str(magv)[0]]
-        info['ten_khoa'] = khoa_row['Khoa/Phòng/Trung tâm'].iloc[0] if not khoa_row.empty else "Không rõ"
-        return info
-    return None
+        if user_row.empty:
+            return None, None # Email không có trong bảng map
 
-# --- KHỞI TẠO SESSION STATE ---
-keys_to_init = ['token', 'user_info', 'magv', 'tengv', 'ten_khoa', 'spreadsheet', 'initialized', 'giochuan', 'chuangv']
-for key in keys_to_init:
-    if key not in st.session_state: st.session_state[key] = None
+        magv = str(user_row.iloc[0]['magv'])
+        spreadsheet = gspread_client.open(magv) # Mở file theo tên (magv)
+        return magv, spreadsheet
 
-# --- LUỒNG ỨNG DỤNG CHÍNH ---
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error(f"Đã tìm thấy quyền của bạn, nhưng không tìm thấy file Google Sheet có tên '{magv}'. Vui lòng liên hệ Admin.")
+        return None, None
+    except Exception as e:
+        st.error(f"Lỗi khi truy cập file làm việc: {e}")
+        return None, None
+
+# --- GIAO DIỆN VÀ LUỒNG ỨNG DỤNG CHÍNH ---
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
+
+if 'token' not in st.session_state:
+    st.session_state.token = None
 
 if st.session_state.token is None:
     st.info("Vui lòng đăng nhập bằng tài khoản Google để sử dụng hệ thống.")
@@ -201,67 +157,65 @@ if st.session_state.token is None:
         except requests.exceptions.RequestException as e:
             st.error(f"Lỗi khi lấy thông tin người dùng: {e}"); st.session_state.token = None
 else:
-    if not st.session_state.initialized:
-        with st.spinner("Đang xác thực và chuẩn bị môi trường làm việc..."):
-            user_info = st.session_state.user_info
-            if not user_info or 'email' not in user_info:
-                st.error("Không thể lấy thông tin email. Vui lòng đăng nhập lại."); st.session_state.token = None; st.rerun()
+    # Đã đăng nhập
+    user_info = st.session_state.user_info
+    user_email = user_info.get('email')
 
-            # Việc của Service Account: chỉ tra cứu email
-            admin_gspread_client = connect_as_service_account()
-            if not admin_gspread_client: st.stop()
-            magv = get_magv_from_email(admin_gspread_client, user_info['email'])
+    with st.sidebar:
+        st.write(f"Đã đăng nhập với email:")
+        st.success(user_email)
+        if st.button("Đăng xuất", use_container_width=True):
+            st.session_state.token = None
+            st.session_state.user_info = None
+            st.rerun()
 
-            if magv:
-                st.session_state.magv = str(magv)
-                
-                # Việc của Người dùng: tạo file trong Drive của họ
-                user_gspread_client, user_drive_service = connect_as_user(st.session_state.token)
-                if not user_gspread_client or not user_drive_service: st.stop()
+    st.header(f"Chào mừng, {user_info.get('name', '')}!")
 
-                folder_id = get_folder_id(user_drive_service, TARGET_FOLDER_NAME)
-                if not folder_id: st.stop()
-                
-                spreadsheet = get_or_create_spreadsheet(user_gspread_client, user_drive_service, folder_id, st.session_state.magv)
-                if not spreadsheet: st.stop()
-                st.session_state.spreadsheet = spreadsheet
+    gspread_client, drive_service = connect_to_google_apis()
+    if not gspread_client or not drive_service:
+        st.stop()
 
-                all_base_data = load_all_parquet_data()
-                for key, df_data in all_base_data.items(): st.session_state[key] = df_data
+    # --- PHÂN LUỒNG ADMIN / USER ---
+    if user_email == ADMIN_EMAIL:
+        # GIAO DIỆN CỦA ADMIN
+        st.subheader("👨‍💻 Bảng điều khiển của Admin")
+        st.info("Chức năng này dùng để tạo file Sheet và cấp quyền cho giáo viên mới.")
 
-                teacher_info = get_teacher_info_from_local(magv, st.session_state.get('df_giaovien'), st.session_state.get('df_khoa'))
-                if teacher_info:
-                    st.session_state.tengv = teacher_info.get('Tên giảng viên')
-                    st.session_state.ten_khoa = teacher_info.get('ten_khoa')
-                    st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
-                    giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
-                    st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
-                    st.session_state.initialized = True
-                    st.rerun()
-                else:
-                    st.error(f"Không tìm thấy thông tin chi tiết cho Mã GV: {st.session_state.magv}."); st.stop()
-            else:
-                st.error("Email của bạn chưa được đăng ký trong hệ thống.")
-                # ... (phần xử lý đăng ký giữ nguyên) ...
+        folder_id = get_folder_id(drive_service, TARGET_FOLDER_NAME)
+        if folder_id:
+            with st.form("provision_form", border=True):
+                st.write("**Tạo người dùng mới**")
+                new_magv = st.text_input("Nhập Mã giáo viên (sẽ là tên file Sheet)", placeholder="Ví dụ: 1001")
+                new_email = st.text_input("Nhập email của giáo viên", placeholder="Ví dụ: teacher@example.com")
+                submitted = st.form_submit_button("Tạo và Cấp quyền")
 
-    if st.session_state.initialized:
-        with st.sidebar:
-            st.header(":green[THÔNG TIN GIÁO VIÊN]")
-            st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
-            st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
-            st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
-            st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
-            st.write(f"(Chuẩn GV: {st.session_state.chuangv})")
-            st.divider()
-            st.write(f"Đăng nhập với email: {st.session_state.user_info.get('email')}")
-            if st.button("Đăng xuất", use_container_width=True):
-                for key in list(st.session_state.keys()): del st.session_state[key]
-                st.rerun()
+                if submitted:
+                    if not new_magv or not new_email:
+                        st.warning("Vui lòng nhập đầy đủ thông tin.")
+                    else:
+                        with st.spinner("Đang xử lý..."):
+                            success = provision_new_user(gspread_client, drive_service, folder_id, new_magv, new_email)
+                        if success:
+                            st.success(f"Hoàn tất! Đã tạo và cấp quyền cho {new_email} thành công.")
+                        else:
+                            st.error("Quá trình thực hiện có lỗi, vui lòng kiểm tra lại.")
 
-        pages = {
-            "Kê khai": [st.Page("quydoi_gioday.py", title="Kê giờ dạy"), st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động")],
-            "Báo cáo": [st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file")],
-            "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn")]
-        }
-        pg = st.navigation(pages)
-        pg.run()
+    else:
+        # GIAO DIỆN CỦA USER THƯỜNG
+        with st.spinner("Đang kiểm tra quyền và tải dữ liệu..."):
+            magv, spreadsheet = get_user_spreadsheet(gspread_client, user_email)
+
+        if magv and spreadsheet:
+            st.success(f"Xác thực thành công! Đang làm việc với file: {magv}")
+            #
+            # TẠI ĐÂY: BẠN CÓ THỂ THÊM CODE ĐỂ HIỂN THỊ DỮ LIỆU TỪ `spreadsheet`
+            # VÍ DỤ:
+            # worksheet = spreadsheet.worksheet("Sheet1")
+            # data = worksheet.get_all_records()
+            # st.dataframe(pd.DataFrame(data))
+            #
+            st.info("Giao diện làm việc của giáo viên sẽ được hiển thị ở đây.")
+
+        else:
+            st.error("Tài khoản của bạn chưa được đăng ký trong hệ thống.")
+            st.warning("Vui lòng liên hệ Admin (vshai48kd1@gmail.com) để được cấp quyền truy cập.")
