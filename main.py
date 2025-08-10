@@ -97,7 +97,7 @@ def get_folder_id(drive_service, folder_name, client_email):
         return None
 
 def get_or_create_spreadsheet(gspread_client, drive_service, folder_id, sheet_name):
-    """Mở hoặc tạo file sheet bằng cách sao chép từ file mẫu."""
+    """Mở hoặc tạo file sheet và cố gắng chuyển quyền sở hữu cho người dùng."""
     try:
         query = f"name='{sheet_name}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
         response = drive_service.files().list(q=query, spaces='drive', fields='files(id)').execute()
@@ -109,18 +109,36 @@ def get_or_create_spreadsheet(gspread_client, drive_service, folder_id, sheet_na
             copied_file_metadata = {'name': sheet_name, 'parents': [folder_id]}
             copied_file = drive_service.files().copy(fileId=TEMPLATE_FILE_ID, body=copied_file_metadata).execute()
             
+            copied_file_id = copied_file.get('id')
             user_email = st.session_state.user_info.get('email')
-            if user_email:
-                drive_service.permissions().create(
-                    fileId=copied_file.get('id'),
-                    body={'type': 'user', 'role': 'writer', 'emailAddress': user_email},
-                    sendNotificationEmail=False
-                ).execute()
 
-            st.success(f"Đã tạo và chia sẻ file '{sheet_name}' với bạn.")
-            return gspread_client.open_by_key(copied_file.get('id'))
+            if user_email:
+                try:
+                    # CẬP NHẬT QUAN TRỌNG: Cố gắng chuyển quyền sở hữu
+                    drive_service.permissions().create(
+                        fileId=copied_file_id,
+                        body={'type': 'user', 'role': 'owner', 'emailAddress': user_email},
+                        transferOwnership=True, # Tham số để chuyển quyền sở hữu
+                        sendNotificationEmail=False
+                    ).execute()
+                    st.success(f"Đã tạo và chuyển quyền sở hữu file '{sheet_name}' cho bạn.")
+                except HttpError as e:
+                    # Nếu chuyển quyền thất bại (ví dụ: do chính sách domain), chỉ cấp quyền chỉnh sửa
+                    st.warning(f"Không thể chuyển quyền sở hữu file (Lỗi: {e}). Đang cấp quyền chỉnh sửa thay thế.")
+                    drive_service.permissions().create(
+                        fileId=copied_file_id,
+                        body={'type': 'user', 'role': 'writer', 'emailAddress': user_email},
+                        sendNotificationEmail=False
+                    ).execute()
+                    st.success(f"Đã tạo và chia sẻ file '{sheet_name}' với bạn.")
+
+            return gspread_client.open_by_key(copied_file_id)
     except HttpError as e:
-        st.error(f"Lỗi HTTP khi tạo file Sheet: {e}. Hãy chắc chắn rằng ID file mẫu '{TEMPLATE_FILE_ID}' là chính xác.")
+        # Xử lý lỗi hết dung lượng một cách cụ thể hơn
+        if 'storageQuotaExceeded' in str(e):
+             st.error(f"Lỗi: Dung lượng lưu trữ của tài khoản Service Account ({CLIENT_EMAIL}) đã đầy. Vui lòng liên hệ quản trị viên để dọn dẹp hoặc chuyển quyền sở hữu các file cũ.")
+        else:
+             st.error(f"Lỗi HTTP khi tạo file Sheet: {e}. Hãy chắc chắn rằng ID file mẫu '{TEMPLATE_FILE_ID}' là chính xác.")
         return None
     except Exception as e:
         st.error(f"Lỗi không xác định khi tạo file Sheet: {e}")
@@ -202,7 +220,6 @@ else:
             if magv:
                 st.session_state.magv = str(magv)
                 
-                # THAY ĐỔI TẠI ĐÂY: Chỉ tìm ID thư mục, không tạo mới
                 folder_id = get_folder_id(drive_service, TARGET_FOLDER_NAME, CLIENT_EMAIL)
                 if not folder_id: st.stop()
                 
