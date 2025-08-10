@@ -45,7 +45,7 @@ def connect_as_service_account():
     """Kết nối bằng Service Account, chỉ dùng để đọc/ghi sheet admin."""
     try:
         creds_dict = st.secrets["gcp_service_account"]
-        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.readonly"]
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = ServiceAccountCredentials.from_service_account_info(creds_dict, scopes=scopes)
         return gspread.authorize(creds)
     except Exception as e:
@@ -79,22 +79,16 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
             st.error("Lỗi: File Excel phải chứa 2 cột có tên là 'email' và 'magv'.")
             return
 
-        # --- CẢI TIẾN: TÌM ĐIỂM DỪNG ---
-        # Chuyển cột email sang dạng chuỗi để xử lý nhất quán
         df_upload['email'] = df_upload['email'].astype(str)
-        # Tìm chỉ số của dòng cuối cùng có email hợp lệ (không rỗng, không phải 'nan')
         last_valid_index = df_upload[df_upload['email'].str.strip().ne('') & df_upload['email'].str.lower().ne('nan')].last_valid_index()
 
         if last_valid_index is None:
             st.warning("Không tìm thấy email hợp lệ nào trong file được tải lên.")
             return
 
-        # Chỉ xử lý các dòng từ đầu đến dòng cuối cùng có email
         df_to_process = df_upload.loc[:last_valid_index]
         st.info(f"Đã tìm thấy dữ liệu. Sẽ xử lý {len(df_to_process)} dòng.")
-        # --- KẾT THÚC CẢI TIẾN ---
 
-        # Lấy dữ liệu hiện có để kiểm tra trùng lặp
         mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
         records = mapping_sheet.get_all_records()
         df_map = pd.DataFrame(records)
@@ -109,17 +103,13 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
         log_messages = []
         rows_to_add = []
 
-        # Lặp qua dataframe đã được giới hạn
         for index, row in df_to_process.iterrows():
-            # Chuyển đổi sang chuỗi và loại bỏ khoảng trắng thừa
             new_email = str(row.get('email', '')).strip()
             new_magv_str = str(row.get('magv', '')).strip()
             
-            # Bỏ qua dòng nếu thiếu email hoặc magv
             if not new_email or not new_magv_str or new_email.lower() == 'nan':
                 continue
 
-            # --- Xử lý File trên Drive ---
             if new_magv_str not in existing_filenames:
                 copied_file_metadata = {'name': new_magv_str, 'parents': [folder_id]}
                 copied_file = admin_drive_service.files().copy(fileId=TEMPLATE_FILE_ID, body=copied_file_metadata).execute()
@@ -131,7 +121,6 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
                 log_messages.append(f"✅ Đã tạo file '{new_magv_str}' và chia sẻ cho {new_email}.")
                 existing_filenames.add(new_magv_str)
             
-            # --- Xử lý Bảng phân quyền ---
             email_exists = not df_map.empty and new_email in df_map['email'].values
             magv_exists = not df_map.empty and new_magv_str in df_map['magv'].astype(str).values
 
@@ -139,10 +128,9 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
                 rows_to_add.append([new_email, new_magv_str])
                 log_messages.append(f"✅ Sẽ thêm vào bảng phân quyền: {new_email} -> {new_magv_str}.")
             
-            status_area.info("\n".join(log_messages[-5:])) # Chỉ hiển thị 5 log gần nhất
+            status_area.info("\n".join(log_messages[-5:]))
             progress_bar.progress((index + 1) / len(df_to_process))
 
-        # Thêm tất cả các dòng mới vào sheet một lần để tăng hiệu suất
         if rows_to_add:
             mapping_sheet.append_rows(rows_to_add)
             st.success(f"Đã thêm thành công {len(rows_to_add)} người dùng mới vào bảng phân quyền.")
@@ -152,6 +140,46 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
 
     except Exception as e:
         st.error(f"Đã xảy ra lỗi trong quá trình xử lý hàng loạt: {e}")
+
+def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, old_email, new_email):
+    """
+    Hàm dành cho Admin: Cập nhật email cho một giáo viên đã có.
+    """
+    try:
+        # 1. Tìm file sheet của giáo viên
+        spreadsheet = sa_gspread_client.open(magv_to_update)
+        file_id = spreadsheet.id
+
+        # 2. Lấy danh sách quyền hiện tại của file
+        permissions = admin_drive_service.permissions().list(fileId=file_id, fields="permissions(id, emailAddress)").execute()
+        permission_id_to_delete = None
+        for p in permissions.get('permissions', []):
+            if p.get('emailAddress') == old_email:
+                permission_id_to_delete = p.get('id')
+                break
+        
+        # 3. Xóa quyền của email cũ và thêm quyền cho email mới
+        if permission_id_to_delete:
+            admin_drive_service.permissions().delete(fileId=file_id, permissionId=permission_id_to_delete).execute()
+        
+        admin_drive_service.permissions().create(
+            fileId=file_id,
+            body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
+            sendNotificationEmail=True
+        ).execute()
+
+        # 4. Cập nhật lại file email_user
+        mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+        cell = mapping_sheet.find(old_email)
+        if cell:
+            mapping_sheet.update_cell(cell.row, cell.col, new_email)
+        
+        return True, f"Đã cập nhật thành công email cho Mã GV '{magv_to_update}' từ '{old_email}' sang '{new_email}'."
+
+    except gspread.exceptions.SpreadsheetNotFound:
+        return False, f"Lỗi: Không tìm thấy file Google Sheet có tên '{magv_to_update}'."
+    except Exception as e:
+        return False, f"Đã xảy ra lỗi trong quá trình cập nhật: {e}"
 
 
 def get_user_spreadsheet(sa_gspread_client, email):
@@ -207,37 +235,69 @@ else:
 
     st.header(f"Chào mừng, {user_info.get('name', '')}!")
 
-    # --- PHÂN LUỒNG ADMIN / USER ---
     if user_email == ADMIN_EMAIL:
         st.subheader("👨‍💻 Bảng điều khiển của Admin")
-        st.info("Tải lên file Excel để tạo và cấp quyền hàng loạt cho giáo viên.")
-
+        
         sa_gspread_client = connect_as_service_account()
         admin_gspread_client, admin_drive_service = connect_as_user(st.session_state.token)
 
         if not sa_gspread_client or not admin_drive_service:
             st.error("Lỗi kết nối tới Google API. Vui lòng thử lại.")
             st.stop()
-
-        query = f"mimeType='application/vnd.google-apps.folder' and name='{TARGET_FOLDER_NAME}' and 'me' in owners"
-        response = admin_drive_service.files().list(q=query, fields='files(id)').execute()
-        folders = response.get('files', [])
         
-        if not folders:
-            st.error(f"Lỗi: Admin ({ADMIN_EMAIL}) không sở hữu thư mục nào có tên '{TARGET_FOLDER_NAME}'.")
-            st.stop()
+        # --- Chức năng 1: Cấp quyền hàng loạt ---
+        with st.expander("Tạo người dùng hàng loạt từ file Excel", expanded=True):
+            uploaded_file = st.file_uploader(
+                "Chọn file Excel của bạn",
+                type=['xlsx', 'xls'],
+                help="File Excel phải có 2 cột tên là 'email' và 'magv'."
+            )
+            if uploaded_file is not None:
+                if st.button("🚀 Bắt đầu xử lý hàng loạt"):
+                    query = f"mimeType='application/vnd.google-apps.folder' and name='{TARGET_FOLDER_NAME}' and 'me' in owners"
+                    response = admin_drive_service.files().list(q=query, fields='files(id)').execute()
+                    folders = response.get('files', [])
+                    if not folders:
+                        st.error(f"Lỗi: Admin ({ADMIN_EMAIL}) không sở hữu thư mục nào có tên '{TARGET_FOLDER_NAME}'.")
+                    else:
+                        folder_id = folders[0].get('id')
+                        bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file)
         
-        folder_id = folders[0].get('id')
+        st.divider()
 
-        uploaded_file = st.file_uploader(
-            "Chọn file Excel của bạn",
-            type=['xlsx', 'xls'],
-            help="File Excel phải có 2 cột tên là 'email' và 'magv'."
-        )
+        # --- Chức năng 2: Cập nhật email ---
+        with st.expander("Cập nhật Email cho Giáo viên"):
+            try:
+                mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+                records = mapping_sheet.get_all_records()
+                df_map = pd.DataFrame(records)
 
-        if uploaded_file is not None:
-            if st.button("🚀 Bắt đầu xử lý hàng loạt"):
-                bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file)
+                if not df_map.empty:
+                    magv_list = df_map['magv'].astype(str).tolist()
+                    selected_magv = st.selectbox("Chọn Mã giáo viên để cập nhật", options=[""] + magv_list)
+
+                    if selected_magv:
+                        user_data = df_map[df_map['magv'].astype(str) == selected_magv]
+                        old_email = user_data.iloc[0]['email']
+
+                        st.text_input("Email cũ", value=old_email, disabled=True)
+                        new_email = st.text_input("Nhập Email mới", key=f"new_email_{selected_magv}")
+
+                        if st.button("Cập nhật Email"):
+                            if new_email and new_email != old_email:
+                                with st.spinner("Đang cập nhật..."):
+                                    success, message = update_user_email(admin_drive_service, sa_gspread_client, selected_magv, old_email, new_email)
+                                if success:
+                                    st.success(message)
+                                    st.rerun()
+                                else:
+                                    st.error(message)
+                            else:
+                                st.warning("Vui lòng nhập một email mới và khác với email cũ.")
+                else:
+                    st.info("Bảng phân quyền đang trống.")
+            except Exception as e:
+                st.error(f"Không thể tải danh sách giáo viên: {e}")
 
     else:
         # GIAO DIỆN CỦA USER THƯỜNG
