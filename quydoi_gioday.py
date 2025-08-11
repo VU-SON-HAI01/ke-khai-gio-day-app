@@ -36,6 +36,7 @@ def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
             return df
         
         df = pd.DataFrame(data)
+        # SỬA LỖI: Chuyển đổi chuỗi "(1, 12)" ngược lại thành cặp giá trị (tuple)
         if 'Tuần_chọn' in df.columns:
             df['Tuần_chọn'] = df['Tuần_chọn'].apply(
                 lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('(') else (1, 12)
@@ -60,6 +61,7 @@ def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
         worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=1, cols=1)
     
     df_copy = df_to_save.copy()
+    # SỬA LỖI: Chuyển đổi cặp giá trị (tuple) thành chuỗi "(1, 12)" trước khi lưu
     if 'Tuần_chọn' in df_copy.columns:
         df_copy['Tuần_chọn'] = df_copy['Tuần_chọn'].astype(str)
         
@@ -147,12 +149,30 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
         mon_chon_moi = st.selectbox("III - CHỌN MÔN", dsmon_options, index=index_mon, key=f'mon_chon_{stt_mon_hien_tai}')
         st.session_state.df_input.loc[mon_data_row_index, 'Môn_chọn'] = mon_chon_moi
         
-        tuan_da_chon = st.session_state.df_input.loc[mon_data_row_index].get('Tuần_chọn', (1, 12))
-        if not isinstance(tuan_da_chon, tuple) or len(tuan_da_chon) != 2:
-            tuan_da_chon = (1, 12)
+        # --- SỬA LỖI SLIDER ---
+        # 1. Đọc giá trị thô từ DataFrame
+        raw_tuan_da_chon = st.session_state.df_input.loc[mon_data_row_index].get('Tuần_chọn', (1, 12))
 
-        tuandentuan = st.slider(f'IV - THỜI GIAN DẠY', 1, 50, tuan_da_chon, key=f'tuan_{stt_mon_hien_tai}')
-        st.session_state.df_input.loc[mon_data_row_index, 'Tuần_chọn'] = tuandentuan
+        # 2. Chuyển đổi an toàn sang tuple để slider có thể đọc
+        try:
+            if isinstance(raw_tuan_da_chon, str):
+                tuan_da_chon_tuple = ast.literal_eval(raw_tuan_da_chon)
+            elif isinstance(raw_tuan_da_chon, tuple):
+                tuan_da_chon_tuple = raw_tuan_da_chon
+            else:
+                tuan_da_chon_tuple = (1, 12)
+        except (ValueError, SyntaxError):
+            tuan_da_chon_tuple = (1, 12)
+        
+        if not (isinstance(tuan_da_chon_tuple, tuple) and len(tuan_da_chon_tuple) == 2):
+             tuan_da_chon_tuple = (1, 12)
+
+        # 3. Tạo slider với giá trị tuple đã được làm sạch
+        tuandentuan = st.slider(f'IV - THỜI GIAN DẠY', 1, 50, tuan_da_chon_tuple, key=f'tuan_{stt_mon_hien_tai}')
+        
+        # 4. Lưu giá trị mới vào DataFrame dưới dạng chuỗi
+        st.session_state.df_input.loc[mon_data_row_index, 'Tuần_chọn'] = str(tuandentuan)
+        # --- KẾT THÚC SỬA LỖI ---
         
         tiet_da_nhap = st.session_state.df_input.loc[mon_data_row_index].get('Tiết_nhập', DEFAULT_TIET_STRING)
         tiet_nhap_moi = st.text_input(f'V - TIẾT GIẢNG DẠY', value=tiet_da_nhap, key=f'tiet_{stt_mon_hien_tai}')
@@ -161,7 +181,9 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
         st.divider()
         st.subheader("Bảng tính toán chi tiết")
         
-        current_mon_data = st.session_state.df_input.loc[mon_data_row_index]
+        current_mon_data = st.session_state.df_input.loc[mon_data_row_index].copy()
+        # Chuyển đổi lại 'Tuần_chọn' thành tuple trước khi gửi đi xử lý
+        current_mon_data['Tuần_chọn'] = tuandentuan
         
         df_result, summary = fq.process_mon_data(
             current_mon_data, dynamic_chuangv, df_lop_g, df_mon_g, 
