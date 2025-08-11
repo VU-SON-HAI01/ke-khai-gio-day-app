@@ -4,61 +4,38 @@ import numpy as np
 # --- CÁC HÀM TÍNH TOÁN HỆ SỐ ---
 
 def thietlap_chuangv_dong(df_all_selections, df_lop_g, default_chuangv):
-    """
-    Tính toán 'chuangv' động dựa trên tất cả các lớp đã chọn.
-    """
     if df_all_selections is None or df_all_selections.empty or 'Lớp_chọn' not in df_all_selections.columns:
         return default_chuangv
-
-    all_selected_classes = []
-    for lop_chon in df_all_selections['Lớp_chọn'].dropna():
-        all_selected_classes.extend(str(lop_chon).split('+'))
-
-    if not all_selected_classes:
-        return default_chuangv
-
+    all_selected_classes = [cls for lop_chon in df_all_selections['Lớp_chọn'].dropna() for cls in str(lop_chon).split('+')]
+    if not all_selected_classes: return default_chuangv
     df_selected_info = df_lop_g[df_lop_g['Lớp'].isin(all_selected_classes)]
-    if df_selected_info.empty:
-        return default_chuangv
-
-    if (df_selected_info['Mã lớp'].str[2] == '1').any():
-        return 'Cao đẳng'
-    else:
-        return 'Trung cấp'
+    if df_selected_info.empty: return default_chuangv
+    return 'Cao đẳng' if (df_selected_info['Mã lớp'].str[2] == '1').any() else 'Trung cấp'
 
 def timmanghe(malop_f):
-    """Xác định mã nghề từ mã lớp."""
     S = str(malop_f)
     if len(S) > 5:
         if S[-1] == "X": return "MON" + S[2:5] + "X"
         if S[0:2] <= "48": return "MON" + S[2:5] + "Y"
         if S[0:4] == "VHPT": return "VHPT"
         return "MON" + S[2:5] + "Z"
-    else:
-        if len(S) >= 3 and S[2].isdigit(): return "MON" + S[2] + "Y"
-        return "MON00Y"
+    return "MON" + S[2] + "Y" if len(S) >= 3 and S[2].isdigit() else "MON00Y"
 
 def timheso_tc_cd(chuangv, malop):
-    """Tìm hệ số Trung cấp / Cao đẳng."""
-    chuangv_map = {"Cao đẳng": "CĐ", "Trung cấp": "TC"}
-    chuangv_short = chuangv_map.get(chuangv, "CĐ")
+    chuangv_short = {"Cao đẳng": "CĐ", "Trung cấp": "TC"}.get(chuangv, "CĐ")
     heso_map = {"CĐ": {"1": 1, "2": 0.89, "3": 0.79}, "TC": {"1": 1, "2": 1, "3": 0.89}}
-    if len(malop) < 3: return 2.0
-    return heso_map.get(chuangv_short, {}).get(malop[2], 2.0)
+    return heso_map.get(chuangv_short, {}).get(malop[2], 2.0) if len(malop) >= 3 else 2.0
 
 def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
-    """Tìm hệ số sĩ số cho Lý thuyết và Thực hành."""
     dieukien_nn_lop = False
     if isinstance(malop_khoa, str) and len(malop_khoa) >= 5 and malop_khoa[2:5].isdigit():
-        ma_nghe_str = malop_khoa[2:5]
-        nghe_info = df_nangnhoc_g[df_nangnhoc_g['MÃ NGHỀ'] == ma_nghe_str]
+        nghe_info = df_nangnhoc_g[df_nangnhoc_g['MÃ NGHỀ'] == malop_khoa[2:5]]
         if not nghe_info.empty and nghe_info['Nặng nhọc'].iloc[0] in ['NN49', 'NN']:
             dieukien_nn_lop = True
 
-    hesomon_siso_LT = 0.0
-    hesomon_siso_TH = 0.0
+    hesomon_siso_LT, hesomon_siso_TH = 0.0, 0.0
     ar_hesosiso_qd = df_hesosiso_g['Hệ số'].values.astype(float)
-    mamon_prefix = mamon[0:2] if isinstance(mamon, str) and len(mamon) >= 2 else ""
+    mamon_prefix = mamon[:2] if isinstance(mamon, str) else ""
 
     for i in range(len(ar_hesosiso_qd)):
         if df_hesosiso_g['LT min'].values[i] <= tuan_siso <= df_hesosiso_g['LT max'].values[i]:
@@ -71,7 +48,6 @@ def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
             if df_hesosiso_g['THNN min'].values[i] <= tuan_siso <= df_hesosiso_g['THNN max'].values[i]:
                 hesomon_siso_TH = ar_hesosiso_qd[i]
                 break
-    
     return hesomon_siso_LT, hesomon_siso_TH
 
 def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g):
@@ -102,9 +78,9 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     locdulieu_info = df_ngaytuan_g.iloc[tuanbatdau - 1:tuanketthuc].copy()
     
     # --- Xử lý tiết dựa trên kiểu kê khai ---
-    arr_tiet_lt = np.fromstring(tiet_lt_nhap, dtype=float, sep=' ')
-    arr_tiet_th = np.fromstring(tiet_th_nhap, dtype=float, sep=' ')
-    arr_tiet = np.fromstring(tiet_nhap, dtype=float, sep=' ')
+    arr_tiet_lt = np.fromstring(str(tiet_lt_nhap), dtype=float, sep=' ')
+    arr_tiet_th = np.fromstring(str(tiet_th_nhap), dtype=float, sep=' ')
+    arr_tiet = np.fromstring(str(tiet_nhap), dtype=float, sep=' ')
 
     if kieu_ke_khai == 'Kê theo Tổng số tiết':
         if len(locdulieu_info) != len(arr_tiet): return pd.DataFrame(), {"error": "Số tuần và số tiết không khớp"}
