@@ -251,8 +251,8 @@ else:
 
     if user_email == ADMIN_EMAIL:
         with st.sidebar:
-            st.write(f"Đã đăng nhập với:")
-            st.success(f"ADMIN: {user_email}")
+            #st.write(f"Đã đăng nhập với:")
+            #st.success(f"ADMIN: {user_email}")
             if st.button("Đăng xuất", use_container_width=True):
                 for key in list(st.session_state.keys()): del st.session_state[key]
                 st.rerun()
