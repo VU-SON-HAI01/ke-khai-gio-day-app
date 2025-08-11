@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-# Giả định file fun_lopghep.py tồn tại
-# import fun_lopghep as fun_lopghep
 
 # --- CÁC HÀM TÍNH TOÁN HỆ SỐ ---
 
@@ -9,7 +7,7 @@ def thietlap_chuangv_dong(df_all_selections, df_lop_g, default_chuangv):
     """
     Tính toán 'chuangv' động dựa trên tất cả các lớp đã chọn.
     """
-    if df_all_selections is None or df_all_selections.empty:
+    if df_all_selections is None or df_all_selections.empty or 'Lớp_chọn' not in df_all_selections.columns:
         return default_chuangv
 
     all_selected_classes = []
@@ -84,26 +82,14 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     mon_chon = mon_data_row.get('Môn_chọn')
     tuandentuan = mon_data_row.get('Tuần_chọn', (1, 12))
     tiet_nhap = mon_data_row.get('Tiết_nhập', "4 4 4 4 4 4 4 4 4 8 8 8")
-    nhomlop = mon_data_row.get('Nhóm_chọn', 0)
-
+    
     if not lop_chon or not mon_chon:
         return pd.DataFrame(), {}
 
-    # --- Bắt đầu tính toán ---
-    malop = ""
-    if nhomlop == 0: # Một lớp
-        malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
-        if malop_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'"}
-        malop = malop_info['Mã lớp'].iloc[0]
-    # (Thêm logic cho các loại nhóm lớp khác nếu cần, ví dụ lớp ghép)
-    # else: # Lớp ghép, etc.
-    #     # Giả định lop_chon là chuỗi các lớp ghép, cần có logic để tìm mã lớp chính
-    #     # Ví dụ: malop = find_main_class_code(lop_chon)
-    #     pass 
-
-    if not malop:
-        return pd.DataFrame(), {"error": "Không thể xác định mã lớp."}
-
+    malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
+    if malop_info.empty: return pd.DataFrame(), {}
+    
+    malop = malop_info['Mã lớp'].iloc[0]
     manghe = timmanghe(malop)
     
     if manghe not in df_mon_g.columns:
@@ -122,7 +108,7 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     if len(locdulieu_info) != len(arr_tiet):
         return pd.DataFrame(), {"error": "Số tuần và số tiết không khớp"}
 
-    dssiso = [df_lop_g[df_lop_g['Lớp'] == lop_chon][thang].iloc[0] if thang in df_lop_g.columns else 0 for thang in locdulieu_info['Tháng']]
+    dssiso = [malop_info[thang].iloc[0] if thang in malop_info.columns else 0 for thang in locdulieu_info['Tháng']]
 
     df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
     df_result['Sĩ số'] = dssiso
@@ -138,7 +124,6 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     df_result['HS_SS_LT'] = heso_lt_list
     df_result['HS_SS_TH'] = heso_th_list
     
-    # --- BỔ SUNG CÁC PHÉP TÍNH HOÀN CHỈNH ---
     df_result['Tiết_LT'] = 0.0
     df_result['Tiết_TH'] = 0.0
     if mamon[:2] in ['MH', 'MC']:
