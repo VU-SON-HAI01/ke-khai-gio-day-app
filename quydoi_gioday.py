@@ -36,7 +36,6 @@ def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
             return df
         
         df = pd.DataFrame(data)
-        # SỬA LỖI: Chuyển đổi chuỗi "(1, 12)" ngược lại thành cặp giá trị (tuple)
         if 'Tuần_chọn' in df.columns:
             df['Tuần_chọn'] = df['Tuần_chọn'].apply(
                 lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('(') else (1, 12)
@@ -61,7 +60,6 @@ def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
         worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=1, cols=1)
     
     df_copy = df_to_save.copy()
-    # SỬA LỖI: Chuyển đổi cặp giá trị (tuple) thành chuỗi "(1, 12)" trước khi lưu
     if 'Tuần_chọn' in df_copy.columns:
         df_copy['Tuần_chọn'] = df_copy['Tuần_chọn'].astype(str)
         
@@ -70,10 +68,21 @@ def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
 
 # --- CÁC HÀM CALLBACKS ---
 def add_callback():
+    """Thêm một môn học mới với các giá trị mặc định an toàn."""
     df = st.session_state.get('df_input', pd.DataFrame())
     next_stt_mon = (df['Stt_Mon'].max() + 1) if not df.empty and 'Stt_Mon' in df.columns else 1
-    new_row_data = mau_quydoi_g.iloc[0].to_dict() if not mau_quydoi_g.empty else {'Nhóm_chọn': 0, 'Lớp_chọn': '', 'Môn_chọn': ''}
+    
+    # Lấy dữ liệu mẫu nếu có
+    if not mau_quydoi_g.empty:
+        new_row_data = mau_quydoi_g.iloc[0].to_dict()
+    else: # Fallback
+        new_row_data = {'Nhóm_chọn': 0, 'Lớp_chọn': '', 'Môn_chọn': ''}
+
+    # SỬA LỖI: Gán tường minh các giá trị mặc định cho dòng mới
     new_row_data['Stt_Mon'] = next_stt_mon
+    new_row_data['Tiết_nhập'] = DEFAULT_TIET_STRING
+    new_row_data['Tuần_chọn'] = (1, 12)
+    
     st.session_state.df_input = pd.concat([df, pd.DataFrame([new_row_data])], ignore_index=True)
 
 def delete_callback():
@@ -108,7 +117,6 @@ col_buttons = st.columns(4)
 col_buttons[0].button("➕ Thêm môn", on_click=add_callback, use_container_width=True)
 col_buttons[1].button("➖ Xóa môn", on_click=delete_callback, use_container_width=True)
 if col_buttons[2].button("Cập nhật (Lưu)", use_container_width=True):
-    # Lưu cả input và output
     save_data_to_gsheet(spreadsheet, INPUT_SHEET_NAME, st.session_state.df_input)
     if 'df_output' in st.session_state and not st.session_state.df_output.empty:
         save_data_to_gsheet(spreadsheet, OUTPUT_SHEET_NAME, st.session_state.df_output)
@@ -149,11 +157,8 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
         mon_chon_moi = st.selectbox("III - CHỌN MÔN", dsmon_options, index=index_mon, key=f'mon_chon_{stt_mon_hien_tai}')
         st.session_state.df_input.loc[mon_data_row_index, 'Môn_chọn'] = mon_chon_moi
         
-        # --- SỬA LỖI SLIDER ---
-        # 1. Đọc giá trị thô từ DataFrame
         raw_tuan_da_chon = st.session_state.df_input.loc[mon_data_row_index].get('Tuần_chọn', (1, 12))
 
-        # 2. Chuyển đổi an toàn sang tuple để slider có thể đọc
         try:
             if isinstance(raw_tuan_da_chon, str):
                 tuan_da_chon_tuple = ast.literal_eval(raw_tuan_da_chon)
@@ -167,14 +172,16 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
         if not (isinstance(tuan_da_chon_tuple, tuple) and len(tuan_da_chon_tuple) == 2):
              tuan_da_chon_tuple = (1, 12)
 
-        # 3. Tạo slider với giá trị tuple đã được làm sạch
         tuandentuan = st.slider(f'IV - THỜI GIAN DẠY', 1, 50, tuan_da_chon_tuple, key=f'tuan_{stt_mon_hien_tai}')
-        
-        # 4. Lưu giá trị mới vào DataFrame dưới dạng chuỗi
         st.session_state.df_input.loc[mon_data_row_index, 'Tuần_chọn'] = str(tuandentuan)
-        # --- KẾT THÚC SỬA LỖI ---
         
-        tiet_da_nhap = st.session_state.df_input.loc[mon_data_row_index].get('Tiết_nhập', DEFAULT_TIET_STRING)
+        # SỬA LỖI: Đảm bảo giá trị mặc định được sử dụng nếu dữ liệu là NaN
+        tiet_da_nhap_raw = st.session_state.df_input.loc[mon_data_row_index].get('Tiết_nhập')
+        if pd.isna(tiet_da_nhap_raw):
+            tiet_da_nhap = DEFAULT_TIET_STRING
+        else:
+            tiet_da_nhap = tiet_da_nhap_raw
+
         tiet_nhap_moi = st.text_input(f'V - TIẾT GIẢNG DẠY', value=tiet_da_nhap, key=f'tiet_{stt_mon_hien_tai}')
         st.session_state.df_input.loc[mon_data_row_index, 'Tiết_nhập'] = tiet_nhap_moi
 
@@ -182,7 +189,6 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
         st.subheader("Bảng tính toán chi tiết")
         
         current_mon_data = st.session_state.df_input.loc[mon_data_row_index].copy()
-        # Chuyển đổi lại 'Tuần_chọn' thành tuple trước khi gửi đi xử lý
         current_mon_data['Tuần_chọn'] = tuandentuan
         
         df_result, summary = fq.process_mon_data(
@@ -202,7 +208,7 @@ with tabs[-1]:
     st.header("Tổng hợp kết quả")
     if processed_data_all_mons:
         df_final_summary = pd.concat(processed_data_all_mons, ignore_index=True)
-        st.session_state.df_output = df_final_summary # Lưu kết quả để có thể save
+        st.session_state.df_output = df_final_summary
         st.dataframe(df_final_summary)
         
         tongtiet = df_final_summary['Tiết'].sum()
