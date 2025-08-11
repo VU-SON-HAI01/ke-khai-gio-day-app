@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 import gspread
 from gspread_dataframe import set_with_dataframe
-import fun_quydoi as fq # Import file helper mới
-import ast # Thư viện để chuyển đổi chuỗi an toàn
+import fun_quydoi as fq
+import ast
 
 # --- KIỂM TRA TRẠNG THÁI KHỞI TẠO ---
 if not st.session_state.get('initialized', False):
@@ -20,27 +20,24 @@ df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
 df_nangnhoc_g = st.session_state.get('df_nangnhoc', pd.DataFrame())
 df_hesosiso_g = st.session_state.get('df_hesosiso', pd.DataFrame())
 
-# --- CẤU HÌNH TÊN WORKSHEET ---
+# --- CẤU HÌNH ---
 INPUT_SHEET_NAME = "ke_khai_input"
 OUTPUT_SHEET_NAME = "ket_qua_tinh_toan"
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
 
 # --- CÁC HÀM TƯƠNG TÁC DỮ LIỆU ---
 def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
-    """Tải dữ liệu input từ Google Sheet."""
     try:
         worksheet = spreadsheet_obj.worksheet(worksheet_name)
         data = worksheet.get_all_records()
         if not data:
             df = mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame([{'Stt_Mon': 1}])
-            if 'Stt_Mon' not in df.columns: df['Stt_Mon'] = 1
-            return df
+        else:
+            df = pd.DataFrame(data)
         
-        df = pd.DataFrame(data)
+        if 'Stt_Mon' not in df.columns: df['Stt_Mon'] = 1
         if 'Tuần_chọn' in df.columns:
-            df['Tuần_chọn'] = df['Tuần_chọn'].apply(
-                lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('(') else (1, 12)
-            )
+            df['Tuần_chọn'] = df['Tuần_chọn'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('(') else (1, 12))
         return df
     except gspread.exceptions.WorksheetNotFound:
         df = mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame([{'Stt_Mon': 1}])
@@ -51,44 +48,31 @@ def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
         return pd.DataFrame([{'Stt_Mon': 1}])
 
 def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
-    """Lưu một DataFrame vào một worksheet cụ thể."""
-    if df_to_save is None or df_to_save.empty:
-        st.warning(f"Không có dữ liệu để lưu vào sheet '{worksheet_name}'.")
-        return
+    if df_to_save is None or df_to_save.empty: return
     try:
         worksheet = spreadsheet_obj.worksheet(worksheet_name)
     except gspread.exceptions.WorksheetNotFound:
         worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=1, cols=1)
-    
     df_copy = df_to_save.copy()
     if 'Tuần_chọn' in df_copy.columns:
         df_copy['Tuần_chọn'] = df_copy['Tuần_chọn'].astype(str)
-        
     set_with_dataframe(worksheet, df_copy.astype(str), include_index=False)
     st.success(f"Dữ liệu đã được lưu thành công vào trang tính '{worksheet_name}'!")
 
 # --- CÁC HÀM CALLBACKS ---
 def add_callback():
-    """Thêm một môn học mới với các giá trị mặc định an toàn."""
     df = st.session_state.get('df_input', pd.DataFrame())
     next_stt_mon = (df['Stt_Mon'].max() + 1) if not df.empty and 'Stt_Mon' in df.columns else 1
-    
     new_row_data = mau_quydoi_g.iloc[0].to_dict() if not mau_quydoi_g.empty else {'Nhóm_chọn': 0, 'Lớp_chọn': '', 'Môn_chọn': ''}
-
     new_row_data.update({
-        'Stt_Mon': next_stt_mon,
-        'Tiết_nhập': DEFAULT_TIET_STRING,
-        'Tiết_LT_nhập': '0',
-        'Tiết_TH_nhập': '0',
-        'Tuần_chọn': (1, 12),
-        'Kiểu_kê_khai': 'Kê theo Tổng số tiết'
+        'Stt_Mon': next_stt_mon, 'Tiết_nhập': DEFAULT_TIET_STRING, 'Tiết_LT_nhập': '0',
+        'Tiết_TH_nhập': '0', 'Tuần_chọn': (1, 12), 'Kiểu_kê_khai': 'Kê theo Tổng số tiết'
     })
-    
     st.session_state.df_input = pd.concat([df, pd.DataFrame([new_row_data])], ignore_index=True)
 
 def delete_callback():
     df = st.session_state.get('df_input', pd.DataFrame())
-    if df.empty or 'Stt_Mon' not in df.columns or df['Stt_Mon'].nunique() <= 1:
+    if df.empty or df['Stt_Mon'].nunique() <= 1:
         st.warning("Không thể xóa môn học cuối cùng.")
         return
     mon_can_xoa = df['Stt_Mon'].max()
@@ -106,7 +90,17 @@ def update_input_df(stt_mon, column_name, widget_key):
         idx_list = st.session_state.df_input[st.session_state.df_input['Stt_Mon'] == stt_mon].index
         if not idx_list.empty:
             idx = idx_list[0]
-            st.session_state.df_input.loc[idx, column_name] = new_value
+            
+            # Xử lý riêng cho data_editor
+            if isinstance(new_value, pd.DataFrame):
+                if 'Tổng số tiết' in new_value.index:
+                    st.session_state.df_input.loc[idx, 'Tiết_nhập'] = ' '.join(new_value.loc['Tổng số tiết'].astype(str))
+                else:
+                    st.session_state.df_input.loc[idx, 'Tiết_LT_nhập'] = ' '.join(new_value.loc['Tiết Lý thuyết'].astype(str))
+                    st.session_state.df_input.loc[idx, 'Tiết_TH_nhập'] = ' '.join(new_value.loc['Tiết Thực hành'].astype(str))
+            else:
+                st.session_state.df_input.loc[idx, column_name] = new_value
+
 
 # --- KHỞI TẠO SESSION STATE ---
 if 'df_input' not in st.session_state:
@@ -169,7 +163,9 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
                   on_change=update_input_df, args=(stt_mon_hien_tai, 'Tuần_chọn', f'tuan_{stt_mon_hien_tai}'))
         
         st.subheader("V - KÊ KHAI TIẾT GIẢNG DẠY")
-        kieu_ke_khai = st.radio("Chọn phương pháp kê khai", ('Kê theo Tổng số tiết', 'Kê theo LT, TH chi tiết'), key=f'kieu_{stt_mon_hien_tai}',
+        kieu_ke_khai = st.radio("Chọn phương pháp kê khai", ('Kê theo Tổng số tiết', 'Kê theo LT, TH chi tiết'), 
+                                index=0 if df_input.loc[idx].get('Kiểu_kê_khai') == 'Kê theo Tổng số tiết' else 1,
+                                key=f'kieu_{stt_mon_hien_tai}',
                                 on_change=update_input_df, args=(stt_mon_hien_tai, 'Kiểu_kê_khai', f'kieu_{stt_mon_hien_tai}'))
 
         tuanbatdau, tuanketthuc = df_input.loc[idx].get('Tuần_chọn', (1, 12))
@@ -188,18 +184,15 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
 
         if kieu_ke_khai == 'Kê theo Tổng số tiết':
             tiet_data = prepare_tiet_data(df_input.loc[idx].get('Tiết_nhập'), num_weeks, DEFAULT_TIET_STRING)
-            edited_df = st.data_editor(pd.DataFrame([tiet_data], index=['Tổng số tiết'], columns=cols), key=f'editor_{stt_mon_hien_tai}')
-            # SỬA LỖI: Cập nhật trực tiếp, không dùng callback
-            st.session_state.df_input.loc[idx, 'Tiết_nhập'] = ' '.join(edited_df.loc['Tổng số tiết'].astype(str))
+            st.data_editor(pd.DataFrame([tiet_data], index=['Tổng số tiết'], columns=cols), key=f'editor_{stt_mon_hien_tai}',
+                           on_change=update_input_df, args=(stt_mon_hien_tai, 'Tiết_nhập', f'editor_{stt_mon_hien_tai}'))
         else:
             tiet_lt_data = prepare_tiet_data(df_input.loc[idx].get('Tiết_LT_nhập'), num_weeks, '0')
             tiet_th_data = prepare_tiet_data(df_input.loc[idx].get('Tiết_TH_nhập'), num_weeks, '0')
             tiet_sum = tiet_lt_data + tiet_th_data
             editor_df = pd.DataFrame([tiet_lt_data, tiet_th_data, tiet_sum], index=['Tiết Lý thuyết', 'Tiết Thực hành', 'Tổng số tiết'], columns=cols)
-            edited_df = st.data_editor(editor_df, key=f'editor_{stt_mon_hien_tai}')
-            # SỬA LỖI: Cập nhật trực tiếp, không dùng callback
-            st.session_state.df_input.loc[idx, 'Tiết_LT_nhập'] = ' '.join(edited_df.loc['Tiết Lý thuyết'].astype(str))
-            st.session_state.df_input.loc[idx, 'Tiết_TH_nhập'] = ' '.join(edited_df.loc['Tiết Thực hành'].astype(str))
+            st.data_editor(editor_df, key=f'editor_{stt_mon_hien_tai}',
+                           on_change=update_input_df, args=(stt_mon_hien_tai, None, f'editor_{stt_mon_hien_tai}'))
 
         st.divider()
         st.subheader("Bảng tính toán chi tiết")
