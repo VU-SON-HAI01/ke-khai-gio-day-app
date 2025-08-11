@@ -189,15 +189,17 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
         if kieu_ke_khai == 'Kê theo Tổng số tiết':
             tiet_data = prepare_tiet_data(df_input.loc[idx].get('Tiết_nhập'), num_weeks, DEFAULT_TIET_STRING)
             edited_df = st.data_editor(pd.DataFrame([tiet_data], index=['Tổng số tiết'], columns=cols), key=f'editor_{stt_mon_hien_tai}')
-            update_input_df(stt_mon_hien_tai, 'Tiết_nhập', f'editor_{stt_mon_hien_tai}')
+            # SỬA LỖI: Cập nhật trực tiếp, không dùng callback
+            st.session_state.df_input.loc[idx, 'Tiết_nhập'] = ' '.join(edited_df.loc['Tổng số tiết'].astype(str))
         else:
             tiet_lt_data = prepare_tiet_data(df_input.loc[idx].get('Tiết_LT_nhập'), num_weeks, '0')
             tiet_th_data = prepare_tiet_data(df_input.loc[idx].get('Tiết_TH_nhập'), num_weeks, '0')
             tiet_sum = tiet_lt_data + tiet_th_data
             editor_df = pd.DataFrame([tiet_lt_data, tiet_th_data, tiet_sum], index=['Tiết Lý thuyết', 'Tiết Thực hành', 'Tổng số tiết'], columns=cols)
             edited_df = st.data_editor(editor_df, key=f'editor_{stt_mon_hien_tai}')
-            update_input_df(stt_mon_hien_tai, 'Tiết_LT_nhập', f'editor_{stt_mon_hien_tai}')
-            update_input_df(stt_mon_hien_tai, 'Tiết_TH_nhập', f'editor_{stt_mon_hien_tai}')
+            # SỬA LỖI: Cập nhật trực tiếp, không dùng callback
+            st.session_state.df_input.loc[idx, 'Tiết_LT_nhập'] = ' '.join(edited_df.loc['Tiết Lý thuyết'].astype(str))
+            st.session_state.df_input.loc[idx, 'Tiết_TH_nhập'] = ' '.join(edited_df.loc['Tiết Thực hành'].astype(str))
 
         st.divider()
         st.subheader("Bảng tính toán chi tiết")
