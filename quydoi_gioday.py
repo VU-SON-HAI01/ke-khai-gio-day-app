@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np # SỬA LỖI: Thêm thư viện numpy
+import numpy as np
 import gspread
 from gspread_dataframe import set_with_dataframe
 import fun_quydoi as fq # Import file helper mới
@@ -157,6 +157,8 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
         raw_tuan = st.session_state.df_input.loc[idx].get('Tuần_chọn', (1, 12))
         try: tuan_tuple = ast.literal_eval(raw_tuan) if isinstance(raw_tuan, str) else raw_tuan
         except: tuan_tuple = (1, 12)
+        if not (isinstance(tuan_tuple, tuple) and len(tuan_tuple) == 2): tuan_tuple = (1, 12)
+        
         tuandentuan = st.slider(f'IV - THỜI GIAN DẠY', 1, 50, tuan_tuple, key=f'tuan_{stt_mon_hien_tai}')
         st.session_state.df_input.loc[idx, 'Tuần_chọn'] = str(tuandentuan)
 
@@ -168,17 +170,32 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
         num_weeks = tuanketthuc - tuanbatdau + 1
         cols = [f"Tuần {tuanbatdau + i}" for i in range(num_weeks)]
         
+        # --- SỬA LỖI TRIỆT ĐỂ: Hàm chuẩn bị dữ liệu cho data_editor ---
+        def prepare_tiet_data(data_str, num_weeks, default_value_str):
+            if pd.isna(data_str): data_str = default_value_str
+            try:
+                tiet_list = [float(t) for t in str(data_str).strip().split()]
+            except:
+                tiet_list = [float(t) for t in default_value_str.strip().split()]
+
+            current_len = len(tiet_list)
+            if current_len < num_weeks:
+                default_val = float(default_value_str.split()[0]) if default_value_str != '0' else 0.0
+                tiet_list.extend([default_val] * (num_weeks - current_len))
+            return np.array(tiet_list[:num_weeks])
+        # --- KẾT THÚC SỬA LỖI ---
+
         if kieu_ke_khai == 'Kê theo Tổng số tiết':
-            tiet_data_str = st.session_state.df_input.loc[idx].get('Tiết_nhập', DEFAULT_TIET_STRING)
-            tiet_data = np.fromstring(tiet_data_str, dtype=float, sep=' ')
-            editor_df = pd.DataFrame([tiet_data[:num_weeks]], index=['Tổng số tiết'], columns=cols)
+            tiet_data_str = st.session_state.df_input.loc[idx].get('Tiết_nhập')
+            tiet_data = prepare_tiet_data(tiet_data_str, num_weeks, DEFAULT_TIET_STRING)
+            editor_df = pd.DataFrame([tiet_data], index=['Tổng số tiết'], columns=cols)
         else:
-            tiet_lt_str = st.session_state.df_input.loc[idx].get('Tiết_LT_nhập', '0')
-            tiet_th_str = st.session_state.df_input.loc[idx].get('Tiết_TH_nhập', '0')
-            tiet_lt_data = np.fromstring(tiet_lt_str, dtype=float, sep=' ')
-            tiet_th_data = np.fromstring(tiet_th_str, dtype=float, sep=' ')
+            tiet_lt_str = st.session_state.df_input.loc[idx].get('Tiết_LT_nhập')
+            tiet_th_str = st.session_state.df_input.loc[idx].get('Tiết_TH_nhập')
+            tiet_lt_data = prepare_tiet_data(tiet_lt_str, num_weeks, '0')
+            tiet_th_data = prepare_tiet_data(tiet_th_str, num_weeks, '0')
             tiet_sum = tiet_lt_data + tiet_th_data
-            editor_df = pd.DataFrame([tiet_lt_data[:num_weeks], tiet_th_data[:num_weeks], tiet_sum[:num_weeks]], 
+            editor_df = pd.DataFrame([tiet_lt_data, tiet_th_data, tiet_sum], 
                                      index=['Tiết Lý thuyết', 'Tiết Thực hành', 'Tổng số tiết'], columns=cols)
 
         edited_df = st.data_editor(editor_df, key=f'editor_{stt_mon_hien_tai}')
