@@ -363,15 +363,15 @@ else:
 
         if st.session_state.get('initialized'):
             with st.sidebar:
-                st.write(f"Đã đăng nhập với:")
-                st.success(user_email)
                 st.header(":green[THÔNG TIN GIÁO VIÊN]")
                 st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
                 st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
                 st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
                 st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
-                st.write(f"(Chuẩn GV: {st.session_state.chuangv})")
+                st.write(f"**Chuẩn GV:** :green[{st.session_state.chuangv}]")
                 st.divider()
+                #st.write(f"Đã đăng nhập với:")
+                #st.success(user_email)
                 if st.button("Đăng xuất", use_container_width=True, key="user_logout"):
                     for key in list(st.session_state.keys()):
                         del st.session_state[key]
