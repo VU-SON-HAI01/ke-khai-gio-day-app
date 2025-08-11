@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
+import numpy as np # SỬA LỖI: Thêm thư viện numpy
 import gspread
 from gspread_dataframe import set_with_dataframe
 import fun_quydoi as fq # Import file helper mới
 import ast # Thư viện để chuyển đổi chuỗi an toàn
-import numpy as np # SỬA LỖI: Thêm thư viện numpy
+
 # --- KIỂM TRA TRẠNG THÁI KHỞI TẠO ---
 if not st.session_state.get('initialized', False):
     st.warning("Vui lòng đăng nhập từ trang chính để tiếp tục.")
