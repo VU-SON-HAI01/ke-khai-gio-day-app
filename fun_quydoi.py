@@ -77,20 +77,14 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     tuanbatdau, tuanketthuc = tuandentuan
     locdulieu_info = df_ngaytuan_g.iloc[tuanbatdau - 1:tuanketthuc].copy()
     
-    # --- Xử lý tiết dựa trên kiểu kê khai ---
     arr_tiet_lt = np.fromstring(str(tiet_lt_nhap), dtype=float, sep=' ')
     arr_tiet_th = np.fromstring(str(tiet_th_nhap), dtype=float, sep=' ')
     arr_tiet = np.fromstring(str(tiet_nhap), dtype=float, sep=' ')
 
     if kieu_ke_khai == 'Kê theo Tổng số tiết':
         if len(locdulieu_info) != len(arr_tiet): return pd.DataFrame(), {"error": "Số tuần và số tiết không khớp"}
-        arr_tiet_lt = np.zeros_like(arr_tiet)
-        arr_tiet_th = np.zeros_like(arr_tiet)
-        if mamon[:2] in ['MH', 'MC']:
-            arr_tiet_lt = arr_tiet
-        else:
-            arr_tiet_th = arr_tiet
-    else: # Kê theo LT, TH chi tiết
+        arr_tiet_lt, arr_tiet_th = (arr_tiet, np.zeros_like(arr_tiet)) if mamon[:2] in ['MH', 'MC'] else (np.zeros_like(arr_tiet), arr_tiet)
+    else:
         if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
             return pd.DataFrame(), {"error": "Số tuần và số tiết LT/TH không khớp"}
         arr_tiet = arr_tiet_lt + arr_tiet_th
@@ -98,7 +92,7 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     dssiso = [malop_info[thang].iloc[0] if thang in malop_info.columns else 0 for thang in locdulieu_info['Tháng']]
 
     df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
-    df_result['Sĩ số'] = dssiso
+    df_result['Sĩ số'] = pd.to_numeric(dssiso, errors='coerce').fillna(0)
     df_result['Tiết'] = arr_tiet
     df_result['Tiết_LT'] = arr_tiet_lt
     df_result['Tiết_TH'] = arr_tiet_th
@@ -112,6 +106,11 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
         
     df_result['HS_SS_LT'] = heso_lt_list
     df_result['HS_SS_TH'] = heso_th_list
+
+    # --- SỬA LỖI: Chuyển đổi sang dạng số TRƯỚC khi tính toán ---
+    numeric_cols = ['Tiết_LT', 'HS_SS_LT', 'HS_SS_TH', 'Tiết_TH', 'HS TC/CĐ']
+    for col in numeric_cols:
+        df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0)
     
     df_result["QĐ thừa"] = (df_result["Tiết_LT"] * df_result["HS_SS_LT"]) + (df_result["HS_SS_TH"] * df_result["Tiết_TH"])
     df_result["HS_SS_LT_tron"] = df_result["HS_SS_LT"].clip(lower=1)
