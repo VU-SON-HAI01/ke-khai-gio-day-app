@@ -377,8 +377,6 @@ def add_callback():
     # Cập nhật lại số lượng tab
     state['selectbox_count'] = state['df_quydoi_l']['Stt_Mon'].nunique()
 
-
-
 def delete_callback():
     """
         Hàm này tìm và xóa môn học có số thứ tự ('Stt_Mon') lớn nhất
