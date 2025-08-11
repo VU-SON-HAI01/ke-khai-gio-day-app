@@ -72,16 +72,16 @@ def add_callback():
     df = st.session_state.get('df_input', pd.DataFrame())
     next_stt_mon = (df['Stt_Mon'].max() + 1) if not df.empty and 'Stt_Mon' in df.columns else 1
     
-    # Lấy dữ liệu mẫu nếu có
-    if not mau_quydoi_g.empty:
-        new_row_data = mau_quydoi_g.iloc[0].to_dict()
-    else: # Fallback
-        new_row_data = {'Nhóm_chọn': 0, 'Lớp_chọn': '', 'Môn_chọn': ''}
+    new_row_data = mau_quydoi_g.iloc[0].to_dict() if not mau_quydoi_g.empty else {'Nhóm_chọn': 0, 'Lớp_chọn': '', 'Môn_chọn': ''}
 
-    # SỬA LỖI: Gán tường minh các giá trị mặc định cho dòng mới
-    new_row_data['Stt_Mon'] = next_stt_mon
-    new_row_data['Tiết_nhập'] = DEFAULT_TIET_STRING
-    new_row_data['Tuần_chọn'] = (1, 12)
+    new_row_data.update({
+        'Stt_Mon': next_stt_mon,
+        'Tiết_nhập': DEFAULT_TIET_STRING,
+        'Tiết_LT_nhập': '0',
+        'Tiết_TH_nhập': '0',
+        'Tuần_chọn': (1, 12),
+        'Kiểu_kê_khai': 'Kê theo Tổng số tiết'
+    })
     
     st.session_state.df_input = pd.concat([df, pd.DataFrame([new_row_data])], ignore_index=True)
 
@@ -130,71 +130,70 @@ processed_data_all_mons = []
 
 for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
     with tabs[i]:
-        mon_data_row_index = df_input[df_input['Stt_Mon'] == stt_mon_hien_tai].index[0]
-        
+        idx = df_input[df_input['Stt_Mon'] == stt_mon_hien_tai].index[0]
         st.info(f"Cấu hình cho Môn thứ {int(stt_mon_hien_tai)}")
 
         dslop_options = df_lop_g['Lớp'].astype(str).dropna().unique().tolist()
-        lop_da_chon = df_input.loc[mon_data_row_index, 'Lớp_chọn']
+        lop_da_chon = df_input.loc[idx, 'Lớp_chọn']
         try: index_lop = dslop_options.index(lop_da_chon)
-        except (ValueError, TypeError): index_lop = 0
-
-        lop_chon_moi = st.selectbox(f"II - CHỌN LỚP", dslop_options, index=index_lop, key=f'lop_chon_{stt_mon_hien_tai}')
-        st.session_state.df_input.loc[mon_data_row_index, 'Lớp_chọn'] = lop_chon_moi
+        except: index_lop = 0
+        lop_chon_moi = st.selectbox(f"II - CHỌN LỚP", dslop_options, index=index_lop, key=f'lop_{stt_mon_hien_tai}')
+        st.session_state.df_input.loc[idx, 'Lớp_chọn'] = lop_chon_moi
 
         malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon_moi]
         dsmon_options = []
         if not malop_info.empty:
-            malop = malop_info['Mã lớp'].iloc[0]
-            manghe = fq.timmanghe(malop)
+            manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
             if manghe in df_mon_g.columns:
                 dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
-
-        mon_da_chon = df_input.loc[mon_data_row_index, 'Môn_chọn']
+        
+        mon_da_chon = df_input.loc[idx, 'Môn_chọn']
         try: index_mon = dsmon_options.index(mon_da_chon)
-        except (ValueError, TypeError): index_mon = 0
-        
-        mon_chon_moi = st.selectbox("III - CHỌN MÔN", dsmon_options, index=index_mon, key=f'mon_chon_{stt_mon_hien_tai}')
-        st.session_state.df_input.loc[mon_data_row_index, 'Môn_chọn'] = mon_chon_moi
-        
-        raw_tuan_da_chon = st.session_state.df_input.loc[mon_data_row_index].get('Tuần_chọn', (1, 12))
+        except: index_mon = 0
+        mon_chon_moi = st.selectbox("III - CHỌN MÔN", dsmon_options, index=index_mon, key=f'mon_{stt_mon_hien_tai}')
+        st.session_state.df_input.loc[idx, 'Môn_chọn'] = mon_chon_moi
 
-        try:
-            if isinstance(raw_tuan_da_chon, str):
-                tuan_da_chon_tuple = ast.literal_eval(raw_tuan_da_chon)
-            elif isinstance(raw_tuan_da_chon, tuple):
-                tuan_da_chon_tuple = raw_tuan_da_chon
-            else:
-                tuan_da_chon_tuple = (1, 12)
-        except (ValueError, SyntaxError):
-            tuan_da_chon_tuple = (1, 12)
-        
-        if not (isinstance(tuan_da_chon_tuple, tuple) and len(tuan_da_chon_tuple) == 2):
-             tuan_da_chon_tuple = (1, 12)
+        raw_tuan = st.session_state.df_input.loc[idx].get('Tuần_chọn', (1, 12))
+        try: tuan_tuple = ast.literal_eval(raw_tuan) if isinstance(raw_tuan, str) else raw_tuan
+        except: tuan_tuple = (1, 12)
+        tuandentuan = st.slider(f'IV - THỜI GIAN DẠY', 1, 50, tuan_tuple, key=f'tuan_{stt_mon_hien_tai}')
+        st.session_state.df_input.loc[idx, 'Tuần_chọn'] = str(tuandentuan)
 
-        tuandentuan = st.slider(f'IV - THỜI GIAN DẠY', 1, 50, tuan_da_chon_tuple, key=f'tuan_{stt_mon_hien_tai}')
-        st.session_state.df_input.loc[mon_data_row_index, 'Tuần_chọn'] = str(tuandentuan)
+        st.subheader("V - KÊ KHAI TIẾT GIẢNG DẠY")
+        kieu_ke_khai = st.radio("Chọn phương pháp kê khai", ('Kê theo Tổng số tiết', 'Kê theo LT, TH chi tiết'), key=f'kieu_{stt_mon_hien_tai}')
+        st.session_state.df_input.loc[idx, 'Kiểu_kê_khai'] = kieu_ke_khai
+
+        tuanbatdau, tuanketthuc = tuandentuan
+        num_weeks = tuanketthuc - tuanbatdau + 1
+        cols = [f"Tuần {tuanbatdau + i}" for i in range(num_weeks)]
         
-        # SỬA LỖI: Đảm bảo giá trị mặc định được sử dụng nếu dữ liệu là NaN
-        tiet_da_nhap_raw = st.session_state.df_input.loc[mon_data_row_index].get('Tiết_nhập')
-        if pd.isna(tiet_da_nhap_raw):
-            tiet_da_nhap = DEFAULT_TIET_STRING
+        if kieu_ke_khai == 'Kê theo Tổng số tiết':
+            tiet_data_str = st.session_state.df_input.loc[idx].get('Tiết_nhập', DEFAULT_TIET_STRING)
+            tiet_data = np.fromstring(tiet_data_str, dtype=float, sep=' ')
+            editor_df = pd.DataFrame([tiet_data[:num_weeks]], index=['Tổng số tiết'], columns=cols)
         else:
-            tiet_da_nhap = tiet_da_nhap_raw
+            tiet_lt_str = st.session_state.df_input.loc[idx].get('Tiết_LT_nhập', '0')
+            tiet_th_str = st.session_state.df_input.loc[idx].get('Tiết_TH_nhập', '0')
+            tiet_lt_data = np.fromstring(tiet_lt_str, dtype=float, sep=' ')
+            tiet_th_data = np.fromstring(tiet_th_str, dtype=float, sep=' ')
+            tiet_sum = tiet_lt_data + tiet_th_data
+            editor_df = pd.DataFrame([tiet_lt_data[:num_weeks], tiet_th_data[:num_weeks], tiet_sum[:num_weeks]], 
+                                     index=['Tiết Lý thuyết', 'Tiết Thực hành', 'Tổng số tiết'], columns=cols)
 
-        tiet_nhap_moi = st.text_input(f'V - TIẾT GIẢNG DẠY', value=tiet_da_nhap, key=f'tiet_{stt_mon_hien_tai}')
-        st.session_state.df_input.loc[mon_data_row_index, 'Tiết_nhập'] = tiet_nhap_moi
+        edited_df = st.data_editor(editor_df, key=f'editor_{stt_mon_hien_tai}')
+        
+        if kieu_ke_khai == 'Kê theo Tổng số tiết':
+            st.session_state.df_input.loc[idx, 'Tiết_nhập'] = ' '.join(edited_df.loc['Tổng số tiết'].astype(str))
+        else:
+            st.session_state.df_input.loc[idx, 'Tiết_LT_nhập'] = ' '.join(edited_df.loc['Tiết Lý thuyết'].astype(str))
+            st.session_state.df_input.loc[idx, 'Tiết_TH_nhập'] = ' '.join(edited_df.loc['Tiết Thực hành'].astype(str))
 
         st.divider()
         st.subheader("Bảng tính toán chi tiết")
-        
-        current_mon_data = st.session_state.df_input.loc[mon_data_row_index].copy()
+        current_mon_data = st.session_state.df_input.loc[idx].copy()
         current_mon_data['Tuần_chọn'] = tuandentuan
         
-        df_result, summary = fq.process_mon_data(
-            current_mon_data, dynamic_chuangv, df_lop_g, df_mon_g, 
-            df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g
-        )
+        df_result, summary = fq.process_mon_data(current_mon_data, dynamic_chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g)
 
         if not df_result.empty:
             st.dataframe(df_result)
@@ -202,7 +201,7 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
         elif "error" in summary:
             st.warning(f"Không thể tính toán: {summary['error']}")
         else:
-            st.info("Vui lòng chọn đầy đủ thông tin Lớp và Môn để xem kết quả.")
+            st.info("Vui lòng chọn đầy đủ thông tin Lớp và Môn.")
 
 with tabs[-1]:
     st.header("Tổng hợp kết quả")
@@ -210,11 +209,9 @@ with tabs[-1]:
         df_final_summary = pd.concat(processed_data_all_mons, ignore_index=True)
         st.session_state.df_output = df_final_summary
         st.dataframe(df_final_summary)
-        
-        tongtiet = df_final_summary['Tiết'].sum()
-        st.metric("Tổng số tiết đã kê khai", f"{tongtiet:.0f}")
+        st.metric("Tổng số tiết đã kê khai", f"{df_final_summary['Tiết'].sum():.0f}")
     else:
-        st.info("Chưa có dữ liệu nào được xử lý hoặc các lựa chọn chưa hoàn tất.")
+        st.info("Chưa có dữ liệu nào được xử lý.")
     
     st.subheader("Dữ liệu đầu vào đang được quản lý")
     st.dataframe(st.session_state.df_input)
