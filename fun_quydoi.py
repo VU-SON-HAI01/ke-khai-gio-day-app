@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+# Giả định file fun_lopghep.py tồn tại
+# import fun_lopghep as fun_lopghep
 
 # --- CÁC HÀM TÍNH TOÁN HỆ SỐ ---
 
@@ -82,22 +84,33 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     mon_chon = mon_data_row.get('Môn_chọn')
     tuandentuan = mon_data_row.get('Tuần_chọn', (1, 12))
     tiet_nhap = mon_data_row.get('Tiết_nhập', "4 4 4 4 4 4 4 4 4 8 8 8")
-    
+    nhomlop = mon_data_row.get('Nhóm_chọn', 0)
+
     if not lop_chon or not mon_chon:
         return pd.DataFrame(), {}
 
-    malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
-    if malop_info.empty: return pd.DataFrame(), {}
-    
-    malop = malop_info['Mã lớp'].iloc[0]
+    # --- Bắt đầu tính toán ---
+    malop = ""
+    if nhomlop == 0: # Một lớp
+        malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
+        if malop_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'"}
+        malop = malop_info['Mã lớp'].iloc[0]
+    # (Thêm logic cho các loại nhóm lớp khác nếu cần, ví dụ lớp ghép)
+    # else: # Lớp ghép, etc.
+    #     # Giả định lop_chon là chuỗi các lớp ghép, cần có logic để tìm mã lớp chính
+    #     # Ví dụ: malop = find_main_class_code(lop_chon)
+    #     pass 
+
+    if not malop:
+        return pd.DataFrame(), {"error": "Không thể xác định mã lớp."}
+
     manghe = timmanghe(malop)
     
-    # Đảm bảo cột mã nghề tồn tại trong df_mon_g
     if manghe not in df_mon_g.columns:
         return pd.DataFrame(), {"error": f"Không tìm thấy mã nghề '{manghe}' trong dữ liệu môn học."}
         
     mon_info = df_mon_g[df_mon_g[manghe] == mon_chon]
-    if mon_info.empty: return pd.DataFrame(), {}
+    if mon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}' cho mã nghề '{manghe}'"}
 
     mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
     mamon = mon_info.iloc[0, mon_name_col_idx - 1]
@@ -109,7 +122,7 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     if len(locdulieu_info) != len(arr_tiet):
         return pd.DataFrame(), {"error": "Số tuần và số tiết không khớp"}
 
-    dssiso = [malop_info[thang].iloc[0] if thang in malop_info.columns else 0 for thang in locdulieu_info['Tháng']]
+    dssiso = [df_lop_g[df_lop_g['Lớp'] == lop_chon][thang].iloc[0] if thang in df_lop_g.columns else 0 for thang in locdulieu_info['Tháng']]
 
     df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
     df_result['Sĩ số'] = dssiso
@@ -126,8 +139,6 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     df_result['HS_SS_TH'] = heso_th_list
     
     # --- BỔ SUNG CÁC PHÉP TÍNH HOÀN CHỈNH ---
-    
-    # 1. Phân bổ Tiết_LT và Tiết_TH ban đầu
     df_result['Tiết_LT'] = 0.0
     df_result['Tiết_TH'] = 0.0
     if mamon[:2] in ['MH', 'MC']:
@@ -135,21 +146,17 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     else:
         df_result['Tiết_TH'] = df_result['Tiết']
 
-    # 2. Tính QĐ thừa
     df_result["QĐ thừa"] = (df_result["Tiết_LT"] * df_result["HS_SS_LT"]) + \
                            (df_result["HS_SS_TH"] * df_result["Tiết_TH"])
 
-    # 3. Tính các hệ số làm tròn (_tron) và HS thiếu
     df_result["HS_SS_LT_tron"] = df_result["HS_SS_LT"].clip(lower=1)
     df_result["HS_SS_TH_tron"] = df_result["HS_SS_TH"].clip(lower=1)
-    df_result["HS thiếu"] = df_result["HS_SS_TH"].clip(lower=1) # Theo logic gốc
+    df_result["HS thiếu"] = df_result["HS_SS_TH"].clip(lower=1)
 
-    # 4. Tính QĐ thiếu
     df_result["QĐ thiếu"] = df_result["HS TC/CĐ"] * \
                            ((df_result["Tiết_LT"] * df_result["HS_SS_LT_tron"]) + \
                             (df_result["HS_SS_TH_tron"] * df_result["Tiết_TH"]))
 
-    # 5. Làm tròn và định dạng các cột
     rounding_map = {
         "Sĩ số": 0, "Tiết": 1, "HS_SS_LT": 1, "HS_SS_TH": 1, "QĐ thừa": 1,
         "HS thiếu": 1, "QĐ thiếu": 1, "HS TC/CĐ": 2, "Tiết_LT": 1, "Tiết_TH": 1
@@ -158,7 +165,6 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
         if col in df_result.columns:
             df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0).round(decimals)
 
-    # 6. Chọn và sắp xếp lại các cột cuối cùng
     df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
     final_columns = [
         "Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", 
