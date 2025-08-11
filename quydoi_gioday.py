@@ -1,211 +1,132 @@
-import streamlit as st
 import pandas as pd
 import numpy as np
-import gspread
-from gspread_dataframe import set_with_dataframe
-import fun_quydoi as fq
-import ast
 
-# --- KIỂM TRA TRẠNG THÁI KHỞI TẠO ---
-if not st.session_state.get('initialized', False):
-    st.warning("Vui lòng đăng nhập từ trang chính để tiếp tục.")
-    st.stop()
+# --- CÁC HÀM TÍNH TOÁN HỆ SỐ ---
 
-# --- LẤY CÁC BIẾN TOÀN CỤC VÀ DỮ LIỆU CƠ SỞ ---
-spreadsheet = st.session_state.spreadsheet
-mau_quydoi_g = st.session_state.get('mau_quydoi', pd.DataFrame())
-df_lop_g = st.session_state.get('df_lop', pd.DataFrame())
-df_mon_g = st.session_state.get('df_mon', pd.DataFrame())
-df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
-df_nangnhoc_g = st.session_state.get('df_nangnhoc', pd.DataFrame())
-df_hesosiso_g = st.session_state.get('df_hesosiso', pd.DataFrame())
+def thietlap_chuangv_dong(df_all_selections, df_lop_g, default_chuangv):
+    if df_all_selections is None or df_all_selections.empty or 'Lớp_chọn' not in df_all_selections.columns:
+        return default_chuangv
+    all_selected_classes = [cls for lop_chon in df_all_selections['Lớp_chọn'].dropna() for cls in str(lop_chon).split('+')]
+    if not all_selected_classes: return default_chuangv
+    df_selected_info = df_lop_g[df_lop_g['Lớp'].isin(all_selected_classes)]
+    if df_selected_info.empty: return default_chuangv
+    return 'Cao đẳng' if (df_selected_info['Mã lớp'].str[2] == '1').any() else 'Trung cấp'
 
-# --- CẤU HÌNH ---
-INPUT_SHEET_NAME = "ke_khai_input"
-OUTPUT_SHEET_NAME = "ket_qua_tinh_toan"
-DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
+def timmanghe(malop_f):
+    S = str(malop_f)
+    if len(S) > 5:
+        if S[-1] == "X": return "MON" + S[2:5] + "X"
+        if S[0:2] <= "48": return "MON" + S[2:5] + "Y"
+        if S[0:4] == "VHPT": return "VHPT"
+        return "MON" + S[2:5] + "Z"
+    return "MON" + S[2] + "Y" if len(S) >= 3 and S[2].isdigit() else "MON00Y"
 
-# --- CÁC HÀM TƯƠNG TÁC DỮ LIỆU ---
-def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
-    try:
-        worksheet = spreadsheet_obj.worksheet(worksheet_name)
-        data = worksheet.get_all_records()
-        if not data:
-            df = mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame([{'Stt_Mon': 1}])
-        else:
-            df = pd.DataFrame(data)
-        
-        if 'Stt_Mon' not in df.columns: df['Stt_Mon'] = 1
-        if 'Tuần_chọn' in df.columns:
-            df['Tuần_chọn'] = df['Tuần_chọn'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('(') else (1, 12))
-        return df
-    except gspread.exceptions.WorksheetNotFound:
-        df = mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame([{'Stt_Mon': 1}])
-        if 'Stt_Mon' not in df.columns: df['Stt_Mon'] = 1
-        return df
-    except Exception as e:
-        st.error(f"Lỗi khi đọc dữ liệu từ '{worksheet_name}': {e}")
-        return pd.DataFrame([{'Stt_Mon': 1}])
+def timheso_tc_cd(chuangv, malop):
+    chuangv_short = {"Cao đẳng": "CĐ", "Trung cấp": "TC"}.get(chuangv, "CĐ")
+    heso_map = {"CĐ": {"1": 1, "2": 0.89, "3": 0.79}, "TC": {"1": 1, "2": 1, "3": 0.89}}
+    return heso_map.get(chuangv_short, {}).get(malop[2], 2.0) if len(malop) >= 3 else 2.0
 
-def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
-    if df_to_save is None or df_to_save.empty: return
-    try:
-        worksheet = spreadsheet_obj.worksheet(worksheet_name)
-    except gspread.exceptions.WorksheetNotFound:
-        worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=1, cols=1)
-    df_copy = df_to_save.copy()
-    if 'Tuần_chọn' in df_copy.columns:
-        df_copy['Tuần_chọn'] = df_copy['Tuần_chọn'].astype(str)
-    set_with_dataframe(worksheet, df_copy.astype(str), include_index=False)
-    st.success(f"Dữ liệu đã được lưu thành công vào trang tính '{worksheet_name}'!")
+def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
+    dieukien_nn_lop = False
+    if isinstance(malop_khoa, str) and len(malop_khoa) >= 5 and malop_khoa[2:5].isdigit():
+        nghe_info = df_nangnhoc_g[df_nangnhoc_g['MÃ NGHỀ'] == malop_khoa[2:5]]
+        if not nghe_info.empty and nghe_info['Nặng nhọc'].iloc[0] in ['NN49', 'NN']:
+            dieukien_nn_lop = True
 
-# --- CÁC HÀM CALLBACKS ---
-def add_callback():
-    df = st.session_state.get('df_input', pd.DataFrame())
-    next_stt_mon = (df['Stt_Mon'].max() + 1) if not df.empty and 'Stt_Mon' in df.columns else 1
-    new_row_data = mau_quydoi_g.iloc[0].to_dict() if not mau_quydoi_g.empty else {'Nhóm_chọn': 0, 'Lớp_chọn': '', 'Môn_chọn': ''}
-    new_row_data.update({
-        'Stt_Mon': next_stt_mon, 'Tiết_nhập': DEFAULT_TIET_STRING, 'Tiết_LT_nhập': '0',
-        'Tiết_TH_nhập': '0', 'Tuần_chọn': (1, 12), 'Kiểu_kê_khai': 'Kê theo Tổng số tiết'
-    })
-    st.session_state.df_input = pd.concat([df, pd.DataFrame([new_row_data])], ignore_index=True)
+    hesomon_siso_LT, hesomon_siso_TH = 0.0, 0.0
+    ar_hesosiso_qd = df_hesosiso_g['Hệ số'].values.astype(float)
+    mamon_prefix = mamon[:2] if isinstance(mamon, str) else ""
 
-def delete_callback():
-    df = st.session_state.get('df_input', pd.DataFrame())
-    if df.empty or df['Stt_Mon'].nunique() <= 1:
-        st.warning("Không thể xóa môn học cuối cùng.")
-        return
-    mon_can_xoa = df['Stt_Mon'].max()
-    st.session_state.df_input = df[df['Stt_Mon'] != mon_can_xoa].reset_index(drop=True)
-    st.toast(f"Đã xóa thành công Môn thứ {int(mon_can_xoa)}.")
+    for i in range(len(ar_hesosiso_qd)):
+        if df_hesosiso_g['LT min'].values[i] <= tuan_siso <= df_hesosiso_g['LT max'].values[i]:
+            hesomon_siso_LT = ar_hesosiso_qd[i]
+        if df_hesosiso_g['TH min'].values[i] <= tuan_siso <= df_hesosiso_g['TH max'].values[i]:
+            hesomon_siso_TH = ar_hesosiso_qd[i]
 
-def reload_data_callback():
-    st.session_state.df_input = load_data_from_gsheet(spreadsheet, INPUT_SHEET_NAME)
-    st.toast("Đã tải lại dữ liệu input từ Google Sheet.")
+    if dieukien_nn_lop and mamon_prefix != "MC":
+        for i in range(len(ar_hesosiso_qd)):
+            if df_hesosiso_g['THNN min'].values[i] <= tuan_siso <= df_hesosiso_g['THNN max'].values[i]:
+                hesomon_siso_TH = ar_hesosiso_qd[i]
+                break
+    return hesomon_siso_LT, hesomon_siso_TH
 
-def update_input_df(stt_mon, column_name, widget_key):
-    """Callback để cập nhật DataFrame input một cách an toàn."""
-    if widget_key in st.session_state:
-        new_value = st.session_state[widget_key]
-        idx = st.session_state.df_input[st.session_state.df_input['Stt_Mon'] == stt_mon].index[0]
-        st.session_state.df_input.loc[idx, column_name] = new_value
+def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g):
+    lop_chon = mon_data_row.get('Lớp_chọn')
+    mon_chon = mon_data_row.get('Môn_chọn')
+    tuandentuan = mon_data_row.get('Tuần_chọn', (1, 12))
+    kieu_ke_khai = mon_data_row.get('Kiểu_kê_khai', 'Kê theo Tổng số tiết')
+    tiet_nhap = mon_data_row.get('Tiết_nhập', "4 4 4 4 4 4 4 4 4 8 8 8")
+    tiet_lt_nhap = mon_data_row.get('Tiết_LT_nhập', "0")
+    tiet_th_nhap = mon_data_row.get('Tiết_TH_nhập', "0")
 
-# --- KHỞI TẠO SESSION STATE ---
-if 'df_input' not in st.session_state:
-    st.session_state.df_input = load_data_from_gsheet(spreadsheet, INPUT_SHEET_NAME)
+    if not lop_chon or not mon_chon: return pd.DataFrame(), {}
 
-# --- GIAO DIỆN CHÍNH ---
-st.header("KÊ GIỜ GIẢNG GV 2025", divider=True)
-df_input = st.session_state.get('df_input', pd.DataFrame())
-if df_input.empty or 'Stt_Mon' not in df_input.columns:
-    st.session_state.df_input = pd.DataFrame([{'Stt_Mon': 1, 'Tuần_chọn': (1,12), 'Tiết_nhập': DEFAULT_TIET_STRING}])
-    df_input = st.session_state.df_input
-
-dynamic_chuangv = fq.thietlap_chuangv_dong(df_input, df_lop_g, st.session_state.chuangv)
-st.sidebar.info(f"Chuẩn GV hiện tại (tự động): **{dynamic_chuangv}**")
-
-col_buttons = st.columns(4)
-col_buttons[0].button("➕ Thêm môn", on_click=add_callback, use_container_width=True)
-col_buttons[1].button("➖ Xóa môn", on_click=delete_callback, use_container_width=True)
-if col_buttons[2].button("Cập nhật (Lưu)", use_container_width=True):
-    save_data_to_gsheet(spreadsheet, INPUT_SHEET_NAME, st.session_state.df_input)
-    if 'df_output' in st.session_state and not st.session_state.df_output.empty:
-        save_data_to_gsheet(spreadsheet, OUTPUT_SHEET_NAME, st.session_state.df_output)
-col_buttons[3].button("Đặt lại", on_click=reload_data_callback, use_container_width=True)
-
-unique_stt_mon = sorted(df_input['Stt_Mon'].unique())
-tab_names = [f"MÔN THỨ {int(stt)}" for stt in unique_stt_mon] + ['TỔNG HỢP']
-tabs = st.tabs(tab_names)
-
-processed_data_all_mons = []
-
-for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
-    with tabs[i]:
-        idx = df_input[df_input['Stt_Mon'] == stt_mon_hien_tai].index[0]
-        st.info(f"Cấu hình cho Môn thứ {int(stt_mon_hien_tai)}")
-
-        # --- Giao diện chọn lớp và môn ---
-        dslop_options = df_lop_g['Lớp'].astype(str).dropna().unique().tolist()
-        lop_da_chon = df_input.loc[idx].get('Lớp_chọn')
-        try: index_lop = dslop_options.index(lop_da_chon)
-        except: index_lop = 0
-        st.selectbox(f"II - CHỌN LỚP", dslop_options, index=index_lop, key=f'lop_{stt_mon_hien_tai}',
-                     on_change=update_input_df, args=(stt_mon_hien_tai, 'Lớp_chọn', f'lop_{stt_mon_hien_tai}'))
-
-        malop_info = df_lop_g[df_lop_g['Lớp'] == df_input.loc[idx, 'Lớp_chọn']]
-        dsmon_options = []
-        if not malop_info.empty:
-            manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
-            if manghe in df_mon_g.columns:
-                dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
-        
-        mon_da_chon = df_input.loc[idx].get('Môn_chọn')
-        try: index_mon = dsmon_options.index(mon_da_chon)
-        except: index_mon = 0
-        st.selectbox("III - CHỌN MÔN", dsmon_options, index=index_mon, key=f'mon_{stt_mon_hien_tai}',
-                     on_change=update_input_df, args=(stt_mon_hien_tai, 'Môn_chọn', f'mon_{stt_mon_hien_tai}'))
-
-        # --- Giao diện nhập tuần và tiết ---
-        tuan_tuple = df_input.loc[idx].get('Tuần_chọn', (1, 12))
-        if not (isinstance(tuan_tuple, tuple) and len(tuan_tuple) == 2): tuan_tuple = (1, 12)
-        
-        st.slider(f'IV - THỜI GIAN DẠY', 1, 50, tuan_tuple, key=f'tuan_{stt_mon_hien_tai}',
-                  on_change=update_input_df, args=(stt_mon_hien_tai, 'Tuần_chọn', f'tuan_{stt_mon_hien_tai}'))
-        
-        st.subheader("V - KÊ KHAI TIẾT GIẢNG DẠY")
-        kieu_ke_khai = st.radio("Chọn phương pháp kê khai", ('Kê theo Tổng số tiết', 'Kê theo LT, TH chi tiết'), key=f'kieu_{stt_mon_hien_tai}',
-                                on_change=update_input_df, args=(stt_mon_hien_tai, 'Kiểu_kê_khai', f'kieu_{stt_mon_hien_tai}'))
-
-        tuanbatdau, tuanketthuc = df_input.loc[idx].get('Tuần_chọn', (1, 12))
-        num_weeks = tuanketthuc - tuanbatdau + 1
-        cols = [f"Tuần {tuanbatdau + i}" for i in range(num_weeks)]
-        
-        def prepare_tiet_data(data_str, num_weeks, default_value_str):
-            if pd.isna(data_str): data_str = default_value_str
-            try: tiet_list = [float(t) for t in str(data_str).strip().split()]
-            except: tiet_list = [float(t) for t in default_value_str.strip().split()]
-            current_len = len(tiet_list)
-            if current_len < num_weeks:
-                default_val = float(default_value_str.split()[0]) if default_value_str != '0' else 0.0
-                tiet_list.extend([default_val] * (num_weeks - current_len))
-            return np.array(tiet_list[:num_weeks])
-
-        if kieu_ke_khai == 'Kê theo Tổng số tiết':
-            tiet_data = prepare_tiet_data(df_input.loc[idx].get('Tiết_nhập'), num_weeks, DEFAULT_TIET_STRING)
-            edited_df = st.data_editor(pd.DataFrame([tiet_data], index=['Tổng số tiết'], columns=cols), key=f'editor_{stt_mon_hien_tai}')
-            update_input_df(stt_mon_hien_tai, 'Tiết_nhập', f'editor_{stt_mon_hien_tai}')
-        else:
-            tiet_lt_data = prepare_tiet_data(df_input.loc[idx].get('Tiết_LT_nhập'), num_weeks, '0')
-            tiet_th_data = prepare_tiet_data(df_input.loc[idx].get('Tiết_TH_nhập'), num_weeks, '0')
-            tiet_sum = tiet_lt_data + tiet_th_data
-            editor_df = pd.DataFrame([tiet_lt_data, tiet_th_data, tiet_sum], index=['Tiết Lý thuyết', 'Tiết Thực hành', 'Tổng số tiết'], columns=cols)
-            edited_df = st.data_editor(editor_df, key=f'editor_{stt_mon_hien_tai}')
-            update_input_df(stt_mon_hien_tai, 'Tiết_LT_nhập', f'editor_{stt_mon_hien_tai}')
-            update_input_df(stt_mon_hien_tai, 'Tiết_TH_nhập', f'editor_{stt_mon_hien_tai}')
-
-        st.divider()
-        st.subheader("Bảng tính toán chi tiết")
-        current_mon_data = st.session_state.df_input.loc[idx].copy()
-        
-        df_result, summary = fq.process_mon_data(current_mon_data, dynamic_chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g)
-
-        if not df_result.empty:
-            st.dataframe(df_result)
-            processed_data_all_mons.append(df_result)
-        elif "error" in summary:
-            st.warning(f"Không thể tính toán: {summary['error']}")
-        else:
-            st.info("Vui lòng chọn đầy đủ thông tin Lớp và Môn.")
-
-with tabs[-1]:
-    st.header("Tổng hợp kết quả")
-    if processed_data_all_mons:
-        df_final_summary = pd.concat(processed_data_all_mons, ignore_index=True)
-        st.session_state.df_output = df_final_summary
-        st.dataframe(df_final_summary)
-        st.metric("Tổng số tiết đã kê khai", f"{df_final_summary['Tiết'].sum():.0f}")
-    else:
-        st.info("Chưa có dữ liệu nào được xử lý.")
+    malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
+    if malop_info.empty: return pd.DataFrame(), {}
     
-    st.subheader("Dữ liệu đầu vào đang được quản lý")
-    st.dataframe(st.session_state.df_input)
+    malop = malop_info['Mã lớp'].iloc[0]
+    manghe = timmanghe(malop)
+    
+    if manghe not in df_mon_g.columns: return pd.DataFrame(), {"error": f"Không tìm thấy mã nghề '{manghe}'"}
+    mon_info = df_mon_g[df_mon_g[manghe] == mon_chon]
+    if mon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'"}
+
+    mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
+    mamon = mon_info.iloc[0, mon_name_col_idx - 1]
+    
+    tuanbatdau, tuanketthuc = tuandentuan
+    locdulieu_info = df_ngaytuan_g.iloc[tuanbatdau - 1:tuanketthuc].copy()
+    
+    arr_tiet_lt = np.fromstring(str(tiet_lt_nhap), dtype=float, sep=' ')
+    arr_tiet_th = np.fromstring(str(tiet_th_nhap), dtype=float, sep=' ')
+    arr_tiet = np.fromstring(str(tiet_nhap), dtype=float, sep=' ')
+
+    if kieu_ke_khai == 'Kê theo Tổng số tiết':
+        if len(locdulieu_info) != len(arr_tiet): return pd.DataFrame(), {"error": "Số tuần và số tiết không khớp"}
+        arr_tiet_lt, arr_tiet_th = (arr_tiet, np.zeros_like(arr_tiet)) if mamon[:2] in ['MH', 'MC'] else (np.zeros_like(arr_tiet), arr_tiet)
+    else:
+        if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
+            return pd.DataFrame(), {"error": "Số tuần và số tiết LT/TH không khớp"}
+        arr_tiet = arr_tiet_lt + arr_tiet_th
+    
+    dssiso = [malop_info[thang].iloc[0] if thang in malop_info.columns else 0 for thang in locdulieu_info['Tháng']]
+
+    df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
+    df_result['Sĩ số'] = dssiso
+    df_result['Tiết'] = arr_tiet
+    df_result['Tiết_LT'] = arr_tiet_lt
+    df_result['Tiết_TH'] = arr_tiet_th
+    df_result['HS TC/CĐ'] = timheso_tc_cd(dynamic_chuangv, malop)
+    
+    heso_lt_list, heso_th_list = [], []
+    for siso in df_result['Sĩ số']:
+        lt, th = timhesomon_siso(mamon, siso, malop, df_nangnhoc_g, df_hesosiso_g)
+        heso_lt_list.append(lt)
+        heso_th_list.append(th)
+        
+    df_result['HS_SS_LT'] = heso_lt_list
+    df_result['HS_SS_TH'] = heso_th_list
+
+    # --- SỬA LỖI: Chuyển đổi sang dạng số TRƯỚC khi tính toán ---
+    numeric_cols = ['Sĩ số', 'Tiết', 'Tiết_LT', 'HS_SS_LT', 'HS_SS_TH', 'Tiết_TH', 'HS TC/CĐ']
+    for col in numeric_cols:
+        df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0)
+    
+    df_result["QĐ thừa"] = (df_result["Tiết_LT"] * df_result["HS_SS_LT"]) + (df_result["HS_SS_TH"] * df_result["Tiết_TH"])
+    df_result["HS_SS_LT_tron"] = df_result["HS_SS_LT"].clip(lower=1)
+    df_result["HS_SS_TH_tron"] = df_result["HS_SS_TH"].clip(lower=1)
+    df_result["HS thiếu"] = df_result["HS_SS_TH"].clip(lower=1)
+    df_result["QĐ thiếu"] = df_result["HS TC/CĐ"] * ((df_result["Tiết_LT"] * df_result["HS_SS_LT_tron"]) + (df_result["HS_SS_TH_tron"] * df_result["Tiết_TH"]))
+
+    rounding_map = {"Sĩ số": 0, "Tiết": 1, "HS_SS_LT": 1, "HS_SS_TH": 1, "QĐ thừa": 1, "HS thiếu": 1, "QĐ thiếu": 1, "HS TC/CĐ": 2, "Tiết_LT": 1, "Tiết_TH": 1}
+    for col, decimals in rounding_map.items():
+        if col in df_result.columns:
+            df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0).round(decimals)
+
+    df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
+    final_columns = ["Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "HS thiếu", "QĐ thiếu"]
+    df_final = df_result[[col for col in final_columns if col in df_result.columns]]
+
+    summary_info = {"mamon": mamon, "heso_tccd": df_final['HS TC/CĐ'].mean()}
+    
+    return df_final, summary_info
