@@ -347,65 +347,36 @@ def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
 
 # --- Hàm Callbacks cho các nút hành động ---
 def add_callback():
-    # 1. Xác định giá trị 'Stt_Mon' tiếp theo
-    # Kiểm tra xem df_quydoi_l có rỗng không VÀ có cột 'Stt_Mon' không
-    if 'df_quydoi_l' not in st.session_state or st.session_state.quydoi_gioday['df_quydoi_l'].empty or 'Stt_Mon' not in \
-            st.session_state.quydoi_gioday['df_quydoi_l'].columns:
-        next_stt_mon = 1  # Nếu DataFrame rỗng hoặc không có cột 'Stt_Mon', bắt đầu từ 1
-        # Lấy một hàng dữ liệu mẫu từ mau_quydoi_g
-        if not mau_quydoi_g.empty:
-            # Tạo một bản sao để tránh làm thay đổi mau_quydoi_g gốc
-            # và thêm cột 'Stt_Mon' vào đó.
-            # st.write(mau_quydoi_g)
-            initial_row_df = mau_quydoi_g.iloc[[0]].copy()  # Lấy hàng đầu tiên và giữ nguyên là DataFrame
-            # st.write(initial_row_df)
-            # initial_row_df.insert(0, 'Stt_Mon', next_stt_mon) # Thêm 'Stt_Mon' vào vị trí đầu tiên
+    state = st.session_state.quydoi_gioday
 
+    # Nếu chưa có DataFrame, tạo mới từ mẫu
+    if 'df_quydoi_l' not in state or state['df_quydoi_l'].empty or 'Stt_Mon' not in state['df_quydoi_l'].columns:
+        next_stt_mon = 1
+        if not mau_quydoi_g.empty:
+            initial_row_df = mau_quydoi_g.iloc[[0]].copy()
+            initial_row_df['Stt_Mon'] = next_stt_mon # <== Dòng code được bổ sung
         else:
-            # Trường hợp mau_quydoi_g rỗng, cung cấp một DataFrame mặc định an toàn
-            st.warning("mau_quydoi_g rỗng. Sử dụng dữ liệu mặc định an toàn để khởi tạo.")
-            initial_row_df = pd.DataFrame({
-                'Stt_Mon': [next_stt_mon],
-                'Nhóm_chọn': [0],
-                'Lớp_chọn': ['Mặc Định'],
-                'Môn_chọn': ['Môn Mặc Định'],
-                'Tháng': ['Tháng X'],
-                'Tuần': ['Tuần Y'],
-                'Ngày': ['Ngày Z'],
-            })
-        st.session_state.quydoi_gioday['df_quydoi_l'] = initial_row_df  # Gán DataFrame đã chuẩn bị
+            # Fallback nếu không có mẫu
+            initial_row_df = pd.DataFrame({'Stt_Mon': [next_stt_mon], 'Nhóm_chọn': [0], 'Lớp_chọn': [''], 'Môn_chọn': ['']})
+        state['df_quydoi_l'] = initial_row_df
+
+    # Nếu đã có DataFrame, thêm một dòng mới
     else:
-        # Nếu DataFrame đã có và có cột 'Stt_Mon', lấy giá trị lớn nhất + 1
-        max_stt_mon = st.session_state.quydoi_gioday['df_quydoi_l']['Stt_Mon'].max()
+        max_stt_mon = state['df_quydoi_l']['Stt_Mon'].max()
         next_stt_mon = max_stt_mon + 1
-
-        # Lấy một hàng dữ liệu mẫu từ mau_quydoi_g để tạo hàng mới
         if not mau_quydoi_g.empty:
-            new_row_data = mau_quydoi_g.iloc[0].to_dict()  # Lấy từ hàng đầu tiên của mau_quydoi_g
-            new_row_data['Stt_Mon'] = next_stt_mon  # Đảm bảo Stt_Mon là giá trị mới tính toán
+            new_row_data = mau_quydoi_g.iloc[0].to_dict()
+            new_row_data['Stt_Mon'] = next_stt_mon
         else:
-            # Trường hợp mau_quydoi_g rỗng, sử dụng dữ liệu mặc định
-            st.warning("mau_quydoi_g rỗng. Sử dụng dữ liệu mặc định an toàn để thêm hàng.")
-            new_row_data = {
-                'Stt_Mon': next_stt_mon,
-                'Nhóm_chọn': 0,
-                'Lớp_chọn': 'Mặc Định',
-                'Môn_chọn': 'Môn Mặc Định',
-                'Tháng': ['Tháng X'],
-                'Tuần': ['Tuần Y'],
-                'Ngày': ['Ngày Z'],
-            }
+            # Fallback nếu không có mẫu
+            new_row_data = {'Stt_Mon': next_stt_mon, 'Nhóm_chọn': 0, 'Lớp_chọn': '', 'Môn_chọn': ''}
 
-        new_row_df = pd.DataFrame([new_row_data])  # Tạo DataFrame từ hàng dữ liệu mới
+        new_row_df = pd.DataFrame([new_row_data])
+        state['df_quydoi_l'] = pd.concat([state['df_quydoi_l'], new_row_df], ignore_index=True)
 
-        # Nối DataFrame hiện tại với hàng mới
-        st.session_state.quydoi_gioday['df_quydoi_l'] = pd.concat(
-            [st.session_state.quydoi_gioday['df_quydoi_l'], new_row_df], ignore_index=True, sort=False)
-    # 2. Cập nhật selectbox_count dựa trên số lượng giá trị 'Stt_Mon' duy nhất
-    st.session_state.quydoi_gioday['selectbox_count'] += 1
-    # st.session_state.quydoi_gioday['selectbox_count'] = st.session_state.quydoi_gioday['df_quydoi_l']['Stt_Mon'].nunique()
-    # 3. Thông báo cho người dùng
-    # st.info(f"Đã Thêm môn: :green[**Môn thứ {next_stt_mon}**]. Nhấn :green[**'Cập nhật'**] để lưu thay đổi!")
+    # Cập nhật lại số lượng tab
+    state['selectbox_count'] = state['df_quydoi_l']['Stt_Mon'].nunique()
+
 
 
 def delete_callback():
@@ -1439,7 +1410,7 @@ st.header("KÊ GIỜ GIẢNG GV 2025", divider=True)
 col_buttons = st.columns(4)
 with col_buttons[0]:
     # Nút này cần hàm add_callback
-    st.button("➕ Thêm môn", key="add_tab_button", use_container_width=True)
+    st.button("➕ Thêm môn", on_click=add_callback, key="add_tab_button", use_container_width=True)
 with col_buttons[1]:
     # Nút này cần hàm delete_callback
     st.button("➖ Xóa môn", key="remove_tab_button", use_container_width=True)
