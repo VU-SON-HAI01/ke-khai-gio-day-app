@@ -75,16 +75,15 @@ def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
     return hesomon_siso_LT, hesomon_siso_TH
 
 def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g):
-    """
-    Hàm xử lý chính: Nhận vào một dòng dữ liệu của một môn, trả về DataFrame kết quả đã tính toán.
-    """
     lop_chon = mon_data_row.get('Lớp_chọn')
     mon_chon = mon_data_row.get('Môn_chọn')
     tuandentuan = mon_data_row.get('Tuần_chọn', (1, 12))
+    kieu_ke_khai = mon_data_row.get('Kiểu_kê_khai', 'Kê theo Tổng số tiết')
     tiet_nhap = mon_data_row.get('Tiết_nhập', "4 4 4 4 4 4 4 4 4 8 8 8")
-    
-    if not lop_chon or not mon_chon:
-        return pd.DataFrame(), {}
+    tiet_lt_nhap = mon_data_row.get('Tiết_LT_nhập', "0")
+    tiet_th_nhap = mon_data_row.get('Tiết_TH_nhập', "0")
+
+    if not lop_chon or not mon_chon: return pd.DataFrame(), {}
 
     malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
     if malop_info.empty: return pd.DataFrame(), {}
@@ -92,27 +91,41 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     malop = malop_info['Mã lớp'].iloc[0]
     manghe = timmanghe(malop)
     
-    if manghe not in df_mon_g.columns:
-        return pd.DataFrame(), {"error": f"Không tìm thấy mã nghề '{manghe}' trong dữ liệu môn học."}
-        
+    if manghe not in df_mon_g.columns: return pd.DataFrame(), {"error": f"Không tìm thấy mã nghề '{manghe}'"}
     mon_info = df_mon_g[df_mon_g[manghe] == mon_chon]
-    if mon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}' cho mã nghề '{manghe}'"}
+    if mon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'"}
 
     mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
     mamon = mon_info.iloc[0, mon_name_col_idx - 1]
     
     tuanbatdau, tuanketthuc = tuandentuan
-    arr_tiet = np.fromstring(tiet_nhap, dtype=int, sep=' ')
-    
     locdulieu_info = df_ngaytuan_g.iloc[tuanbatdau - 1:tuanketthuc].copy()
-    if len(locdulieu_info) != len(arr_tiet):
-        return pd.DataFrame(), {"error": "Số tuần và số tiết không khớp"}
+    
+    # --- Xử lý tiết dựa trên kiểu kê khai ---
+    arr_tiet_lt = np.fromstring(tiet_lt_nhap, dtype=float, sep=' ')
+    arr_tiet_th = np.fromstring(tiet_th_nhap, dtype=float, sep=' ')
+    arr_tiet = np.fromstring(tiet_nhap, dtype=float, sep=' ')
 
+    if kieu_ke_khai == 'Kê theo Tổng số tiết':
+        if len(locdulieu_info) != len(arr_tiet): return pd.DataFrame(), {"error": "Số tuần và số tiết không khớp"}
+        arr_tiet_lt = np.zeros_like(arr_tiet)
+        arr_tiet_th = np.zeros_like(arr_tiet)
+        if mamon[:2] in ['MH', 'MC']:
+            arr_tiet_lt = arr_tiet
+        else:
+            arr_tiet_th = arr_tiet
+    else: # Kê theo LT, TH chi tiết
+        if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
+            return pd.DataFrame(), {"error": "Số tuần và số tiết LT/TH không khớp"}
+        arr_tiet = arr_tiet_lt + arr_tiet_th
+    
     dssiso = [malop_info[thang].iloc[0] if thang in malop_info.columns else 0 for thang in locdulieu_info['Tháng']]
 
     df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
     df_result['Sĩ số'] = dssiso
     df_result['Tiết'] = arr_tiet
+    df_result['Tiết_LT'] = arr_tiet_lt
+    df_result['Tiết_TH'] = arr_tiet_th
     df_result['HS TC/CĐ'] = timheso_tc_cd(dynamic_chuangv, malop)
     
     heso_lt_list, heso_th_list = [], []
@@ -124,42 +137,21 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     df_result['HS_SS_LT'] = heso_lt_list
     df_result['HS_SS_TH'] = heso_th_list
     
-    df_result['Tiết_LT'] = 0.0
-    df_result['Tiết_TH'] = 0.0
-    if mamon[:2] in ['MH', 'MC']:
-        df_result['Tiết_LT'] = df_result['Tiết']
-    else:
-        df_result['Tiết_TH'] = df_result['Tiết']
-
-    df_result["QĐ thừa"] = (df_result["Tiết_LT"] * df_result["HS_SS_LT"]) + \
-                           (df_result["HS_SS_TH"] * df_result["Tiết_TH"])
-
+    df_result["QĐ thừa"] = (df_result["Tiết_LT"] * df_result["HS_SS_LT"]) + (df_result["HS_SS_TH"] * df_result["Tiết_TH"])
     df_result["HS_SS_LT_tron"] = df_result["HS_SS_LT"].clip(lower=1)
     df_result["HS_SS_TH_tron"] = df_result["HS_SS_TH"].clip(lower=1)
     df_result["HS thiếu"] = df_result["HS_SS_TH"].clip(lower=1)
+    df_result["QĐ thiếu"] = df_result["HS TC/CĐ"] * ((df_result["Tiết_LT"] * df_result["HS_SS_LT_tron"]) + (df_result["HS_SS_TH_tron"] * df_result["Tiết_TH"]))
 
-    df_result["QĐ thiếu"] = df_result["HS TC/CĐ"] * \
-                           ((df_result["Tiết_LT"] * df_result["HS_SS_LT_tron"]) + \
-                            (df_result["HS_SS_TH_tron"] * df_result["Tiết_TH"]))
-
-    rounding_map = {
-        "Sĩ số": 0, "Tiết": 1, "HS_SS_LT": 1, "HS_SS_TH": 1, "QĐ thừa": 1,
-        "HS thiếu": 1, "QĐ thiếu": 1, "HS TC/CĐ": 2, "Tiết_LT": 1, "Tiết_TH": 1
-    }
+    rounding_map = {"Sĩ số": 0, "Tiết": 1, "HS_SS_LT": 1, "HS_SS_TH": 1, "QĐ thừa": 1, "HS thiếu": 1, "QĐ thiếu": 1, "HS TC/CĐ": 2, "Tiết_LT": 1, "Tiết_TH": 1}
     for col, decimals in rounding_map.items():
         if col in df_result.columns:
             df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0).round(decimals)
 
     df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
-    final_columns = [
-        "Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", 
-        "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "HS thiếu", "QĐ thiếu"
-    ]
+    final_columns = ["Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "HS thiếu", "QĐ thiếu"]
     df_final = df_result[[col for col in final_columns if col in df_result.columns]]
 
-    summary_info = {
-        "mamon": mamon,
-        "heso_tccd": df_final['HS TC/CĐ'].mean()
-    }
+    summary_info = {"mamon": mamon, "heso_tccd": df_final['HS TC/CĐ'].mean()}
     
     return df_final, summary_info
