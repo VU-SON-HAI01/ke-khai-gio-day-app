@@ -1,9 +1,8 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import gspread
 from gspread_dataframe import set_with_dataframe
-import fun_quydoi as fq # Import file helper
+import fun_quydoi as fq # Import file helper mới
 import ast # Thư viện để chuyển đổi chuỗi an toàn
 
 # --- KIỂM TRA TRẠNG THÁI KHỞI TẠO ---
@@ -20,12 +19,14 @@ df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
 df_nangnhoc_g = st.session_state.get('df_nangnhoc', pd.DataFrame())
 df_hesosiso_g = st.session_state.get('df_hesosiso', pd.DataFrame())
 
-WORKSHEET_NAME = "giangday"
+# --- CẤU HÌNH TÊN WORKSHEET ---
+INPUT_SHEET_NAME = "ke_khai_input"
+OUTPUT_SHEET_NAME = "ket_qua_tinh_toan"
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
 
-# --- CÁC HÀM TƯƠNG TÁC DỮ LIỆU (ĐÃ SỬA LỖI) ---
+# --- CÁC HÀM TƯƠNG TÁC DỮ LIỆU ---
 def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
-    """Tải dữ liệu từ Google Sheet và chuyển đổi cột Tuần_chọn."""
+    """Tải dữ liệu input từ Google Sheet."""
     try:
         worksheet = spreadsheet_obj.worksheet(worksheet_name)
         data = worksheet.get_all_records()
@@ -35,7 +36,6 @@ def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
             return df
         
         df = pd.DataFrame(data)
-        # SỬA LỖI: Chuyển đổi chuỗi "(1, 12)" ngược lại thành cặp giá trị (tuple)
         if 'Tuần_chọn' in df.columns:
             df['Tuần_chọn'] = df['Tuần_chọn'].apply(
                 lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('(') else (1, 12)
@@ -50,9 +50,9 @@ def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
         return pd.DataFrame([{'Stt_Mon': 1}])
 
 def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
-    """Lưu DataFrame vào Google Sheet, chuyển đổi cột Tuần_chọn sang chuỗi."""
+    """Lưu một DataFrame vào một worksheet cụ thể."""
     if df_to_save is None or df_to_save.empty:
-        st.warning("Không có dữ liệu để lưu.")
+        st.warning(f"Không có dữ liệu để lưu vào sheet '{worksheet_name}'.")
         return
     try:
         worksheet = spreadsheet_obj.worksheet(worksheet_name)
@@ -60,7 +60,6 @@ def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
         worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=1, cols=1)
     
     df_copy = df_to_save.copy()
-    # SỬA LỖI: Chuyển đổi cặp giá trị (tuple) thành chuỗi "(1, 12)" trước khi lưu
     if 'Tuần_chọn' in df_copy.columns:
         df_copy['Tuần_chọn'] = df_copy['Tuần_chọn'].astype(str)
         
@@ -69,48 +68,51 @@ def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
 
 # --- CÁC HÀM CALLBACKS ---
 def add_callback():
-    df = st.session_state.get('df_giangday', pd.DataFrame())
+    df = st.session_state.get('df_input', pd.DataFrame())
     next_stt_mon = (df['Stt_Mon'].max() + 1) if not df.empty and 'Stt_Mon' in df.columns else 1
     new_row_data = mau_quydoi_g.iloc[0].to_dict() if not mau_quydoi_g.empty else {'Nhóm_chọn': 0, 'Lớp_chọn': '', 'Môn_chọn': ''}
     new_row_data['Stt_Mon'] = next_stt_mon
-    st.session_state.df_giangday = pd.concat([df, pd.DataFrame([new_row_data])], ignore_index=True)
+    st.session_state.df_input = pd.concat([df, pd.DataFrame([new_row_data])], ignore_index=True)
 
 def delete_callback():
-    df = st.session_state.get('df_giangday', pd.DataFrame())
+    df = st.session_state.get('df_input', pd.DataFrame())
     if df.empty or 'Stt_Mon' not in df.columns or df['Stt_Mon'].nunique() <= 1:
         st.warning("Không thể xóa môn học cuối cùng.")
         return
     mon_can_xoa = df['Stt_Mon'].max()
-    st.session_state.df_giangday = df[df['Stt_Mon'] != mon_can_xoa].reset_index(drop=True)
+    st.session_state.df_input = df[df['Stt_Mon'] != mon_can_xoa].reset_index(drop=True)
     st.toast(f"Đã xóa thành công Môn thứ {int(mon_can_xoa)}.")
 
 def reload_data_callback():
-    st.session_state.df_giangday = load_data_from_gsheet(spreadsheet, WORKSHEET_NAME)
-    st.toast("Đã tải lại dữ liệu từ Google Sheet.")
+    st.session_state.df_input = load_data_from_gsheet(spreadsheet, INPUT_SHEET_NAME)
+    st.toast("Đã tải lại dữ liệu input từ Google Sheet.")
 
 # --- KHỞI TẠO SESSION STATE ---
-if 'df_giangday' not in st.session_state:
-    st.session_state.df_giangday = load_data_from_gsheet(spreadsheet, WORKSHEET_NAME)
+if 'df_input' not in st.session_state:
+    st.session_state.df_input = load_data_from_gsheet(spreadsheet, INPUT_SHEET_NAME)
 
 # --- GIAO DIỆN CHÍNH ---
 st.header("KÊ GIỜ GIẢNG GV 2025", divider=True)
 
-df_giangday = st.session_state.get('df_giangday', pd.DataFrame())
-if df_giangday.empty or 'Stt_Mon' not in df_giangday.columns:
-    st.session_state.df_giangday = pd.DataFrame([{'Stt_Mon': 1}])
-    df_giangday = st.session_state.df_giangday
+df_input = st.session_state.get('df_input', pd.DataFrame())
+if df_input.empty or 'Stt_Mon' not in df_input.columns:
+    st.session_state.df_input = pd.DataFrame([{'Stt_Mon': 1}])
+    df_input = st.session_state.df_input
 
-dynamic_chuangv = fq.thietlap_chuangv_dong(df_giangday, df_lop_g, st.session_state.chuangv)
+dynamic_chuangv = fq.thietlap_chuangv_dong(df_input, df_lop_g, st.session_state.chuangv)
 st.sidebar.info(f"Chuẩn GV hiện tại (tự động): **{dynamic_chuangv}**")
 
 col_buttons = st.columns(4)
 col_buttons[0].button("➕ Thêm môn", on_click=add_callback, use_container_width=True)
 col_buttons[1].button("➖ Xóa môn", on_click=delete_callback, use_container_width=True)
 if col_buttons[2].button("Cập nhật (Lưu)", use_container_width=True):
-    save_data_to_gsheet(spreadsheet, WORKSHEET_NAME, st.session_state.df_giangday)
+    # Lưu cả input và output
+    save_data_to_gsheet(spreadsheet, INPUT_SHEET_NAME, st.session_state.df_input)
+    if 'df_output' in st.session_state and not st.session_state.df_output.empty:
+        save_data_to_gsheet(spreadsheet, OUTPUT_SHEET_NAME, st.session_state.df_output)
 col_buttons[3].button("Đặt lại", on_click=reload_data_callback, use_container_width=True)
 
-unique_stt_mon = sorted(df_giangday['Stt_Mon'].unique())
+unique_stt_mon = sorted(df_input['Stt_Mon'].unique())
 tab_names = [f"MÔN THỨ {int(stt)}" for stt in unique_stt_mon] + ['TỔNG HỢP']
 tabs = st.tabs(tab_names)
 
@@ -118,17 +120,17 @@ processed_data_all_mons = []
 
 for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
     with tabs[i]:
-        mon_data_row_index = df_giangday[df_giangday['Stt_Mon'] == stt_mon_hien_tai].index[0]
+        mon_data_row_index = df_input[df_input['Stt_Mon'] == stt_mon_hien_tai].index[0]
         
         st.info(f"Cấu hình cho Môn thứ {int(stt_mon_hien_tai)}")
 
         dslop_options = df_lop_g['Lớp'].astype(str).dropna().unique().tolist()
-        lop_da_chon = df_giangday.loc[mon_data_row_index, 'Lớp_chọn']
+        lop_da_chon = df_input.loc[mon_data_row_index, 'Lớp_chọn']
         try: index_lop = dslop_options.index(lop_da_chon)
         except (ValueError, TypeError): index_lop = 0
 
         lop_chon_moi = st.selectbox(f"II - CHỌN LỚP", dslop_options, index=index_lop, key=f'lop_chon_{stt_mon_hien_tai}')
-        st.session_state.df_giangday.loc[mon_data_row_index, 'Lớp_chọn'] = lop_chon_moi
+        st.session_state.df_input.loc[mon_data_row_index, 'Lớp_chọn'] = lop_chon_moi
 
         malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon_moi]
         dsmon_options = []
@@ -138,29 +140,28 @@ for i, stt_mon_hien_tai in enumerate(unique_stt_mon):
             if manghe in df_mon_g.columns:
                 dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
 
-        mon_da_chon = df_giangday.loc[mon_data_row_index, 'Môn_chọn']
+        mon_da_chon = df_input.loc[mon_data_row_index, 'Môn_chọn']
         try: index_mon = dsmon_options.index(mon_da_chon)
         except (ValueError, TypeError): index_mon = 0
         
         mon_chon_moi = st.selectbox("III - CHỌN MÔN", dsmon_options, index=index_mon, key=f'mon_chon_{stt_mon_hien_tai}')
-        st.session_state.df_giangday.loc[mon_data_row_index, 'Môn_chọn'] = mon_chon_moi
+        st.session_state.df_input.loc[mon_data_row_index, 'Môn_chọn'] = mon_chon_moi
         
-        tuan_da_chon = st.session_state.df_giangday.loc[mon_data_row_index].get('Tuần_chọn', (1, 12))
-        # Đảm bảo tuan_da_chon là một tuple
+        tuan_da_chon = st.session_state.df_input.loc[mon_data_row_index].get('Tuần_chọn', (1, 12))
         if not isinstance(tuan_da_chon, tuple) or len(tuan_da_chon) != 2:
             tuan_da_chon = (1, 12)
 
         tuandentuan = st.slider(f'IV - THỜI GIAN DẠY', 1, 50, tuan_da_chon, key=f'tuan_{stt_mon_hien_tai}')
-        st.session_state.df_giangday.loc[mon_data_row_index, 'Tuần_chọn'] = tuandentuan
+        st.session_state.df_input.loc[mon_data_row_index, 'Tuần_chọn'] = tuandentuan
         
-        tiet_da_nhap = st.session_state.df_giangday.loc[mon_data_row_index].get('Tiết_nhập', DEFAULT_TIET_STRING)
+        tiet_da_nhap = st.session_state.df_input.loc[mon_data_row_index].get('Tiết_nhập', DEFAULT_TIET_STRING)
         tiet_nhap_moi = st.text_input(f'V - TIẾT GIẢNG DẠY', value=tiet_da_nhap, key=f'tiet_{stt_mon_hien_tai}')
-        st.session_state.df_giangday.loc[mon_data_row_index, 'Tiết_nhập'] = tiet_nhap_moi
+        st.session_state.df_input.loc[mon_data_row_index, 'Tiết_nhập'] = tiet_nhap_moi
 
         st.divider()
         st.subheader("Bảng tính toán chi tiết")
         
-        current_mon_data = st.session_state.df_giangday.loc[mon_data_row_index]
+        current_mon_data = st.session_state.df_input.loc[mon_data_row_index]
         
         df_result, summary = fq.process_mon_data(
             current_mon_data, dynamic_chuangv, df_lop_g, df_mon_g, 
@@ -179,6 +180,7 @@ with tabs[-1]:
     st.header("Tổng hợp kết quả")
     if processed_data_all_mons:
         df_final_summary = pd.concat(processed_data_all_mons, ignore_index=True)
+        st.session_state.df_output = df_final_summary # Lưu kết quả để có thể save
         st.dataframe(df_final_summary)
         
         tongtiet = df_final_summary['Tiết'].sum()
@@ -186,5 +188,5 @@ with tabs[-1]:
     else:
         st.info("Chưa có dữ liệu nào được xử lý hoặc các lựa chọn chưa hoàn tất.")
     
-    st.subheader("Dữ liệu thô đang được quản lý")
-    st.dataframe(st.session_state.df_giangday)
+    st.subheader("Dữ liệu đầu vào đang được quản lý")
+    st.dataframe(st.session_state.df_input)
