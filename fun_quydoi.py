@@ -38,7 +38,7 @@ def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
     mamon_prefix = mamon[:2] if isinstance(mamon, str) else ""
 
     for i in range(len(ar_hesosiso_qd)):
-        if df_hesosiso_g['LT min'].values[i] <= tuan_siso <= df_hesosiso_g['LT max'].values[i]:
+        if df_hesosiso_g['LT min'].values[i] <= tuan_siso <= df_hesosiso_g['TH max'].values[i]:
             hesomon_siso_LT = ar_hesosiso_qd[i]
         if df_hesosiso_g['TH min'].values[i] <= tuan_siso <= df_hesosiso_g['TH max'].values[i]:
             hesomon_siso_TH = ar_hesosiso_qd[i]
@@ -92,7 +92,7 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     dssiso = [malop_info[thang].iloc[0] if thang in malop_info.columns else 0 for thang in locdulieu_info['Tháng']]
 
     df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
-    df_result['Sĩ số'] = pd.to_numeric(dssiso, errors='coerce').fillna(0)
+    df_result['Sĩ số'] = dssiso
     df_result['Tiết'] = arr_tiet
     df_result['Tiết_LT'] = arr_tiet_lt
     df_result['Tiết_TH'] = arr_tiet_th
@@ -108,7 +108,7 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     df_result['HS_SS_TH'] = heso_th_list
 
     # --- SỬA LỖI: Chuyển đổi sang dạng số TRƯỚC khi tính toán ---
-    numeric_cols = ['Tiết_LT', 'HS_SS_LT', 'HS_SS_TH', 'Tiết_TH', 'HS TC/CĐ']
+    numeric_cols = ['Sĩ số', 'Tiết', 'Tiết_LT', 'HS_SS_LT', 'HS_SS_TH', 'Tiết_TH', 'HS TC/CĐ']
     for col in numeric_cols:
         df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0)
     
