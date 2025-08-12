@@ -23,21 +23,16 @@ INPUT_SHEET_NAME = "input_giangday"
 OUTPUT_SHEET_NAME = "ket_qua_giangday"
 KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp', 'VHPT']
 
-# --- CÁC HÀM TƯƠNG TÁC DỮ LIỆU ---
+# --- CÁC HÀM TƯƠNG TÁC DỮ LIỆU & CHUYỂN ĐỔI ---
 def get_default_input():
     """Tạo một dictionary chứa dữ liệu input mặc định."""
     filtered_lops = df_lop_g[df_lop_g['Mã lớp'].str.startswith('48', na=False)]['Lớp']
     default_lop = filtered_lops.iloc[0] if not filtered_lops.empty else (df_lop_g['Lớp'].iloc[0] if not df_lop_g.empty else '')
     
     return {
-        'khoa': KHOA_OPTIONS[0],
-        'lop_hoc': default_lop,
-        'mon_hoc': '',
-        'tuan': (1, 12),
-        'cach_ke': 'Kê theo MĐ, MH',
-        'tiet': '4 4 4 4 4 4 4 4 4 8 8 8',
-        'tiet_lt': '0',
-        'tiet_th': '0'
+        'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '',
+        'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH',
+        'tiet': '4 4 4 4 4 4 4 4 4 8 8 8', 'tiet_lt': '0', 'tiet_th': '0'
     }
 
 def load_input_data(spreadsheet_obj):
@@ -51,10 +46,7 @@ def load_input_data(spreadsheet_obj):
         if 'tuan' in input_data and isinstance(input_data['tuan'], str):
             try:
                 parts = input_data['tuan'].split('-')
-                if len(parts) == 2:
-                    input_data['tuan'] = (int(parts[0].strip()), int(parts[1].strip()))
-                else:
-                    input_data['tuan'] = (1, 12)
+                input_data['tuan'] = (int(parts[0].strip()), int(parts[1].strip())) if len(parts) == 2 else (1, 12)
             except (ValueError, TypeError):
                 input_data['tuan'] = (1, 12)
         return input_data
@@ -75,8 +67,7 @@ def save_input_data(spreadsheet_obj, worksheet_name, input_data):
     if 'tuan' in data_to_save and isinstance(data_to_save['tuan'], tuple):
         data_to_save['tuan'] = f"{data_to_save['tuan'][0]}-{data_to_save['tuan'][1]}"
         
-    df_to_save = pd.DataFrame([data_to_save])
-    set_with_dataframe(worksheet, df_to_save, include_index=False)
+    set_with_dataframe(worksheet, pd.DataFrame([data_to_save]), include_index=False)
     st.success(f"Đã lưu cấu hình vào trang tính '{worksheet_name}'!")
 
 def save_result_data(spreadsheet_obj, worksheet_name, result_df):
@@ -87,33 +78,41 @@ def save_result_data(spreadsheet_obj, worksheet_name, result_df):
         worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=result_df.shape[0]+1, cols=result_df.shape[1])
     set_with_dataframe(worksheet, result_df, include_index=False)
 
-def manage_tiet_dataframe(input_data, tuan_chon):
-    """Tạo hoặc cập nhật DataFrame để nhập số tiết."""
+def create_tiet_editor_df(input_data, tuan_chon):
+    """Tạo DataFrame cho st.data_editor từ dữ liệu text trong session_state."""
     start_week, end_week = tuan_chon
     cach_ke = input_data.get('cach_ke', 'Kê theo MĐ, MH')
-    
     cols = [f"Tuần {i}" for i in range(start_week, end_week + 1)]
     
     if cach_ke == 'Kê theo MĐ, MH':
         idx = ['Số tiết']
-        default_values_str = input_data.get('tiet', '0')
-        data = {'Số tiết': np.fromstring(default_values_str, dtype=int, sep=' ')}
+        values_str = str(input_data.get('tiet', '0'))
+        data = {'Số tiết': np.fromstring(values_str, dtype=int, sep=' ')}
     else:
         idx = ['Tiết LT', 'Tiết TH']
-        default_values_str_lt = input_data.get('tiet_lt', '0')
-        default_values_str_th = input_data.get('tiet_th', '0')
+        lt_values_str = str(input_data.get('tiet_lt', '0'))
+        th_values_str = str(input_data.get('tiet_th', '0'))
         data = {
-            'Tiết LT': np.fromstring(default_values_str_lt, dtype=int, sep=' '),
-            'Tiết TH': np.fromstring(default_values_str_th, dtype=int, sep=' ')
+            'Tiết LT': np.fromstring(lt_values_str, dtype=int, sep=' '),
+            'Tiết TH': np.fromstring(th_values_str, dtype=int, sep=' ')
         }
 
-    # Tạo DataFrame với kích thước phù hợp và điền dữ liệu
     df = pd.DataFrame(index=idx, columns=cols).fillna(0)
     for key, values in data.items():
         num_vals_to_fill = min(len(values), len(cols))
         df.loc[key, df.columns[:num_vals_to_fill]] = values[:num_vals_to_fill]
-        
     return df
+
+def update_input_data_from_editor(edited_df, cach_ke):
+    """Chuyển đổi dữ liệu từ DataFrame đã chỉnh sửa về dạng text và cập nhật session_state."""
+    if cach_ke == 'Kê theo MĐ, MH':
+        st.session_state.input_data['tiet'] = ' '.join(edited_df.loc['Số tiết'].astype(str))
+        st.session_state.input_data['tiet_lt'] = '0'
+        st.session_state.input_data['tiet_th'] = '0'
+    else:
+        st.session_state.input_data['tiet_lt'] = ' '.join(edited_df.loc['Tiết LT'].astype(str))
+        st.session_state.input_data['tiet_th'] = ' '.join(edited_df.loc['Tiết TH'].astype(str))
+        st.session_state.input_data['tiet'] = '0'
 
 # --- CALLBACK ĐỂ CẬP NHẬT TRẠNG THÁI ---
 def update_state(key):
@@ -122,8 +121,6 @@ def update_state(key):
 # --- KHỞI TẠO SESSION STATE ---
 if 'input_data' not in st.session_state:
     st.session_state.input_data = load_input_data(spreadsheet)
-if 'tiet_df' not in st.session_state:
-    st.session_state.tiet_df = pd.DataFrame()
 
 # --- GIAO DIỆN CHÍNH ---
 st.header("KÊ GIỜ GIẢNG GV 2025", divider=True)
@@ -131,17 +128,15 @@ st.subheader("I. Cấu hình giảng dạy")
 
 input_data = st.session_state.input_data
 
-# --- Input widgets ---
 col1, col2 = st.columns(2)
 with col1:
     khoa_chon = st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, 
         index=KHOA_OPTIONS.index(input_data.get('khoa', KHOA_OPTIONS[0])),
         key="widget_khoa", on_change=update_state, args=('khoa',))
-
+    
     filtered_lop_options = df_lop_g['Lớp'].tolist()
     if khoa_chon.startswith('Khóa'):
-        khoa_prefix = khoa_chon.split(' ')[1]
-        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_prefix, na=False)]['Lớp'].tolist()
+        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_chon.split(' ')[1], na=False)]['Lớp'].tolist()
     if not filtered_lop_options: st.warning(f"Không có lớp cho '{khoa_chon}'.")
     
     lop_hoc_index = filtered_lop_options.index(input_data.get('lop_hoc')) if input_data.get('lop_hoc') in filtered_lop_options else 0
@@ -168,28 +163,23 @@ with col2:
 st.divider()
 st.subheader("II. Phân bổ số tiết giảng dạy")
 cach_ke_chon = st.radio("Chọn phương pháp kê khai", 
-    ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), 
-    horizontal=True,
+    ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), horizontal=True,
     index=0 if input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1,
     key="widget_cach_ke", on_change=update_state, args=('cach_ke',))
 
 # --- Bảng nhập liệu số tiết ---
-# Tạo hoặc cập nhật DataFrame mỗi khi có thay đổi
-st.session_state.tiet_df = manage_tiet_dataframe(st.session_state.input_data, tuan_chon)
-edited_df = st.data_editor(st.session_state.tiet_df, use_container_width=True)
+tiet_df = create_tiet_editor_df(st.session_state.input_data, tuan_chon)
+edited_df = st.data_editor(tiet_df, use_container_width=True)
 
 # --- Nút tính toán và lưu trữ ---
 if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type="primary"):
-    # Cập nhật lại chuỗi tiết từ bảng nhập liệu trước khi lưu và tính toán
-    if cach_ke_chon == 'Kê theo MĐ, MH':
-        st.session_state.input_data['tiet'] = ' '.join(edited_df.loc['Số tiết'].astype(str))
-    else:
-        st.session_state.input_data['tiet_lt'] = ' '.join(edited_df.loc['Tiết LT'].astype(str))
-        st.session_state.input_data['tiet_th'] = ' '.join(edited_df.loc['Tiết TH'].astype(str))
+    # 1. Chuyển đổi dữ liệu từ bảng nhập liệu về dạng text và cập nhật session_state
+    update_input_data_from_editor(edited_df, cach_ke_chon)
 
-    # Lưu cấu hình mới nhất
+    # 2. Lưu cấu hình mới nhất (dạng text) vào Google Sheet
     save_input_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
     
+    # 3. Sử dụng dữ liệu đã được thống nhất trong session_state để tính toán
     with st.spinner("Đang tính toán..."):
         try:
             input_for_processing = {
@@ -222,4 +212,3 @@ if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type=
         except Exception as e:
             st.error(f"Đã xảy ra lỗi không mong muốn: {e}")
             st.exception(e)
-
