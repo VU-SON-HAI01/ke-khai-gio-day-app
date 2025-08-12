@@ -28,7 +28,7 @@ def timheso_tc_cd(chuangv, malop):
 
 def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
     # SỬA LỖI: Chuyển đổi và làm sạch dữ liệu đầu vào
-    tuan_siso = int(pd.to_numeric(tuan_siso, errors='coerce'))
+    tuan_siso = int(pd.to_numeric(tuan_siso, errors='coerce').fillna(0))
     
     # Chuyển đổi các cột cần thiết trong df_hesosiso_g sang dạng số một lần
     for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
@@ -114,6 +114,7 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     df_result['HS_SS_LT'] = heso_lt_list
     df_result['HS_SS_TH'] = heso_th_list
 
+    # --- SỬA LỖI: Chuyển đổi sang dạng số TRƯỚC khi tính toán ---
     numeric_cols = ['Sĩ số', 'Tiết', 'Tiết_LT', 'HS_SS_LT', 'HS_SS_TH', 'Tiết_TH', 'HS TC/CĐ']
     for col in numeric_cols:
         df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0)
