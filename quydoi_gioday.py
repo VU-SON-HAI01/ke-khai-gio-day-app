@@ -54,7 +54,7 @@ def load_input_data(spreadsheet_obj):
             try:
                 input_data['tuan'] = ast.literal_eval(input_data['tuan'])
             except:
-                input_data['tuan'] = (1, 12) # Fallback
+                input_data['tuan'] = (1, 12)
         return input_data
     except gspread.exceptions.WorksheetNotFound:
         return get_default_input()
@@ -74,11 +74,15 @@ def save_input_data(spreadsheet_obj, worksheet_name, input_data):
     else:
         df_to_save = input_data.copy()
 
-    if 'tuan' in df_to_save.columns and isinstance(df_to_save['tuan'].iloc[0], tuple):
+    if 'tuan' in df_to_save.columns and isinstance(df_to_save.iloc[0]['tuan'], tuple):
         df_to_save['tuan'] = df_to_save['tuan'].astype(str)
         
     set_with_dataframe(worksheet, df_to_save, include_index=False)
     st.success(f"Đã lưu dữ liệu vào trang tính '{worksheet_name}'!")
+
+# --- CALLBACK ĐỂ CẬP NHẬT TRẠNG THÁI NGAY LẬP TỨC ---
+def update_state(key):
+    st.session_state.input_data[key] = st.session_state[f"widget_{key}"]
 
 # --- KHỞI TẠO SESSION STATE ---
 if 'input_data' not in st.session_state:
@@ -86,61 +90,80 @@ if 'input_data' not in st.session_state:
 
 # --- GIAO DIỆN CHÍNH ---
 st.header("KÊ GIỜ GIẢNG GV 2025", divider=True)
+st.subheader("I. Cấu hình giảng dạy")
 
-# --- Form nhập liệu ---
-with st.form(key='input_form'):
-    st.subheader("I. Cấu hình giảng dạy")
-    
-    input_data = st.session_state.input_data
+input_data = st.session_state.input_data
 
-    # Input widgets
-    khoa_chon = st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, index=KHOA_OPTIONS.index(input_data.get('khoa', KHOA_OPTIONS[0])))
-    
-    filtered_lop_options = df_lop_g['Lớp'].tolist()
-    if khoa_chon.startswith('Khóa'):
-        khoa_prefix = khoa_chon.split(' ')[1]
-        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_prefix, na=False)]['Lớp'].tolist()
-    
-    lop_hoc_index = filtered_lop_options.index(input_data.get('lop_hoc')) if input_data.get('lop_hoc') in filtered_lop_options else 0
-    lop_hoc_chon = st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index)
+# --- Input widgets với on_change callback ---
+khoa_chon = st.selectbox(
+    "Chọn Khóa/Hệ", 
+    options=KHOA_OPTIONS, 
+    index=KHOA_OPTIONS.index(input_data.get('khoa', KHOA_OPTIONS[0])),
+    key="widget_khoa",
+    on_change=update_state,
+    args=('khoa',)
+)
 
-    malop_info = df_lop_g[df_lop_g['Lớp'] == lop_hoc_chon]
-    dsmon_options = []
-    if not malop_info.empty:
-        manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
-        if manghe in df_mon_g.columns:
-            dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
+filtered_lop_options = df_lop_g['Lớp'].tolist()
+if khoa_chon.startswith('Khóa'):
+    khoa_prefix = khoa_chon.split(' ')[1]
+    filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_prefix, na=False)]['Lớp'].tolist()
 
-    mon_hoc_index = dsmon_options.index(input_data.get('mon_hoc')) if input_data.get('mon_hoc') in dsmon_options else 0
-    mon_hoc_chon = st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index)
+lop_hoc_index = filtered_lop_options.index(input_data.get('lop_hoc')) if input_data.get('lop_hoc') in filtered_lop_options else 0
+lop_hoc_chon = st.selectbox(
+    "Chọn Lớp học", 
+    options=filtered_lop_options, 
+    index=lop_hoc_index,
+    key="widget_lop_hoc",
+    on_change=update_state,
+    args=('lop_hoc',)
+)
 
-    tuan_chon = st.slider("Chọn Tuần giảng dạy", 1, 50, value=input_data.get('tuan', (1, 12)))
-    
-    cach_ke_chon = st.radio("Chọn phương pháp kê khai", ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), 
-                                     index=0 if input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1)
+malop_info = df_lop_g[df_lop_g['Lớp'] == lop_hoc_chon]
+dsmon_options = []
+if not malop_info.empty:
+    manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
+    if manghe in df_mon_g.columns:
+        dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
 
-    if cach_ke_chon == 'Kê theo MĐ, MH':
-        tiet_nhap = st.text_input("Nhập số tiết mỗi tuần", value=input_data.get('tiet', DEFAULT_TIET_STRING))
-        tiet_lt_nhap = '0'
-        tiet_th_nhap = '0'
-    else:
-        tiet_lt_nhap = st.text_input("Nhập số tiết Lý thuyết mỗi tuần", value=input_data.get('tiet_lt', '0'))
-        tiet_th_nhap = st.text_input("Nhập số tiết Thực hành mỗi tuần", value=input_data.get('tiet_th', '0'))
-        tiet_nhap = DEFAULT_TIET_STRING
+mon_hoc_index = dsmon_options.index(input_data.get('mon_hoc')) if input_data.get('mon_hoc') in dsmon_options else 0
+mon_hoc_chon = st.selectbox(
+    "Chọn Môn học", 
+    options=dsmon_options, 
+    index=mon_hoc_index,
+    key="widget_mon_hoc",
+    on_change=update_state,
+    args=('mon_hoc',)
+)
 
-    submitted = st.form_submit_button("Lưu cấu hình và Tính toán")
+tuan_chon = st.slider(
+    "Chọn Tuần giảng dạy", 1, 50, 
+    value=input_data.get('tuan', (1, 12)),
+    key="widget_tuan",
+    on_change=update_state,
+    args=('tuan',)
+)
 
-if submitted:
-    st.session_state.input_data = {
-        'khoa': khoa_chon,
-        'lop_hoc': lop_hoc_chon,
-        'mon_hoc': mon_hoc_chon,
-        'tuan': tuan_chon,
-        'cach_ke': cach_ke_chon,
-        'tiet': tiet_nhap,
-        'tiet_lt': tiet_lt_nhap,
-        'tiet_th': tiet_th_nhap
-    }
+cach_ke_chon = st.radio(
+    "Chọn phương pháp kê khai", 
+    ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), 
+    index=0 if input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1,
+    key="widget_cach_ke",
+    on_change=update_state,
+    args=('cach_ke',)
+)
+
+if cach_ke_chon == 'Kê theo MĐ, MH':
+    st.text_input("Nhập số tiết mỗi tuần", value=input_data.get('tiet', DEFAULT_TIET_STRING), 
+                  key="widget_tiet", on_change=update_state, args=('tiet',))
+else:
+    st.text_input("Nhập số tiết Lý thuyết mỗi tuần", value=input_data.get('tiet_lt', '0'), 
+                  key="widget_tiet_lt", on_change=update_state, args=('tiet_lt',))
+    st.text_input("Nhập số tiết Thực hành mỗi tuần", value=input_data.get('tiet_th', '0'), 
+                  key="widget_tiet_th", on_change=update_state, args=('tiet_th',))
+
+# --- Nút tính toán và lưu trữ ---
+if st.button("Lưu cấu hình và Tính toán", use_container_width=True):
     save_input_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
     
     with st.spinner("Đang tính toán..."):
