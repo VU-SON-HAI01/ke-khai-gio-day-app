@@ -27,8 +27,18 @@ def timheso_tc_cd(chuangv, malop):
     return heso_map.get(chuangv_short, {}).get(malop[2], 2.0) if len(malop) >= 3 else 2.0
 
 def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
-    tuan_siso = int(pd.to_numeric(tuan_siso, errors='coerce').fillna(0))
+    # SỬA LỖI: Chuyển đổi siso sang số nguyên một cách an toàn, tránh lỗi TypeError
+    try:
+        # Cố gắng chuyển đổi giá trị siso (có thể là string, float, int, None) thành số nguyên.
+        # Chuyển qua float trước để xử lý các trường hợp như "50.0"
+        cleaned_siso = int(float(tuan_siso))
+    except (ValueError, TypeError, AttributeError):
+        # Nếu chuyển đổi thất bại (ví dụ: giá trị là chuỗi rỗng, None, hoặc không phải số),
+        # gán giá trị mặc định là 0.
+        cleaned_siso = 0
     
+    tuan_siso = cleaned_siso # Bây giờ tuan_siso chắc chắn là một số nguyên
+
     df_hesosiso = df_hesosiso_g.copy()
     for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
         df_hesosiso[col] = pd.to_numeric(df_hesosiso[col], errors='coerce').fillna(0)
