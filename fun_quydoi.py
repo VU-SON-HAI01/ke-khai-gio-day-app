@@ -27,10 +27,8 @@ def timheso_tc_cd(chuangv, malop):
     return heso_map.get(chuangv_short, {}).get(malop[2], 2.0) if len(malop) >= 3 else 2.0
 
 def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
-    # SỬA LỖI: Chuyển đổi và làm sạch dữ liệu đầu vào
     tuan_siso = int(pd.to_numeric(tuan_siso, errors='coerce').fillna(0))
     
-    # Tạo bản sao để tránh thay đổi cache
     df_hesosiso = df_hesosiso_g.copy()
     for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
         df_hesosiso[col] = pd.to_numeric(df_hesosiso[col], errors='coerce').fillna(0)
@@ -62,7 +60,7 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     lop_chon = mon_data_row.get('Lớp_chọn')
     mon_chon = mon_data_row.get('Môn_chọn')
     tuandentuan = mon_data_row.get('Tuần_chọn', (1, 12))
-    kieu_ke_khai = mon_data_row.get('Kiểu_kê_khai', 'Kê theo Tổng số tiết')
+    kieu_ke_khai = mon_data_row.get('Kiểu_kê_khai', 'Kê theo MĐ, MH')
     tiet_nhap = mon_data_row.get('Tiết_nhập', "4 4 4 4 4 4 4 4 4 8 8 8")
     tiet_lt_nhap = mon_data_row.get('Tiết_LT_nhập', "0")
     tiet_th_nhap = mon_data_row.get('Tiết_TH_nhập', "0")
@@ -89,12 +87,15 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     arr_tiet_th = np.fromstring(str(tiet_th_nhap), dtype=float, sep=' ')
     arr_tiet = np.fromstring(str(tiet_nhap), dtype=float, sep=' ')
 
-    if kieu_ke_khai == 'Kê theo Tổng số tiết':
-        if len(locdulieu_info) != len(arr_tiet): return pd.DataFrame(), {"error": "Số tuần và số tiết không khớp"}
+    # SỬA LỖI: Đồng bộ chuỗi kiểm tra với giá trị từ giao diện
+    # và cung cấp thông báo lỗi chi tiết hơn.
+    if kieu_ke_khai == 'Kê theo MĐ, MH':
+        if len(locdulieu_info) != len(arr_tiet): 
+            return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})."}
         arr_tiet_lt, arr_tiet_th = (arr_tiet, np.zeros_like(arr_tiet)) if mamon[:2] in ['MH', 'MC'] else (np.zeros_like(arr_tiet), arr_tiet)
-    else:
+    else: # Xử lý trường hợp 'Kê theo LT, TH chi tiết'
         if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
-            return pd.DataFrame(), {"error": "Số tuần và số tiết LT/TH không khớp"}
+            return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết Lý thuyết ({len(arr_tiet_lt)}) hoặc Thực hành ({len(arr_tiet_th)}) đã nhập."}
         arr_tiet = arr_tiet_lt + arr_tiet_th
     
     dssiso = [malop_info[thang].iloc[0] if thang in malop_info.columns else 0 for thang in locdulieu_info['Tháng']]
@@ -115,7 +116,6 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     df_result['HS_SS_LT'] = heso_lt_list
     df_result['HS_SS_TH'] = heso_th_list
 
-    # --- SỬA LỖI: Chuyển đổi sang dạng số TRƯỚC khi tính toán ---
     numeric_cols = ['Sĩ số', 'Tiết', 'Tiết_LT', 'HS_SS_LT', 'HS_SS_TH', 'Tiết_TH', 'HS TC/CĐ']
     for col in numeric_cols:
         df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0)
