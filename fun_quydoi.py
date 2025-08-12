@@ -30,9 +30,10 @@ def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
     # SỬA LỖI: Chuyển đổi và làm sạch dữ liệu đầu vào
     tuan_siso = int(pd.to_numeric(tuan_siso, errors='coerce').fillna(0))
     
-    # Chuyển đổi các cột cần thiết trong df_hesosiso_g sang dạng số một lần
+    # Tạo bản sao để tránh thay đổi cache
+    df_hesosiso = df_hesosiso_g.copy()
     for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
-        df_hesosiso_g[col] = pd.to_numeric(df_hesosiso_g[col], errors='coerce').fillna(0)
+        df_hesosiso[col] = pd.to_numeric(df_hesosiso[col], errors='coerce').fillna(0)
 
     dieukien_nn_lop = False
     if isinstance(malop_khoa, str) and len(malop_khoa) >= 5 and malop_khoa[2:5].isdigit():
@@ -41,18 +42,18 @@ def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
             dieukien_nn_lop = True
 
     hesomon_siso_LT, hesomon_siso_TH = 0.0, 0.0
-    ar_hesosiso_qd = df_hesosiso_g['Hệ số'].values
+    ar_hesosiso_qd = df_hesosiso['Hệ số'].values
     mamon_prefix = mamon[:2] if isinstance(mamon, str) else ""
 
     for i in range(len(ar_hesosiso_qd)):
-        if df_hesosiso_g['LT min'].values[i] <= tuan_siso <= df_hesosiso_g['LT max'].values[i]:
+        if df_hesosiso['LT min'].values[i] <= tuan_siso <= df_hesosiso['LT max'].values[i]:
             hesomon_siso_LT = ar_hesosiso_qd[i]
-        if df_hesosiso_g['TH min'].values[i] <= tuan_siso <= df_hesosiso_g['TH max'].values[i]:
+        if df_hesosiso['TH min'].values[i] <= tuan_siso <= df_hesosiso['TH max'].values[i]:
             hesomon_siso_TH = ar_hesosiso_qd[i]
 
     if dieukien_nn_lop and mamon_prefix != "MC":
         for i in range(len(ar_hesosiso_qd)):
-            if df_hesosiso_g['THNN min'].values[i] <= tuan_siso <= df_hesosiso_g['THNN max'].values[i]:
+            if df_hesosiso['THNN min'].values[i] <= tuan_siso <= df_hesosiso['THNN max'].values[i]:
                 hesomon_siso_TH = ar_hesosiso_qd[i]
                 break
     return hesomon_siso_LT, hesomon_siso_TH
