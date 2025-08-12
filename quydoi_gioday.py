@@ -32,32 +32,38 @@ def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
         worksheet = spreadsheet_obj.worksheet(worksheet_name)
         data = worksheet.get_all_records()
         if not data:
-            df = pd.DataFrame([{'Stt_Mon': 1}])
-        else:
-            df = pd.DataFrame(data)
+            df = mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame([{'Stt_Mon': 1}])
+            if 'Stt_Mon' not in df.columns: df['Stt_Mon'] = 1
+            return df
         
-        if 'Stt_Mon' not in df.columns: df['Stt_Mon'] = 1
+        df = pd.DataFrame(data)
         if 'Tuần_chọn' in df.columns:
             df['Tuần_chọn'] = df['Tuần_chọn'].apply(
                 lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('(') else (1, 12)
             )
         return df
     except gspread.exceptions.WorksheetNotFound:
-        return pd.DataFrame([{'Stt_Mon': 1}])
+        df = mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame([{'Stt_Mon': 1}])
+        if 'Stt_Mon' not in df.columns: df['Stt_Mon'] = 1
+        return df
     except Exception as e:
         st.error(f"Lỗi khi đọc dữ liệu từ '{worksheet_name}': {e}")
         return pd.DataFrame([{'Stt_Mon': 1}])
 
 def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
     """Lưu một DataFrame vào một worksheet cụ thể."""
-    if df_to_save is None or df_to_save.empty: return
+    if df_to_save is None or df_to_save.empty:
+        st.warning(f"Không có dữ liệu để lưu vào sheet '{worksheet_name}'.")
+        return
     try:
         worksheet = spreadsheet_obj.worksheet(worksheet_name)
     except gspread.exceptions.WorksheetNotFound:
         worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=1, cols=1)
+    
     df_copy = df_to_save.copy()
     if 'Tuần_chọn' in df_copy.columns:
         df_copy['Tuần_chọn'] = df_copy['Tuần_chọn'].astype(str)
+        
     set_with_dataframe(worksheet, df_copy.astype(str), include_index=False)
     st.success(f"Dữ liệu đã được lưu thành công vào trang tính '{worksheet_name}'!")
 
@@ -67,7 +73,6 @@ def add_callback():
     df = st.session_state.get('df_input', pd.DataFrame())
     next_stt_mon = (df['Stt_Mon'].max() + 1) if not df.empty and 'Stt_Mon' in df.columns else 1
     
-    # SỬA LỖI: Tạo một dictionary hoàn toàn mới để đảm bảo kiểu dữ liệu đúng
     new_row_data = {
         'Stt_Mon': next_stt_mon,
         'Lớp_chọn': df_lop_g['Lớp'].iloc[0] if not df_lop_g.empty else '',
@@ -112,7 +117,7 @@ if 'df_input' not in st.session_state:
 st.header("KÊ GIỜ GIẢNG GV 2025", divider=True)
 df_input = st.session_state.get('df_input', pd.DataFrame())
 if df_input.empty or 'Stt_Mon' not in df_input.columns:
-    st.session_state.df_input = pd.DataFrame([{'Stt_Mon': 1, 'Tuần_chọn': (1,12), 'Tiết_nhập': DEFAULT_TIET_STRING}])
+    st.session_state.df_input = create_default_df()
     df_input = st.session_state.df_input
 
 dynamic_chuangv = fq.thietlap_chuangv_dong(df_input, df_lop_g, st.session_state.chuangv)
