@@ -3,23 +3,16 @@ import numpy as np
 
 # --- CÁC HÀM TÍNH TOÁN HỆ SỐ ---
 
-def thietlap_chuangv(lop_chon, df_lop_g, default_chuangv):
-    """Xác định chuẩn GV dựa trên một lớp học duy nhất được chọn."""
-    if not lop_chon:
+def thietlap_chuangv_dong(df_all_selections, df_lop_g, default_chuangv):
+    if df_all_selections is None or df_all_selections.empty or 'Lớp_chọn' not in df_all_selections.columns:
         return default_chuangv
-    
-    lop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
-    if lop_info.empty:
-        return default_chuangv
-
-    # Logic: Nếu mã lớp có ký tự thứ 3 là '1' -> Cao đẳng
-    if str(lop_info['Mã lớp'].iloc[0])[2] == '1':
-        return 'Cao đẳng'
-    else:
-        return 'Trung cấp'
+    all_selected_classes = [cls for lop_chon in df_all_selections['Lớp_chọn'].dropna() for cls in str(lop_chon).split('+')]
+    if not all_selected_classes: return default_chuangv
+    df_selected_info = df_lop_g[df_lop_g['Lớp'].isin(all_selected_classes)]
+    if df_selected_info.empty: return default_chuangv
+    return 'Cao đẳng' if (df_selected_info['Mã lớp'].str[2] == '1').any() else 'Trung cấp'
 
 def timmanghe(malop_f):
-    """Xác định mã nghề từ mã lớp."""
     S = str(malop_f)
     if len(S) > 5:
         if S[-1] == "X": return "MON" + S[2:5] + "X"
@@ -29,13 +22,11 @@ def timmanghe(malop_f):
     return "MON" + S[2] + "Y" if len(S) >= 3 and S[2].isdigit() else "MON00Y"
 
 def timheso_tc_cd(chuangv, malop):
-    """Tìm hệ số Trung cấp / Cao đẳng."""
     chuangv_short = {"Cao đẳng": "CĐ", "Trung cấp": "TC"}.get(chuangv, "CĐ")
     heso_map = {"CĐ": {"1": 1, "2": 0.89, "3": 0.79}, "TC": {"1": 1, "2": 1, "3": 0.89}}
     return heso_map.get(chuangv_short, {}).get(malop[2], 2.0) if len(malop) >= 3 else 2.0
 
 def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
-    """Tìm hệ số sĩ số cho Lý thuyết và Thực hành."""
     dieukien_nn_lop = False
     if isinstance(malop_khoa, str) and len(malop_khoa) >= 5 and malop_khoa[2:5].isdigit():
         nghe_info = df_nangnhoc_g[df_nangnhoc_g['MÃ NGHỀ'] == malop_khoa[2:5]]
@@ -59,17 +50,14 @@ def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
                 break
     return hesomon_siso_LT, hesomon_siso_TH
 
-def process_mon_data(input_data, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g):
-    """
-    Hàm xử lý chính: Nhận vào một dictionary input, trả về DataFrame kết quả.
-    """
-    lop_chon = input_data.get('lop_hoc')
-    mon_chon = input_data.get('mon_hoc')
-    tuandentuan = input_data.get('tuan', (1, 12))
-    kieu_ke_khai = input_data.get('cach_ke', 'Kê theo MĐ, MH')
-    tiet_nhap = input_data.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8")
-    tiet_lt_nhap = input_data.get('tiet_lt', "0")
-    tiet_th_nhap = input_data.get('tiet_th', "0")
+def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g):
+    lop_chon = mon_data_row.get('Lớp_chọn')
+    mon_chon = mon_data_row.get('Môn_chọn')
+    tuandentuan = mon_data_row.get('Tuần_chọn', (1, 12))
+    kieu_ke_khai = mon_data_row.get('Kiểu_kê_khai', 'Kê theo Tổng số tiết')
+    tiet_nhap = mon_data_row.get('Tiết_nhập', "4 4 4 4 4 4 4 4 4 8 8 8")
+    tiet_lt_nhap = mon_data_row.get('Tiết_LT_nhập', "0")
+    tiet_th_nhap = mon_data_row.get('Tiết_TH_nhập', "0")
 
     if not lop_chon or not mon_chon: return pd.DataFrame(), {}
 
@@ -93,7 +81,7 @@ def process_mon_data(input_data, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_
     arr_tiet_th = np.fromstring(str(tiet_th_nhap), dtype=float, sep=' ')
     arr_tiet = np.fromstring(str(tiet_nhap), dtype=float, sep=' ')
 
-    if kieu_ke_khai == 'Kê theo MĐ, MH':
+    if kieu_ke_khai == 'Kê theo Tổng số tiết':
         if len(locdulieu_info) != len(arr_tiet): return pd.DataFrame(), {"error": "Số tuần và số tiết không khớp"}
         arr_tiet_lt, arr_tiet_th = (arr_tiet, np.zeros_like(arr_tiet)) if mamon[:2] in ['MH', 'MC'] else (np.zeros_like(arr_tiet), arr_tiet)
     else:
@@ -108,8 +96,6 @@ def process_mon_data(input_data, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_
     df_result['Tiết'] = arr_tiet
     df_result['Tiết_LT'] = arr_tiet_lt
     df_result['Tiết_TH'] = arr_tiet_th
-    
-    dynamic_chuangv = thietlap_chuangv(lop_chon, df_lop_g, 'Cao đẳng')
     df_result['HS TC/CĐ'] = timheso_tc_cd(dynamic_chuangv, malop)
     
     heso_lt_list, heso_th_list = [], []
@@ -121,6 +107,7 @@ def process_mon_data(input_data, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_
     df_result['HS_SS_LT'] = heso_lt_list
     df_result['HS_SS_TH'] = heso_th_list
 
+    # --- SỬA LỖI: Chuyển đổi sang dạng số TRƯỚC khi tính toán ---
     numeric_cols = ['Sĩ số', 'Tiết', 'Tiết_LT', 'HS_SS_LT', 'HS_SS_TH', 'Tiết_TH', 'HS TC/CĐ']
     for col in numeric_cols:
         df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0)
