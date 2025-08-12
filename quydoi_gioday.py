@@ -62,19 +62,23 @@ def load_input_data(spreadsheet_obj):
         st.error(f"Lỗi khi đọc dữ liệu input: {e}")
         return get_default_input()
 
-def save_input_data(spreadsheet_obj, input_data):
-    """Lưu dictionary input vào Google Sheet."""
+def save_input_data(spreadsheet_obj, worksheet_name, input_data):
+    """Lưu dictionary input hoặc dataframe kết quả vào Google Sheet."""
     try:
-        worksheet = spreadsheet_obj.worksheet(INPUT_SHEET_NAME)
+        worksheet = spreadsheet_obj.worksheet(worksheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        worksheet = spreadsheet_obj.add_worksheet(title=INPUT_SHEET_NAME, rows=2, cols=len(input_data))
+        worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=2, cols=20)
     
-    df_to_save = pd.DataFrame([input_data])
-    if 'tuan' in df_to_save.columns:
+    if isinstance(input_data, dict):
+        df_to_save = pd.DataFrame([input_data])
+    else:
+        df_to_save = input_data.copy()
+
+    if 'tuan' in df_to_save.columns and isinstance(df_to_save['tuan'].iloc[0], tuple):
         df_to_save['tuan'] = df_to_save['tuan'].astype(str)
         
     set_with_dataframe(worksheet, df_to_save, include_index=False)
-    st.success(f"Đã lưu cấu hình vào trang tính '{INPUT_SHEET_NAME}'!")
+    st.success(f"Đã lưu dữ liệu vào trang tính '{worksheet_name}'!")
 
 # --- KHỞI TẠO SESSION STATE ---
 if 'input_data' not in st.session_state:
