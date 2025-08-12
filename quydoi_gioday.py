@@ -32,7 +32,7 @@ def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
         worksheet = spreadsheet_obj.worksheet(worksheet_name)
         data = worksheet.get_all_records()
         if not data:
-            df = mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame([{'Stt_Mon': 1}])
+            df = pd.DataFrame([{'Stt_Mon': 1}])
         else:
             df = pd.DataFrame(data)
         
@@ -43,9 +43,7 @@ def load_data_from_gsheet(spreadsheet_obj, worksheet_name):
             )
         return df
     except gspread.exceptions.WorksheetNotFound:
-        df = mau_quydoi_g.copy() if not mau_quydoi_g.empty else pd.DataFrame([{'Stt_Mon': 1}])
-        if 'Stt_Mon' not in df.columns: df['Stt_Mon'] = 1
-        return df
+        return pd.DataFrame([{'Stt_Mon': 1}])
     except Exception as e:
         st.error(f"Lỗi khi đọc dữ liệu từ '{worksheet_name}': {e}")
         return pd.DataFrame([{'Stt_Mon': 1}])
@@ -65,13 +63,23 @@ def save_data_to_gsheet(spreadsheet_obj, worksheet_name, df_to_save):
 
 # --- CÁC HÀM CALLBACKS ---
 def add_callback():
+    """Thêm một môn học mới với các giá trị mặc định an toàn."""
     df = st.session_state.get('df_input', pd.DataFrame())
     next_stt_mon = (df['Stt_Mon'].max() + 1) if not df.empty and 'Stt_Mon' in df.columns else 1
-    new_row_data = mau_quydoi_g.iloc[0].to_dict() if not mau_quydoi_g.empty else {'Nhóm_chọn': 0, 'Lớp_chọn': '', 'Môn_chọn': ''}
-    new_row_data.update({
-        'Stt_Mon': next_stt_mon, 'Tiết_nhập': DEFAULT_TIET_STRING, 'Tiết_LT_nhập': '0',
-        'Tiết_TH_nhập': '0', 'Tuần_chọn': (1, 12), 'Kiểu_kê_khai': 'Kê theo Tổng số tiết'
-    })
+    
+    # SỬA LỖI: Tạo một dictionary hoàn toàn mới để đảm bảo kiểu dữ liệu đúng
+    new_row_data = {
+        'Stt_Mon': next_stt_mon,
+        'Lớp_chọn': df_lop_g['Lớp'].iloc[0] if not df_lop_g.empty else '',
+        'Môn_chọn': '',
+        'Tuần_chọn': (1, 12),
+        'Kiểu_kê_khai': 'Kê theo Tổng số tiết',
+        'Tiết_nhập': DEFAULT_TIET_STRING,
+        'Tiết_LT_nhập': '0',
+        'Tiết_TH_nhập': '0',
+        'Nhóm_chọn': 0
+    }
+    
     st.session_state.df_input = pd.concat([df, pd.DataFrame([new_row_data])], ignore_index=True)
 
 def delete_callback():
