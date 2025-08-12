@@ -27,6 +27,13 @@ def timheso_tc_cd(chuangv, malop):
     return heso_map.get(chuangv_short, {}).get(malop[2], 2.0) if len(malop) >= 3 else 2.0
 
 def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
+    # SỬA LỖI: Chuyển đổi và làm sạch dữ liệu đầu vào
+    tuan_siso = int(pd.to_numeric(tuan_siso, errors='coerce'))
+    
+    # Chuyển đổi các cột cần thiết trong df_hesosiso_g sang dạng số một lần
+    for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
+        df_hesosiso_g[col] = pd.to_numeric(df_hesosiso_g[col], errors='coerce').fillna(0)
+
     dieukien_nn_lop = False
     if isinstance(malop_khoa, str) and len(malop_khoa) >= 5 and malop_khoa[2:5].isdigit():
         nghe_info = df_nangnhoc_g[df_nangnhoc_g['MÃ NGHỀ'] == malop_khoa[2:5]]
@@ -34,7 +41,7 @@ def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
             dieukien_nn_lop = True
 
     hesomon_siso_LT, hesomon_siso_TH = 0.0, 0.0
-    ar_hesosiso_qd = df_hesosiso_g['Hệ số'].values.astype(float)
+    ar_hesosiso_qd = df_hesosiso_g['Hệ số'].values
     mamon_prefix = mamon[:2] if isinstance(mamon, str) else ""
 
     for i in range(len(ar_hesosiso_qd)):
@@ -107,7 +114,6 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     df_result['HS_SS_LT'] = heso_lt_list
     df_result['HS_SS_TH'] = heso_th_list
 
-    # --- SỬA LỖI: Chuyển đổi sang dạng số TRƯỚC khi tính toán ---
     numeric_cols = ['Sĩ số', 'Tiết', 'Tiết_LT', 'HS_SS_LT', 'HS_SS_TH', 'Tiết_TH', 'HS TC/CĐ']
     for col in numeric_cols:
         df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0)
