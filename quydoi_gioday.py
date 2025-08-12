@@ -196,6 +196,14 @@ else:
 if st.button("Lưu cấu hình và Tính toán", use_container_width=True):
     # --- BƯỚC KIỂM TRA ĐẦU VÀO ---
     is_valid = True
+    # Thêm kiểm tra xem lớp và môn đã được chọn chưa
+    if not st.session_state.input_data.get('lop_hoc'):
+        st.error("Vui lòng chọn một lớp học.")
+        is_valid = False
+    if not st.session_state.input_data.get('mon_hoc'):
+        st.error("Vui lòng chọn một môn học.")
+        is_valid = False
+
     if cach_ke_chon == 'Kê theo MĐ, MH':
         if not validate_tiet_input(st.session_state.input_data['tiet']):
             st.error("Định dạng 'Số tiết mỗi tuần' không hợp lệ. Vui lòng chỉ nhập số và phân cách bằng dấu cách.")
@@ -214,10 +222,22 @@ if st.button("Lưu cấu hình và Tính toán", use_container_width=True):
         with st.spinner("Đang tính toán..."):
             try:
                 # =================================================================
-                # SỬA LỖI TẠI ĐÂY: Thêm st.session_state.chuangv vào lời gọi hàm
+                # SỬA LỖI TẠI ĐÂY: Ánh xạ (map) các key từ giao diện người dùng
+                # sang các key mà hàm process_mon_data mong đợi.
                 # =================================================================
+                input_for_processing = {
+                    'Lớp_chọn': st.session_state.input_data.get('lop_hoc'),
+                    'Môn_chọn': st.session_state.input_data.get('mon_hoc'),
+                    'Tuần_chọn': st.session_state.input_data.get('tuan'),
+                    'Kiểu_kê_khai': st.session_state.input_data.get('cach_ke'),
+                    'Tiết_nhập': st.session_state.input_data.get('tiet'),
+                    'Tiết_LT_nhập': st.session_state.input_data.get('tiet_lt'),
+                    'Tiết_TH_nhập': st.session_state.input_data.get('tiet_th'),
+                    'Nhóm_chọn': 0 # Giả định giá trị mặc định
+                }
+
                 df_result, summary = fq.process_mon_data(
-                    mon_data_row=st.session_state.input_data,
+                    mon_data_row=input_for_processing, # Sử dụng dict đã được ánh xạ
                     dynamic_chuangv=st.session_state.chuangv,
                     df_lop_g=df_lop_g,
                     df_mon_g=df_mon_g,
@@ -233,7 +253,7 @@ if st.button("Lưu cấu hình và Tính toán", use_container_width=True):
                 elif "error" in summary:
                     st.error(f"Không thể tính toán: {summary['error']}")
                 else:
-                    st.warning("Vui lòng chọn đầy đủ thông tin để tính toán.")
+                    st.warning("Không có dữ liệu để tính toán. Vui lòng kiểm tra lại các lựa chọn.")
 
             except Exception as e:
                 st.error(f"Đã xảy ra lỗi không mong muốn trong quá trình tính toán: {e}")
