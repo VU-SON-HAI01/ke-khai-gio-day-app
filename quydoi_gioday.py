@@ -84,23 +84,28 @@ def create_tiet_editor_df(input_data, tuan_chon):
     cach_ke = input_data.get('cach_ke', 'Kê theo MĐ, MH')
     cols = [f"Tuần {i}" for i in range(start_week, end_week + 1)]
     
+    data_map = {}
     if cach_ke == 'Kê theo MĐ, MH':
         idx = ['Số tiết']
-        values_str = str(input_data.get('tiet', '0'))
-        data = {'Số tiết': np.fromstring(values_str, dtype=int, sep=' ')}
-    else:
+        data_map['Số tiết'] = str(input_data.get('tiet', '0'))
+    else: # 'Kê theo LT, TH chi tiết'
         idx = ['Tiết LT', 'Tiết TH']
-        lt_values_str = str(input_data.get('tiet_lt', '0'))
-        th_values_str = str(input_data.get('tiet_th', '0'))
-        data = {
-            'Tiết LT': np.fromstring(lt_values_str, dtype=int, sep=' '),
-            'Tiết TH': np.fromstring(th_values_str, dtype=int, sep=' ')
-        }
+        data_map['Tiết LT'] = str(input_data.get('tiet_lt', '0'))
+        data_map['Tiết TH'] = str(input_data.get('tiet_th', '0'))
 
+    # Create the initial DataFrame
     df = pd.DataFrame(index=idx, columns=cols).fillna(0)
-    for key, values in data.items():
+
+    # Fill the DataFrame from the text data
+    for key, values_str in data_map.items():
+        values = np.fromstring(values_str, dtype=int, sep=' ')
         num_vals_to_fill = min(len(values), len(cols))
         df.loc[key, df.columns[:num_vals_to_fill]] = values[:num_vals_to_fill]
+    
+    # Add the 'Tổng tiết' row if in detailed mode
+    if cach_ke == 'Kê theo LT, TH chi tiết':
+        df.loc['Tổng tiết'] = df.loc['Tiết LT'] + df.loc['Tiết TH']
+    
     return df
 
 def update_input_data_from_editor(edited_df, cach_ke):
@@ -110,6 +115,7 @@ def update_input_data_from_editor(edited_df, cach_ke):
         st.session_state.input_data['tiet_lt'] = '0'
         st.session_state.input_data['tiet_th'] = '0'
     else:
+        # Chỉ đọc dữ liệu từ các dòng có thể chỉnh sửa, bỏ qua dòng 'Tổng tiết'
         st.session_state.input_data['tiet_lt'] = ' '.join(edited_df.loc['Tiết LT'].astype(str))
         st.session_state.input_data['tiet_th'] = ' '.join(edited_df.loc['Tiết TH'].astype(str))
         st.session_state.input_data['tiet'] = '0'
