@@ -78,116 +78,119 @@ def save_result_data(spreadsheet_obj, worksheet_name, result_df):
         worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=result_df.shape[0]+1, cols=result_df.shape[1])
     set_with_dataframe(worksheet, result_df, include_index=False)
 
-def create_tiet_editor_df(input_data, tuan_chon):
-    """Tạo DataFrame cho st.data_editor từ dữ liệu text trong session_state."""
-    start_week, end_week = tuan_chon
-    cach_ke = input_data.get('cach_ke', 'Kê theo MĐ, MH')
-    cols = [f"Tuần {i}" for i in range(start_week, end_week + 1)]
+def init_tiet_df():
+    """Khởi tạo hoặc tái tạo DataFrame trong session_state."""
+    tuan_chon = st.session_state.input_data.get('tuan', (1, 12))
+    cach_ke = st.session_state.input_data.get('cach_ke', 'Kê theo MĐ, MH')
+    cols = [f"Tuần {i}" for i in range(tuan_chon[0], tuan_chon[1] + 1)]
     
     data_map = {}
     if cach_ke == 'Kê theo MĐ, MH':
         idx = ['Số tiết']
-        data_map['Số tiết'] = str(input_data.get('tiet', '0'))
-    else: # 'Kê theo LT, TH chi tiết'
+        data_map['Số tiết'] = str(st.session_state.input_data.get('tiet', '0'))
+    else:
         idx = ['Tiết LT', 'Tiết TH']
-        data_map['Tiết LT'] = str(input_data.get('tiet_lt', '0'))
-        data_map['Tiết TH'] = str(input_data.get('tiet_th', '0'))
+        data_map['Tiết LT'] = str(st.session_state.input_data.get('tiet_lt', '0'))
+        data_map['Tiết TH'] = str(st.session_state.input_data.get('tiet_th', '0'))
 
-    # Create the initial DataFrame
     df = pd.DataFrame(index=idx, columns=cols).fillna(0)
-
-    # Fill the DataFrame from the text data
     for key, values_str in data_map.items():
         values = np.fromstring(values_str, dtype=int, sep=' ')
         num_vals_to_fill = min(len(values), len(cols))
         df.loc[key, df.columns[:num_vals_to_fill]] = values[:num_vals_to_fill]
     
-    # Add the 'Tổng tiết' row if in detailed mode
     if cach_ke == 'Kê theo LT, TH chi tiết':
         df.loc['Tổng tiết'] = df.loc['Tiết LT'] + df.loc['Tiết TH']
     
-    return df
+    st.session_state.tiet_df = df
 
-def update_input_data_from_editor(edited_df, cach_ke):
-    """Chuyển đổi dữ liệu từ DataFrame đã chỉnh sửa về dạng text và cập nhật session_state."""
-    if cach_ke == 'Kê theo MĐ, MH':
-        st.session_state.input_data['tiet'] = ' '.join(edited_df.loc['Số tiết'].astype(str))
-        st.session_state.input_data['tiet_lt'] = '0'
-        st.session_state.input_data['tiet_th'] = '0'
+def sync_editor_changes():
+    """Callback được gọi khi data_editor thay đổi, để cập nhật tổng."""
+    edited_df = st.session_state.tiet_editor
+    cach_ke = st.session_state.input_data.get('cach_ke', 'Kê theo MĐ, MH')
+    if cach_ke == 'Kê theo LT, TH chi tiết':
+        # Cập nhật lại DataFrame trong state để tính lại tổng
+        st.session_state.tiet_df.loc['Tiết LT'] = edited_df.loc['Tiết LT']
+        st.session_state.tiet_df.loc['Tiết TH'] = edited_df.loc['Tiết TH']
+        st.session_state.tiet_df.loc['Tổng tiết'] = st.session_state.tiet_df.loc['Tiết LT'] + st.session_state.tiet_df.loc['Tiết TH']
     else:
-        # Chỉ đọc dữ liệu từ các dòng có thể chỉnh sửa, bỏ qua dòng 'Tổng tiết'
-        st.session_state.input_data['tiet_lt'] = ' '.join(edited_df.loc['Tiết LT'].astype(str))
-        st.session_state.input_data['tiet_th'] = ' '.join(edited_df.loc['Tiết TH'].astype(str))
-        st.session_state.input_data['tiet'] = '0'
+        st.session_state.tiet_df.loc['Số tiết'] = edited_df.loc['Số tiết']
 
-# --- CALLBACK ĐỂ CẬP NHẬT TRẠNG THÁI ---
-def update_state(key):
-    st.session_state.input_data[key] = st.session_state[f"widget_{key}"]
+def update_input_data_from_df():
+    """Cập nhật input_data (dạng text) từ DataFrame cuối cùng trong state."""
+    df = st.session_state.tiet_df
+    cach_ke = st.session_state.input_data.get('cach_ke', 'Kê theo MĐ, MH')
+    if cach_ke == 'Kê theo MĐ, MH':
+        st.session_state.input_data['tiet'] = ' '.join(df.loc['Số tiết'].astype(str))
+    else:
+        st.session_state.input_data['tiet_lt'] = ' '.join(df.loc['Tiết LT'].astype(str))
+        st.session_state.input_data['tiet_th'] = ' '.join(df.loc['Tiết TH'].astype(str))
 
 # --- KHỞI TẠO SESSION STATE ---
 if 'input_data' not in st.session_state:
     st.session_state.input_data = load_input_data(spreadsheet)
+if 'tiet_df' not in st.session_state:
+    init_tiet_df()
 
 # --- GIAO DIỆN CHÍNH ---
 st.header("KÊ GIỜ GIẢNG GV 2025", divider=True)
 st.subheader("I. Cấu hình giảng dạy")
 
-input_data = st.session_state.input_data
+# --- CÁC WIDGET LỰA CHỌN ---
+def on_setting_change():
+    """Callback khi các lựa chọn chính thay đổi, cần khởi tạo lại bảng."""
+    init_tiet_df()
 
 col1, col2 = st.columns(2)
 with col1:
-    khoa_chon = st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, 
-        index=KHOA_OPTIONS.index(input_data.get('khoa', KHOA_OPTIONS[0])),
-        key="widget_khoa", on_change=update_state, args=('khoa',))
-    
+    st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, 
+        index=KHOA_OPTIONS.index(st.session_state.input_data.get('khoa', KHOA_OPTIONS[0])),
+        key="khoa_select", on_change=on_setting_change)
+    st.session_state.input_data['khoa'] = st.session_state.khoa_select
+
     filtered_lop_options = df_lop_g['Lớp'].tolist()
-    if khoa_chon.startswith('Khóa'):
-        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_chon.split(' ')[1], na=False)]['Lớp'].tolist()
-    if not filtered_lop_options: st.warning(f"Không có lớp cho '{khoa_chon}'.")
+    if st.session_state.khoa_select.startswith('Khóa'):
+        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(st.session_state.khoa_select.split(' ')[1], na=False)]['Lớp'].tolist()
+    if not filtered_lop_options: st.warning(f"Không có lớp cho '{st.session_state.khoa_select}'.")
     
-    lop_hoc_index = filtered_lop_options.index(input_data.get('lop_hoc')) if input_data.get('lop_hoc') in filtered_lop_options else 0
-    lop_hoc_chon = st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index,
-        key="widget_lop_hoc", on_change=update_state, args=('lop_hoc',))
+    lop_hoc_index = filtered_lop_options.index(st.session_state.input_data.get('lop_hoc')) if st.session_state.input_data.get('lop_hoc') in filtered_lop_options else 0
+    st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index,
+        key="lop_hoc_select", on_change=on_setting_change)
+    st.session_state.input_data['lop_hoc'] = st.session_state.lop_hoc_select
 
 with col2:
-    malop_info = df_lop_g[df_lop_g['Lớp'] == lop_hoc_chon]
+    malop_info = df_lop_g[df_lop_g['Lớp'] == st.session_state.lop_hoc_select]
     dsmon_options = []
     if not malop_info.empty:
         manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
         if manghe in df_mon_g.columns:
             dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
-        if not dsmon_options: st.info(f"Không có môn học cho lớp '{lop_hoc_chon}'.")
     
-    mon_hoc_index = dsmon_options.index(input_data.get('mon_hoc')) if input_data.get('mon_hoc') in dsmon_options else 0
-    mon_hoc_chon = st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index,
-        key="widget_mon_hoc", on_change=update_state, args=('mon_hoc',))
+    mon_hoc_index = dsmon_options.index(st.session_state.input_data.get('mon_hoc')) if st.session_state.input_data.get('mon_hoc') in dsmon_options else 0
+    st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index,
+        key="mon_hoc_select", on_change=on_setting_change)
+    st.session_state.input_data['mon_hoc'] = st.session_state.mon_hoc_select
 
-    tuan_chon = st.slider("Chọn Tuần giảng dạy", 1, 50, 
-        value=input_data.get('tuan', (1, 12)),
-        key="widget_tuan", on_change=update_state, args=('tuan',))
+    st.slider("Chọn Tuần giảng dạy", 1, 50, 
+        value=st.session_state.input_data.get('tuan', (1, 12)),
+        key="tuan_select", on_change=on_setting_change)
+    st.session_state.input_data['tuan'] = st.session_state.tuan_select
 
 st.divider()
 st.subheader("II. Phân bổ số tiết giảng dạy")
-cach_ke_chon = st.radio("Chọn phương pháp kê khai", 
+st.radio("Chọn phương pháp kê khai", 
     ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), horizontal=True,
-    index=0 if input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1,
-    key="widget_cach_ke", on_change=update_state, args=('cach_ke',))
+    index=0 if st.session_state.input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1,
+    key="cach_ke_select", on_change=on_setting_change)
+st.session_state.input_data['cach_ke'] = st.session_state.cach_ke_select
 
-# --- Bảng nhập liệu số tiết (CÓ CẬP NHẬT TỰ ĐỘNG) ---
-# 1. Tạo DataFrame để hiển thị dựa trên trạng thái hiện tại
-tiet_df_to_display = create_tiet_editor_df(st.session_state.input_data, tuan_chon)
+# --- BẢNG NHẬP LIỆU ---
+st.data_editor(st.session_state.tiet_df, use_container_width=True, 
+               key="tiet_editor", on_change=sync_editor_changes)
 
-# 2. Hiển thị bảng và nhận về phiên bản đã được người dùng chỉnh sửa
-edited_df = st.data_editor(tiet_df_to_display, use_container_width=True, key="tiet_editor")
-
-# 3. Cập nhật ngay lập tức trạng thái trong session_state từ bảng đã chỉnh sửa.
-#    Điều này đảm bảo lần chạy lại tiếp theo sẽ có dữ liệu mới nhất.
-update_input_data_from_editor(edited_df, cach_ke_chon)
-
-# --- Nút tính toán và lưu trữ ---
+# --- NÚT TÍNH TOÁN ---
 if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type="primary"):
-    # Bây giờ, st.session_state.input_data đã chứa dữ liệu mới nhất từ bảng.
-    # Chỉ cần lưu và tính toán.
+    update_input_data_from_df()
     save_input_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
     
     with st.spinner("Đang tính toán..."):
@@ -218,7 +221,6 @@ if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type=
                 st.error(f"Lỗi tính toán: {summary['error']}")
             else:
                 st.warning("Không có dữ liệu để tính toán. Vui lòng kiểm tra lại các lựa chọn.")
-
         except Exception as e:
             st.error(f"Đã xảy ra lỗi không mong muốn: {e}")
             st.exception(e)
