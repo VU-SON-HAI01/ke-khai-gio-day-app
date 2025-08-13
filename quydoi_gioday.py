@@ -173,19 +173,23 @@ cach_ke_chon = st.radio("Chọn phương pháp kê khai",
     index=0 if input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1,
     key="widget_cach_ke", on_change=update_state, args=('cach_ke',))
 
-# --- Bảng nhập liệu số tiết ---
-tiet_df = create_tiet_editor_df(st.session_state.input_data, tuan_chon)
-edited_df = st.data_editor(tiet_df, use_container_width=True)
+# --- Bảng nhập liệu số tiết (CÓ CẬP NHẬT TỰ ĐỘNG) ---
+# 1. Tạo DataFrame để hiển thị dựa trên trạng thái hiện tại
+tiet_df_to_display = create_tiet_editor_df(st.session_state.input_data, tuan_chon)
+
+# 2. Hiển thị bảng và nhận về phiên bản đã được người dùng chỉnh sửa
+edited_df = st.data_editor(tiet_df_to_display, use_container_width=True, key="tiet_editor")
+
+# 3. Cập nhật ngay lập tức trạng thái trong session_state từ bảng đã chỉnh sửa.
+#    Điều này đảm bảo lần chạy lại tiếp theo sẽ có dữ liệu mới nhất.
+update_input_data_from_editor(edited_df, cach_ke_chon)
 
 # --- Nút tính toán và lưu trữ ---
 if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type="primary"):
-    # 1. Chuyển đổi dữ liệu từ bảng nhập liệu về dạng text và cập nhật session_state
-    update_input_data_from_editor(edited_df, cach_ke_chon)
-
-    # 2. Lưu cấu hình mới nhất (dạng text) vào Google Sheet
+    # Bây giờ, st.session_state.input_data đã chứa dữ liệu mới nhất từ bảng.
+    # Chỉ cần lưu và tính toán.
     save_input_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
     
-    # 3. Sử dụng dữ liệu đã được thống nhất trong session_state để tính toán
     with st.spinner("Đang tính toán..."):
         try:
             input_for_processing = {
