@@ -108,13 +108,16 @@ def sync_editor_changes():
     """Callback được gọi khi data_editor thay đổi, để cập nhật tổng."""
     edited_df = st.session_state.tiet_editor
     cach_ke = st.session_state.input_data.get('cach_ke', 'Kê theo MĐ, MH')
+
+    # Thêm kiểm tra để đảm bảo cấu trúc DataFrame đồng bộ
     if cach_ke == 'Kê theo LT, TH chi tiết':
-        # Cập nhật lại DataFrame trong state để tính lại tổng
-        st.session_state.tiet_df.loc['Tiết LT'] = edited_df.loc['Tiết LT']
-        st.session_state.tiet_df.loc['Tiết TH'] = edited_df.loc['Tiết TH']
-        st.session_state.tiet_df.loc['Tổng tiết'] = st.session_state.tiet_df.loc['Tiết LT'] + st.session_state.tiet_df.loc['Tiết TH']
+        if 'Tiết LT' in edited_df.index and 'Tiết TH' in edited_df.index:
+            st.session_state.tiet_df.loc['Tiết LT'] = edited_df.loc['Tiết LT']
+            st.session_state.tiet_df.loc['Tiết TH'] = edited_df.loc['Tiết TH']
+            st.session_state.tiet_df.loc['Tổng tiết'] = st.session_state.tiet_df.loc['Tiết LT'] + st.session_state.tiet_df.loc['Tiết TH']
     else:
-        st.session_state.tiet_df.loc['Số tiết'] = edited_df.loc['Số tiết']
+        if 'Số tiết' in edited_df.index:
+            st.session_state.tiet_df.loc['Số tiết'] = edited_df.loc['Số tiết']
 
 def update_input_data_from_df():
     """Cập nhật input_data (dạng text) từ DataFrame cuối cùng trong state."""
@@ -138,15 +141,22 @@ st.subheader("I. Cấu hình giảng dạy")
 
 # --- CÁC WIDGET LỰA CHỌN ---
 def on_setting_change():
-    """Callback khi các lựa chọn chính thay đổi, cần khởi tạo lại bảng."""
+    """Callback khi các lựa chọn chính thay đổi, cập nhật state và khởi tạo lại bảng."""
+    # Cập nhật input_data từ các widget tương ứng
+    st.session_state.input_data['khoa'] = st.session_state.khoa_select
+    st.session_state.input_data['lop_hoc'] = st.session_state.lop_hoc_select
+    st.session_state.input_data['mon_hoc'] = st.session_state.mon_hoc_select
+    st.session_state.input_data['tuan'] = st.session_state.tuan_select
+    st.session_state.input_data['cach_ke'] = st.session_state.cach_ke_select
+    
+    # Tái tạo lại DataFrame của bảng nhập liệu với cài đặt mới
     init_tiet_df()
 
 col1, col2 = st.columns(2)
 with col1:
-    st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, 
-        index=KHOA_OPTIONS.index(st.session_state.input_data.get('khoa', KHOA_OPTIONS[0])),
-        key="khoa_select", on_change=on_setting_change)
-    st.session_state.input_data['khoa'] = st.session_state.khoa_select
+    # Lấy giá trị mặc định từ input_data
+    khoa_index = KHOA_OPTIONS.index(st.session_state.input_data.get('khoa', KHOA_OPTIONS[0]))
+    st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, index=khoa_index, key="khoa_select", on_change=on_setting_change)
 
     filtered_lop_options = df_lop_g['Lớp'].tolist()
     if st.session_state.khoa_select.startswith('Khóa'):
@@ -154,9 +164,7 @@ with col1:
     if not filtered_lop_options: st.warning(f"Không có lớp cho '{st.session_state.khoa_select}'.")
     
     lop_hoc_index = filtered_lop_options.index(st.session_state.input_data.get('lop_hoc')) if st.session_state.input_data.get('lop_hoc') in filtered_lop_options else 0
-    st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index,
-        key="lop_hoc_select", on_change=on_setting_change)
-    st.session_state.input_data['lop_hoc'] = st.session_state.lop_hoc_select
+    st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key="lop_hoc_select", on_change=on_setting_change)
 
 with col2:
     malop_info = df_lop_g[df_lop_g['Lớp'] == st.session_state.lop_hoc_select]
@@ -167,14 +175,11 @@ with col2:
             dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
     
     mon_hoc_index = dsmon_options.index(st.session_state.input_data.get('mon_hoc')) if st.session_state.input_data.get('mon_hoc') in dsmon_options else 0
-    st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index,
-        key="mon_hoc_select", on_change=on_setting_change)
-    st.session_state.input_data['mon_hoc'] = st.session_state.mon_hoc_select
+    st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key="mon_hoc_select", on_change=on_setting_change)
 
     st.slider("Chọn Tuần giảng dạy", 1, 50, 
         value=st.session_state.input_data.get('tuan', (1, 12)),
         key="tuan_select", on_change=on_setting_change)
-    st.session_state.input_data['tuan'] = st.session_state.tuan_select
 
 st.divider()
 st.subheader("II. Phân bổ số tiết giảng dạy")
@@ -182,7 +187,6 @@ st.radio("Chọn phương pháp kê khai",
     ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), horizontal=True,
     index=0 if st.session_state.input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1,
     key="cach_ke_select", on_change=on_setting_change)
-st.session_state.input_data['cach_ke'] = st.session_state.cach_ke_select
 
 # --- BẢNG NHẬP LIỆU ---
 st.data_editor(st.session_state.tiet_df, use_container_width=True, 
