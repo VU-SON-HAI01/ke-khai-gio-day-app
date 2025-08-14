@@ -142,6 +142,27 @@ with col2:
     mon_hoc_index = dsmon_options.index(st.session_state.input_data.get('mon_hoc')) if st.session_state.input_data.get('mon_hoc') in dsmon_options else 0
     st.session_state.input_data['mon_hoc'] = st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index)
 
+    # --- BỔ SUNG: HIỂN THỊ THÔNG TIN CHI TIẾT CỦA MÔN HỌC ---
+    if st.session_state.input_data['mon_hoc'] and not malop_info.empty:
+        manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
+        if manghe in df_mon_g.columns:
+            mon_info_row_df = df_mon_g[df_mon_g[manghe] == st.session_state.input_data['mon_hoc']]
+            if not mon_info_row_df.empty:
+                mon_info_row = mon_info_row_df.iloc[0]
+                mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
+                
+                mamon = mon_info_row.iloc[mon_name_col_idx - 1]
+                
+                # Giả định tên các cột chứa thông tin tiết học
+                # Sử dụng .get() để tránh lỗi nếu cột không tồn tại
+                tongtiet_mon = mon_info_row.get('Tổng số', 'N/A')
+                tiet_lt = mon_info_row.get('LT', 'N/A')
+                tiet_th = mon_info_row.get('TH', 'N/A')
+                tiet_kt = mon_info_row.get('KT', 'N/A')
+                
+                st.info(f"**Mã môn:** {mamon} | **Tổng tiết:** {tongtiet_mon} (LT: {tiet_lt} - TH: {tiet_th} - KT: {tiet_kt})")
+
+
     st.session_state.input_data['tuan'] = st.slider("Chọn Tuần giảng dạy", 1, 50, 
         value=st.session_state.input_data.get('tuan', (1, 12)))
 
