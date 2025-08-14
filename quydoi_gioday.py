@@ -202,7 +202,7 @@ st.markdown("""
     border-radius: 8px;
     padding: 16px;
     text-align: center;
-    background-color: #262730;
+    /*background-color: #262730;*/
 }
 .metric-card-label {
     font-size: 1em;
