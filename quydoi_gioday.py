@@ -95,11 +95,10 @@ def create_tiet_editor_df(input_data, tuan_chon):
 
     df = pd.DataFrame(index=idx, columns=cols).fillna(0)
     for key, values_str in data_map.items():
-        # SỬA LỖI: Kiểm tra chuỗi rỗng trước khi chuyển đổi
         if values_str and values_str.strip():
             values = np.fromstring(values_str, dtype=int, sep=' ')
         else:
-            values = np.array([], dtype=int) # Tạo mảng rỗng nếu chuỗi không hợp lệ
+            values = np.array([], dtype=int)
             
         num_vals_to_fill = min(len(values), len(cols))
         if num_vals_to_fill > 0:
@@ -110,10 +109,15 @@ def create_tiet_editor_df(input_data, tuan_chon):
 def update_input_data_from_df(edited_df, cach_ke):
     """Cập nhật input_data (dạng text) từ DataFrame đã chỉnh sửa."""
     if cach_ke == 'Kê theo MĐ, MH':
-        st.session_state.input_data['tiet'] = ' '.join(edited_df.loc['Số tiết'].astype(str))
+        # SỬA LỖI: Điền các giá trị rỗng (None/NaN) bằng 0 trước khi chuyển đổi
+        clean_series = edited_df.loc['Số tiết'].fillna(0).astype(int)
+        st.session_state.input_data['tiet'] = ' '.join(clean_series.astype(str))
     else:
-        st.session_state.input_data['tiet_lt'] = ' '.join(edited_df.loc['Tiết LT'].astype(str))
-        st.session_state.input_data['tiet_th'] = ' '.join(edited_df.loc['Tiết TH'].astype(str))
+        # SỬA LỖI: Điền các giá trị rỗng (None/NaN) bằng 0 trước khi chuyển đổi
+        clean_lt = edited_df.loc['Tiết LT'].fillna(0).astype(int)
+        clean_th = edited_df.loc['Tiết TH'].fillna(0).astype(int)
+        st.session_state.input_data['tiet_lt'] = ' '.join(clean_lt.astype(str))
+        st.session_state.input_data['tiet_th'] = ' '.join(clean_th.astype(str))
 
 # --- KHỞI TẠO SESSION STATE ---
 if 'input_data' not in st.session_state:
@@ -221,11 +225,12 @@ st.markdown("""
 
 if st.session_state.input_data['cach_ke'] == 'Kê theo LT, TH chi tiết':
     tong_tiet_df = pd.DataFrame(index=['Tổng tiết'], columns=edited_df.columns)
-    tong_tiet_df.loc['Tổng tiết'] = edited_df.loc['Tiết LT'] + edited_df.loc['Tiết TH']
+    # Điền các giá trị rỗng bằng 0 trước khi cộng
+    tong_tiet_df.loc['Tổng tiết'] = edited_df.loc['Tiết LT'].fillna(0) + edited_df.loc['Tiết TH'].fillna(0)
     st.dataframe(tong_tiet_df, use_container_width=True)
     
-    total_lt_input = edited_df.loc['Tiết LT'].sum()
-    total_th_input = edited_df.loc['Tiết TH'].sum()
+    total_lt_input = edited_df.loc['Tiết LT'].fillna(0).sum()
+    total_th_input = edited_df.loc['Tiết TH'].fillna(0).sum()
     total_all_input = total_lt_input + total_th_input
 
     # So sánh và xác định màu sắc
@@ -242,7 +247,7 @@ if st.session_state.input_data['cach_ke'] == 'Kê theo LT, TH chi tiết':
         st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
 
 else: # Kê theo MĐ, MH
-    total_all_input = edited_df.loc['Số tiết'].sum()
+    total_all_input = edited_df.loc['Số tiết'].fillna(0).sum()
     color_all = "green" if total_all_input == tongtiet_mon else "red"
     st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
 
