@@ -201,9 +201,16 @@ with col2:
                 mon_info_row = mon_info_row_df.iloc[0]
                 mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
                 mamon = mon_info_row.iloc[mon_name_col_idx - 1]
-                tiet_lt = int(pd.to_numeric(mon_info_row.get('LT'), errors='coerce').fillna(0))
-                tiet_th = int(pd.to_numeric(mon_info_row.get('TH'), errors='coerce').fillna(0))
-                tiet_kt = int(pd.to_numeric(mon_info_row.get('KT'), errors='coerce').fillna(0))
+                
+                # SỬA LỖI: Xử lý giá trị số một cách an toàn
+                tiet_lt_val = pd.to_numeric(mon_info_row.get('LT'), errors='coerce')
+                tiet_th_val = pd.to_numeric(mon_info_row.get('TH'), errors='coerce')
+                tiet_kt_val = pd.to_numeric(mon_info_row.get('KT'), errors='coerce')
+
+                tiet_lt = int(tiet_lt_val) if pd.notna(tiet_lt_val) else 0
+                tiet_th = int(tiet_th_val) if pd.notna(tiet_th_val) else 0
+                tiet_kt = int(tiet_kt_val) if pd.notna(tiet_kt_val) else 0
+                
                 tongtiet_mon = tiet_lt + tiet_th + tiet_kt
                 st.markdown(f"Mã môn: :green[{mamon}] | Tổng tiết: :green[{tongtiet_mon}] (LT: :green[{tiet_lt}] | TH: :green[{tiet_th}] | KT: :green[{tiet_kt}])")
 
