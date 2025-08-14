@@ -107,18 +107,22 @@ def create_tiet_editor_df():
     
     return df
 
+def _clean_and_convert_to_str(series_or_scalar):
+    """Hàm trợ giúp: Xử lý cả Series và giá trị đơn lẻ, làm sạch và trả về chuỗi."""
+    if not isinstance(series_or_scalar, pd.Series):
+        series_or_scalar = pd.Series([series_or_scalar])
+    cleaned_series = series_or_scalar.fillna(0).astype(int)
+    return ' '.join(cleaned_series.astype(str))
+
 def update_input_data_from_df():
     """Cập nhật input_data (dạng text) từ DataFrame đã chỉnh sửa."""
     edited_df = st.session_state.tiet_editor
     cach_ke = st.session_state.input_data['cach_ke']
     if cach_ke == 'Kê theo MĐ, MH':
-        clean_series = edited_df.loc['Số tiết'].fillna(0).astype(int)
-        st.session_state.input_data['tiet'] = ' '.join(clean_series.astype(str))
+        st.session_state.input_data['tiet'] = _clean_and_convert_to_str(edited_df.loc['Số tiết'])
     else:
-        clean_lt = edited_df.loc['Tiết LT'].fillna(0).astype(int)
-        clean_th = edited_df.loc['Tiết TH'].fillna(0).astype(int)
-        st.session_state.input_data['tiet_lt'] = ' '.join(clean_lt.astype(str))
-        st.session_state.input_data['tiet_th'] = ' '.join(clean_th.astype(str))
+        st.session_state.input_data['tiet_lt'] = _clean_and_convert_to_str(edited_df.loc['Tiết LT'])
+        st.session_state.input_data['tiet_th'] = _clean_and_convert_to_str(edited_df.loc['Tiết TH'])
 
 # --- CALLBACKS ---
 def settings_changed():
@@ -205,14 +209,9 @@ with col2:
                 mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
                 mamon = mon_info_row.iloc[mon_name_col_idx - 1]
                 
-                # SỬA LỖI: Xử lý giá trị số một cách an toàn
-                tiet_lt_val = pd.to_numeric(mon_info_row.get('LT'), errors='coerce')
-                tiet_th_val = pd.to_numeric(mon_info_row.get('TH'), errors='coerce')
-                tiet_kt_val = pd.to_numeric(mon_info_row.get('KT'), errors='coerce')
-
-                tiet_lt = int(tiet_lt_val) if pd.notna(tiet_lt_val) else 0
-                tiet_th = int(tiet_th_val) if pd.notna(tiet_th_val) else 0
-                tiet_kt = int(tiet_kt_val) if pd.notna(tiet_kt_val) else 0
+                tiet_lt = int(pd.to_numeric(mon_info_row.get('LT'), errors='coerce').fillna(0))
+                tiet_th = int(pd.to_numeric(mon_info_row.get('TH'), errors='coerce').fillna(0))
+                tiet_kt = int(pd.to_numeric(mon_info_row.get('KT'), errors='coerce').fillna(0))
                 
                 tongtiet_mon = tiet_lt + tiet_th + tiet_kt
                 st.markdown(f"Mã môn: :green[{mamon}] | Tổng tiết: :green[{tongtiet_mon}] (LT: :green[{tiet_lt}] | TH: :green[{tiet_th}] | KT: :green[{tiet_kt}])")
