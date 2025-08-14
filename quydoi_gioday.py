@@ -198,10 +198,11 @@ st.markdown("""
     font-size: 1em;
     font-weight: bold;
     color: #fafafa;
+    text-transform: uppercase; /* Chuyển chữ thành in hoa */
 }
 .metric-card-value {
     font-size: 1.5em;
-    font-weight: bolder;
+    font-weight: normal; /* Bỏ in đậm */
 }
 .green {
     color: #28a745;
@@ -228,16 +229,16 @@ if st.session_state.input_data['cach_ke'] == 'Kê theo LT, TH chi tiết':
 
     col_sum1, col_sum2, col_sum3 = st.columns(3)
     with col_sum1:
-        st.markdown(f'<div class="metric-card"><div class="metric-card-label">Tổng tiết Lý thuyết</div><div class="metric-card-value {color_lt}">{total_lt_input} / {tiet_lt}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT LÝ THUYẾT</div><div class="metric-card-value {color_lt}">{int(total_lt_input)} / {int(tiet_lt)}</div></div>', unsafe_allow_html=True)
     with col_sum2:
-        st.markdown(f'<div class="metric-card"><div class="metric-card-label">Tổng tiết Thực hành + KT</div><div class="metric-card-value {color_th}">{total_th_input} / {tiet_th + tiet_kt}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT THỰC HÀNH</div><div class="metric-card-value {color_th}">{int(total_th_input)} / {int(tiet_th + tiet_kt)}</div></div>', unsafe_allow_html=True)
     with col_sum3:
-        st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG CỘNG</div><div class="metric-card-value {color_all}">{total_all_input} / {tongtiet_mon}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
 
 else: # Kê theo MĐ, MH
     total_all_input = edited_df.loc['Số tiết'].sum()
     color_all = "green" if total_all_input == tongtiet_mon else "red"
-    st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG CỘNG</div><div class="metric-card-value {color_all}">{total_all_input} / {tongtiet_mon}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
 
 
 # --- NÚT TÍNH TOÁN ---
