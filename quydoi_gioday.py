@@ -118,7 +118,14 @@ def _clean_and_convert_to_str(series_or_scalar):
 
 def update_input_data_from_df():
     """Cập nhật input_data (dạng text) từ DataFrame đã chỉnh sửa."""
-    edited_df = st.session_state.tiet_editor
+    edited_df_data = st.session_state.tiet_editor
+    
+    # SỬA LỖI: Luôn chuyển đổi edited_df_data thành DataFrame
+    if isinstance(edited_df_data, dict):
+        edited_df = pd.DataFrame.from_dict(edited_df_data)
+    else:
+        edited_df = edited_df_data
+
     cach_ke = st.session_state.input_data['cach_ke']
     if cach_ke == 'Kê theo MĐ, MH':
         st.session_state.input_data['tiet'] = _clean_and_convert_to_str(edited_df.loc['Số tiết'])
@@ -202,14 +209,9 @@ with col2:
                 mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
                 mamon = mon_info_row.iloc[mon_name_col_idx - 1]
                 
-                # SỬA LỖI: Xử lý giá trị số một cách an toàn
-                tiet_lt_val = pd.to_numeric(mon_info_row.get('LT'), errors='coerce')
-                tiet_th_val = pd.to_numeric(mon_info_row.get('TH'), errors='coerce')
-                tiet_kt_val = pd.to_numeric(mon_info_row.get('KT'), errors='coerce')
-
-                tiet_lt = int(tiet_lt_val) if pd.notna(tiet_lt_val) else 0
-                tiet_th = int(tiet_th_val) if pd.notna(tiet_th_val) else 0
-                tiet_kt = int(tiet_kt_val) if pd.notna(tiet_kt_val) else 0
+                tiet_lt = int(pd.to_numeric(mon_info_row.get('LT'), errors='coerce').fillna(0))
+                tiet_th = int(pd.to_numeric(mon_info_row.get('TH'), errors='coerce').fillna(0))
+                tiet_kt = int(pd.to_numeric(mon_info_row.get('KT'), errors='coerce').fillna(0))
                 
                 tongtiet_mon = tiet_lt + tiet_th + tiet_kt
                 st.markdown(f"Mã môn: :green[{mamon}] | Tổng tiết: :green[{tongtiet_mon}] (LT: :green[{tiet_lt}] | TH: :green[{tiet_th}] | KT: :green[{tiet_kt}])")
@@ -265,7 +267,6 @@ if st.button("Lưu cấu hình & Kết quả", use_container_width=True, type="p
 
 # --- TÍNH TOÁN VÀ HIỂN THỊ KẾT QUẢ TỰ ĐỘNG ---
 try:
-    # Cập nhật dữ liệu từ bảng editor vào state trước khi tính toán
     update_input_data_from_df()
     
     input_for_processing = {
@@ -285,7 +286,6 @@ try:
         df_hesosiso_g=df_hesosiso_g
     )
     
-    # Lưu kết quả vào session state để nút Lưu có thể truy cập
     st.session_state.df_result = df_result
 
     st.subheader("III. Bảng kết quả tính toán")
