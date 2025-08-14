@@ -142,7 +142,9 @@ with col2:
     mon_hoc_index = dsmon_options.index(st.session_state.input_data.get('mon_hoc')) if st.session_state.input_data.get('mon_hoc') in dsmon_options else 0
     st.session_state.input_data['mon_hoc'] = st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index)
 
-    # --- SỬA ĐỔI: HIỂN THỊ THÔNG TIN CHI TIẾT CỦA MÔN HỌC ---
+    # Khởi tạo các biến thông tin môn học với giá trị mặc định
+    mamon, tongtiet_mon, tiet_lt, tiet_th, tiet_kt = "N/A", 0, 0, 0, 0
+
     if st.session_state.input_data['mon_hoc'] and not malop_info.empty:
         manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
         if manghe in df_mon_g.columns:
@@ -153,24 +155,19 @@ with col2:
                 
                 mamon = mon_info_row.iloc[mon_name_col_idx - 1]
                 
-                # Lấy giá trị và chuyển đổi sang số, mặc định là 0 nếu lỗi
                 tiet_lt_val = pd.to_numeric(mon_info_row.get('LT'), errors='coerce')
                 tiet_th_val = pd.to_numeric(mon_info_row.get('TH'), errors='coerce')
                 tiet_kt_val = pd.to_numeric(mon_info_row.get('KT'), errors='coerce')
 
-                # Thay thế NaN bằng 0 và chuyển thành số nguyên
                 tiet_lt = int(tiet_lt_val) if pd.notna(tiet_lt_val) else 0
                 tiet_th = int(tiet_th_val) if pd.notna(tiet_th_val) else 0
                 tiet_kt = int(tiet_kt_val) if pd.notna(tiet_kt_val) else 0
                 
-                # Tính toán tổng số tiết
                 tongtiet_mon = tiet_lt + tiet_th + tiet_kt
                 
-                # Sử dụng st.markdown để hiển thị
                 st.markdown(
                     f"Mã môn: :green[{mamon}] | Tổng tiết: :green[{tongtiet_mon}] (LT: :green[{tiet_lt}] | TH: :green[{tiet_th}] | KT: :green[{tiet_kt}])"
                 )
-
 
     st.session_state.input_data['tuan'] = st.slider("Chọn Tuần giảng dạy", 1, 50, 
         value=st.session_state.input_data.get('tuan', (1, 12)))
@@ -185,26 +182,62 @@ st.session_state.input_data['cach_ke'] = st.radio("Chọn phương pháp kê kha
 tiet_df_editable = create_tiet_editor_df(st.session_state.input_data, st.session_state.input_data['tuan'])
 edited_df = st.data_editor(tiet_df_editable, use_container_width=True, key="tiet_editor")
 
-# --- BẢNG HIỂN THỊ TỔNG ---
+# --- BẢNG HIỂN THỊ TỔNG VÀ SO SÁNH ---
+st.markdown("---")
+# CSS for custom metric cards
+st.markdown("""
+<style>
+.metric-card {
+    border: 1px solid #4a4a4a;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    background-color: #262730;
+}
+.metric-card-label {
+    font-size: 1em;
+    font-weight: bold;
+    color: #fafafa;
+}
+.metric-card-value {
+    font-size: 1.5em;
+    font-weight: bolder;
+}
+.green {
+    color: #28a745;
+}
+.red {
+    color: #dc3545;
+}
+</style>
+""", unsafe_allow_html=True)
+
 if st.session_state.input_data['cach_ke'] == 'Kê theo LT, TH chi tiết':
     tong_tiet_df = pd.DataFrame(index=['Tổng tiết'], columns=edited_df.columns)
     tong_tiet_df.loc['Tổng tiết'] = edited_df.loc['Tiết LT'] + edited_df.loc['Tiết TH']
     st.dataframe(tong_tiet_df, use_container_width=True)
     
-    # --- THÔNG TIN TỔNG KẾT ---
-    st.markdown("---")
-    total_lt = edited_df.loc['Tiết LT'].sum()
-    total_th = edited_df.loc['Tiết TH'].sum()
-    total_all = total_lt + total_th
-    
+    total_lt_input = edited_df.loc['Tiết LT'].sum()
+    total_th_input = edited_df.loc['Tiết TH'].sum()
+    total_all_input = total_lt_input + total_th_input
+
+    # So sánh và xác định màu sắc
+    color_lt = "green" if total_lt_input == tiet_lt else "red"
+    color_th = "green" if total_th_input == (tiet_th + tiet_kt) else "red"
+    color_all = "green" if total_all_input == tongtiet_mon else "red"
+
     col_sum1, col_sum2, col_sum3 = st.columns(3)
-    col_sum1.metric("Tổng tiết Lý thuyết", f"{total_lt}")
-    col_sum2.metric("Tổng tiết Thực hành", f"{total_th}")
-    col_sum3.metric("TỔNG CỘNG", f"{total_all}")
+    with col_sum1:
+        st.markdown(f'<div class="metric-card"><div class="metric-card-label">Tổng tiết Lý thuyết</div><div class="metric-card-value {color_lt}">{total_lt_input} / {tiet_lt}</div></div>', unsafe_allow_html=True)
+    with col_sum2:
+        st.markdown(f'<div class="metric-card"><div class="metric-card-label">Tổng tiết Thực hành + KT</div><div class="metric-card-value {color_th}">{total_th_input} / {tiet_th + tiet_kt}</div></div>', unsafe_allow_html=True)
+    with col_sum3:
+        st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG CỘNG</div><div class="metric-card-value {color_all}">{total_all_input} / {tongtiet_mon}</div></div>', unsafe_allow_html=True)
+
 else: # Kê theo MĐ, MH
-    st.markdown("---")
-    total_all = edited_df.loc['Số tiết'].sum()
-    st.metric("TỔNG CỘNG", f"{total_all}")
+    total_all_input = edited_df.loc['Số tiết'].sum()
+    color_all = "green" if total_all_input == tongtiet_mon else "red"
+    st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG CỘNG</div><div class="metric-card-value {color_all}">{total_all_input} / {tongtiet_mon}</div></div>', unsafe_allow_html=True)
 
 
 # --- NÚT TÍNH TOÁN ---
