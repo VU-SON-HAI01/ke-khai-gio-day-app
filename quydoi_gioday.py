@@ -77,6 +77,8 @@ def save_result_data(spreadsheet_obj, worksheet_name, result_df):
     except gspread.exceptions.WorksheetNotFound:
         worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=result_df.shape[0]+1, cols=result_df.shape[1])
     set_with_dataframe(worksheet, result_df, include_index=False)
+    st.success(f"Đã lưu bảng kết quả vào trang tính '{worksheet_name}'!")
+
 
 def create_tiet_editor_df():
     """Tạo DataFrame cho st.data_editor từ dữ liệu text trong session_state."""
@@ -107,18 +109,22 @@ def create_tiet_editor_df():
     
     return df
 
+def _clean_and_convert_to_str(series_or_scalar):
+    """Hàm trợ giúp: Xử lý cả Series và giá trị đơn lẻ, làm sạch và trả về chuỗi."""
+    if not isinstance(series_or_scalar, pd.Series):
+        series_or_scalar = pd.Series([series_or_scalar])
+    cleaned_series = series_or_scalar.fillna(0).astype(int)
+    return ' '.join(cleaned_series.astype(str))
+
 def update_input_data_from_df():
     """Cập nhật input_data (dạng text) từ DataFrame đã chỉnh sửa."""
     edited_df = st.session_state.tiet_editor
     cach_ke = st.session_state.input_data['cach_ke']
     if cach_ke == 'Kê theo MĐ, MH':
-        clean_series = edited_df.loc['Số tiết'].fillna(0).astype(int)
-        st.session_state.input_data['tiet'] = ' '.join(clean_series.astype(str))
+        st.session_state.input_data['tiet'] = _clean_and_convert_to_str(edited_df.loc['Số tiết'])
     else:
-        clean_lt = edited_df.loc['Tiết LT'].fillna(0).astype(int)
-        clean_th = edited_df.loc['Tiết TH'].fillna(0).astype(int)
-        st.session_state.input_data['tiet_lt'] = ' '.join(clean_lt.astype(str))
-        st.session_state.input_data['tiet_th'] = ' '.join(clean_th.astype(str))
+        st.session_state.input_data['tiet_lt'] = _clean_and_convert_to_str(edited_df.loc['Tiết LT'])
+        st.session_state.input_data['tiet_th'] = _clean_and_convert_to_str(edited_df.loc['Tiết TH'])
 
 # --- CALLBACKS ---
 def settings_changed():
@@ -127,23 +133,18 @@ def settings_changed():
     Hàm này sẽ đồng bộ hóa trạng thái từ các widget vào st.session_state.input_data
     và xử lý logic phụ thuộc (ví dụ: reset lựa chọn Lớp khi Khóa thay đổi).
     """
-    # Ghi lại trạng thái cũ để phát hiện thay đổi
     old_khoa = st.session_state.input_data.get('khoa')
     old_lop = st.session_state.input_data.get('lop_hoc')
 
-    # Cập nhật trạng thái từ các widget một cách an toàn
     st.session_state.input_data['khoa'] = st.session_state.get('khoa_select', old_khoa)
     st.session_state.input_data['lop_hoc'] = st.session_state.get('lop_hoc_select', old_lop)
     st.session_state.input_data['mon_hoc'] = st.session_state.get('mon_hoc_select', st.session_state.input_data.get('mon_hoc'))
     st.session_state.input_data['tuan'] = st.session_state.get('tuan_select', st.session_state.input_data.get('tuan'))
     st.session_state.input_data['cach_ke'] = st.session_state.get('cach_ke_select', st.session_state.input_data.get('cach_ke'))
 
-    # Xử lý logic phụ thuộc
-    # Nếu Khóa thay đổi, reset Lớp và Môn
     if st.session_state.input_data['khoa'] != old_khoa:
         st.session_state.input_data['lop_hoc'] = None
         st.session_state.input_data['mon_hoc'] = None
-    # Nếu Lớp thay đổi, reset Môn
     elif st.session_state.input_data['lop_hoc'] != old_lop:
         st.session_state.input_data['mon_hoc'] = None
 
@@ -167,11 +168,10 @@ with col1:
         filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(st.session_state.input_data['khoa'].split(' ')[1], na=False)]['Lớp'].tolist()
     if not filtered_lop_options: st.warning(f"Không có lớp cho '{st.session_state.input_data['khoa']}'.")
     
-    # Nếu Lớp hiện tại không hợp lệ (do Khóa thay đổi), chọn Lớp đầu tiên trong danh sách mới
     current_lop = st.session_state.input_data.get('lop_hoc')
     if current_lop not in filtered_lop_options:
         current_lop = filtered_lop_options[0] if filtered_lop_options else None
-        st.session_state.input_data['lop_hoc'] = current_lop # Cập nhật lại state
+        st.session_state.input_data['lop_hoc'] = current_lop
     
     lop_hoc_index = filtered_lop_options.index(current_lop) if current_lop in filtered_lop_options else 0
     st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key='lop_hoc_select', on_change=settings_changed)
@@ -184,7 +184,6 @@ with col2:
         if manghe in df_mon_g.columns:
             dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
     
-    # Tương tự, xử lý cho Môn học
     current_mon = st.session_state.input_data.get('mon_hoc')
     if current_mon not in dsmon_options:
         current_mon = dsmon_options[0] if dsmon_options else None
@@ -193,9 +192,7 @@ with col2:
     mon_hoc_index = dsmon_options.index(current_mon) if current_mon in dsmon_options else 0
     st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key='mon_hoc_select', on_change=settings_changed)
 
-    # Khởi tạo các biến thông tin môn học với giá trị mặc định
     mamon, tongtiet_mon, tiet_lt, tiet_th, tiet_kt = "N/A", 0, 0, 0, 0
-
     if st.session_state.input_data['mon_hoc'] and not malop_info.empty:
         manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
         if manghe in df_mon_g.columns:
@@ -204,16 +201,9 @@ with col2:
                 mon_info_row = mon_info_row_df.iloc[0]
                 mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
                 mamon = mon_info_row.iloc[mon_name_col_idx - 1]
-                
-                # SỬA LỖI: Xử lý giá trị số một cách an toàn
-                tiet_lt_val = pd.to_numeric(mon_info_row.get('LT'), errors='coerce')
-                tiet_th_val = pd.to_numeric(mon_info_row.get('TH'), errors='coerce')
-                tiet_kt_val = pd.to_numeric(mon_info_row.get('KT'), errors='coerce')
-
-                tiet_lt = int(tiet_lt_val) if pd.notna(tiet_lt_val) else 0
-                tiet_th = int(tiet_th_val) if pd.notna(tiet_th_val) else 0
-                tiet_kt = int(tiet_kt_val) if pd.notna(tiet_kt_val) else 0
-                
+                tiet_lt = int(pd.to_numeric(mon_info_row.get('LT'), errors='coerce').fillna(0))
+                tiet_th = int(pd.to_numeric(mon_info_row.get('TH'), errors='coerce').fillna(0))
+                tiet_kt = int(pd.to_numeric(mon_info_row.get('KT'), errors='coerce').fillna(0))
                 tongtiet_mon = tiet_lt + tiet_th + tiet_kt
                 st.markdown(f"Mã môn: :green[{mamon}] | Tổng tiết: :green[{tongtiet_mon}] (LT: :green[{tiet_lt}] | TH: :green[{tiet_th}] | KT: :green[{tiet_kt}])")
 
@@ -258,37 +248,46 @@ else:
     st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
 
 st.divider()
-# --- NÚT TÍNH TOÁN ---
-if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type="primary"):
+
+# --- NÚT LƯU ---
+if st.button("Lưu cấu hình & Kết quả", use_container_width=True, type="primary"):
     update_input_data_from_df()
     save_input_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
+    if 'df_result' in st.session_state and not st.session_state.df_result.empty:
+        save_result_data(spreadsheet, OUTPUT_SHEET_NAME, st.session_state.df_result)
+
+# --- TÍNH TOÁN VÀ HIỂN THỊ KẾT QUẢ TỰ ĐỘNG ---
+try:
+    # Cập nhật dữ liệu từ bảng editor vào state trước khi tính toán
+    update_input_data_from_df()
     
-    with st.spinner("Đang tính toán..."):
-        try:
-            input_for_processing = {
-                'Lớp_chọn': st.session_state.input_data.get('lop_hoc'),
-                'Môn_chọn': st.session_state.input_data.get('mon_hoc'),
-                'Tuần_chọn': st.session_state.input_data.get('tuan'),
-                'Kiểu_kê_khai': st.session_state.input_data.get('cach_ke'),
-                'Tiết_nhập': st.session_state.input_data.get('tiet'),
-                'Tiết_LT_nhập': st.session_state.input_data.get('tiet_lt'),
-                'Tiết_TH_nhập': st.session_state.input_data.get('tiet_th'),
-            }
-            df_result, summary = fq.process_mon_data(
-                mon_data_row=input_for_processing,
-                dynamic_chuangv=st.session_state.chuangv,
-                df_lop_g=df_lop_g, df_mon_g=df_mon_g,
-                df_ngaytuan_g=df_ngaytuan_g, df_nangnhoc_g=df_nangnhoc_g,
-                df_hesosiso_g=df_hesosiso_g
-            )
-            st.subheader("III. Bảng kết quả tính toán")
-            if not df_result.empty:
-                st.dataframe(df_result, use_container_width=True)
-                save_result_data(spreadsheet, OUTPUT_SHEET_NAME, df_result)
-            elif "error" in summary:
-                st.error(f"Lỗi tính toán: {summary['error']}")
-            else:
-                st.warning("Không có dữ liệu để tính toán. Vui lòng kiểm tra lại các lựa chọn.")
-        except Exception as e:
-            st.error(f"Đã xảy ra lỗi không mong muốn: {e}")
-            st.exception(e)
+    input_for_processing = {
+        'Lớp_chọn': st.session_state.input_data.get('lop_hoc'),
+        'Môn_chọn': st.session_state.input_data.get('mon_hoc'),
+        'Tuần_chọn': st.session_state.input_data.get('tuan'),
+        'Kiểu_kê_khai': st.session_state.input_data.get('cach_ke'),
+        'Tiết_nhập': st.session_state.input_data.get('tiet'),
+        'Tiết_LT_nhập': st.session_state.input_data.get('tiet_lt'),
+        'Tiết_TH_nhập': st.session_state.input_data.get('tiet_th'),
+    }
+    df_result, summary = fq.process_mon_data(
+        mon_data_row=input_for_processing,
+        dynamic_chuangv=st.session_state.chuangv,
+        df_lop_g=df_lop_g, df_mon_g=df_mon_g,
+        df_ngaytuan_g=df_ngaytuan_g, df_nangnhoc_g=df_nangnhoc_g,
+        df_hesosiso_g=df_hesosiso_g
+    )
+    
+    # Lưu kết quả vào session state để nút Lưu có thể truy cập
+    st.session_state.df_result = df_result
+
+    st.subheader("III. Bảng kết quả tính toán")
+    if not df_result.empty:
+        st.dataframe(df_result, use_container_width=True)
+    elif "error" in summary:
+        st.error(f"Lỗi tính toán: {summary['error']}")
+    else:
+        st.warning("Không có dữ liệu để tính toán. Vui lòng kiểm tra lại các lựa chọn.")
+except Exception as e:
+    st.error(f"Đã xảy ra lỗi không mong muốn trong quá trình tính toán: {e}")
+
