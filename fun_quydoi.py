@@ -3,16 +3,8 @@ import numpy as np
 
 # --- CÁC HÀM TÍNH TOÁN HỆ SỐ ---
 
-def thietlap_chuangv_dong(df_all_selections, df_lop_g, default_chuangv):
-    if df_all_selections is None or df_all_selections.empty or 'Lớp_chọn' not in df_all_selections.columns:
-        return default_chuangv
-    all_selected_classes = [cls for lop_chon in df_all_selections['Lớp_chọn'].dropna() for cls in str(lop_chon).split('+')]
-    if not all_selected_classes: return default_chuangv
-    df_selected_info = df_lop_g[df_lop_g['Lớp'].isin(all_selected_classes)]
-    if df_selected_info.empty: return default_chuangv
-    return 'Cao đẳng' if (df_selected_info['Mã lớp'].str[2] == '1').any() else 'Trung cấp'
-
 def timmanghe(malop_f):
+    """Xác định mã nghề từ mã lớp."""
     S = str(malop_f)
     if len(S) > 5:
         if S[-1] == "X": return "MON" + S[2:5] + "X"
@@ -22,22 +14,19 @@ def timmanghe(malop_f):
     return "MON" + S[2] + "Y" if len(S) >= 3 and S[2].isdigit() else "MON00Y"
 
 def timheso_tc_cd(chuangv, malop):
+    """Tìm hệ số dựa trên chuẩn giáo viên và mã lớp."""
     chuangv_short = {"Cao đẳng": "CĐ", "Trung cấp": "TC"}.get(chuangv, "CĐ")
     heso_map = {"CĐ": {"1": 1, "2": 0.89, "3": 0.79}, "TC": {"1": 1, "2": 1, "3": 0.89}}
     return heso_map.get(chuangv_short, {}).get(malop[2], 2.0) if len(malop) >= 3 else 2.0
 
 def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
-    # SỬA LỖI: Chuyển đổi siso sang số nguyên một cách an toàn, tránh lỗi TypeError
+    """Tìm hệ số dựa trên sĩ số và điều kiện nặng nhọc."""
     try:
-        # Cố gắng chuyển đổi giá trị siso (có thể là string, float, int, None) thành số nguyên.
-        # Chuyển qua float trước để xử lý các trường hợp như "50.0"
         cleaned_siso = int(float(tuan_siso))
     except (ValueError, TypeError, AttributeError):
-        # Nếu chuyển đổi thất bại (ví dụ: giá trị là chuỗi rỗng, None, hoặc không phải số),
-        # gán giá trị mặc định là 0.
         cleaned_siso = 0
     
-    tuan_siso = cleaned_siso # Bây giờ tuan_siso chắc chắn là một số nguyên
+    tuan_siso = cleaned_siso
 
     df_hesosiso = df_hesosiso_g.copy()
     for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
@@ -67,25 +56,29 @@ def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
     return hesomon_siso_LT, hesomon_siso_TH
 
 def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g):
+    """Hàm xử lý chính, tính toán quy đổi giờ giảng."""
     lop_chon = mon_data_row.get('Lớp_chọn')
     mon_chon = mon_data_row.get('Môn_chọn')
-    tuandentuan = mon_data_row.get('Tuần_chọn', (1, 12))
+    tuandentuan = mon_data_row.get('Tuần_chọn')
     kieu_ke_khai = mon_data_row.get('Kiểu_kê_khai', 'Kê theo MĐ, MH')
-    tiet_nhap = mon_data_row.get('Tiết_nhập', "4 4 4 4 4 4 4 4 4 8 8 8")
+    tiet_nhap = mon_data_row.get('Tiết_nhập', "0")
     tiet_lt_nhap = mon_data_row.get('Tiết_LT_nhập', "0")
     tiet_th_nhap = mon_data_row.get('Tiết_TH_nhập', "0")
 
-    if not lop_chon or not mon_chon: return pd.DataFrame(), {}
+    # Thêm các bước kiểm tra đầu vào để cung cấp thông báo lỗi rõ ràng
+    if not lop_chon: return pd.DataFrame(), {"error": "Vui lòng chọn một Lớp học."}
+    if not mon_chon: return pd.DataFrame(), {"error": "Vui lòng chọn một Môn học."}
+    if not tuandentuan: return pd.DataFrame(), {"error": "Phạm vi tuần không hợp lệ."}
 
     malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
-    if malop_info.empty: return pd.DataFrame(), {}
+    if malop_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'."}
     
     malop = malop_info['Mã lớp'].iloc[0]
     manghe = timmanghe(malop)
     
-    if manghe not in df_mon_g.columns: return pd.DataFrame(), {"error": f"Không tìm thấy mã nghề '{manghe}'"}
+    if manghe not in df_mon_g.columns: return pd.DataFrame(), {"error": f"Không tìm thấy mã nghề '{manghe}' trong dữ liệu môn học."}
     mon_info = df_mon_g[df_mon_g[manghe] == mon_chon]
-    if mon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'"}
+    if mon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}' cho mã nghề '{manghe}'."}
 
     mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
     mamon = mon_info.iloc[0, mon_name_col_idx - 1]
@@ -93,19 +86,21 @@ def process_mon_data(mon_data_row, dynamic_chuangv, df_lop_g, df_mon_g, df_ngayt
     tuanbatdau, tuanketthuc = tuandentuan
     locdulieu_info = df_ngaytuan_g.iloc[tuanbatdau - 1:tuanketthuc].copy()
     
-    arr_tiet_lt = np.fromstring(str(tiet_lt_nhap), dtype=float, sep=' ')
-    arr_tiet_th = np.fromstring(str(tiet_th_nhap), dtype=float, sep=' ')
-    arr_tiet = np.fromstring(str(tiet_nhap), dtype=float, sep=' ')
+    # Chuyển đổi chuỗi tiết thành mảng số nguyên một cách an toàn
+    try:
+        arr_tiet_lt = np.fromstring(str(tiet_lt_nhap), dtype=int, sep=' ') if tiet_lt_nhap else np.array([], dtype=int)
+        arr_tiet_th = np.fromstring(str(tiet_th_nhap), dtype=int, sep=' ') if tiet_th_nhap else np.array([], dtype=int)
+        arr_tiet = np.fromstring(str(tiet_nhap), dtype=int, sep=' ') if tiet_nhap else np.array([], dtype=int)
+    except (ValueError, TypeError):
+        return pd.DataFrame(), {"error": "Định dạng số tiết không hợp lệ. Vui lòng chỉ nhập số."}
 
-    # SỬA LỖI: Đồng bộ chuỗi kiểm tra với giá trị từ giao diện
-    # và cung cấp thông báo lỗi chi tiết hơn.
     if kieu_ke_khai == 'Kê theo MĐ, MH':
         if len(locdulieu_info) != len(arr_tiet): 
             return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})."}
         arr_tiet_lt, arr_tiet_th = (arr_tiet, np.zeros_like(arr_tiet)) if mamon[:2] in ['MH', 'MC'] else (np.zeros_like(arr_tiet), arr_tiet)
-    else: # Xử lý trường hợp 'Kê theo LT, TH chi tiết'
+    else: # 'Kê theo LT, TH chi tiết'
         if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
-            return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết Lý thuyết ({len(arr_tiet_lt)}) hoặc Thực hành ({len(arr_tiet_th)}) đã nhập."}
+            return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết LT ({len(arr_tiet_lt)}) hoặc TH ({len(arr_tiet_th)})."}
         arr_tiet = arr_tiet_lt + arr_tiet_th
     
     dssiso = [malop_info[thang].iloc[0] if thang in malop_info.columns else 0 for thang in locdulieu_info['Tháng']]
