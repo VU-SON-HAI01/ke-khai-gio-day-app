@@ -107,16 +107,24 @@ def init_tiet_df():
 def sync_editor_changes():
     """Callback được gọi khi data_editor thay đổi, để cập nhật tổng."""
     edited_df = st.session_state.tiet_editor
+    
+    # SỬA LỖI: Thêm kiểm tra để đảm bảo edited_df là một DataFrame hợp lệ
+    # trước khi truy cập các thuộc tính của nó.
+    if not isinstance(edited_df, pd.DataFrame):
+        return # Thoát sớm nếu dữ liệu từ editor chưa sẵn sàng
+
     cach_ke = st.session_state.input_data.get('cach_ke', 'Kê theo MĐ, MH')
 
     # Thêm kiểm tra để đảm bảo cấu trúc DataFrame đồng bộ
     if cach_ke == 'Kê theo LT, TH chi tiết':
-        if 'Tiết LT' in edited_df.index and 'Tiết TH' in edited_df.index:
+        # Kiểm tra xem các dòng cần thiết có tồn tại trong cả hai DataFrame không
+        if 'Tiết LT' in edited_df.index and 'Tiết TH' in edited_df.index and \
+           'Tiết LT' in st.session_state.tiet_df.index and 'Tiết TH' in st.session_state.tiet_df.index:
             st.session_state.tiet_df.loc['Tiết LT'] = edited_df.loc['Tiết LT']
             st.session_state.tiet_df.loc['Tiết TH'] = edited_df.loc['Tiết TH']
             st.session_state.tiet_df.loc['Tổng tiết'] = st.session_state.tiet_df.loc['Tiết LT'] + st.session_state.tiet_df.loc['Tiết TH']
     else:
-        if 'Số tiết' in edited_df.index:
+        if 'Số tiết' in edited_df.index and 'Số tiết' in st.session_state.tiet_df.index:
             st.session_state.tiet_df.loc['Số tiết'] = edited_df.loc['Số tiết']
 
 def update_input_data_from_df():
