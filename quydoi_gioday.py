@@ -122,12 +122,31 @@ def update_input_data_from_df():
 
 # --- CALLBACKS ---
 def settings_changed():
-    """Callback được kích hoạt khi bất kỳ lựa chọn cấu hình nào thay đổi."""
-    st.session_state.input_data['khoa'] = st.session_state.khoa_select
-    st.session_state.input_data['lop_hoc'] = st.session_state.lop_hoc_select
-    st.session_state.input_data['mon_hoc'] = st.session_state.mon_hoc_select
-    st.session_state.input_data['tuan'] = st.session_state.tuan_select
-    st.session_state.input_data['cach_ke'] = st.session_state.cach_ke_select
+    """
+    Callback được kích hoạt khi bất kỳ lựa chọn cấu hình nào thay đổi.
+    Hàm này sẽ đồng bộ hóa trạng thái từ các widget vào st.session_state.input_data
+    và xử lý logic phụ thuộc (ví dụ: reset lựa chọn Lớp khi Khóa thay đổi).
+    """
+    # Ghi lại trạng thái cũ để phát hiện thay đổi
+    old_khoa = st.session_state.input_data.get('khoa')
+    old_lop = st.session_state.input_data.get('lop_hoc')
+
+    # Cập nhật trạng thái từ các widget một cách an toàn
+    st.session_state.input_data['khoa'] = st.session_state.get('khoa_select', old_khoa)
+    st.session_state.input_data['lop_hoc'] = st.session_state.get('lop_hoc_select', old_lop)
+    st.session_state.input_data['mon_hoc'] = st.session_state.get('mon_hoc_select', st.session_state.input_data.get('mon_hoc'))
+    st.session_state.input_data['tuan'] = st.session_state.get('tuan_select', st.session_state.input_data.get('tuan'))
+    st.session_state.input_data['cach_ke'] = st.session_state.get('cach_ke_select', st.session_state.input_data.get('cach_ke'))
+
+    # Xử lý logic phụ thuộc
+    # Nếu Khóa thay đổi, reset Lớp và Môn
+    if st.session_state.input_data['khoa'] != old_khoa:
+        st.session_state.input_data['lop_hoc'] = None
+        st.session_state.input_data['mon_hoc'] = None
+    # Nếu Lớp thay đổi, reset Môn
+    elif st.session_state.input_data['lop_hoc'] != old_lop:
+        st.session_state.input_data['mon_hoc'] = None
+
 
 # --- KHỞI TẠO SESSION STATE ---
 if 'input_data' not in st.session_state:
@@ -148,11 +167,13 @@ with col1:
         filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(st.session_state.input_data['khoa'].split(' ')[1], na=False)]['Lớp'].tolist()
     if not filtered_lop_options: st.warning(f"Không có lớp cho '{st.session_state.input_data['khoa']}'.")
     
-    # Đảm bảo index không bị lỗi nếu lop_hoc không có trong danh sách mới
-    try:
-        lop_hoc_index = filtered_lop_options.index(st.session_state.input_data.get('lop_hoc'))
-    except ValueError:
-        lop_hoc_index = 0
+    # Nếu Lớp hiện tại không hợp lệ (do Khóa thay đổi), chọn Lớp đầu tiên trong danh sách mới
+    current_lop = st.session_state.input_data.get('lop_hoc')
+    if current_lop not in filtered_lop_options:
+        current_lop = filtered_lop_options[0] if filtered_lop_options else None
+        st.session_state.input_data['lop_hoc'] = current_lop # Cập nhật lại state
+    
+    lop_hoc_index = filtered_lop_options.index(current_lop) if current_lop in filtered_lop_options else 0
     st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key='lop_hoc_select', on_change=settings_changed)
 
 with col2:
@@ -163,10 +184,13 @@ with col2:
         if manghe in df_mon_g.columns:
             dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
     
-    try:
-        mon_hoc_index = dsmon_options.index(st.session_state.input_data.get('mon_hoc'))
-    except ValueError:
-        mon_hoc_index = 0
+    # Tương tự, xử lý cho Môn học
+    current_mon = st.session_state.input_data.get('mon_hoc')
+    if current_mon not in dsmon_options:
+        current_mon = dsmon_options[0] if dsmon_options else None
+        st.session_state.input_data['mon_hoc'] = current_mon
+        
+    mon_hoc_index = dsmon_options.index(current_mon) if current_mon in dsmon_options else 0
     st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key='mon_hoc_select', on_change=settings_changed)
 
     # Khởi tạo các biến thông tin môn học với giá trị mặc định
