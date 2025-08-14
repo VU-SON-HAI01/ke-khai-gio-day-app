@@ -155,11 +155,27 @@ st.session_state.input_data['cach_ke'] = st.radio("Chọn phương pháp kê kha
 tiet_df_editable = create_tiet_editor_df(st.session_state.input_data, st.session_state.input_data['tuan'])
 edited_df = st.data_editor(tiet_df_editable, use_container_width=True, key="tiet_editor")
 
-# Hiển thị bảng Tổng tiết nếu ở chế độ chi tiết
+# --- BẢNG HIỂN THỊ TỔNG ---
 if st.session_state.input_data['cach_ke'] == 'Kê theo LT, TH chi tiết':
     tong_tiet_df = pd.DataFrame(index=['Tổng tiết'], columns=edited_df.columns)
     tong_tiet_df.loc['Tổng tiết'] = edited_df.loc['Tiết LT'] + edited_df.loc['Tiết TH']
     st.dataframe(tong_tiet_df, use_container_width=True)
+    
+    # --- THÔNG TIN TỔNG KẾT ---
+    st.markdown("---")
+    total_lt = edited_df.loc['Tiết LT'].sum()
+    total_th = edited_df.loc['Tiết TH'].sum()
+    total_all = total_lt + total_th
+    
+    col_sum1, col_sum2, col_sum3 = st.columns(3)
+    col_sum1.metric("Tổng tiết Lý thuyết", f"{total_lt}")
+    col_sum2.metric("Tổng tiết Thực hành", f"{total_th}")
+    col_sum3.metric("TỔNG CỘNG", f"{total_all}")
+else: # Kê theo MĐ, MH
+    st.markdown("---")
+    total_all = edited_df.loc['Số tiết'].sum()
+    st.metric("TỔNG CỘNG", f"{total_all}")
+
 
 # --- NÚT TÍNH TOÁN ---
 if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type="primary"):
