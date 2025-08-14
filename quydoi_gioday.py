@@ -198,7 +198,7 @@ st.markdown("---")
 st.markdown("""
 <style>
 .metric-card {
-    border: 2px; /*solid #4a4a4a;*/
+    border: 2px solid #4a4a4a;
     border-radius: 8px;
     padding: 16px;
     text-align: center;
