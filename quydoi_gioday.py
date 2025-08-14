@@ -78,11 +78,12 @@ def save_result_data(spreadsheet_obj, worksheet_name, result_df):
         worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=result_df.shape[0]+1, cols=result_df.shape[1])
     set_with_dataframe(worksheet, result_df, include_index=False)
 
-def create_tiet_editor_df(input_data, tuan_chon):
+def create_tiet_editor_df():
     """Tạo DataFrame cho st.data_editor từ dữ liệu text trong session_state."""
-    start_week, end_week = tuan_chon
+    input_data = st.session_state.input_data
+    tuan_chon = input_data.get('tuan', (1, 12))
     cach_ke = input_data.get('cach_ke', 'Kê theo MĐ, MH')
-    cols = [f"Tuần {i}" for i in range(start_week, end_week + 1)]
+    cols = [f"Tuần {i}" for i in range(tuan_chon[0], tuan_chon[1] + 1)]
     
     data_map = {}
     if cach_ke == 'Kê theo MĐ, MH':
@@ -106,18 +107,27 @@ def create_tiet_editor_df(input_data, tuan_chon):
     
     return df
 
-def update_input_data_from_df(edited_df, cach_ke):
+def update_input_data_from_df():
     """Cập nhật input_data (dạng text) từ DataFrame đã chỉnh sửa."""
+    edited_df = st.session_state.tiet_editor
+    cach_ke = st.session_state.input_data['cach_ke']
     if cach_ke == 'Kê theo MĐ, MH':
-        # SỬA LỖI: Điền các giá trị rỗng (None/NaN) bằng 0 trước khi chuyển đổi
         clean_series = edited_df.loc['Số tiết'].fillna(0).astype(int)
         st.session_state.input_data['tiet'] = ' '.join(clean_series.astype(str))
     else:
-        # SỬA LỖI: Điền các giá trị rỗng (None/NaN) bằng 0 trước khi chuyển đổi
         clean_lt = edited_df.loc['Tiết LT'].fillna(0).astype(int)
         clean_th = edited_df.loc['Tiết TH'].fillna(0).astype(int)
         st.session_state.input_data['tiet_lt'] = ' '.join(clean_lt.astype(str))
         st.session_state.input_data['tiet_th'] = ' '.join(clean_th.astype(str))
+
+# --- CALLBACKS ---
+def settings_changed():
+    """Callback được kích hoạt khi bất kỳ lựa chọn cấu hình nào thay đổi."""
+    st.session_state.input_data['khoa'] = st.session_state.khoa_select
+    st.session_state.input_data['lop_hoc'] = st.session_state.lop_hoc_select
+    st.session_state.input_data['mon_hoc'] = st.session_state.mon_hoc_select
+    st.session_state.input_data['tuan'] = st.session_state.tuan_select
+    st.session_state.input_data['cach_ke'] = st.session_state.cach_ke_select
 
 # --- KHỞI TẠO SESSION STATE ---
 if 'input_data' not in st.session_state:
@@ -131,15 +141,19 @@ st.subheader("I. Cấu hình giảng dạy")
 col1, col2 = st.columns(2)
 with col1:
     khoa_index = KHOA_OPTIONS.index(st.session_state.input_data.get('khoa', KHOA_OPTIONS[0]))
-    st.session_state.input_data['khoa'] = st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, index=khoa_index)
+    st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, index=khoa_index, key='khoa_select', on_change=settings_changed)
 
     filtered_lop_options = df_lop_g['Lớp'].tolist()
     if st.session_state.input_data['khoa'].startswith('Khóa'):
         filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(st.session_state.input_data['khoa'].split(' ')[1], na=False)]['Lớp'].tolist()
     if not filtered_lop_options: st.warning(f"Không có lớp cho '{st.session_state.input_data['khoa']}'.")
     
-    lop_hoc_index = filtered_lop_options.index(st.session_state.input_data.get('lop_hoc')) if st.session_state.input_data.get('lop_hoc') in filtered_lop_options else 0
-    st.session_state.input_data['lop_hoc'] = st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index)
+    # Đảm bảo index không bị lỗi nếu lop_hoc không có trong danh sách mới
+    try:
+        lop_hoc_index = filtered_lop_options.index(st.session_state.input_data.get('lop_hoc'))
+    except ValueError:
+        lop_hoc_index = 0
+    st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key='lop_hoc_select', on_change=settings_changed)
 
 with col2:
     malop_info = df_lop_g[df_lop_g['Lớp'] == st.session_state.input_data['lop_hoc']]
@@ -149,8 +163,11 @@ with col2:
         if manghe in df_mon_g.columns:
             dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
     
-    mon_hoc_index = dsmon_options.index(st.session_state.input_data.get('mon_hoc')) if st.session_state.input_data.get('mon_hoc') in dsmon_options else 0
-    st.session_state.input_data['mon_hoc'] = st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index)
+    try:
+        mon_hoc_index = dsmon_options.index(st.session_state.input_data.get('mon_hoc'))
+    except ValueError:
+        mon_hoc_index = 0
+    st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key='mon_hoc_select', on_change=settings_changed)
 
     # Khởi tạo các biến thông tin môn học với giá trị mặc định
     mamon, tongtiet_mon, tiet_lt, tiet_th, tiet_kt = "N/A", 0, 0, 0, 0
@@ -162,70 +179,30 @@ with col2:
             if not mon_info_row_df.empty:
                 mon_info_row = mon_info_row_df.iloc[0]
                 mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
-                
                 mamon = mon_info_row.iloc[mon_name_col_idx - 1]
-                
-                tiet_lt_val = pd.to_numeric(mon_info_row.get('LT'), errors='coerce')
-                tiet_th_val = pd.to_numeric(mon_info_row.get('TH'), errors='coerce')
-                tiet_kt_val = pd.to_numeric(mon_info_row.get('KT'), errors='coerce')
-
-                tiet_lt = int(tiet_lt_val) if pd.notna(tiet_lt_val) else 0
-                tiet_th = int(tiet_th_val) if pd.notna(tiet_th_val) else 0
-                tiet_kt = int(tiet_kt_val) if pd.notna(tiet_kt_val) else 0
-                
+                tiet_lt = int(pd.to_numeric(mon_info_row.get('LT'), errors='coerce').fillna(0))
+                tiet_th = int(pd.to_numeric(mon_info_row.get('TH'), errors='coerce').fillna(0))
+                tiet_kt = int(pd.to_numeric(mon_info_row.get('KT'), errors='coerce').fillna(0))
                 tongtiet_mon = tiet_lt + tiet_th + tiet_kt
-                
-                st.markdown(
-                    f"Mã môn: :green[{mamon}] | Tổng tiết: :green[{tongtiet_mon}] (LT: :green[{tiet_lt}] | TH: :green[{tiet_th}] | KT: :green[{tiet_kt}])"
-                )
+                st.markdown(f"Mã môn: :green[{mamon}] | Tổng tiết: :green[{tongtiet_mon}] (LT: :green[{tiet_lt}] | TH: :green[{tiet_th}] | KT: :green[{tiet_kt}])")
 
-    st.session_state.input_data['tuan'] = st.slider("Chọn Tuần giảng dạy", 1, 50, 
-        value=st.session_state.input_data.get('tuan', (1, 12)))
+    st.slider("Chọn Tuần giảng dạy", 1, 50, value=st.session_state.input_data.get('tuan', (1, 12)), key='tuan_select', on_change=settings_changed)
 
 st.divider()
 st.subheader("II. Phân bổ số tiết giảng dạy")
-st.session_state.input_data['cach_ke'] = st.radio("Chọn phương pháp kê khai", 
-    ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), horizontal=True,
-    index=0 if st.session_state.input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1)
+st.radio("Chọn phương pháp kê khai", ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), horizontal=True,
+    index=0 if st.session_state.input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1, key='cach_ke_select', on_change=settings_changed)
 
 # --- BẢNG NHẬP LIỆU ---
-tiet_df_editable = create_tiet_editor_df(st.session_state.input_data, st.session_state.input_data['tuan'])
+tiet_df_editable = create_tiet_editor_df()
 edited_df = st.data_editor(tiet_df_editable, use_container_width=True, key="tiet_editor")
 
 # --- BẢNG HIỂN THỊ TỔNG VÀ SO SÁNH ---
 st.markdown("---")
-# CSS for custom metric cards
-st.markdown("""
-<style>
-.metric-card {
-    border: 2px solid #4a4a4a;
-    border-radius: 8px;
-    padding: 16px;
-    text-align: center;
-    /*background-color: #262730;*/
-}
-.metric-card-label {
-    font-size: 1em;
-    font-weight: normal;
-    /*color: #fafafa;*/
-    text-transform: uppercase; /* Chuyển chữ thành in hoa */
-}
-.metric-card-value {
-    font-size: 1.5em;
-    font-weight: normal; /* Bỏ in đậm */
-}
-.green {
-    color: #28a745;
-}
-.red {
-    color: #dc3545;
-}
-</style>
-""", unsafe_allow_html=True)
+st.markdown("""<style>.metric-card{border:1px solid #4a4a4a;border-radius:8px;padding:16px;text-align:center;background-color:#262730}.metric-card-label{font-size:1em;font-weight:normal;color:#fafafa;text-transform:uppercase}.metric-card-value{font-size:1.5em;font-weight:normal}.green{color:#28a745}.red{color:#dc3545}</style>""", unsafe_allow_html=True)
 
 if st.session_state.input_data['cach_ke'] == 'Kê theo LT, TH chi tiết':
     tong_tiet_df = pd.DataFrame(index=['Tổng tiết'], columns=edited_df.columns)
-    # Điền các giá trị rỗng bằng 0 trước khi cộng
     tong_tiet_df.loc['Tổng tiết'] = edited_df.loc['Tiết LT'].fillna(0) + edited_df.loc['Tiết TH'].fillna(0)
     st.dataframe(tong_tiet_df, use_container_width=True)
     
@@ -233,7 +210,6 @@ if st.session_state.input_data['cach_ke'] == 'Kê theo LT, TH chi tiết':
     total_th_input = edited_df.loc['Tiết TH'].fillna(0).sum()
     total_all_input = total_lt_input + total_th_input
 
-    # So sánh và xác định màu sắc
     color_lt = "green" if total_lt_input == tiet_lt else "red"
     color_th = "green" if total_th_input == (tiet_th + tiet_kt) else "red"
     color_all = "green" if total_all_input == tongtiet_mon else "red"
@@ -245,8 +221,7 @@ if st.session_state.input_data['cach_ke'] == 'Kê theo LT, TH chi tiết':
         st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT THỰC HÀNH</div><div class="metric-card-value {color_th}">{int(total_th_input)} / {int(tiet_th + tiet_kt)}</div></div>', unsafe_allow_html=True)
     with col_sum3:
         st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
-
-else: # Kê theo MĐ, MH
+else:
     total_all_input = edited_df.loc['Số tiết'].fillna(0).sum()
     color_all = "green" if total_all_input == tongtiet_mon else "red"
     st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
@@ -254,7 +229,7 @@ else: # Kê theo MĐ, MH
 st.divider()
 # --- NÚT TÍNH TOÁN ---
 if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type="primary"):
-    update_input_data_from_df(edited_df, st.session_state.input_data['cach_ke'])
+    update_input_data_from_df()
     save_input_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
     
     with st.spinner("Đang tính toán..."):
@@ -268,7 +243,6 @@ if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type=
                 'Tiết_LT_nhập': st.session_state.input_data.get('tiet_lt'),
                 'Tiết_TH_nhập': st.session_state.input_data.get('tiet_th'),
             }
-
             df_result, summary = fq.process_mon_data(
                 mon_data_row=input_for_processing,
                 dynamic_chuangv=st.session_state.chuangv,
@@ -276,7 +250,6 @@ if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type=
                 df_ngaytuan_g=df_ngaytuan_g, df_nangnhoc_g=df_nangnhoc_g,
                 df_hesosiso_g=df_hesosiso_g
             )
-            
             st.subheader("III. Bảng kết quả tính toán")
             if not df_result.empty:
                 st.dataframe(df_result, use_container_width=True)
