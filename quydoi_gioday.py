@@ -196,12 +196,12 @@ st.markdown("""
 }
 .metric-card-label {
     font-size: 1em;
-    font-weight: bold;
+    font-weight: normal;
     color: #fafafa;
     text-transform: uppercase; /* Chuyển chữ thành in hoa */
 }
 .metric-card-value {
-    font-size: 1.5em;
+    font-size: 1em;
     font-weight: normal; /* Bỏ in đậm */
 }
 .green {
