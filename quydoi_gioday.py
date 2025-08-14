@@ -108,8 +108,12 @@ def create_tiet_editor_df(input_data):
     
     return df
 
-def update_input_data_from_df(edited_df):
-    """Cập nhật input_data (dạng text) từ DataFrame đã chỉnh sửa."""
+def update_input_data_from_df():
+    """Cập nhật input_data (dạng text) từ DataFrame đã chỉnh sửa trong session_state."""
+    if 'tiet_editor' not in st.session_state:
+        return
+        
+    edited_df = st.session_state.tiet_editor
     if not isinstance(edited_df, pd.DataFrame):
         edited_df = pd.DataFrame.from_dict(edited_df)
 
@@ -123,34 +127,6 @@ def update_input_data_from_df(edited_df):
         st.session_state.input_data['tiet_lt'] = ' '.join(clean_lt.astype(str))
         st.session_state.input_data['tiet_th'] = ' '.join(clean_th.astype(str))
 
-# --- CALLBACKS ---
-def settings_changed():
-    """
-    Callback được kích hoạt khi bất kỳ lựa chọn cấu hình nào thay đổi.
-    Hàm này sẽ đồng bộ hóa trạng thái từ các widget vào st.session_state.input_data
-    và xử lý logic phụ thuộc (ví dụ: reset lựa chọn Lớp khi Khóa thay đổi).
-    """
-    # Ghi lại trạng thái cũ để phát hiện thay đổi
-    old_khoa = st.session_state.input_data.get('khoa')
-    old_lop = st.session_state.input_data.get('lop_hoc')
-
-    # Cập nhật trạng thái từ các widget một cách an toàn
-    st.session_state.input_data['khoa'] = st.session_state.get('khoa_select', old_khoa)
-    st.session_state.input_data['lop_hoc'] = st.session_state.get('lop_hoc_select', old_lop)
-    st.session_state.input_data['mon_hoc'] = st.session_state.get('mon_hoc_select', st.session_state.input_data.get('mon_hoc'))
-    st.session_state.input_data['tuan'] = st.session_state.get('tuan_select', st.session_state.input_data.get('tuan'))
-    st.session_state.input_data['cach_ke'] = st.session_state.get('cach_ke_select', st.session_state.input_data.get('cach_ke'))
-
-    # Xử lý logic phụ thuộc
-    # Nếu Khóa thay đổi, reset Lớp và Môn
-    if st.session_state.input_data['khoa'] != old_khoa:
-        st.session_state.input_data['lop_hoc'] = None
-        st.session_state.input_data['mon_hoc'] = None
-    # Nếu Lớp thay đổi, reset Môn
-    elif st.session_state.input_data['lop_hoc'] != old_lop:
-        st.session_state.input_data['mon_hoc'] = None
-
-
 # --- KHỞI TẠO SESSION STATE ---
 if 'input_data' not in st.session_state:
     st.session_state.input_data = load_input_data(spreadsheet)
@@ -160,47 +136,54 @@ st.header("KÊ GIỜ GIẢNG GV 2025", divider=True)
 st.subheader("I. Cấu hình giảng dạy")
 
 # --- CÁC WIDGET LỰA CHỌN ---
+# Lưu lại lựa chọn cũ để phát hiện thay đổi
+old_khoa = st.session_state.input_data.get('khoa')
+old_lop = st.session_state.input_data.get('lop_hoc')
+
 col1, col2 = st.columns(2)
 with col1:
     khoa_index = KHOA_OPTIONS.index(st.session_state.input_data.get('khoa', KHOA_OPTIONS[0]))
-    st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, index=khoa_index, key='khoa_select', on_change=settings_changed)
+    khoa_chon = st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, index=khoa_index)
 
     filtered_lop_options = df_lop_g['Lớp'].tolist()
-    if st.session_state.input_data['khoa'].startswith('Khóa'):
-        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(st.session_state.input_data['khoa'].split(' ')[1], na=False)]['Lớp'].tolist()
-    if not filtered_lop_options: st.warning(f"Không có lớp cho '{st.session_state.input_data['khoa']}'.")
+    if khoa_chon.startswith('Khóa'):
+        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_chon.split(' ')[1], na=False)]['Lớp'].tolist()
+    if not filtered_lop_options: st.warning(f"Không có lớp cho '{khoa_chon}'.")
     
-    # Nếu Lớp hiện tại không hợp lệ (do Khóa thay đổi), chọn Lớp đầu tiên trong danh sách mới
+    if khoa_chon != old_khoa:
+        st.session_state.input_data['lop_hoc'] = None
+        st.session_state.input_data['mon_hoc'] = None
+    
     current_lop = st.session_state.input_data.get('lop_hoc')
     if current_lop not in filtered_lop_options:
         current_lop = filtered_lop_options[0] if filtered_lop_options else None
-        st.session_state.input_data['lop_hoc'] = current_lop # Cập nhật lại state
     
     lop_hoc_index = filtered_lop_options.index(current_lop) if current_lop in filtered_lop_options else 0
-    st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key='lop_hoc_select', on_change=settings_changed)
+    lop_chon = st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index)
 
 with col2:
-    malop_info = df_lop_g[df_lop_g['Lớp'] == st.session_state.input_data['lop_hoc']]
+    malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
     dsmon_options = []
     if not malop_info.empty:
         manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
         if manghe in df_mon_g.columns:
             dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
     
-    # Tương tự, xử lý cho Môn học
+    if lop_chon != old_lop:
+        st.session_state.input_data['mon_hoc'] = None
+
     current_mon = st.session_state.input_data.get('mon_hoc')
     if current_mon not in dsmon_options:
         current_mon = dsmon_options[0] if dsmon_options else None
-        st.session_state.input_data['mon_hoc'] = current_mon
         
     mon_hoc_index = dsmon_options.index(current_mon) if current_mon in dsmon_options else 0
-    st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key='mon_hoc_select', on_change=settings_changed)
+    mon_chon = st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index)
 
     mamon, tongtiet_mon, tiet_lt, tiet_th, tiet_kt = "N/A", 0, 0, 0, 0
-    if st.session_state.input_data['mon_hoc'] and not malop_info.empty:
+    if mon_chon and not malop_info.empty:
         manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
         if manghe in df_mon_g.columns:
-            mon_info_row_df = df_mon_g[df_mon_g[manghe] == st.session_state.input_data['mon_hoc']]
+            mon_info_row_df = df_mon_g[df_mon_g[manghe] == mon_chon]
             if not mon_info_row_df.empty:
                 mon_info_row = mon_info_row_df.iloc[0]
                 mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
@@ -217,16 +200,23 @@ with col2:
                 tongtiet_mon = tiet_lt + tiet_th + tiet_kt
                 st.markdown(f"Mã môn: :green[{mamon}] | Tổng tiết: :green[{tongtiet_mon}] (LT: :green[{tiet_lt}] | TH: :green[{tiet_th}] | KT: :green[{tiet_kt}])")
 
-    st.slider("Chọn Tuần giảng dạy", 1, 50, value=st.session_state.input_data.get('tuan', (1, 12)), key='tuan_select', on_change=settings_changed)
+    tuan_chon = st.slider("Chọn Tuần giảng dạy", 1, 50, value=st.session_state.input_data.get('tuan', (1, 12)))
+
+# Cập nhật state sau khi các widget đã được render
+st.session_state.input_data['khoa'] = khoa_chon
+st.session_state.input_data['lop_hoc'] = lop_chon
+st.session_state.input_data['mon_hoc'] = mon_chon
+st.session_state.input_data['tuan'] = tuan_chon
 
 st.divider()
 st.subheader("II. Phân bổ số tiết giảng dạy")
-st.radio("Chọn phương pháp kê khai", ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), horizontal=True,
-    index=0 if st.session_state.input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1, key='cach_ke_select', on_change=settings_changed)
+st.session_state.input_data['cach_ke'] = st.radio("Chọn phương pháp kê khai", ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), horizontal=True,
+    index=0 if st.session_state.input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1)
 
 # --- BẢNG NHẬP LIỆU ---
 tiet_df_editable = create_tiet_editor_df(st.session_state.input_data)
-edited_df = st.data_editor(tiet_df_editable, use_container_width=True, key="tiet_editor")
+st.data_editor(tiet_df_editable, use_container_width=True, key="tiet_editor", on_change=update_input_data_from_df)
+edited_df = st.session_state.tiet_editor # Lấy dữ liệu đã được cập nhật bởi callback
 
 # --- BẢNG HIỂN THỊ TỔNG VÀ SO SÁNH ---
 st.markdown("---")
@@ -261,15 +251,12 @@ st.divider()
 
 # --- NÚT LƯU ---
 if st.button("Lưu cấu hình & Kết quả", use_container_width=True, type="primary"):
-    update_input_data_from_df(edited_df)
     save_input_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
     if 'df_result' in st.session_state and not st.session_state.df_result.empty:
         save_result_data(spreadsheet, OUTPUT_SHEET_NAME, st.session_state.df_result)
 
 # --- TÍNH TOÁN VÀ HIỂN THỊ KẾT QUẢ TỰ ĐỘNG ---
 try:
-    update_input_data_from_df(edited_df)
-    
     input_for_processing = {
         'Lớp_chọn': st.session_state.input_data.get('lop_hoc'),
         'Môn_chọn': st.session_state.input_data.get('mon_hoc'),
