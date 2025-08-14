@@ -142,7 +142,7 @@ with col2:
     mon_hoc_index = dsmon_options.index(st.session_state.input_data.get('mon_hoc')) if st.session_state.input_data.get('mon_hoc') in dsmon_options else 0
     st.session_state.input_data['mon_hoc'] = st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index)
 
-    # --- BỔ SUNG: HIỂN THỊ THÔNG TIN CHI TIẾT CỦA MÔN HỌC ---
+    # --- SỬA ĐỔI: HIỂN THỊ THÔNG TIN CHI TIẾT CỦA MÔN HỌC ---
     if st.session_state.input_data['mon_hoc'] and not malop_info.empty:
         manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
         if manghe in df_mon_g.columns:
@@ -153,14 +153,23 @@ with col2:
                 
                 mamon = mon_info_row.iloc[mon_name_col_idx - 1]
                 
-                # Giả định tên các cột chứa thông tin tiết học
-                # Sử dụng .get() để tránh lỗi nếu cột không tồn tại
-                tongtiet_mon = mon_info_row.get('Tổng số', 'N/A')
-                tiet_lt = mon_info_row.get('LT', 'N/A')
-                tiet_th = mon_info_row.get('TH', 'N/A')
-                tiet_kt = mon_info_row.get('KT', 'N/A')
+                # Lấy giá trị và chuyển đổi sang số, mặc định là 0 nếu lỗi
+                tiet_lt_val = pd.to_numeric(mon_info_row.get('LT'), errors='coerce')
+                tiet_th_val = pd.to_numeric(mon_info_row.get('TH'), errors='coerce')
+                tiet_kt_val = pd.to_numeric(mon_info_row.get('KT'), errors='coerce')
+
+                # Thay thế NaN bằng 0 và chuyển thành số nguyên
+                tiet_lt = int(tiet_lt_val) if pd.notna(tiet_lt_val) else 0
+                tiet_th = int(tiet_th_val) if pd.notna(tiet_th_val) else 0
+                tiet_kt = int(tiet_kt_val) if pd.notna(tiet_kt_val) else 0
                 
-                st.info(f"**Mã môn:** {mamon} | **Tổng tiết:** {tongtiet_mon} (LT: {tiet_lt} - TH: {tiet_th} - KT: {tiet_kt})")
+                # Tính toán tổng số tiết
+                tongtiet_mon = tiet_lt + tiet_th + tiet_kt
+                
+                # Sử dụng st.markdown để hiển thị
+                st.markdown(
+                    f"Mã môn: :green[{mamon}] | Tổng tiết: :green[{tongtiet_mon}] (LT: :green[{tiet_lt}] | TH: :green[{tiet_th}] | KT: :green[{tiet_kt}])"
+                )
 
 
     st.session_state.input_data['tuan'] = st.slider("Chọn Tuần giảng dạy", 1, 50, 
