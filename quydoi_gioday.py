@@ -95,9 +95,15 @@ def create_tiet_editor_df(input_data, tuan_chon):
 
     df = pd.DataFrame(index=idx, columns=cols).fillna(0)
     for key, values_str in data_map.items():
-        values = np.fromstring(values_str, dtype=int, sep=' ')
+        # SỬA LỖI: Kiểm tra chuỗi rỗng trước khi chuyển đổi
+        if values_str and values_str.strip():
+            values = np.fromstring(values_str, dtype=int, sep=' ')
+        else:
+            values = np.array([], dtype=int) # Tạo mảng rỗng nếu chuỗi không hợp lệ
+            
         num_vals_to_fill = min(len(values), len(cols))
-        df.loc[key, df.columns[:num_vals_to_fill]] = values[:num_vals_to_fill]
+        if num_vals_to_fill > 0:
+            df.loc[key, df.columns[:num_vals_to_fill]] = values[:num_vals_to_fill]
     
     return df
 
@@ -201,7 +207,7 @@ st.markdown("""
     text-transform: uppercase; /* Chuyển chữ thành in hoa */
 }
 .metric-card-value {
-    font-size: 1em;
+    font-size: 1.5em;
     font-weight: normal; /* Bỏ in đậm */
 }
 .green {
@@ -241,7 +247,6 @@ else: # Kê theo MĐ, MH
     st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
 
 st.divider()
-
 # --- NÚT TÍNH TOÁN ---
 if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type="primary"):
     update_input_data_from_df(edited_df, st.session_state.input_data['cach_ke'])
