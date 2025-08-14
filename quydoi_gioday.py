@@ -240,6 +240,7 @@ else: # Kê theo MĐ, MH
     color_all = "green" if total_all_input == tongtiet_mon else "red"
     st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
 
+st.divider()
 
 # --- NÚT TÍNH TOÁN ---
 if st.button("Lưu cấu hình và Tính toán", use_container_width=True, type="primary"):
