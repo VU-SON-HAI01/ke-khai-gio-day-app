@@ -198,7 +198,7 @@ st.markdown("---")
 st.markdown("""
 <style>
 .metric-card {
-    border: 1px solid #4a4a4a;
+    border: 2px; /*solid #4a4a4a;*/
     border-radius: 8px;
     padding: 16px;
     text-align: center;
@@ -207,7 +207,7 @@ st.markdown("""
 .metric-card-label {
     font-size: 1em;
     font-weight: normal;
-    color: #fafafa;
+    /*color: #fafafa;*/
     text-transform: uppercase; /* Chuyển chữ thành in hoa */
 }
 .metric-card-value {
