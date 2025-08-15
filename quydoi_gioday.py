@@ -130,25 +130,41 @@ def update_input_data_from_df():
     """
     Callback function: Cập nhật input_data (dạng text) 
     từ DataFrame đã chỉnh sửa trong session_state.
+    Hàm này được viết lại để xử lý đúng cách dữ liệu trả về từ st.data_editor.
     """
     if 'tiet_editor' not in st.session_state:
         return
         
-    edited_df = st.session_state.tiet_editor
-    # Chuyển đổi dict (từ data_editor) thành DataFrame nếu cần
-    if not isinstance(edited_df, pd.DataFrame):
-        edited_df = pd.DataFrame.from_dict(edited_df)
+    # Lấy dictionary chỉ chứa các ô đã được người dùng chỉnh sửa
+    edited_cells = st.session_state.tiet_editor
 
+    # BƯỚC 1: Tái tạo lại DataFrame đầy đủ như nó đã được hiển thị cho người dùng.
+    # Hàm create_tiet_editor_df sẽ dùng dữ liệu cũ trong st.session_state.input_data
+    # để tạo ra chính xác DataFrame mà người dùng đã thấy trước khi sửa.
+    full_df = create_tiet_editor_df(st.session_state.input_data)
+
+    # BƯỚC 2: Duyệt qua dictionary các ô đã sửa và cập nhật chúng vào DataFrame đầy đủ.
+    # Cấu trúc của edited_cells: {tên_hàng: {tên_cột: giá_trị_mới}}
+    for row_label, updated_values in edited_cells.items():
+        for col_label, new_value in updated_values.items():
+            # Sử dụng .loc để cập nhật giá trị tại đúng vị trí
+            if row_label in full_df.index and col_label in full_df.columns:
+                full_df.loc[row_label, col_label] = new_value
+
+    # BƯỚC 3: Bây giờ full_df đã là phiên bản mới nhất.
+    # Chuyển đổi nó trở lại thành định dạng chuỗi để lưu trữ vào session_state.
     cach_ke = st.session_state.input_data['cach_ke']
-    # Cập nhật lại chuỗi text dựa trên cách kê khai
     if cach_ke == 'Kê theo MĐ, MH':
-        clean_series = edited_df.loc['Số tiết'].fillna(0).astype(int)
-        st.session_state.input_data['tiet'] = ' '.join(clean_series.astype(str))
-    else:
-        clean_lt = edited_df.loc['Tiết LT'].fillna(0).astype(int)
-        clean_th = edited_df.loc['Tiết TH'].fillna(0).astype(int)
-        st.session_state.input_data['tiet_lt'] = ' '.join(clean_lt.astype(str))
-        st.session_state.input_data['tiet_th'] = ' '.join(clean_th.astype(str))
+        if 'Số tiết' in full_df.index:
+            clean_series = full_df.loc['Số tiết'].fillna(0).astype(int)
+            st.session_state.input_data['tiet'] = ' '.join(clean_series.astype(str))
+    else: # 'Kê theo LT, TH chi tiết'
+        if 'Tiết LT' in full_df.index and 'Tiết TH' in full_df.index:
+            clean_lt = full_df.loc['Tiết LT'].fillna(0).astype(int)
+            clean_th = full_df.loc['Tiết TH'].fillna(0).astype(int)
+            st.session_state.input_data['tiet_lt'] = ' '.join(clean_lt.astype(str))
+            st.session_state.input_data['tiet_th'] = ' '.join(clean_th.astype(str))
+
 
 # --- KHỞI TẠO SESSION STATE ---
 if 'input_data' not in st.session_state:
@@ -343,4 +359,3 @@ try:
         st.warning("Không có dữ liệu để tính toán. Vui lòng kiểm tra lại các lựa chọn.")
 except Exception as e:
     st.error(f"Đã xảy ra lỗi không mong muốn trong quá trình tính toán: {e}")
-
