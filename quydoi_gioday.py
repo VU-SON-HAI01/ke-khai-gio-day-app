@@ -112,31 +112,6 @@ def create_tiet_editor_df(input_data):
     
     return df
 
-def update_input_data_from_df():
-    """Callback cho data_editor: Cập nhật input_data từ DataFrame đã chỉnh sửa."""
-    if 'tiet_editor' not in st.session_state:
-        return
-        
-    edited_cells = st.session_state.tiet_editor
-    full_df = create_tiet_editor_df(st.session_state.input_data)
-
-    for row_label, updated_values in edited_cells.items():
-        for col_label, new_value in updated_values.items():
-            if row_label in full_df.index and col_label in full_df.columns:
-                full_df.loc[row_label, col_label] = new_value
-
-    cach_ke = st.session_state.input_data['cach_ke']
-    if cach_ke == 'Kê theo MĐ, MH':
-        if 'Số tiết' in full_df.index:
-            clean_series = full_df.loc['Số tiết'].fillna(0).astype(int)
-            st.session_state.input_data['tiet'] = ' '.join(clean_series.astype(str))
-    else:
-        if 'Tiết LT' in full_df.index and 'Tiết TH' in full_df.index:
-            clean_lt = full_df.loc['Tiết LT'].fillna(0).astype(int)
-            clean_th = full_df.loc['Tiết TH'].fillna(0).astype(int)
-            st.session_state.input_data['tiet_lt'] = ' '.join(clean_lt.astype(str))
-            st.session_state.input_data['tiet_th'] = ' '.join(clean_th.astype(str))
-
 # --- CÁC HÀM CALLBACK CHO WIDGETS ---
 def handle_config_change(key_map):
     """Callback chung để cập nhật input_data từ các widget."""
@@ -263,12 +238,27 @@ st.radio(
 
 # --- BẢNG NHẬP LIỆU ---
 tiet_df_editable = create_tiet_editor_df(st.session_state.input_data)
+# Loại bỏ on_change và làm việc trực tiếp với dataframe trả về
 edited_df = st.data_editor(
     tiet_df_editable, 
     use_container_width=True, 
-    key="tiet_editor", 
-    on_change=update_input_data_from_df
+    key="tiet_editor"
 )
+
+# Cập nhật lại các chuỗi tiết trong session_state từ dataframe đã chỉnh sửa.
+# Cách làm này ổn định hơn việc dùng callback.
+cach_ke_state = st.session_state.input_data.get('cach_ke')
+if cach_ke_state == 'Kê theo MĐ, MH':
+    if 'Số tiết' in edited_df.index:
+        clean_series = edited_df.loc['Số tiết'].fillna(0).astype(int)
+        st.session_state.input_data['tiet'] = ' '.join(clean_series.astype(str))
+else: # 'Kê theo LT, TH chi tiết'
+    if 'Tiết LT' in edited_df.index and 'Tiết TH' in edited_df.index:
+        clean_lt = edited_df.loc['Tiết LT'].fillna(0).astype(int)
+        clean_th = edited_df.loc['Tiết TH'].fillna(0).astype(int)
+        st.session_state.input_data['tiet_lt'] = ' '.join(clean_lt.astype(str))
+        st.session_state.input_data['tiet_th'] = ' '.join(clean_th.astype(str))
+
 
 # --- BẢNG HIỂN THỊ TỔNG VÀ SO SÁNH ---
 st.markdown("---")
