@@ -54,6 +54,12 @@ if uploaded_file is not None:
                 schedule_data = df.iloc[3:, [1, 2, col_idx]].copy()
                 schedule_data.columns = ['Thứ', 'Tiết', 'Môn học']
 
+                # --- BƯỚC GỠ LỖI: HIỂN THỊ DỮ LIỆU THÔ ---
+                with st.expander("🔍 Kiểm tra dữ liệu thô được trích xuất (trước khi xử lý)"):
+                    st.write("Bảng dưới đây là dữ liệu được đọc trực tiếp từ các cột 'Thứ', 'Tiết' và cột của lớp bạn đã chọn. **Hãy kiểm tra xem dữ liệu ở đây có khớp với file Excel của bạn không.** Nếu dữ liệu ở đây bị sai, nghĩa là chương trình đã đọc file không chính xác.")
+                    st.dataframe(schedule_data)
+
+
                 # --- LÀM SẠCH VÀ MỞ RỘNG DỮ LIỆU (LOGIC MỚI) ---
                 # 1. Điền các giá trị 'Thứ' bị trống
                 schedule_data['Thứ'] = schedule_data['Thứ'].ffill()
@@ -93,7 +99,7 @@ if uploaded_file is not None:
                 expanded_schedule = pd.DataFrame(expanded_rows)
 
                 if expanded_schedule.empty:
-                    st.warning("Không tìm thấy dữ liệu thời khóa biểu hợp lệ cho lớp đã chọn.")
+                    st.warning("Không tìm thấy dữ liệu thời khóa biểu hợp lệ cho lớp đã chọn sau khi xử lý. Vui lòng kiểm tra dữ liệu thô ở trên.")
                     st.stop()
 
                 # --- Tái cấu trúc DataFrame ---
