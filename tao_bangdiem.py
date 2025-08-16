@@ -6,7 +6,56 @@ from openpyxl.styles import Border, Side, Font
 import io
 import re
 
+# --- THƯ VIỆN MỚI ĐỂ KẾT NỐI GOOGLE DRIVE ---
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
+from google.oauth2.service_account import Credentials
+
 # --- CÁC HÀM HỖ TRỢ ---
+
+# --- HÀM MỚI: TẢI FILE LÊN GOOGLE DRIVE ---
+def upload_file_to_drive(file_object, file_name):
+    """
+    Xác thực và tải một file (từ st.file_uploader) lên thư mục cụ thể trên Google Drive.
+    """
+    FOLDER_NAME = "TẠO BẢNG ĐIỂM"
+    try:
+        # Xác thực bằng Streamlit Secrets
+        scopes = ['https://www.googleapis.com/auth/drive']
+        credentials = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"], scopes=scopes
+        )
+        gauth = GoogleAuth()
+        gauth.credentials = credentials
+        drive = GoogleDrive(gauth)
+
+        # 1. Tìm ID của thư mục "TẠO BẢNG ĐIỂM"
+        folder_query = f"title = '{FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        folder_list = drive.ListFile({'q': folder_query}).GetList()
+        
+        if not folder_list:
+            st.error(f"Không tìm thấy thư mục '{FOLDER_NAME}' trên Google Drive. Vui lòng tạo thư mục và chia sẻ với email service account.")
+            return
+
+        folder_id = folder_list[0]['id']
+
+        # 2. Tạo file trên Drive và tải nội dung lên
+        # Đặt lại con trỏ của file object về đầu
+        file_object.seek(0)
+        
+        drive_file = drive.CreateFile({
+            'title': file_name,
+            'parents': [{'id': folder_id}]
+        })
+        drive_file.SetContentIO(file_object)
+        drive_file.Upload()
+        
+        st.toast(f"✅ Đã lưu '{file_name}' vào Google Drive!", icon="📄")
+
+    except Exception as e:
+        st.error(f"Lỗi khi tải file lên Google Drive: {e}")
+        st.warning("Hãy chắc chắn rằng bạn đã cấu hình file secrets.toml và chia sẻ thư mục Drive đúng cách.")
+
 
 def find_student_data_in_sheet(worksheet):
     """
@@ -367,18 +416,28 @@ with left_column:
         type=['xlsx'],
         key="template_uploader"
     )
+    # --- THAY ĐỔI: GỌI HÀM UPLOAD DRIVE ---
+    if uploaded_template_file:
+        upload_file_to_drive(uploaded_template_file, "1_Template_" + uploaded_template_file.name)
 
     uploaded_danh_muc_file = st.file_uploader(
         "2. 📂 Tải lên File Danh mục Lớp (DS LOP(Mau).xlsx)",
         type=['xlsx'],
         key="danh_muc_uploader"
     )
+    # --- THAY ĐỔI: GỌI HÀM UPLOAD DRIVE ---
+    if uploaded_danh_muc_file:
+        upload_file_to_drive(uploaded_danh_muc_file, "2_DanhMuc_" + uploaded_danh_muc_file.name)
 
     uploaded_data_file = st.file_uploader(
         "3. 📂 Tải lên File Dữ Liệu HSSV (.xlsx)",
         type=['xlsx'],
         key="data_uploader"
     )
+    # --- THAY ĐỔI: GỌI HÀM UPLOAD DRIVE ---
+    if uploaded_data_file:
+        upload_file_to_drive(uploaded_data_file, "3_Data_" + uploaded_data_file.name)
+
     
 with right_column:
     st.header("Bước 2: Kiểm tra & Xử lý")
@@ -444,3 +503,4 @@ with right_column:
             )
         
         st.warning("Lưu ý: Các file này sẽ bị xóa nếu bạn tải lên file mới và xử lý lại.")
+
