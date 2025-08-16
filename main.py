@@ -337,6 +337,11 @@ else:
             except Exception as e:
                 st.error(f"Không thể tải danh sách giáo viên: {e}")
 
+        with st.expander("BẢNG ĐIỂM"):
+            pages = {
+                "Tạo Bảng điểm": [st.Page("tao_bangdiem.py.py", title="Tạo File bảng điểm")]
+            }
+
     else:
         # GIAO DIỆN CỦA USER THƯỜNG
         if 'initialized' not in st.session_state:
