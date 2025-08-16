@@ -127,12 +127,20 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         # --- XỬ LÝ SHEET "Bang diem qua trinh" ---
         try:
             output_sheet_qt = output_workbook["Bang diem qua trinh"]
+            # *** BẢO VỆ SHEET ***
+            output_sheet_qt.protection.set_password('PDT')
         except KeyError:
             st.error("Lỗi: File mẫu không chứa sheet có tên 'Bang diem qua trinh'.")
             return {}
 
+        # Chuyển đổi học kỳ sang số
+        try:
+            hoc_ky_numeric = int(hoc_ky)
+        except (ValueError, TypeError):
+            hoc_ky_numeric = hoc_ky # Giữ nguyên nếu không chuyển đổi được
+
         output_sheet_qt.cell(row=2, column=9).value = sheet_name
-        output_sheet_qt.cell(row=3, column=9).value = hoc_ky
+        output_sheet_qt.cell(row=3, column=9).value = hoc_ky_numeric # Sử dụng giá trị số
         output_sheet_qt.cell(row=4, column=9).value = nam_hoc
         output_sheet_qt.cell(row=3, column=28).value = cap_nhat
         output_sheet_qt.cell(row=2, column=20).value = nganh_nghe
@@ -197,8 +205,6 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                     source_cell = output_sheet_qt.cell(row=QT_STYLE_ROW, column=col_idx)
                     new_cell = output_sheet_qt.cell(row=row_idx, column=col_idx)
                     if source_cell.has_style:
-                        # *** SỬA LỖI FONT ***
-                        # Sao chép font gốc nhưng đặt lại bold và italic
                         new_cell.font = Font(name=source_cell.font.name,
                                             size=source_cell.font.size,
                                             color=source_cell.font.color,
@@ -239,6 +245,8 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         # --- XỬ LÝ SHEET "Bang diem thi" ---
         try:
             output_sheet_thi = output_workbook["Bang diem thi"]
+            # *** BẢO VỆ SHEET ***
+            output_sheet_thi.protection.set_password('PDT')
             
             THI_DATA_START_ROW = 10
             THI_TEMPLATE_ROW = 11
@@ -266,7 +274,6 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
 
                     if col_idx in template_styles:
                         source_cell_for_style = template_styles[col_idx]
-                        # *** SỬA LỖI FONT ***
                         target_cell.font = Font(name=source_cell_for_style.font.name,
                                             size=source_cell_for_style.font.size,
                                             color=source_cell_for_style.font.color,
@@ -392,7 +399,7 @@ with right_column:
         for file_name_prefix, file_data in st.session_state.generated_files.items():
             final_file_name = f"{file_name_prefix}_BangDiem.xlsx"
             st.download_button(
-                label=f"� Tải xuống {final_file_name}",
+                label=f"📄 Tải xuống {final_file_name}",
                 data=file_data,
                 file_name=final_file_name,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
