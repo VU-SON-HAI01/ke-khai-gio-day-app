@@ -77,6 +77,31 @@ def find_student_data_in_sheet(worksheet):
     return pd.DataFrame(student_data)
 
 
+def check_data_consistency(data_file, danh_muc_file):
+    """
+    Kiểm tra sự khớp nhau giữa các sheet trong file dữ liệu và danh mục lớp.
+    """
+    try:
+        xls_data = pd.ExcelFile(data_file)
+        data_sheet_names = set(xls_data.sheet_names)
+
+        xls_danh_muc = pd.ExcelFile(danh_muc_file)
+        if "DANH_MUC" not in xls_danh_muc.sheet_names:
+            st.error("File Danh mục thiếu sheet 'DANH_MUC'.")
+            return None, None
+        
+        df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
+        valid_class_names = set(df_danh_muc.iloc[:, 1].dropna().astype(str))
+
+        sheets_not_in_danh_muc = data_sheet_names - valid_class_names
+        danh_muc_not_in_sheets = valid_class_names - data_sheet_names
+
+        return sheets_not_in_danh_muc, danh_muc_not_in_sheets
+    except Exception as e:
+        st.error(f"Lỗi khi kiểm tra dữ liệu: {e}")
+        return None, None
+
+
 def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc, cap_nhat):
     """
     Hàm chính để xử lý, chèn dữ liệu từ file data vào file template.
@@ -356,10 +381,29 @@ with left_column:
     )
     
 with right_column:
+    st.header("Bước 2: Kiểm tra & Xử lý")
+    
+    # Container để hiển thị kết quả kiểm tra
+    check_results_placeholder = st.container()
+
+    if uploaded_data_file and uploaded_danh_muc_file:
+        if st.button("🔍 Kiểm tra dữ liệu", use_container_width=True):
+            sheets_not_in_danh_muc, danh_muc_not_in_sheets = check_data_consistency(uploaded_data_file, uploaded_danh_muc_file)
+            
+            with check_results_placeholder:
+                if sheets_not_in_danh_muc is not None:
+                    if not sheets_not_in_danh_muc and not danh_muc_not_in_sheets:
+                        st.success("✅ Dữ liệu hợp lệ! Tất cả các sheet đều khớp với danh mục.")
+                    
+                    if sheets_not_in_danh_muc:
+                        st.warning("⚠️ Các sheet sau có trong file dữ liệu nhưng không có trong danh mục và sẽ bị bỏ qua:")
+                        st.json(list(sheets_not_in_danh_muc))
+                    
+                    if danh_muc_not_in_sheets:
+                        st.info("ℹ️ Các lớp sau có trong danh mục nhưng không có sheet tương ứng trong file dữ liệu:")
+                        st.json(list(danh_muc_not_in_sheets))
+
     if uploaded_template_file and uploaded_data_file and uploaded_danh_muc_file:
-        st.header("Bước 2: Bắt đầu xử lý")
-        st.markdown("Nhấn nút bên dưới để bắt đầu quá trình xử lý.")
-        
         if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True):
             try:
                 with st.spinner("Đang xử lý... Vui lòng chờ trong giây lát."):
