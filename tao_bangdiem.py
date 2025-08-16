@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import openpyxl
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import Border, Side
 import io
 
 # --- CÁC HÀM HỖ TRỢ ---
@@ -96,24 +97,23 @@ def process_excel_files(template_file, data_file):
         NAME_COL = 3
         DOB_COL = 5
         FORMULA_START_COL = 16
-        # *** THAY ĐỔI: Xác định dòng mẫu để sao chép định dạng ***
         STYLE_TEMPLATE_ROW_INDEX = 9
+        EXTRA_BLANK_ROWS = 2 
+        BORDER_END_COL = 30
 
         # --- XỬ LÝ CHÈN DÒNG VÀ SAO CHÉP FORMAT ---
         num_students = len(df_sheet_data)
-        rows_to_insert = num_students - TEMPLATE_STUDENT_ROWS
+        total_rows_needed = num_students + EXTRA_BLANK_ROWS
+        rows_to_insert = total_rows_needed - TEMPLATE_STUDENT_ROWS
         
         if rows_to_insert > 0:
-            # 1. Chèn các dòng trống vào cuối danh sách HSSV hiện có
             output_sheet.insert_rows(INSERT_BEFORE_ROW, amount=rows_to_insert)
             
-            # 2. Sao chép định dạng từ dòng mẫu (dòng 9) cho các dòng mới được chèn
             for row_idx in range(INSERT_BEFORE_ROW, INSERT_BEFORE_ROW + rows_to_insert):
                 for col_idx in range(1, output_sheet.max_column + 1):
                     source_cell = output_sheet.cell(row=STYLE_TEMPLATE_ROW_INDEX, column=col_idx)
                     new_cell = output_sheet.cell(row=row_idx, column=col_idx)
                     
-                    # Sao chép toàn bộ style của cell
                     if source_cell.has_style:
                         new_cell.font = source_cell.font.copy()
                         new_cell.border = source_cell.border.copy()
@@ -130,7 +130,8 @@ def process_excel_files(template_file, data_file):
             if cell.value and str(cell.value).startswith('='):
                 formulas[col] = cell.value
 
-        for row_num in range(START_ROW, START_ROW + num_students):
+        # Áp dụng công thức cho cả các dòng dữ liệu và dòng trống
+        for row_num in range(START_ROW, START_ROW + total_rows_needed):
             for col_num, formula_str in formulas.items():
                 new_formula = formula_str.replace(str(START_ROW), str(row_num))
                 output_sheet.cell(row=row_num, column=col_num).value = new_formula
@@ -141,6 +142,26 @@ def process_excel_files(template_file, data_file):
             output_sheet.cell(row=current_row_index, column=STT_COL).value = i + 1
             output_sheet.cell(row=current_row_index, column=NAME_COL).value = student_row["HỌ VÀ TÊN"]
             output_sheet.cell(row=current_row_index, column=DOB_COL).value = student_row["NGÀY SINH"]
+
+        # --- THÊM BORDER DOUBLE LINE ---
+        # Dòng cuối cùng của dữ liệu (bao gồm cả dòng trống)
+        last_data_row = START_ROW + total_rows_needed - 1
+        
+        # Tạo style border
+        double_line_side = Side(style='double')
+        
+        # Áp dụng border cho các ô từ cột 1 đến 30 của dòng cuối cùng
+        for col_idx in range(1, BORDER_END_COL + 1):
+            cell_to_border = output_sheet.cell(row=last_data_row, column=col_idx)
+            
+            # Giữ lại các border khác và chỉ cập nhật/thêm border dưới
+            existing_border = cell_to_border.border
+            cell_to_border.border = Border(
+                left=existing_border.left,
+                right=existing_border.right,
+                top=existing_border.top,
+                bottom=double_line_side
+            )
 
         # Lưu workbook đã xử lý vào buffer bộ nhớ
         output_buffer = io.BytesIO()
