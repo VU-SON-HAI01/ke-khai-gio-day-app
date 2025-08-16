@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import openpyxl
-from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.styles import Border, Side
 import io
 import re
@@ -45,37 +45,28 @@ def find_student_data_in_sheet(worksheet):
         dob_cell = row[dob_col_index - 1]
 
         # --- LOGIC DỪNG ĐÃ CẬP NHẬT ---
-        # Kiểm tra xem ô họ và tên có được coi là "trống" không
         first_name_is_empty = (first_name_cell is None or str(first_name_cell).strip() == '' or 
                                isinstance(first_name_cell, (int, float)))
-        # Kiểm tra xem ô tên riêng có được coi là "trống" không
         last_name_is_empty = (last_name_cell is None or str(last_name_cell).strip() == '' or 
                               isinstance(last_name_cell, (int, float)))
 
-        # Chỉ dừng lại khi CẢ HAI ô tên đều trống
         if first_name_is_empty and last_name_is_empty:
             break
             
         # --- CHUẨN HÓA DỮ LIỆU ---
-        # 1. Chuẩn hóa tên: Xóa khoảng trắng thừa
         first_name_str = re.sub(r'\s+', ' ', str(first_name_cell or '')).strip()
         last_name_str = re.sub(r'\s+', ' ', str(last_name_cell or '')).strip()
         full_name = f"{first_name_str} {last_name_str}".strip()
 
-        # 2. Chuẩn hóa ngày sinh: Chuyển đổi sang định dạng dd/mm/yyyy
         formatted_dob = ''
         if dob_cell is not None:
             try:
-                # pd.to_datetime rất linh hoạt trong việc đọc các định dạng khác nhau
                 dt_object = pd.to_datetime(dob_cell, errors='coerce')
                 if pd.notna(dt_object):
-                    # Nếu chuyển đổi thành công, định dạng lại
                     formatted_dob = dt_object.strftime('%d/%m/%Y')
                 else:
-                    # Nếu không thể chuyển đổi, giữ lại giá trị gốc dưới dạng text
                     formatted_dob = str(dob_cell).strip()
             except Exception:
-                # Xử lý các trường hợp lỗi khác
                 formatted_dob = str(dob_cell).strip()
         
         student_data.append({
@@ -86,26 +77,41 @@ def find_student_data_in_sheet(worksheet):
     return pd.DataFrame(student_data)
 
 
-def process_excel_files(template_file, data_file):
+def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc, cap_nhat):
     """
     Hàm chính để xử lý, chèn dữ liệu từ file data vào file template.
     """
     generated_files = {}
     
-    # Đọc toàn bộ file dữ liệu bằng openpyxl để xử lý linh hoạt
+    # --- Tải dữ liệu từ file Danh mục ---
+    try:
+        df_danh_muc = pd.read_excel(danh_muc_file, sheet_name="DANH_MUC")
+        # Đọc sheet DATA_GOC với header ở dòng thứ 2 (index=1)
+        df_data_goc = pd.read_excel(danh_muc_file, sheet_name="DATA_GOC", header=1)
+    except Exception as e:
+        st.error(f"Lỗi khi đọc File Danh mục Lớp (DS LOP(Mau).xlsx): {e}")
+        return {}
+        
     data_workbook = openpyxl.load_workbook(data_file, data_only=True)
     
     for sheet_name in data_workbook.sheetnames:
         worksheet = data_workbook[sheet_name]
 
-        # --- TRÍCH XUẤT DỮ LIỆU ĐỘNG ---
         df_sheet_data = find_student_data_in_sheet(worksheet)
         
         if df_sheet_data is None or df_sheet_data.empty:
             st.warning(f"Không tìm thấy dữ liệu học sinh hợp lệ trong sheet '{sheet_name}'. Bỏ qua sheet này.")
             continue
 
-        # Tải bản sao của file mẫu vào bộ nhớ cho mỗi lần lặp
+        # --- Tra cứu thông tin ngành nghề và mã nghề ---
+        class_info = df_danh_muc[df_danh_muc.iloc[:, 1] == sheet_name] # Cột B là cột thứ 2 (index 1)
+        if class_info.empty:
+            st.warning(f"Không tìm thấy thông tin cho lớp '{sheet_name}' trong sheet DANH_MUC. Bỏ qua.")
+            continue
+        
+        nganh_nghe = class_info.iloc[0, 3] # Cột D (index 3)
+        ma_nghe = str(class_info.iloc[0, 4]) # Cột E (index 4)
+
         template_file.seek(0)
         output_workbook = openpyxl.load_workbook(template_file)
         
@@ -114,6 +120,35 @@ def process_excel_files(template_file, data_file):
         except KeyError:
             st.error("Lỗi: File mẫu không chứa sheet có tên 'Bang diem qua trinh'.")
             return {}
+
+        # --- ĐIỀN THÔNG TIN CHUNG VÀO FILE MẪU ---
+        output_sheet.cell(row=2, column=9).value = sheet_name    # Tên Lớp -> I2
+        output_sheet.cell(row=3, column=9).value = hoc_ky        # Học kỳ -> I3
+        output_sheet.cell(row=4, column=9).value = nam_hoc       # Năm học -> I4
+        output_sheet.cell(row=3, column=29).value = cap_nhat     # Cập nhật -> AC3
+        output_sheet.cell(row=2, column=20).value = nganh_nghe   # Ngành nghề -> T2
+
+        # --- TẠO DATA VALIDATION CHO MÔN HỌC ---
+        list_mon_hoc = []
+        target_col_name = None
+        for col in df_data_goc.columns:
+            if ma_nghe in str(col):
+                target_col_name = col
+                break
+        
+        if target_col_name:
+            list_mon_hoc = df_data_goc[target_col_name].dropna().astype(str).tolist()
+        else:
+            st.warning(f"Không tìm thấy cột môn học cho mã nghề '{ma_nghe}' trong sheet DATA_GOC.")
+
+        if list_mon_hoc:
+            dv = DataValidation(type="list", formula1=f'"{",".join(list_mon_hoc)}"', allow_blank=True)
+            dv.error = 'Giá trị không hợp lệ.'
+            dv.errorTitle = 'Dữ liệu không hợp lệ'
+            dv.prompt = 'Vui lòng chọn từ danh sách'
+            dv.promptTitle = 'Chọn Môn học'
+            output_sheet.add_data_validation(dv)
+            dv.add('V1') # Thêm validation vào ô V1
 
         # --- CÁC THAM SỐ CẤU HÌNH ---
         START_ROW = 7
@@ -156,7 +191,6 @@ def process_excel_files(template_file, data_file):
             if cell.value and str(cell.value).startswith('='):
                 formulas[col] = cell.value
 
-        # Áp dụng công thức cho cả các dòng dữ liệu và dòng trống
         for row_num in range(START_ROW, START_ROW + total_rows_needed):
             for col_num, formula_str in formulas.items():
                 new_formula = formula_str.replace(str(START_ROW), str(row_num))
@@ -183,7 +217,6 @@ def process_excel_files(template_file, data_file):
                 bottom=double_line_side
             )
 
-        # Lưu workbook đã xử lý vào buffer bộ nhớ
         output_buffer = io.BytesIO()
         output_workbook.save(output_buffer)
         generated_files[sheet_name] = output_buffer.getvalue()
@@ -198,30 +231,42 @@ st.markdown("---")
 if 'generated_files' not in st.session_state:
     st.session_state.generated_files = {}
 
+st.header("Thông tin chung")
+col1, col2, col3 = st.columns(3)
+with col1:
+    hoc_ky_input = st.text_input("Học kỳ", value="1")
+with col2:
+    nam_hoc_input = st.text_input("Năm học", value="2024-2025")
+with col3:
+    cap_nhat_input = st.text_input("Cập nhật", value="T8-2025")
+st.markdown("---")
+
 left_column, right_column = st.columns((1, 1), gap="large")
 
 with left_column:
     st.header("Bước 1: Tải lên các file cần thiết")
-    st.markdown("""
-    1.  **Tải File Mẫu Bảng Điểm**: Tải lên file `Bang diem (Mau).xlsx` của bạn.
-    2.  **Tải Dữ Liệu HSSV**: Tải lên file Excel chứa danh sách học sinh.
-    """)
-
+    
     uploaded_template_file = st.file_uploader(
-        "📂 Tải lên File Mẫu Bảng Điểm (.xlsx)",
+        "1. 📂 Tải lên File Mẫu Bảng Điểm (.xlsx)",
         type=['xlsx'],
         key="template_uploader"
     )
 
+    uploaded_danh_muc_file = st.file_uploader(
+        "2. 📂 Tải lên File Danh mục Lớp (DS LOP(Mau).xlsx)",
+        type=['xlsx'],
+        key="danh_muc_uploader"
+    )
+
     uploaded_data_file = st.file_uploader(
-        "📂 Tải lên File Dữ Liệu HSSV (.xlsx)",
+        "3. 📂 Tải lên File Dữ Liệu HSSV (.xlsx)",
         type=['xlsx'],
         key="data_uploader"
     )
     
     st.markdown("---")
     
-    if uploaded_template_file and uploaded_data_file:
+    if uploaded_template_file and uploaded_data_file and uploaded_danh_muc_file:
         st.header("Bước 2: Bắt đầu xử lý")
         st.markdown("Nhấn nút bên dưới để bắt đầu quá trình xử lý.")
         
@@ -230,7 +275,11 @@ with left_column:
                 with st.spinner("Đang xử lý... Vui lòng chờ trong giây lát."):
                     st.session_state.generated_files = process_excel_files(
                         uploaded_template_file, 
-                        uploaded_data_file
+                        uploaded_data_file,
+                        uploaded_danh_muc_file,
+                        hoc_ky_input,
+                        nam_hoc_input,
+                        cap_nhat_input
                     )
                 
                 if st.session_state.generated_files:
@@ -245,7 +294,7 @@ with right_column:
     st.header("Bước 3: Tải xuống kết quả")
     
     if not st.session_state.generated_files:
-        st.info("Chưa có file nào được tạo. Vui lòng tải lên cả 2 file và nhấn nút 'Xử lý'.")
+        st.info("Chưa có file nào được tạo. Vui lòng tải lên cả 3 file và nhấn nút 'Xử lý'.")
     else:
         st.markdown(f"Đã tạo thành công **{len(st.session_state.generated_files)}** file. Nhấn vào các nút bên dưới để tải về:")
         
