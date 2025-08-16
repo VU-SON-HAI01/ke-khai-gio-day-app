@@ -85,20 +85,16 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
     
     # --- Tải dữ liệu từ file Danh mục (Cải tiến để chống lỗi) ---
     try:
-        # Tạo một đối tượng ExcelFile để kiểm tra các sheet trước
         xls_danh_muc = pd.ExcelFile(danh_muc_file)
         
-        # Kiểm tra sự tồn tại của sheet 'DANH_MUC'
         if "DANH_MUC" not in xls_danh_muc.sheet_names:
             st.error(f"Lỗi: Không tìm thấy sheet 'DANH_MUC' trong file DS LOP(Mau).xlsx. Các sheet có sẵn: {xls_danh_muc.sheet_names}")
             return {}
         
-        # Kiểm tra sự tồn tại của sheet 'DATA_GOC'
         if "DATA_GOC" not in xls_danh_muc.sheet_names:
             st.error(f"Lỗi: Không tìm thấy sheet 'DATA_GOC' trong file DS LOP(Mau).xlsx. Các sheet có sẵn: {xls_danh_muc.sheet_names}")
             return {}
             
-        # Nếu các sheet tồn tại, tiến hành đọc
         df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
         df_data_goc = pd.read_excel(xls_danh_muc, sheet_name="DATA_GOC", header=1)
 
@@ -117,14 +113,13 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
             st.warning(f"Không tìm thấy dữ liệu học sinh hợp lệ trong sheet '{sheet_name}'. Bỏ qua sheet này.")
             continue
 
-        # --- Tra cứu thông tin ngành nghề và mã nghề ---
-        class_info = df_danh_muc[df_danh_muc.iloc[:, 1] == sheet_name] # Cột B là cột thứ 2 (index 1)
+        class_info = df_danh_muc[df_danh_muc.iloc[:, 1] == sheet_name]
         if class_info.empty:
             st.warning(f"Không tìm thấy thông tin cho lớp '{sheet_name}' trong sheet DANH_MUC. Bỏ qua.")
             continue
         
-        nganh_nghe = class_info.iloc[0, 3] # Cột D (index 3)
-        ma_nghe = str(class_info.iloc[0, 4]) # Cột E (index 4)
+        nganh_nghe = class_info.iloc[0, 3]
+        ma_nghe = str(class_info.iloc[0, 4])
 
         template_file.seek(0)
         output_workbook = openpyxl.load_workbook(template_file)
@@ -136,13 +131,13 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
             return {}
 
         # --- ĐIỀN THÔNG TIN CHUNG VÀO FILE MẪU ---
-        output_sheet.cell(row=2, column=9).value = sheet_name    # Tên Lớp -> I2
-        output_sheet.cell(row=3, column=9).value = hoc_ky        # Học kỳ -> I3
-        output_sheet.cell(row=4, column=9).value = nam_hoc       # Năm học -> I4
-        output_sheet.cell(row=3, column=29).value = cap_nhat     # Cập nhật -> AC3
-        output_sheet.cell(row=2, column=20).value = nganh_nghe   # Ngành nghề -> T2
+        output_sheet.cell(row=2, column=9).value = sheet_name
+        output_sheet.cell(row=3, column=9).value = hoc_ky
+        output_sheet.cell(row=4, column=9).value = nam_hoc
+        output_sheet.cell(row=3, column=28).value = cap_nhat
+        output_sheet.cell(row=2, column=20).value = nganh_nghe
 
-        # --- TẠO DATA VALIDATION CHO MÔN HỌC ---
+        # --- TẠO DATA VALIDATION CHO MÔN HỌC (SỬ DỤNG SHEET DSMON) ---
         list_mon_hoc = []
         target_col_name = None
         for col in df_data_goc.columns:
@@ -156,13 +151,33 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
             st.warning(f"Không tìm thấy cột môn học cho mã nghề '{ma_nghe}' trong sheet DATA_GOC.")
 
         if list_mon_hoc:
-            dv = DataValidation(type="list", formula1=f'"{",".join(list_mon_hoc)}"', allow_blank=True)
+            dv_sheet_name = "DSMON"
+            try:
+                dv_sheet = output_workbook[dv_sheet_name]
+                if dv_sheet.max_row > 1:
+                    dv_sheet.delete_rows(2, dv_sheet.max_row) 
+            except KeyError:
+                st.warning(f"File mẫu không có sheet '{dv_sheet_name}'. Sẽ tạo một sheet mới.")
+                dv_sheet = output_workbook.create_sheet(dv_sheet_name)
+                dv_sheet.cell(row=1, column=1).value = "STT"
+                dv_sheet.cell(row=1, column=2).value = "DSMON"
+
+            for i, mon_hoc in enumerate(list_mon_hoc, 1):
+                row_index = i + 1
+                dv_sheet.cell(row=row_index, column=1).value = i
+                dv_sheet.cell(row=row_index, column=2).value = mon_hoc
+                
+            formula = f"'{dv_sheet_name}'!$B$2:$B${len(list_mon_hoc) + 1}" 
+            
+            dv = DataValidation(type="list", formula1=formula, allow_blank=True)
             dv.error = 'Giá trị không hợp lệ.'
             dv.errorTitle = 'Dữ liệu không hợp lệ'
             dv.prompt = 'Vui lòng chọn từ danh sách'
             dv.promptTitle = 'Chọn Môn học'
             output_sheet.add_data_validation(dv)
-            dv.add('V1') # Thêm validation vào ô V1
+            dv.add('V1')
+
+            dv_sheet.sheet_state = 'hidden'
 
         # --- CÁC THAM SỐ CẤU HÌNH ---
         START_ROW = 7
@@ -315,7 +330,7 @@ with right_column:
         for file_name_prefix, file_data in st.session_state.generated_files.items():
             final_file_name = f"{file_name_prefix}_BangDiem.xlsx"
             st.download_button(
-                label=f"📄 Tải xuống {final_file_name}",
+                label=f"� Tải xuống {final_file_name}",
                 data=file_data,
                 file_name=final_file_name,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -323,3 +338,4 @@ with right_column:
             )
         
         st.warning("Lưu ý: Các file này sẽ bị xóa nếu bạn tải lên file mới và xử lý lại.")
+�
