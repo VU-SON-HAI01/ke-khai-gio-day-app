@@ -339,7 +339,7 @@ else:
         # --- ĐIỀU HƯỚNG TRANG CHO ADMIN ---
         # Logic này được đặt trong khối if của Admin để chỉ Admin mới thấy
         pages = {
-            "CẬP NHẬT BẢNG ĐIỂM": [st.Page("tao_bangdiem.py", title="BẢNG ĐIỂM")]
+            "CẬP NHẬT BẢNG ĐIỂM": [st.Page("tao_bangdiem.py", title="BẢNG ĐIỂM")],
             "THỜI KHÓA BIỂU": [st.Page("thoi_khoa_bieu.py", title="THỜI KHÓA BIỂU")]
         }
         pg = st.navigation(pages)
