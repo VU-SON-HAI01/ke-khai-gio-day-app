@@ -14,7 +14,7 @@ def find_student_data_in_sheet(worksheet):
     - Tự động tìm dòng header dựa vào 'Họ và tên'.
     - Chuẩn hóa và ghép 2 cột họ và tên.
     - Chuẩn hóa và định dạng cột ngày sinh.
-    - Dừng lại khi cột 'Họ và tên' trống hoặc chứa số.
+    - Dừng lại khi CẢ HAI cột họ và tên đều trống hoặc chứa số.
     - Trả về một DataFrame.
     """
     header_row_index = -1
@@ -44,9 +44,16 @@ def find_student_data_in_sheet(worksheet):
         last_name_cell = row[last_name_col_index - 1]
         dob_cell = row[dob_col_index - 1]
 
-        # --- LOGIC DỪNG MỚI ---
-        if (first_name_cell is None or str(first_name_cell).strip() == '' or 
-            isinstance(first_name_cell, (int, float))):
+        # --- LOGIC DỪNG ĐÃ CẬP NHẬT ---
+        # Kiểm tra xem ô họ và tên có được coi là "trống" không
+        first_name_is_empty = (first_name_cell is None or str(first_name_cell).strip() == '' or 
+                               isinstance(first_name_cell, (int, float)))
+        # Kiểm tra xem ô tên riêng có được coi là "trống" không
+        last_name_is_empty = (last_name_cell is None or str(last_name_cell).strip() == '' or 
+                              isinstance(last_name_cell, (int, float)))
+
+        # Chỉ dừng lại khi CẢ HAI ô tên đều trống
+        if first_name_is_empty and last_name_is_empty:
             break
             
         # --- CHUẨN HÓA DỮ LIỆU ---
