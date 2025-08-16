@@ -204,13 +204,13 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                         new_cell.protection = source_cell.protection.copy()
                         new_cell.alignment = source_cell.alignment.copy()
 
-        formulas = {}
+        formulas_qt = {}
         for col in range(16, output_sheet_qt.max_column + 1):
             cell = output_sheet_qt.cell(row=QT_START_ROW, column=col)
             if cell.value and str(cell.value).startswith('='):
-                formulas[col] = cell.value
+                formulas_qt[col] = cell.value
         for row_num in range(QT_START_ROW, QT_START_ROW + total_rows_needed):
-            for col_num, formula_str in formulas.items():
+            for col_num, formula_str in formulas_qt.items():
                 new_formula = formula_str.replace(str(QT_START_ROW), str(row_num))
                 output_sheet_qt.cell(row=row_num, column=col_num).value = new_formula
 
@@ -231,9 +231,10 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         try:
             output_sheet_thi = output_workbook["Bang diem thi"]
             
-            THI_TEMPLATE_STUDENT_ROWS = 5 # Giả định có 5 dòng mẫu
-            THI_INSERT_BEFORE_ROW = 15    # Chèn trước dòng 15
-            THI_STYLE_ROW = 11            # Lấy style từ dòng 11
+            THI_START_ROW = 10
+            THI_TEMPLATE_STUDENT_ROWS = 5
+            THI_INSERT_BEFORE_ROW = 15
+            THI_STYLE_ROW = 11
             
             rows_to_insert_thi = total_rows_needed - THI_TEMPLATE_STUDENT_ROWS
             if rows_to_insert_thi > 0:
@@ -249,6 +250,22 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                             new_cell.number_format = source_cell.number_format
                             new_cell.protection = source_cell.protection.copy()
                             new_cell.alignment = source_cell.alignment.copy()
+            
+            # *** BỔ SUNG: SAO CHÉP CÔNG THỨC CHO SHEET "Bang diem thi" ***
+            formulas_thi = {}
+            # Lấy công thức từ dòng mẫu (dòng 10 hoặc 11 đều được)
+            for col in range(1, output_sheet_thi.max_column + 1):
+                cell = output_sheet_thi.cell(row=THI_START_ROW, column=col)
+                if cell.value and str(cell.value).startswith('='):
+                    formulas_thi[col] = cell.value
+            
+            # Áp dụng công thức cho tất cả các dòng (bao gồm cả dòng trống)
+            for row_num in range(THI_START_ROW, THI_START_ROW + total_rows_needed):
+                for col_num, formula_str in formulas_thi.items():
+                    # Thay thế tham chiếu dòng trong công thức
+                    new_formula = formula_str.replace(str(THI_START_ROW), str(row_num))
+                    output_sheet_thi.cell(row=row_num, column=col_num).value = new_formula
+
         except KeyError:
             st.warning("File mẫu không chứa sheet 'Bang diem thi'. Bỏ qua xử lý sheet này.")
 
