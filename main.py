@@ -339,7 +339,7 @@ else:
 
         with st.expander("BẢNG ĐIỂM"):
             pages = {
-                "Tạo Bảng điểm": [st.Page("tao_bangdiem.py.py", title="Tạo File bảng điểm")]
+                "Tạo Bảng điểm": [st.Page("tao_bangdiem.py", title="Tạo File bảng điểm")]
             }
 
     else:
