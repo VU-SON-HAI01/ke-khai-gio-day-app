@@ -50,6 +50,7 @@ if uploaded_file is not None:
                 # Tìm vị trí (index) của cột tương ứng với lớp đã chọn
                 header_row_list = df.iloc[2].tolist()
                 try:
+                    # Tìm chỉ số cột của lớp được chọn
                     col_idx = header_row_list.index(selected_option)
                 except ValueError:
                     st.error(f"Không tìm thấy lớp '{selected_option}' trong dòng tiêu đề. Vui lòng kiểm tra lại file.")
@@ -96,16 +97,20 @@ if uploaded_file is not None:
                 tkb_final = tkb_final[final_columns_order].fillna('')
 
                 # --- Hiển thị Thời Khóa Biểu theo Buổi ---
+                st.write("Bảng kết quả sẽ có các cột là **Tiết**, **Thứ 2**, **Thứ 3**,... theo đúng yêu cầu của bạn.")
+                
                 # Buổi Sáng (Tiết 1 -> 5)
-                tkb_sang = tkb_final[tkb_final['Tiết'] <= 5].set_index('Tiết')
+                tkb_sang = tkb_final[tkb_final['Tiết'] <= 5]
                 st.write("#### ☀️ Buổi Sáng")
-                st.dataframe(tkb_sang, use_container_width=True)
+                # Ẩn cột index mặc định (0, 1, 2...) của dataframe để hiển thị đẹp hơn
+                st.dataframe(tkb_sang, use_container_width=True, hide_index=True)
 
                 # Buổi Chiều (Tiết 6 -> 9)
-                tkb_chieu = tkb_final[(tkb_final['Tiết'] >= 6) & (tkb_final['Tiết'] <= 9)].set_index('Tiết')
+                tkb_chieu = tkb_final[(tkb_final['Tiết'] >= 6) & (tkb_final['Tiết'] <= 9)]
                 if not tkb_chieu.empty:
                     st.write("#### 🌙 Buổi Chiều")
-                    st.dataframe(tkb_chieu, use_container_width=True)
+                    # Ẩn cột index mặc định (0, 1, 2...) của dataframe để hiển thị đẹp hơn
+                    st.dataframe(tkb_chieu, use_container_width=True, hide_index=True)
 
             # Hiển thị toàn bộ nội dung file gốc để người dùng đối chiếu
             with st.expander("Xem toàn bộ nội dung file gốc đã tải lên"):
@@ -118,4 +123,3 @@ if uploaded_file is not None:
     except Exception as e:
         # Hiển thị thông báo lỗi nếu có vấn đề xảy ra trong quá trình xử lý
         st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
-
