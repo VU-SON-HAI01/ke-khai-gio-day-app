@@ -12,7 +12,7 @@ def find_student_data_in_sheet(worksheet):
     """
     Tìm và trích xuất dữ liệu học sinh từ một sheet có cấu trúc không cố định.
     - Tự động tìm dòng header dựa vào 'Họ và tên'.
-    - Chuẩn hóa và ghép 2 cột họ và tên.
+    - Chuẩn hóa và tách riêng 2 cột họ và tên.
     - Chuẩn hóa và định dạng cột ngày sinh.
     - Dừng lại khi CẢ HAI cột họ và tên đều trống hoặc chứa số.
     - Trả về một DataFrame.
@@ -56,7 +56,6 @@ def find_student_data_in_sheet(worksheet):
         # --- CHUẨN HÓA DỮ LIỆU ---
         first_name_str = re.sub(r'\s+', ' ', str(first_name_cell or '')).strip()
         last_name_str = re.sub(r'\s+', ' ', str(last_name_cell or '')).strip()
-        full_name = f"{first_name_str} {last_name_str}".strip()
 
         formatted_dob = ''
         if dob_cell is not None:
@@ -70,7 +69,8 @@ def find_student_data_in_sheet(worksheet):
                 formatted_dob = str(dob_cell).strip()
         
         student_data.append({
-            "HỌ VÀ TÊN": full_name,
+            "HỌ": first_name_str,
+            "TÊN": last_name_str,
             "NGÀY SINH": formatted_dob
         })
 
@@ -217,7 +217,8 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         for i, student_row in df_sheet_data.iterrows():
             current_row_index = QT_START_ROW + i
             output_sheet_qt.cell(row=current_row_index, column=1).value = i + 1
-            output_sheet_qt.cell(row=current_row_index, column=3).value = student_row["HỌ VÀ TÊN"]
+            output_sheet_qt.cell(row=current_row_index, column=3).value = student_row["HỌ"] # Cột C
+            output_sheet_qt.cell(row=current_row_index, column=4).value = student_row["TÊN"] # Cột D
             output_sheet_qt.cell(row=current_row_index, column=5).value = student_row["NGÀY SINH"]
 
         last_data_row_qt = QT_START_ROW + total_rows_needed - 1
@@ -241,8 +242,6 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
             if rows_to_insert_thi > 0:
                 output_sheet_thi.insert_rows(THI_INSERT_BEFORE_ROW, amount=rows_to_insert_thi)
             
-            # *** LOGIC FILL ĐÃ CẬP NHẬT ***
-            # 1. Lấy style và công thức từ dòng mẫu (dòng 11)
             template_styles = {}
             template_formulas = {}
             for col_idx in range(1, THI_FILL_END_COL + 1):
@@ -252,12 +251,10 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                 if template_cell.value and str(template_cell.value).startswith('='):
                     template_formulas[col_idx] = template_cell.value
             
-            # 2. Áp dụng (fill) style và công thức cho tất cả các dòng cần thiết
             for row_num in range(THI_DATA_START_ROW, THI_DATA_START_ROW + total_rows_needed):
                 for col_idx in range(1, THI_FILL_END_COL + 1):
                     target_cell = output_sheet_thi.cell(row=row_num, column=col_idx)
 
-                    # Fill style
                     if col_idx in template_styles:
                         source_cell_for_style = template_styles[col_idx]
                         target_cell.font = source_cell_for_style.font.copy()
@@ -267,14 +264,18 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                         target_cell.protection = source_cell_for_style.protection.copy()
                         target_cell.alignment = source_cell_for_style.alignment.copy()
 
-                    # Fill formula
                     if col_idx in template_formulas:
                         formula_str = template_formulas[col_idx]
-                        # Điều chỉnh tham chiếu dòng trong công thức
                         new_formula = formula_str.replace(str(THI_TEMPLATE_ROW), str(row_num))
-                        # Xử lý trường hợp công thức tham chiếu đến dòng ngay trên nó (ví dụ: STT)
                         new_formula = new_formula.replace(str(THI_TEMPLATE_ROW - 1), str(row_num - 1))
                         target_cell.value = new_formula
+            
+            # Thêm đường kẻ đôi cho sheet "Bang diem thi"
+            last_data_row_thi = THI_DATA_START_ROW + total_rows_needed - 1
+            for col_idx in range(1, THI_FILL_END_COL + 1):
+                cell_to_border = output_sheet_thi.cell(row=last_data_row_thi, column=col_idx)
+                existing_border = cell_to_border.border
+                cell_to_border.border = Border(left=existing_border.left, right=existing_border.right, top=existing_border.top, bottom=double_line_side)
 
         except KeyError:
             st.warning("File mẫu không chứa sheet 'Bang diem thi'. Bỏ qua xử lý sheet này.")
