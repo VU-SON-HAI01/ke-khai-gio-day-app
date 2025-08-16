@@ -13,8 +13,10 @@ gspread-dataframe
 google-api-python-client
 google-auth-oauthlib
 google-auth-httplib2
+pydrive2
 
 # PDF Generation
 fpdf2
+
 
 
