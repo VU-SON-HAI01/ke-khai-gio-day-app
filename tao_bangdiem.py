@@ -83,11 +83,25 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
     """
     generated_files = {}
     
-    # --- Tải dữ liệu từ file Danh mục ---
+    # --- Tải dữ liệu từ file Danh mục (Cải tiến để chống lỗi) ---
     try:
-        df_danh_muc = pd.read_excel(danh_muc_file, sheet_name="DANH_MUC")
-        # Đọc sheet DATA_GOC với header ở dòng thứ 2 (index=1)
-        df_data_goc = pd.read_excel(danh_muc_file, sheet_name="DATA_GOC", header=1)
+        # Tạo một đối tượng ExcelFile để kiểm tra các sheet trước
+        xls_danh_muc = pd.ExcelFile(danh_muc_file)
+        
+        # Kiểm tra sự tồn tại của sheet 'DANH_MUC'
+        if "DANH_MUC" not in xls_danh_muc.sheet_names:
+            st.error(f"Lỗi: Không tìm thấy sheet 'DANH_MUC' trong file DS LOP(Mau).xlsx. Các sheet có sẵn: {xls_danh_muc.sheet_names}")
+            return {}
+        
+        # Kiểm tra sự tồn tại của sheet 'DATA_GOC'
+        if "DATA_GOC" not in xls_danh_muc.sheet_names:
+            st.error(f"Lỗi: Không tìm thấy sheet 'DATA_GOC' trong file DS LOP(Mau).xlsx. Các sheet có sẵn: {xls_danh_muc.sheet_names}")
+            return {}
+            
+        # Nếu các sheet tồn tại, tiến hành đọc
+        df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
+        df_data_goc = pd.read_excel(xls_danh_muc, sheet_name="DATA_GOC", header=1)
+
     except Exception as e:
         st.error(f"Lỗi khi đọc File Danh mục Lớp (DS LOP(Mau).xlsx): {e}")
         return {}
