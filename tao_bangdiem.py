@@ -124,20 +124,19 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         template_file.seek(0)
         output_workbook = openpyxl.load_workbook(template_file)
         
+        # --- XỬ LÝ SHEET "Bang diem qua trinh" ---
         try:
-            output_sheet = output_workbook["Bang diem qua trinh"]
+            output_sheet_qt = output_workbook["Bang diem qua trinh"]
         except KeyError:
             st.error("Lỗi: File mẫu không chứa sheet có tên 'Bang diem qua trinh'.")
             return {}
 
-        # --- ĐIỀN THÔNG TIN CHUNG VÀO FILE MẪU ---
-        output_sheet.cell(row=2, column=9).value = sheet_name
-        output_sheet.cell(row=3, column=9).value = hoc_ky
-        output_sheet.cell(row=4, column=9).value = nam_hoc
-        output_sheet.cell(row=3, column=28).value = cap_nhat
-        output_sheet.cell(row=2, column=20).value = nganh_nghe
+        output_sheet_qt.cell(row=2, column=9).value = sheet_name
+        output_sheet_qt.cell(row=3, column=9).value = hoc_ky
+        output_sheet_qt.cell(row=4, column=9).value = nam_hoc
+        output_sheet_qt.cell(row=3, column=28).value = cap_nhat
+        output_sheet_qt.cell(row=2, column=20).value = nganh_nghe
 
-        # --- TẠO DATA VALIDATION CHO MÔN HỌC (SỬ DỤNG SHEET DSMON) ---
         list_mon_hoc = []
         target_col_name = None
         for col in df_data_goc.columns:
@@ -154,9 +153,7 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
             dv_sheet_name = "DSMON"
             try:
                 dv_sheet = output_workbook[dv_sheet_name]
-                # Xóa dữ liệu cũ, giữ lại dòng tiêu đề (dòng 1)
                 if dv_sheet.max_row > 1:
-                    # Sửa lỗi: Tham số thứ 2 là số lượng dòng cần xóa
                     dv_sheet.delete_rows(idx=2, amount=dv_sheet.max_row - 1)
             except KeyError:
                 st.warning(f"File mẫu không có sheet '{dv_sheet_name}'. Sẽ tạo một sheet mới.")
@@ -164,13 +161,11 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                 dv_sheet.cell(row=1, column=1).value = "STT"
                 dv_sheet.cell(row=1, column=2).value = "DSMON"
 
-            # Ghi danh sách môn học mới vào sheet DSMON
             for i, mon_hoc in enumerate(list_mon_hoc, 1):
-                row_index = i + 1 # Bắt đầu ghi từ dòng 2
+                row_index = i + 1
                 dv_sheet.cell(row=row_index, column=1).value = i
                 dv_sheet.cell(row=row_index, column=2).value = mon_hoc
                 
-            # Tạo công thức tham chiếu đến danh sách trong sheet DSMON
             formula = f"'{dv_sheet_name}'!$B$2:$B${len(list_mon_hoc) + 1}" 
             
             dv = DataValidation(type="list", formula1=formula, allow_blank=True)
@@ -178,37 +173,29 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
             dv.errorTitle = 'Dữ liệu không hợp lệ'
             dv.prompt = 'Vui lòng chọn từ danh sách'
             dv.promptTitle = 'Chọn Môn học'
-            output_sheet.add_data_validation(dv)
+            output_sheet_qt.add_data_validation(dv)
             dv.add('V1')
-
-            # Ẩn sheet DSMON
             dv_sheet.sheet_state = 'hidden'
 
-        # --- CÁC THAM SỐ CẤU HÌNH ---
-        START_ROW = 7
-        TEMPLATE_STUDENT_ROWS = 5
-        INSERT_BEFORE_ROW = 12
-        STT_COL = 1
-        NAME_COL = 3
-        DOB_COL = 5
-        FORMULA_START_COL = 16
-        STYLE_TEMPLATE_ROW_INDEX = 9
-        EXTRA_BLANK_ROWS = 2 
-        BORDER_END_COL = 30
-
-        # --- XỬ LÝ CHÈN DÒNG VÀ SAO CHÉP FORMAT ---
+        # --- TÍNH TOÁN SỐ DÒNG CẦN CHÈN (DÙNG CHUNG CHO CẢ 2 SHEET) ---
         num_students = len(df_sheet_data)
+        EXTRA_BLANK_ROWS = 2 
         total_rows_needed = num_students + EXTRA_BLANK_ROWS
-        rows_to_insert = total_rows_needed - TEMPLATE_STUDENT_ROWS
         
-        if rows_to_insert > 0:
-            output_sheet.insert_rows(INSERT_BEFORE_ROW, amount=rows_to_insert)
-            
-            for row_idx in range(INSERT_BEFORE_ROW, INSERT_BEFORE_ROW + rows_to_insert):
-                for col_idx in range(1, output_sheet.max_column + 1):
-                    source_cell = output_sheet.cell(row=STYLE_TEMPLATE_ROW_INDEX, column=col_idx)
-                    new_cell = output_sheet.cell(row=row_idx, column=col_idx)
-                    
+        # --- XỬ LÝ SHEET "Bang diem qua trinh" (TIẾP TỤC) ---
+        QT_START_ROW = 7
+        QT_TEMPLATE_STUDENT_ROWS = 5
+        QT_INSERT_BEFORE_ROW = 12
+        QT_STYLE_ROW = 9
+        QT_BORDER_END_COL = 30
+
+        rows_to_insert_qt = total_rows_needed - QT_TEMPLATE_STUDENT_ROWS
+        if rows_to_insert_qt > 0:
+            output_sheet_qt.insert_rows(QT_INSERT_BEFORE_ROW, amount=rows_to_insert_qt)
+            for row_idx in range(QT_INSERT_BEFORE_ROW, QT_INSERT_BEFORE_ROW + rows_to_insert_qt):
+                for col_idx in range(1, output_sheet_qt.max_column + 1):
+                    source_cell = output_sheet_qt.cell(row=QT_STYLE_ROW, column=col_idx)
+                    new_cell = output_sheet_qt.cell(row=row_idx, column=col_idx)
                     if source_cell.has_style:
                         new_cell.font = source_cell.font.copy()
                         new_cell.border = source_cell.border.copy()
@@ -217,39 +204,54 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                         new_cell.protection = source_cell.protection.copy()
                         new_cell.alignment = source_cell.alignment.copy()
 
-        # --- SAO CHÉP VÀ ÁP DỤNG CÔNG THỨC ---
         formulas = {}
-        max_col = output_sheet.max_column
-        for col in range(FORMULA_START_COL, max_col + 1):
-            cell = output_sheet.cell(row=START_ROW, column=col)
+        for col in range(16, output_sheet_qt.max_column + 1):
+            cell = output_sheet_qt.cell(row=QT_START_ROW, column=col)
             if cell.value and str(cell.value).startswith('='):
                 formulas[col] = cell.value
-
-        for row_num in range(START_ROW, START_ROW + total_rows_needed):
+        for row_num in range(QT_START_ROW, QT_START_ROW + total_rows_needed):
             for col_num, formula_str in formulas.items():
-                new_formula = formula_str.replace(str(START_ROW), str(row_num))
-                output_sheet.cell(row=row_num, column=col_num).value = new_formula
+                new_formula = formula_str.replace(str(QT_START_ROW), str(row_num))
+                output_sheet_qt.cell(row=row_num, column=col_num).value = new_formula
 
-        # --- ĐIỀN DỮ LIỆU HỌC SINH ---
         for i, student_row in df_sheet_data.iterrows():
-            current_row_index = START_ROW + i
-            output_sheet.cell(row=current_row_index, column=STT_COL).value = i + 1
-            output_sheet.cell(row=current_row_index, column=NAME_COL).value = student_row["HỌ VÀ TÊN"]
-            output_sheet.cell(row=current_row_index, column=DOB_COL).value = student_row["NGÀY SINH"]
+            current_row_index = QT_START_ROW + i
+            output_sheet_qt.cell(row=current_row_index, column=1).value = i + 1
+            output_sheet_qt.cell(row=current_row_index, column=3).value = student_row["HỌ VÀ TÊN"]
+            output_sheet_qt.cell(row=current_row_index, column=5).value = student_row["NGÀY SINH"]
 
-        # --- THÊM BORDER DOUBLE LINE ---
-        last_data_row = START_ROW + total_rows_needed - 1
+        last_data_row_qt = QT_START_ROW + total_rows_needed - 1
         double_line_side = Side(style='double')
-        
-        for col_idx in range(1, BORDER_END_COL + 1):
-            cell_to_border = output_sheet.cell(row=last_data_row, column=col_idx)
+        for col_idx in range(1, QT_BORDER_END_COL + 1):
+            cell_to_border = output_sheet_qt.cell(row=last_data_row_qt, column=col_idx)
             existing_border = cell_to_border.border
-            cell_to_border.border = Border(
-                left=existing_border.left,
-                right=existing_border.right,
-                top=existing_border.top,
-                bottom=double_line_side
-            )
+            cell_to_border.border = Border(left=existing_border.left, right=existing_border.right, top=existing_border.top, bottom=double_line_side)
+
+        # --- XỬ LÝ SHEET "Bang diem thi" ---
+        try:
+            output_sheet_thi = output_workbook["Bang diem thi"]
+            
+            THI_TEMPLATE_STUDENT_ROWS = 5 # Giả định có 5 dòng mẫu
+            THI_INSERT_BEFORE_ROW = 15    # Chèn trước dòng 15
+            THI_STYLE_ROW = 11            # Lấy style từ dòng 11
+            
+            rows_to_insert_thi = total_rows_needed - THI_TEMPLATE_STUDENT_ROWS
+            if rows_to_insert_thi > 0:
+                output_sheet_thi.insert_rows(THI_INSERT_BEFORE_ROW, amount=rows_to_insert_thi)
+                for row_idx in range(THI_INSERT_BEFORE_ROW, THI_INSERT_BEFORE_ROW + rows_to_insert_thi):
+                    for col_idx in range(1, output_sheet_thi.max_column + 1):
+                        source_cell = output_sheet_thi.cell(row=THI_STYLE_ROW, column=col_idx)
+                        new_cell = output_sheet_thi.cell(row=row_idx, column=col_idx)
+                        if source_cell.has_style:
+                            new_cell.font = source_cell.font.copy()
+                            new_cell.border = source_cell.border.copy()
+                            new_cell.fill = source_cell.fill.copy()
+                            new_cell.number_format = source_cell.number_format
+                            new_cell.protection = source_cell.protection.copy()
+                            new_cell.alignment = source_cell.alignment.copy()
+        except KeyError:
+            st.warning("File mẫu không chứa sheet 'Bang diem thi'. Bỏ qua xử lý sheet này.")
+
 
         output_buffer = io.BytesIO()
         output_workbook.save(output_buffer)
