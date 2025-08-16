@@ -337,10 +337,14 @@ else:
             except Exception as e:
                 st.error(f"Không thể tải danh sách giáo viên: {e}")
 
-        with st.expander("BẢNG ĐIỂM"):
-            pages = {
-                "Tạo Bảng điểm": [st.Page("tao_bangdiem.py", title="Tạo File bảng điểm")]
-            }
+
+        st.header(f"Chào mừng, {st.session_state.tengv}!")
+
+        pages = {
+            "CẬP NHẬT BẢNG ĐIỂM": [st.Page("tao_bangdiem.py", title="BẢNG ĐIỂM")]
+        }
+        pg = st.navigation(pages)
+        pg.run()
 
     else:
         # GIAO DIỆN CỦA USER THƯỜNG
