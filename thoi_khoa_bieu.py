@@ -61,41 +61,32 @@ if uploaded_file is not None:
 
 
                 # --- LÀM SẠCH VÀ MỞ RỘNG DỮ LIỆU (LOGIC MỚI) ---
-                # 1. Điền các giá trị 'Thứ' bị trống
                 schedule_data['Thứ'] = schedule_data['Thứ'].ffill()
-                # 2. Loại bỏ các dòng không có thông tin về Thứ hoặc Môn học
                 schedule_data.dropna(subset=['Thứ', 'Môn học'], inplace=True)
-                # 3. Chuyển cột Môn học sang dạng chuỗi
                 schedule_data['Môn học'] = schedule_data['Môn học'].astype(str)
 
-                # 4. Mở rộng các tiết học kéo dài (ví dụ: "1-5")
                 expanded_rows = []
                 for _, row in schedule_data.iterrows():
                     thu = row['Thứ']
                     mon_hoc = row['Môn học']
                     tiet_val = str(row['Tiết']).strip()
 
-                    # Bỏ qua nếu môn học là chuỗi rỗng hoặc chỉ là khoảng trắng
                     if not mon_hoc.strip():
                         continue
 
                     try:
-                        # Xử lý trường hợp tiết là một khoảng (e.g., "1-5")
                         if '-' in tiet_val:
                             parts = tiet_val.split('-')
                             start_tiet = int(float(parts[0]))
                             end_tiet = int(float(parts[1]))
                             for tiet in range(start_tiet, end_tiet + 1):
                                 expanded_rows.append({'Thứ': thu, 'Tiết': tiet, 'Môn học': mon_hoc})
-                        # Xử lý trường hợp tiết là một số duy nhất
                         else:
                             tiet = int(float(tiet_val))
                             expanded_rows.append({'Thứ': thu, 'Tiết': tiet, 'Môn học': mon_hoc})
                     except (ValueError, TypeError):
-                        # Bỏ qua các dòng có cột 'Tiết' không hợp lệ
                         continue
                 
-                # Tạo dataframe mới từ dữ liệu đã được mở rộng
                 expanded_schedule = pd.DataFrame(expanded_rows)
 
                 if expanded_schedule.empty:
@@ -103,22 +94,16 @@ if uploaded_file is not None:
                     st.stop()
 
                 # --- Tái cấu trúc DataFrame ---
-                try:
-                    tkb_pivot = pd.pivot_table(
-                        expanded_schedule, 
-                        index='Tiết', 
-                        columns='Thứ', 
-                        values='Môn học',
-                        aggfunc=lambda x: ' / '.join(x)
-                    )
-                except Exception as e:
-                    st.error(f"Lỗi khi tái cấu trúc dữ liệu: {e}")
-                    st.dataframe(expanded_schedule)
-                    st.stop()
+                tkb_pivot = pd.pivot_table(
+                    expanded_schedule, 
+                    index='Tiết', 
+                    columns='Thứ', 
+                    values='Môn học',
+                    aggfunc=lambda x: ' / '.join(x)
+                )
                 
                 tkb_final = tkb_pivot.reset_index()
 
-                # Đảm bảo các cột Thứ 2 -> Thứ 7 tồn tại
                 all_days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
                 for day in all_days:
                     if day not in tkb_final.columns:
@@ -128,33 +113,33 @@ if uploaded_file is not None:
 
                 # --- TẠO BẢNG THEO ĐÚNG MẪU ---
                 
-                # Tách buổi sáng và chiều
                 tkb_sang = tkb_final[tkb_final['Tiết'] <= 5].copy()
                 tkb_chieu = tkb_final[tkb_final['Tiết'] >= 6].copy()
 
-                # Đánh số lại tiết cho buổi chiều
                 if not tkb_chieu.empty:
                     tkb_chieu['Tiết'] = tkb_chieu['Tiết'] - 5
 
-                # Thêm cột "Buổi" để tạo hiệu ứng gộp ô
-                tkb_sang.insert(0, 'Buổi', '')
-                if not tkb_sang.empty:
-                    tkb_sang.iloc[0, 0] = 'Sáng'
-
-                tkb_chieu.insert(0, 'Buổi', '')
-                if not tkb_chieu.empty:
-                    tkb_chieu.iloc[0, 0] = 'Chiều'
+                tkb_sang.insert(0, 'Buổi', 'Sáng')
+                tkb_chieu.insert(0, 'Buổi', 'Chiều')
                 
-                # Ghép hai buổi lại thành một bảng duy nhất
                 tkb_display = pd.concat([tkb_sang, tkb_chieu], ignore_index=True)
                 
-                # Sắp xếp lại thứ tự cột cuối cùng
                 final_columns_order = ['Buổi', 'Tiết'] + all_days
                 tkb_display = tkb_display[final_columns_order]
 
+                # --- LOGIC MỚI: TẠO HIỆU ỨNG GỘP Ô ---
+                tkb_styled = tkb_display.copy()
+                
+                columns_to_merge = ['Buổi'] + all_days
+                
+                for col in columns_to_merge:
+                    mask = (tkb_styled[col] == tkb_styled[col].shift(1)) & (tkb_styled[col] != '')
+                    tkb_styled.loc[mask, col] = ''
+
                 # --- Hiển thị Thời Khóa Biểu ---
                 st.write("#### 📅 Thời Khóa Biểu Chi Tiết")
-                st.dataframe(tkb_display, use_container_width=True, hide_index=True)
+                # THAY ĐỔI: Sử dụng st.table để hiển thị bảng tĩnh
+                st.table(tkb_styled)
 
             # Hiển thị file gốc
             with st.expander("Xem toàn bộ nội dung file gốc đã tải lên"):
