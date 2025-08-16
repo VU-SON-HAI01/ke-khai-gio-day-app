@@ -117,7 +117,7 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
             if new_magv_str not in existing_filenames:
                 copied_file_metadata = {'name': new_magv_str, 'parents': [folder_id]}
                 copied_file = admin_drive_service.files().copy(fileId=TEMPLATE_FILE_ID,
-                                                               body=copied_file_metadata).execute()
+                                                             body=copied_file_metadata).execute()
                 admin_drive_service.permissions().create(
                     fileId=copied_file.get('id'),
                     body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
@@ -263,9 +263,8 @@ else:
     user_email = user_info.get('email')
 
     if user_email == ADMIN_EMAIL:
+        # --- GIAO DIỆN CỦA ADMIN ---
         with st.sidebar:
-            # st.write(f"Đã đăng nhập với:")
-            # st.success(f"ADMIN: {user_email}")
             if st.button("Đăng xuất", use_container_width=True):
                 for key in list(st.session_state.keys()): del st.session_state[key]
                 st.rerun()
@@ -337,9 +336,8 @@ else:
             except Exception as e:
                 st.error(f"Không thể tải danh sách giáo viên: {e}")
 
-
-        st.header(f"Chào mừng, {st.session_state.tengv}!")
-
+        # --- ĐIỀU HƯỚNG TRANG CHO ADMIN ---
+        # Logic này được đặt trong khối if của Admin để chỉ Admin mới thấy
         pages = {
             "CẬP NHẬT BẢNG ĐIỂM": [st.Page("tao_bangdiem.py", title="BẢNG ĐIỂM")]
         }
@@ -347,7 +345,7 @@ else:
         pg.run()
 
     else:
-        # GIAO DIỆN CỦA USER THƯỜNG
+        # --- GIAO DIỆN CỦA USER THƯỜNG ---
         if 'initialized' not in st.session_state:
             st.session_state.initialized = False
 
@@ -362,7 +360,7 @@ else:
                 if magv and spreadsheet:
                     all_base_data = load_all_parquet_data()
                     teacher_info = get_teacher_info_from_local(magv, all_base_data.get('df_giaovien'),
-                                                               all_base_data.get('df_khoa'))
+                                                             all_base_data.get('df_khoa'))
 
                     if teacher_info:
                         st.session_state.magv = magv
@@ -395,8 +393,6 @@ else:
                 st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
                 st.write(f"**Chuẩn GV:** :green[{st.session_state.chuangv}]")
                 st.divider()
-                # st.write(f"Đã đăng nhập với:")
-                # st.success(user_email)
                 if st.button("Đăng xuất", use_container_width=True, key="user_logout"):
                     for key in list(st.session_state.keys()):
                         del st.session_state[key]
@@ -404,6 +400,7 @@ else:
 
             st.header(f"Chào mừng, {st.session_state.tengv}!")
 
+            # --- ĐIỀU HƯỚNG TRANG CHO USER THƯỜNG ---
             pages = {
                 "Kê khai": [st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
                             st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động")],
