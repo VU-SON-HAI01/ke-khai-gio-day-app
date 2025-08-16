@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import openpyxl
 from openpyxl.worksheet.datavalidation import DataValidation
-from openpyxl.styles import Border, Side
+from openpyxl.styles import Border, Side, Font
 import io
 import re
 
@@ -197,7 +197,15 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                     source_cell = output_sheet_qt.cell(row=QT_STYLE_ROW, column=col_idx)
                     new_cell = output_sheet_qt.cell(row=row_idx, column=col_idx)
                     if source_cell.has_style:
-                        new_cell.font = source_cell.font.copy()
+                        # *** SỬA LỖI FONT ***
+                        # Sao chép font gốc nhưng đặt lại bold và italic
+                        new_cell.font = Font(name=source_cell.font.name,
+                                            size=source_cell.font.size,
+                                            color=source_cell.font.color,
+                                            family=source_cell.font.family,
+                                            scheme=source_cell.font.scheme,
+                                            bold=False, 
+                                            italic=False)
                         new_cell.border = source_cell.border.copy()
                         new_cell.fill = source_cell.fill.copy()
                         new_cell.number_format = source_cell.number_format
@@ -252,14 +260,20 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                     template_formulas[col_idx] = template_cell.value
             
             for row_num in range(THI_DATA_START_ROW, THI_DATA_START_ROW + total_rows_needed):
-                # Tính toán độ lệch so với dòng mẫu CÔNG THỨC (dòng 11)
                 row_offset = row_num - THI_TEMPLATE_ROW
                 for col_idx in range(1, THI_FILL_END_COL + 1):
                     target_cell = output_sheet_thi.cell(row=row_num, column=col_idx)
 
                     if col_idx in template_styles:
                         source_cell_for_style = template_styles[col_idx]
-                        target_cell.font = source_cell_for_style.font.copy()
+                        # *** SỬA LỖI FONT ***
+                        target_cell.font = Font(name=source_cell_for_style.font.name,
+                                            size=source_cell_for_style.font.size,
+                                            color=source_cell_for_style.font.color,
+                                            family=source_cell_for_style.font.family,
+                                            scheme=source_cell_for_style.font.scheme,
+                                            bold=False, 
+                                            italic=False)
                         target_cell.border = source_cell_for_style.border.copy()
                         target_cell.fill = source_cell_for_style.fill.copy()
                         target_cell.number_format = source_cell_for_style.number_format
@@ -269,19 +283,17 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                     if col_idx in template_formulas:
                         formula_str = template_formulas[col_idx]
                         
-                        # Hàm nội tuyến để điều chỉnh tham chiếu dòng trong công thức
                         def adjust_row_reference(match):
                             col_part = match.group(1)
                             row_abs = match.group(2)
                             row_num_str = match.group(3)
                             
-                            if row_abs: # Nếu là tham chiếu tuyệt đối (ví dụ: A$11), không thay đổi
+                            if row_abs:
                                 return match.group(0)
-                            else: # Nếu là tham chiếu tương đối, cộng thêm độ lệch
+                            else:
                                 new_row = int(row_num_str) + row_offset
                                 return f"{col_part}{new_row}"
 
-                        # Regex để tìm các tham chiếu ô (ví dụ: A1, $B2, C$3, $D$4)
                         pattern = re.compile(r"(\$?[A-Z]{1,3})(\$?)(\d+)")
                         new_formula = pattern.sub(adjust_row_reference, formula_str)
                         target_cell.value = new_formula
@@ -380,7 +392,7 @@ with right_column:
         for file_name_prefix, file_data in st.session_state.generated_files.items():
             final_file_name = f"{file_name_prefix}_BangDiem.xlsx"
             st.download_button(
-                label=f"📄 Tải xuống {final_file_name}",
+                label=f"� Tải xuống {final_file_name}",
                 data=file_data,
                 file_name=final_file_name,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -388,3 +400,4 @@ with right_column:
             )
         
         st.warning("Lưu ý: Các file này sẽ bị xóa nếu bạn tải lên file mới và xử lý lại.")
+�
