@@ -154,19 +154,23 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
             dv_sheet_name = "DSMON"
             try:
                 dv_sheet = output_workbook[dv_sheet_name]
+                # Xóa dữ liệu cũ, giữ lại dòng tiêu đề (dòng 1)
                 if dv_sheet.max_row > 1:
-                    dv_sheet.delete_rows(2, dv_sheet.max_row) 
+                    # Sửa lỗi: Tham số thứ 2 là số lượng dòng cần xóa
+                    dv_sheet.delete_rows(idx=2, amount=dv_sheet.max_row - 1)
             except KeyError:
                 st.warning(f"File mẫu không có sheet '{dv_sheet_name}'. Sẽ tạo một sheet mới.")
                 dv_sheet = output_workbook.create_sheet(dv_sheet_name)
                 dv_sheet.cell(row=1, column=1).value = "STT"
                 dv_sheet.cell(row=1, column=2).value = "DSMON"
 
+            # Ghi danh sách môn học mới vào sheet DSMON
             for i, mon_hoc in enumerate(list_mon_hoc, 1):
-                row_index = i + 1
+                row_index = i + 1 # Bắt đầu ghi từ dòng 2
                 dv_sheet.cell(row=row_index, column=1).value = i
                 dv_sheet.cell(row=row_index, column=2).value = mon_hoc
                 
+            # Tạo công thức tham chiếu đến danh sách trong sheet DSMON
             formula = f"'{dv_sheet_name}'!$B$2:$B${len(list_mon_hoc) + 1}" 
             
             dv = DataValidation(type="list", formula1=formula, allow_blank=True)
@@ -177,6 +181,7 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
             output_sheet.add_data_validation(dv)
             dv.add('V1')
 
+            # Ẩn sheet DSMON
             dv_sheet.sheet_state = 'hidden'
 
         # --- CÁC THAM SỐ CẤU HÌNH ---
@@ -330,7 +335,7 @@ with right_column:
         for file_name_prefix, file_data in st.session_state.generated_files.items():
             final_file_name = f"{file_name_prefix}_BangDiem.xlsx"
             st.download_button(
-                label=f"� Tải xuống {final_file_name}",
+                label=f"📄 Tải xuống {final_file_name}",
                 data=file_data,
                 file_name=final_file_name,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -338,4 +343,3 @@ with right_column:
             )
         
         st.warning("Lưu ý: Các file này sẽ bị xóa nếu bạn tải lên file mới và xử lý lại.")
-�
