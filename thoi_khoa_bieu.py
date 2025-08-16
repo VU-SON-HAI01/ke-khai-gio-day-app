@@ -54,17 +54,52 @@ if uploaded_file is not None:
                 schedule_data = df.iloc[3:, [1, 2, col_idx]].copy()
                 schedule_data.columns = ['Thứ', 'Tiết', 'Môn học']
 
-                # --- Làm sạch dữ liệu ---
+                # --- LÀM SẠCH VÀ MỞ RỘNG DỮ LIỆU (LOGIC MỚI) ---
+                # 1. Điền các giá trị 'Thứ' bị trống
                 schedule_data['Thứ'] = schedule_data['Thứ'].ffill()
-                schedule_data.dropna(subset=['Tiết'], inplace=True)
-                schedule_data['Tiết'] = pd.to_numeric(schedule_data['Tiết'], errors='coerce').astype('Int64')
-                schedule_data['Môn học'].fillna('', inplace=True)
-                schedule_data.dropna(subset=['Thứ'], inplace=True)
+                # 2. Loại bỏ các dòng không có thông tin về Thứ hoặc Môn học
+                schedule_data.dropna(subset=['Thứ', 'Môn học'], inplace=True)
+                # 3. Chuyển cột Môn học sang dạng chuỗi
+                schedule_data['Môn học'] = schedule_data['Môn học'].astype(str)
+
+                # 4. Mở rộng các tiết học kéo dài (ví dụ: "1-5")
+                expanded_rows = []
+                for _, row in schedule_data.iterrows():
+                    thu = row['Thứ']
+                    mon_hoc = row['Môn học']
+                    tiet_val = str(row['Tiết']).strip()
+
+                    # Bỏ qua nếu môn học là chuỗi rỗng hoặc chỉ là khoảng trắng
+                    if not mon_hoc.strip():
+                        continue
+
+                    try:
+                        # Xử lý trường hợp tiết là một khoảng (e.g., "1-5")
+                        if '-' in tiet_val:
+                            parts = tiet_val.split('-')
+                            start_tiet = int(float(parts[0]))
+                            end_tiet = int(float(parts[1]))
+                            for tiet in range(start_tiet, end_tiet + 1):
+                                expanded_rows.append({'Thứ': thu, 'Tiết': tiet, 'Môn học': mon_hoc})
+                        # Xử lý trường hợp tiết là một số duy nhất
+                        else:
+                            tiet = int(float(tiet_val))
+                            expanded_rows.append({'Thứ': thu, 'Tiết': tiet, 'Môn học': mon_hoc})
+                    except (ValueError, TypeError):
+                        # Bỏ qua các dòng có cột 'Tiết' không hợp lệ
+                        continue
+                
+                # Tạo dataframe mới từ dữ liệu đã được mở rộng
+                expanded_schedule = pd.DataFrame(expanded_rows)
+
+                if expanded_schedule.empty:
+                    st.warning("Không tìm thấy dữ liệu thời khóa biểu hợp lệ cho lớp đã chọn.")
+                    st.stop()
 
                 # --- Tái cấu trúc DataFrame ---
                 try:
                     tkb_pivot = pd.pivot_table(
-                        schedule_data, 
+                        expanded_schedule, 
                         index='Tiết', 
                         columns='Thứ', 
                         values='Môn học',
@@ -72,8 +107,7 @@ if uploaded_file is not None:
                     )
                 except Exception as e:
                     st.error(f"Lỗi khi tái cấu trúc dữ liệu: {e}")
-                    st.info("Lỗi này thường xảy ra nếu cấu trúc file Excel không đúng như mong đợi. Vui lòng kiểm tra lại file của bạn.")
-                    st.dataframe(schedule_data)
+                    st.dataframe(expanded_schedule)
                     st.stop()
                 
                 tkb_final = tkb_pivot.reset_index()
