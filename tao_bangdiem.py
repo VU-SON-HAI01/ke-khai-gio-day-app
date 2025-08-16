@@ -252,6 +252,8 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                     template_formulas[col_idx] = template_cell.value
             
             for row_num in range(THI_DATA_START_ROW, THI_DATA_START_ROW + total_rows_needed):
+                # Tính toán độ lệch so với dòng mẫu CÔNG THỨC (dòng 11)
+                row_offset = row_num - THI_TEMPLATE_ROW
                 for col_idx in range(1, THI_FILL_END_COL + 1):
                     target_cell = output_sheet_thi.cell(row=row_num, column=col_idx)
 
@@ -266,11 +268,24 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
 
                     if col_idx in template_formulas:
                         formula_str = template_formulas[col_idx]
-                        new_formula = formula_str.replace(str(THI_TEMPLATE_ROW), str(row_num))
-                        new_formula = new_formula.replace(str(THI_TEMPLATE_ROW - 1), str(row_num - 1))
+                        
+                        # Hàm nội tuyến để điều chỉnh tham chiếu dòng trong công thức
+                        def adjust_row_reference(match):
+                            col_part = match.group(1)
+                            row_abs = match.group(2)
+                            row_num_str = match.group(3)
+                            
+                            if row_abs: # Nếu là tham chiếu tuyệt đối (ví dụ: A$11), không thay đổi
+                                return match.group(0)
+                            else: # Nếu là tham chiếu tương đối, cộng thêm độ lệch
+                                new_row = int(row_num_str) + row_offset
+                                return f"{col_part}{new_row}"
+
+                        # Regex để tìm các tham chiếu ô (ví dụ: A1, $B2, C$3, $D$4)
+                        pattern = re.compile(r"(\$?[A-Z]{1,3})(\$?)(\d+)")
+                        new_formula = pattern.sub(adjust_row_reference, formula_str)
                         target_cell.value = new_formula
             
-            # Thêm đường kẻ đôi cho sheet "Bang diem thi"
             last_data_row_thi = THI_DATA_START_ROW + total_rows_needed - 1
             for col_idx in range(1, THI_FILL_END_COL + 1):
                 cell_to_border = output_sheet_thi.cell(row=last_data_row_thi, column=col_idx)
