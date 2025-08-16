@@ -82,6 +82,7 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
     Hàm chính để xử lý, chèn dữ liệu từ file data vào file template.
     """
     generated_files = {}
+    skipped_sheets = []
     
     # --- Tải dữ liệu từ file Danh mục (Cải tiến để chống lỗi) ---
     try:
@@ -89,22 +90,30 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         
         if "DANH_MUC" not in xls_danh_muc.sheet_names:
             st.error(f"Lỗi: Không tìm thấy sheet 'DANH_MUC' trong file DS LOP(Mau).xlsx. Các sheet có sẵn: {xls_danh_muc.sheet_names}")
-            return {}
+            return {}, []
         
         if "DATA_GOC" not in xls_danh_muc.sheet_names:
             st.error(f"Lỗi: Không tìm thấy sheet 'DATA_GOC' trong file DS LOP(Mau).xlsx. Các sheet có sẵn: {xls_danh_muc.sheet_names}")
-            return {}
+            return {}, []
             
         df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
         df_data_goc = pd.read_excel(xls_danh_muc, sheet_name="DATA_GOC", header=1)
+        
+        # Lấy danh sách các lớp hợp lệ từ cột B
+        valid_class_names = set(df_danh_muc.iloc[:, 1].dropna().astype(str))
 
     except Exception as e:
         st.error(f"Lỗi khi đọc File Danh mục Lớp (DS LOP(Mau).xlsx): {e}")
-        return {}
+        return {}, []
         
     data_workbook = openpyxl.load_workbook(data_file, data_only=True)
     
     for sheet_name in data_workbook.sheetnames:
+        # *** KIỂM TRA TÍNH HỢP LỆ CỦA SHEET ***
+        if sheet_name not in valid_class_names:
+            skipped_sheets.append(sheet_name)
+            continue # Bỏ qua sheet này và chuyển sang sheet tiếp theo
+
         worksheet = data_workbook[sheet_name]
 
         df_sheet_data = find_student_data_in_sheet(worksheet)
@@ -114,9 +123,7 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
             continue
 
         class_info = df_danh_muc[df_danh_muc.iloc[:, 1] == sheet_name]
-        if class_info.empty:
-            st.warning(f"Không tìm thấy thông tin cho lớp '{sheet_name}' trong sheet DANH_MUC. Bỏ qua.")
-            continue
+        # Không cần kiểm tra class_info.empty nữa vì đã kiểm tra ở trên
         
         nganh_nghe = class_info.iloc[0, 3]
         ma_nghe = str(class_info.iloc[0, 4])
@@ -127,20 +134,18 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         # --- XỬ LÝ SHEET "Bang diem qua trinh" ---
         try:
             output_sheet_qt = output_workbook["Bang diem qua trinh"]
-            # *** BẢO VỆ SHEET ***
             output_sheet_qt.protection.set_password('PDT')
         except KeyError:
             st.error("Lỗi: File mẫu không chứa sheet có tên 'Bang diem qua trinh'.")
-            return {}
+            return {}, skipped_sheets
 
-        # Chuyển đổi học kỳ sang số
         try:
             hoc_ky_numeric = int(hoc_ky)
         except (ValueError, TypeError):
-            hoc_ky_numeric = hoc_ky # Giữ nguyên nếu không chuyển đổi được
+            hoc_ky_numeric = hoc_ky
 
         output_sheet_qt.cell(row=2, column=9).value = sheet_name
-        output_sheet_qt.cell(row=3, column=9).value = hoc_ky_numeric # Sử dụng giá trị số
+        output_sheet_qt.cell(row=3, column=9).value = hoc_ky_numeric
         output_sheet_qt.cell(row=4, column=9).value = nam_hoc
         output_sheet_qt.cell(row=3, column=28).value = cap_nhat
         output_sheet_qt.cell(row=2, column=20).value = nganh_nghe
@@ -185,12 +190,10 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
             dv.add('V1')
             dv_sheet.sheet_state = 'hidden'
 
-        # --- TÍNH TOÁN SỐ DÒNG CẦN CHÈN (DÙNG CHUNG CHO CẢ 2 SHEET) ---
         num_students = len(df_sheet_data)
         EXTRA_BLANK_ROWS = 2 
         total_rows_needed = num_students + EXTRA_BLANK_ROWS
         
-        # --- XỬ LÝ SHEET "Bang diem qua trinh" (TIẾP TỤC) ---
         QT_START_ROW = 7
         QT_TEMPLATE_STUDENT_ROWS = 5
         QT_INSERT_BEFORE_ROW = 12
@@ -205,13 +208,7 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                     source_cell = output_sheet_qt.cell(row=QT_STYLE_ROW, column=col_idx)
                     new_cell = output_sheet_qt.cell(row=row_idx, column=col_idx)
                     if source_cell.has_style:
-                        new_cell.font = Font(name=source_cell.font.name,
-                                            size=source_cell.font.size,
-                                            color=source_cell.font.color,
-                                            family=source_cell.font.family,
-                                            scheme=source_cell.font.scheme,
-                                            bold=False, 
-                                            italic=False)
+                        new_cell.font = Font(name=source_cell.font.name, size=source_cell.font.size, color=source_cell.font.color, family=source_cell.font.family, scheme=source_cell.font.scheme, bold=False, italic=False)
                         new_cell.border = source_cell.border.copy()
                         new_cell.fill = source_cell.fill.copy()
                         new_cell.number_format = source_cell.number_format
@@ -231,8 +228,8 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         for i, student_row in df_sheet_data.iterrows():
             current_row_index = QT_START_ROW + i
             output_sheet_qt.cell(row=current_row_index, column=1).value = i + 1
-            output_sheet_qt.cell(row=current_row_index, column=3).value = student_row["HỌ"] # Cột C
-            output_sheet_qt.cell(row=current_row_index, column=4).value = student_row["TÊN"] # Cột D
+            output_sheet_qt.cell(row=current_row_index, column=3).value = student_row["HỌ"]
+            output_sheet_qt.cell(row=current_row_index, column=4).value = student_row["TÊN"]
             output_sheet_qt.cell(row=current_row_index, column=5).value = student_row["NGÀY SINH"]
 
         last_data_row_qt = QT_START_ROW + total_rows_needed - 1
@@ -245,14 +242,13 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         # --- XỬ LÝ SHEET "Bang diem thi" ---
         try:
             output_sheet_thi = output_workbook["Bang diem thi"]
-            # *** BẢO VỆ SHEET ***
             output_sheet_thi.protection.set_password('PDT')
             
             THI_DATA_START_ROW = 10
             THI_TEMPLATE_ROW = 11
             THI_TEMPLATE_STUDENT_ROWS = 5
             THI_INSERT_BEFORE_ROW = 15
-            THI_FILL_END_COL = 25 # Cột Y
+            THI_FILL_END_COL = 25
             
             rows_to_insert_thi = total_rows_needed - THI_TEMPLATE_STUDENT_ROWS
             if rows_to_insert_thi > 0:
@@ -274,13 +270,7 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
 
                     if col_idx in template_styles:
                         source_cell_for_style = template_styles[col_idx]
-                        target_cell.font = Font(name=source_cell_for_style.font.name,
-                                            size=source_cell_for_style.font.size,
-                                            color=source_cell_for_style.font.color,
-                                            family=source_cell_for_style.font.family,
-                                            scheme=source_cell_for_style.font.scheme,
-                                            bold=False, 
-                                            italic=False)
+                        target_cell.font = Font(name=source_cell_for_style.font.name, size=source_cell_for_style.font.size, color=source_cell_for_style.font.color, family=source_cell_for_style.font.family, scheme=source_cell_for_style.font.scheme, bold=False, italic=False)
                         target_cell.border = source_cell_for_style.border.copy()
                         target_cell.fill = source_cell_for_style.fill.copy()
                         target_cell.number_format = source_cell_for_style.number_format
@@ -294,9 +284,7 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                             col_part = match.group(1)
                             row_abs = match.group(2)
                             row_num_str = match.group(3)
-                            
-                            if row_abs:
-                                return match.group(0)
+                            if row_abs: return match.group(0)
                             else:
                                 new_row = int(row_num_str) + row_offset
                                 return f"{col_part}{new_row}"
@@ -314,12 +302,15 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         except KeyError:
             st.warning("File mẫu không chứa sheet 'Bang diem thi'. Bỏ qua xử lý sheet này.")
 
-
+        # *** TẠO TÊN FILE MỚI ***
+        clean_cap_nhat = cap_nhat.replace('-', '_')
+        final_file_name = f"{sheet_name}_bangdiem_{clean_cap_nhat}.xlsx"
+        
         output_buffer = io.BytesIO()
         output_workbook.save(output_buffer)
-        generated_files[sheet_name] = output_buffer.getvalue()
+        generated_files[final_file_name] = output_buffer.getvalue()
         
-    return generated_files
+    return generated_files, skipped_sheets
 
 # --- GIAO DIỆN ỨNG DỤNG STREAMLIT ---
 
@@ -328,6 +319,8 @@ st.markdown("---")
 
 if 'generated_files' not in st.session_state:
     st.session_state.generated_files = {}
+if 'skipped_sheets' not in st.session_state:
+    st.session_state.skipped_sheets = []
 
 st.header("Thông tin chung")
 col1, col2, col3 = st.columns(3)
@@ -362,8 +355,7 @@ with left_column:
         key="data_uploader"
     )
     
-    st.markdown("---")
-with right_column:    
+with right_column:
     if uploaded_template_file and uploaded_data_file and uploaded_danh_muc_file:
         st.header("Bước 2: Bắt đầu xử lý")
         st.markdown("Nhấn nút bên dưới để bắt đầu quá trình xử lý.")
@@ -371,7 +363,7 @@ with right_column:
         if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True):
             try:
                 with st.spinner("Đang xử lý... Vui lòng chờ trong giây lát."):
-                    st.session_state.generated_files = process_excel_files(
+                    st.session_state.generated_files, st.session_state.skipped_sheets = process_excel_files(
                         uploaded_template_file, 
                         uploaded_data_file,
                         uploaded_danh_muc_file,
@@ -384,10 +376,12 @@ with right_column:
                     st.success(f"✅ Hoàn thành! Đã xử lý và tạo ra {len(st.session_state.generated_files)} file.")
                 else:
                     st.warning("Quá trình xử lý hoàn tất nhưng không có file nào được tạo. Vui lòng kiểm tra lại các file đầu vào.")
+                
+                if st.session_state.skipped_sheets:
+                    st.info(f"ℹ️ Các sheet sau đã bị bỏ qua vì không có trong danh mục: {', '.join(st.session_state.skipped_sheets)}")
 
             except Exception as e:
                 st.error(f"Đã xảy ra lỗi trong quá trình xử lý: {e}")
-
 
     st.header("Bước 3: Tải xuống kết quả")
     
@@ -396,14 +390,13 @@ with right_column:
     else:
         st.markdown(f"Đã tạo thành công **{len(st.session_state.generated_files)}** file. Nhấn vào các nút bên dưới để tải về:")
         
-        for file_name_prefix, file_data in st.session_state.generated_files.items():
-            final_file_name = f"{file_name_prefix}_BangDiem.xlsx"
+        for final_file_name, file_data in st.session_state.generated_files.items():
             st.download_button(
                 label=f"📄 Tải xuống {final_file_name}",
                 data=file_data,
                 file_name=final_file_name,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key=f"download_{file_name_prefix}"
+                key=f"download_{final_file_name}"
             )
         
         st.warning("Lưu ý: Các file này sẽ bị xóa nếu bạn tải lên file mới và xử lý lại.")
