@@ -363,7 +363,7 @@ with left_column:
     )
     
     st.markdown("---")
-    
+with right_column:    
     if uploaded_template_file and uploaded_data_file and uploaded_danh_muc_file:
         st.header("Bước 2: Bắt đầu xử lý")
         st.markdown("Nhấn nút bên dưới để bắt đầu quá trình xử lý.")
@@ -388,7 +388,7 @@ with left_column:
             except Exception as e:
                 st.error(f"Đã xảy ra lỗi trong quá trình xử lý: {e}")
 
-with right_column:
+
     st.header("Bước 3: Tải xuống kết quả")
     
     if not st.session_state.generated_files:
