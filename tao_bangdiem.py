@@ -96,13 +96,31 @@ def process_excel_files(template_file, data_file):
         NAME_COL = 3
         DOB_COL = 5
         FORMULA_START_COL = 16
+        # *** THAY ĐỔI: Xác định dòng mẫu để sao chép định dạng ***
+        STYLE_TEMPLATE_ROW_INDEX = 9
 
-        # --- XỬ LÝ CHÈN DÒNG ---
+        # --- XỬ LÝ CHÈN DÒNG VÀ SAO CHÉP FORMAT ---
         num_students = len(df_sheet_data)
         rows_to_insert = num_students - TEMPLATE_STUDENT_ROWS
         
         if rows_to_insert > 0:
+            # 1. Chèn các dòng trống vào cuối danh sách HSSV hiện có
             output_sheet.insert_rows(INSERT_BEFORE_ROW, amount=rows_to_insert)
+            
+            # 2. Sao chép định dạng từ dòng mẫu (dòng 9) cho các dòng mới được chèn
+            for row_idx in range(INSERT_BEFORE_ROW, INSERT_BEFORE_ROW + rows_to_insert):
+                for col_idx in range(1, output_sheet.max_column + 1):
+                    source_cell = output_sheet.cell(row=STYLE_TEMPLATE_ROW_INDEX, column=col_idx)
+                    new_cell = output_sheet.cell(row=row_idx, column=col_idx)
+                    
+                    # Sao chép toàn bộ style của cell
+                    if source_cell.has_style:
+                        new_cell.font = source_cell.font.copy()
+                        new_cell.border = source_cell.border.copy()
+                        new_cell.fill = source_cell.fill.copy()
+                        new_cell.number_format = source_cell.number_format
+                        new_cell.protection = source_cell.protection.copy()
+                        new_cell.alignment = source_cell.alignment.copy()
 
         # --- SAO CHÉP VÀ ÁP DỤNG CÔNG THỨC ---
         formulas = {}
