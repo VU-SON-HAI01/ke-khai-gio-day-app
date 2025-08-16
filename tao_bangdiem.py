@@ -4,6 +4,7 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Border, Side
 import io
+import re
 
 # --- CÁC HÀM HỖ TRỢ ---
 
@@ -11,7 +12,8 @@ def find_student_data_in_sheet(worksheet):
     """
     Tìm và trích xuất dữ liệu học sinh từ một sheet có cấu trúc không cố định.
     - Tự động tìm dòng header dựa vào 'Họ và tên'.
-    - Ghép 2 cột họ và tên.
+    - Chuẩn hóa và ghép 2 cột họ và tên.
+    - Chuẩn hóa và định dạng cột ngày sinh.
     - Dừng lại khi cột 'Họ và tên' trống hoặc chứa số.
     - Trả về một DataFrame.
     """
@@ -34,7 +36,7 @@ def find_student_data_in_sheet(worksheet):
     if header_row_index == -1:
         return None # Không tìm thấy header
 
-    # 2. Trích xuất dữ liệu với logic dừng mới
+    # 2. Trích xuất dữ liệu với logic dừng và chuẩn hóa mới
     student_data = []
     # Bắt đầu đọc từ dòng ngay sau header
     for row in worksheet.iter_rows(min_row=header_row_index + 1, values_only=True):
@@ -43,17 +45,35 @@ def find_student_data_in_sheet(worksheet):
         dob_cell = row[dob_col_index - 1]
 
         # --- LOGIC DỪNG MỚI ---
-        # Dừng lại nếu ô "Họ và tên" trống hoặc là một con số.
         if (first_name_cell is None or str(first_name_cell).strip() == '' or 
             isinstance(first_name_cell, (int, float))):
             break
             
-        # Ghép họ và tên
-        full_name = f"{first_name_cell or ''} {last_name_cell or ''}".strip()
+        # --- CHUẨN HÓA DỮ LIỆU ---
+        # 1. Chuẩn hóa tên: Xóa khoảng trắng thừa
+        first_name_str = re.sub(r'\s+', ' ', str(first_name_cell or '')).strip()
+        last_name_str = re.sub(r'\s+', ' ', str(last_name_cell or '')).strip()
+        full_name = f"{first_name_str} {last_name_str}".strip()
+
+        # 2. Chuẩn hóa ngày sinh: Chuyển đổi sang định dạng dd/mm/yyyy
+        formatted_dob = ''
+        if dob_cell is not None:
+            try:
+                # pd.to_datetime rất linh hoạt trong việc đọc các định dạng khác nhau
+                dt_object = pd.to_datetime(dob_cell, errors='coerce')
+                if pd.notna(dt_object):
+                    # Nếu chuyển đổi thành công, định dạng lại
+                    formatted_dob = dt_object.strftime('%d/%m/%Y')
+                else:
+                    # Nếu không thể chuyển đổi, giữ lại giá trị gốc dưới dạng text
+                    formatted_dob = str(dob_cell).strip()
+            except Exception:
+                # Xử lý các trường hợp lỗi khác
+                formatted_dob = str(dob_cell).strip()
         
         student_data.append({
             "HỌ VÀ TÊN": full_name,
-            "NGÀY SINH": dob_cell
+            "NGÀY SINH": formatted_dob
         })
 
     return pd.DataFrame(student_data)
@@ -72,7 +92,6 @@ def process_excel_files(template_file, data_file):
         worksheet = data_workbook[sheet_name]
 
         # --- TRÍCH XUẤT DỮ LIỆU ĐỘNG ---
-        # Hàm này giờ đã bao gồm logic tìm điểm cuối của dữ liệu
         df_sheet_data = find_student_data_in_sheet(worksheet)
         
         if df_sheet_data is None or df_sheet_data.empty:
@@ -144,17 +163,11 @@ def process_excel_files(template_file, data_file):
             output_sheet.cell(row=current_row_index, column=DOB_COL).value = student_row["NGÀY SINH"]
 
         # --- THÊM BORDER DOUBLE LINE ---
-        # Dòng cuối cùng của dữ liệu (bao gồm cả dòng trống)
         last_data_row = START_ROW + total_rows_needed - 1
-        
-        # Tạo style border
         double_line_side = Side(style='double')
         
-        # Áp dụng border cho các ô từ cột 1 đến 30 của dòng cuối cùng
         for col_idx in range(1, BORDER_END_COL + 1):
             cell_to_border = output_sheet.cell(row=last_data_row, column=col_idx)
-            
-            # Giữ lại các border khác và chỉ cập nhật/thêm border dưới
             existing_border = cell_to_border.border
             cell_to_border.border = Border(
                 left=existing_border.left,
