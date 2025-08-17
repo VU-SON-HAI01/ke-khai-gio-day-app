@@ -259,67 +259,87 @@ def transform_to_database_format(df_wide, teacher_mapping):
     
     return df_final
 
-def generate_schedule_summary(df_class):
+def generate_schedule_summary(schedule_df):
     """
-    Tạo một bản diễn giải bằng văn bản cho thời khóa biểu của một lớp.
+    Tạo một bản tóm tắt/diễn giải thời khóa biểu từ DataFrame.
+    Gom nhóm theo Cấp bậc:
+        Cấp 1: Thứ (được sắp xếp đúng thứ tự)
+        Cấp 2: Buổi (Sáng, Chiều)
+        Cấp 3: Môn học (bao gồm thông tin chi tiết)
     """
-    if df_class.empty:
-        return "Không có dữ liệu thời khóa biểu cho lớp này."
+    if schedule_df.empty:
+        return "Không có dữ liệu thời khóa biểu để hiển thị."
 
-    # --- 1. Lấy thông tin chung ---
-    info = df_class.iloc[0]
-    summary_parts = ["#### 📝 Thông tin chung của lớp:"]
-    
-    general_info = [
-        ("Giáo viên CN", info.get("Giáo viên CN")),
-        ("Lớp VHPT", info.get("Lớp VHPT")),
-        ("Phòng SHCN", info.get("Phòng SHCN")),
-        ("Trình độ", info.get("Trình độ")),
-        ("Sĩ số", info.get("Sĩ số"))
-    ]
-    
-    for label, value in general_info:
-        if value:
-            summary_parts.append(f"- **{label}:** {value}")
+    # Tạo một bản sao để tránh SettingWithCopyWarning
+    schedule_df = schedule_df.copy()
 
-    summary_parts.append("---")
-    summary_parts.append("#### 🗓️ Lịch học chi tiết:")
-
-    # --- 2. Xử lý lịch học theo từng ngày ---
-    # Ánh xạ và thứ tự sắp xếp
-    number_to_day_map = {
-        2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ',
-        5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'
+    # 1. Chuẩn hóa và Sắp xếp
+    # Định nghĩa thứ tự đúng của các ngày trong tuần
+    day_mapping = {
+        'THỨ HAI': 2, 'THỨ BA': 3, 'THỨ TƯ': 4,
+        'THỨ NĂM': 5, 'THỨ SÁU': 6, 'THỨ BẢY': 7, 'CHỦ NHẬT': 1
     }
-    day_order = list(number_to_day_map.values())
+    # Tạo cột số để sắp xếp và chuyển 'Thứ' về chữ IN HOA để đồng bộ
+    schedule_df['Thứ Num'] = schedule_df['Thứ'].str.upper().map(day_mapping)
     
-    # Chuyển cột 'Thứ' (số) sang tên đầy đủ và sắp xếp lại
-    df_class['Thứ Đầy Đủ'] = df_class['Thứ'].map(number_to_day_map)
-    df_class['Thứ Đầy Đủ'] = pd.Categorical(df_class['Thứ Đầy Đủ'], categories=day_order, ordered=True)
-    df_class_sorted = df_class.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
+    # Sắp xếp theo Thứ -> Buổi -> Tiết
+    schedule_df_sorted = schedule_df.sort_values(by=['Thứ Num', 'Buổi', 'Tiết'])
+
+    summary_lines = ["### Tóm Tắt Thời Khóa Biểu 📝", ""]
     
-    # Gom nhóm theo ngày
-    for day, day_group in df_class_sorted.groupby('Thứ Đầy Đủ', observed=True):
-        summary_parts.append(f"**{day}:**")
+    # 2. Gom nhóm theo Cấp 1: Thứ
+    # Dùng groupby().groups.keys() để giữ lại thứ tự đã sắp xếp
+    for day in schedule_df_sorted.groupby('Thứ', sort=False).groups.keys():
+        day_group = schedule_df_sorted[schedule_df_sorted['Thứ'] == day]
+        summary_lines.append(f"**🗓️ {day.upper()}**")
         
-        # Gom nhóm theo buổi
-        for session, session_group in day_group.groupby('Buổi'):
-            summary_parts.append(f"- **{session}**:")
+        # 3. Gom nhóm theo Cấp 2: Buổi
+        for session in day_group['Buổi'].unique():
+            summary_lines.append(f"&nbsp;&nbsp;&nbsp; buổi **{session}:**")
+            session_group = day_group[day_group['Buổi'] == session]
             
-            # Gom nhóm theo môn học trong buổi đó
-            for _, lesson_group in session_group.groupby(['Môn học', 'Giáo viên BM', 'Phòng học']):
-                lesson_info = lesson_group.iloc[0]
-                tiet_list = sorted(lesson_group['Tiết'].unique())
-                tiet_str = ", ".join(map(str, tiet_list))
+            # 4. Gom nhóm theo Cấp 3: Môn học và tổng hợp thông tin
+            # Sử dụng dict để gom các tiết, giáo viên, phòng học của cùng 1 môn
+            subjects_in_session = {}
+            for _, row in session_group.iterrows():
+                subject = row['Môn học']
+                # Bỏ qua các dòng không có tên môn học
+                if pd.isna(subject) or str(subject).strip() == "":
+                    continue
+
+                if subject not in subjects_in_session:
+                    subjects_in_session[subject] = {
+                        'Tiet': [],
+                        'GiaoVien': set(), # Dùng set để tránh trùng lặp tên
+                        'PhongHoc': set()  # Dùng set để tránh trùng lặp phòng
+                    }
                 
-                summary_parts.append(f"  - **Tiết {tiet_str}**:")
-                summary_parts.append(f"    - **Môn học:** {lesson_info['Môn học']}")
-                if lesson_info['Giáo viên BM']:
-                    summary_parts.append(f"    - **Giáo viên:** {lesson_info['Giáo viên BM']}")
-                if lesson_info['Phòng học']:
-                    summary_parts.append(f"    - **Phòng:** {lesson_info['Phòng học']}")
-    
-    return "\n".join(summary_parts)
+                # Thêm thông tin chi tiết
+                subjects_in_session[subject]['Tiet'].append(str(row['Tiết']))
+                if pd.notna(row['Giáo viên BM']):
+                    subjects_in_session[subject]['GiaoVien'].add(row['Giáo viên BM'])
+                if pd.notna(row['Phòng học']):
+                    subjects_in_session[subject]['PhongHoc'].add(row['Phòng học'])
+            
+            # 5. Định dạng và hiển thị thông tin môn học
+            if not subjects_in_session:
+                summary_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 *Không có tiết học*")
+            else:
+                for subject, details in subjects_in_session.items():
+                    tiet_str = ", ".join(sorted(details['Tiet'], key=int))
+                    gv_str = ", ".join(sorted(list(details['GiaoVien'])))
+                    phong_str = ", ".join(sorted(list(details['PhongHoc'])))
+                    
+                    summary_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 **{subject}**:")
+                    summary_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Tiết:** {tiet_str}")
+                    if gv_str:
+                        summary_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **GV:** {gv_str}")
+                    if phong_str:
+                        summary_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Phòng:** {phong_str}")
+        
+        summary_lines.append("") # Thêm một dòng trống để phân cách các ngày
+
+    return "\n".join(summary_lines)
 
 
 # --- Giao diện ứng dụng Streamlit ---
