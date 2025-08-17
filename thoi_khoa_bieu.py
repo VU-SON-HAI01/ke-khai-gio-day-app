@@ -328,6 +328,29 @@ st.set_page_config(page_title="Trích xuất và Truy vấn TKB", layout="wide")
 st.title("📊 Trích xuất và Truy vấn Thời Khóa Biểu")
 st.write("Tải file Excel TKB, ứng dụng sẽ tự động chuyển đổi thành cơ sở dữ liệu và cho phép bạn tra cứu thông tin chi tiết.")
 
+# --- HƯỚNG DẪN CẤU HÌNH ---
+with st.expander("💡 Hướng dẫn cấu hình để ánh xạ tên giáo viên"):
+    st.info("""
+        Để ứng dụng có thể tự động chuyển tên giáo viên viết tắt sang tên đầy đủ, bạn cần:
+        1.  **Tạo một Service Account** trên Google Cloud Platform và cấp quyền truy cập Google Sheets API.
+        2.  **Chia sẻ file Google Sheet** có mã `1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI` với địa chỉ email của Service Account.
+        3.  **Thêm thông tin credentials** của Service Account vào `secrets.toml` của ứng dụng Streamlit theo mẫu sau:
+
+        ```toml
+        [gcp_service_account]
+        type = "service_account"
+        project_id = "your-project-id"
+        private_key_id = "your-private-key-id"
+        private_key = "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"
+        client_email = "your-service-account-email@...iam.gserviceaccount.com"
+        client_id = "your-client-id"
+        auth_uri = "[https://accounts.google.com/o/oauth2/auth](https://accounts.google.com/o/oauth2/auth)"
+        token_uri = "[https://oauth2.googleapis.com/token](https://oauth2.googleapis.com/token)"
+        auth_provider_x509_cert_url = "[https://www.googleapis.com/oauth2/v1/certs](https://www.googleapis.com/oauth2/v1/certs)"
+        client_x509_cert_url = "[https://www.googleapis.com/robot/v1/metadata/x509/your-service-account-email](https://www.googleapis.com/robot/v1/metadata/x509/your-service-account-email)..."
+        ```
+        Nếu không có cấu hình này, tên giáo viên sẽ được giữ nguyên ở dạng viết tắt.
+    """)
 
 # --- KẾT NỐI VÀ LẤY DỮ LIỆU ÁNH XẠ ---
 # ID của Google Sheet chứa thông tin giáo viên
