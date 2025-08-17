@@ -18,7 +18,6 @@ pydrive2
 
 # PDF Generation
 fpdf2
-zipfile
 
 
 
