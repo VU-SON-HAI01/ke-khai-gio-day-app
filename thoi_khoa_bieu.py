@@ -250,6 +250,62 @@ def transform_to_database_format(df_wide, teacher_mapping):
     
     return df_final
 
+def generate_schedule_summary(df_class):
+    """
+    Tạo một bản diễn giải bằng văn bản cho thời khóa biểu của một lớp.
+    """
+    if df_class.empty:
+        return "Không có dữ liệu thời khóa biểu cho lớp này."
+
+    # --- 1. Lấy thông tin chung ---
+    # Lấy thông tin từ dòng đầu tiên vì nó giống nhau cho cả lớp
+    info = df_class.iloc[0]
+    summary_parts = ["#### 📝 Thông tin chung của lớp:"]
+    
+    # Tạo danh sách các cặp (nhãn, giá trị) để dễ dàng định dạng
+    general_info = [
+        ("Giáo viên CN", info.get("Giáo viên CN")),
+        ("Lớp VHPT", info.get("Lớp VHPT")),
+        ("Phòng SHCN", info.get("Phòng SHCN")),
+        ("Trình độ", info.get("Trình độ")),
+        ("Sĩ số", info.get("Sĩ số"))
+    ]
+    
+    # Thêm vào chuỗi tóm tắt, chỉ hiển thị nếu có giá trị
+    info_str = "; ".join([f"**{label}:** {value}" for label, value in general_info if value])
+    summary_parts.append(info_str)
+    summary_parts.append("---")
+    summary_parts.append("#### 🗓️ Lịch học chi tiết:")
+
+    # --- 2. Xử lý lịch học theo từng ngày ---
+    # Sắp xếp để đảm bảo thứ tự đúng
+    df_class_sorted = df_class.sort_values(by=['Thứ', 'Buổi', 'Tiết'])
+    
+    # Gom nhóm theo ngày
+    for day, day_group in df_class_sorted.groupby('Thứ'):
+        summary_parts.append(f"**{day}:**")
+        
+        # Gom nhóm theo buổi (Sáng/Chiều)
+        session_parts = []
+        for session, session_group in day_group.groupby('Buổi'):
+            # Lấy danh sách các tiết và chuyển thành chuỗi
+            tiet_list = sorted(session_group['Tiết'].unique())
+            tiet_str = ", ".join(map(str, tiet_list))
+            session_parts.append(f"{session} (Tiết: {tiet_str})")
+        summary_parts.append(" &nbsp; &nbsp; " + " và ".join(session_parts))
+
+        # Gom nhóm theo môn học để hiển thị thông tin chi tiết
+        for _, lesson_group in day_group.groupby(['Môn học', 'Giáo viên BM', 'Phòng học']):
+            lesson_info = lesson_group.iloc[0]
+            summary_parts.append(f"- **Môn học:** {lesson_info['Môn học']}")
+            if lesson_info['Giáo viên BM']:
+                summary_parts.append(f"  - **Giáo viên:** {lesson_info['Giáo viên BM']}")
+            if lesson_info['Phòng học']:
+                summary_parts.append(f"  - **Phòng:** {lesson_info['Phòng học']}")
+    
+    return "\n".join(summary_parts)
+
+
 # --- Giao diện ứng dụng Streamlit ---
 
 st.set_page_config(page_title="Trích xuất và Truy vấn TKB", layout="wide")
@@ -318,8 +374,14 @@ if uploaded_file is not None:
 
                 if selected_class:
                     class_schedule = db_df[db_df['Lớp'] == selected_class]
-                    class_schedule_sorted = class_schedule.sort_values(by=['Thứ', 'Buổi', 'Tiết'])
                     
+                    # *** TẠO VÀ HIỂN THỊ BẢN DIỄN GIẢI ***
+                    summary_text = generate_schedule_summary(class_schedule)
+                    st.markdown(summary_text)
+
+                    # Hiển thị bảng dữ liệu chi tiết
+                    st.write("#### Bảng dữ liệu chi tiết:")
+                    class_schedule_sorted = class_schedule.sort_values(by=['Thứ', 'Buổi', 'Tiết'])
                     display_columns = [
                         'Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM', 
                         'Sĩ số', 'Trình độ', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'
