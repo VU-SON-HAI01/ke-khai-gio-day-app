@@ -41,13 +41,24 @@ def get_teacher_mapping(_gsheet_client, spreadsheet_id):
         worksheet = spreadsheet.worksheet("THONG_TIN_GV")
         df = pd.DataFrame(worksheet.get_all_records())
         
-        if "Ten_viet_tat" not in df.columns or "Ho_ten_gv" not in df.columns:
-            st.error("Sheet 'THONG_TIN_GV' phải chứa cột 'Ten_viet_tat' và 'Ho_ten_gv'.")
+        # *** KIỂM TRA LỖI CHI TIẾT HƠN ***
+        required_cols = ["Ten_viet_tat", "Ho_ten_gv"]
+        actual_cols = df.columns.tolist()
+        
+        missing_cols = [col for col in required_cols if col not in actual_cols]
+        
+        if missing_cols:
+            st.error(f"Lỗi: Sheet 'THONG_TIN_GV' bị thiếu các cột bắt buộc: {', '.join(missing_cols)}.")
+            st.info(f"Các cột hiện có trong sheet là: {', '.join(actual_cols)}")
+            st.warning("Vui lòng kiểm tra lại tên cột trong file Google Sheet của bạn (lưu ý cả khoảng trắng và viết hoa/thường).")
             return {}
             
         # Tạo một dictionary, đảm bảo key (tên viết tắt) được xóa khoảng trắng
         mapping = pd.Series(df.Ho_ten_gv.values, index=df.Ten_viet_tat.str.strip()).to_dict()
         return mapping
+    except gspread.exceptions.WorksheetNotFound:
+        st.error("Lỗi: Không tìm thấy sheet có tên 'THONG_TIN_GV' trong file Google Sheet.")
+        return {}
     except Exception as e:
         st.error(f"Lỗi khi tải bản đồ tên giáo viên từ Google Sheet: {e}")
         return {}
