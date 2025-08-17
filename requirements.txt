@@ -14,9 +14,11 @@ google-api-python-client
 google-auth-oauthlib
 google-auth-httplib2
 pydrive2
+zipfile
 
 # PDF Generation
 fpdf2
+
 
 
 
