@@ -331,7 +331,7 @@ st.title("📊 Trích xuất và Truy vấn Thời Khóa Biểu")
 st.write("Tải file Excel TKB, ứng dụng sẽ tự động chuyển đổi thành cơ sở dữ liệu và cho phép bạn tra cứu thông tin chi tiết.")
 
 # --- HƯỚNG DẪN CẤU HÌNH ---
-with st.expander("💡 Hướng dẫn cấu hình để ánh xạ tên giáo viên"):
+with st.expander("� Hướng dẫn cấu hình để ánh xạ tên giáo viên"):
     st.info("""
         Để ứng dụng có thể tự động chuyển tên giáo viên viết tắt sang tên đầy đủ, bạn cần:
         1.  **Tạo một Service Account** trên Google Cloud Platform và cấp quyền truy cập Google Sheets API.
@@ -421,3 +421,4 @@ if uploaded_file is not None:
 
     except Exception as e:
         st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
+�
