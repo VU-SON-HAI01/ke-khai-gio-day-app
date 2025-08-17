@@ -258,11 +258,9 @@ def generate_schedule_summary(df_class):
         return "Không có dữ liệu thời khóa biểu cho lớp này."
 
     # --- 1. Lấy thông tin chung ---
-    # Lấy thông tin từ dòng đầu tiên vì nó giống nhau cho cả lớp
     info = df_class.iloc[0]
     summary_parts = ["#### 📝 Thông tin chung của lớp:"]
     
-    # Tạo danh sách các cặp (nhãn, giá trị) để dễ dàng định dạng
     general_info = [
         ("Giáo viên CN", info.get("Giáo viên CN")),
         ("Lớp VHPT", info.get("Lớp VHPT")),
@@ -271,32 +269,33 @@ def generate_schedule_summary(df_class):
         ("Sĩ số", info.get("Sĩ số"))
     ]
     
-    # Thêm vào chuỗi tóm tắt, chỉ hiển thị nếu có giá trị
-    info_str = "; ".join([f"**{label}:** {value}" for label, value in general_info if value])
-    summary_parts.append(info_str)
+    # *** SỬA LỖI: Định dạng lại thông tin chung ***
+    for label, value in general_info:
+        if value:
+            summary_parts.append(f"- **{label}:** {value}")
+
     summary_parts.append("---")
     summary_parts.append("#### 🗓️ Lịch học chi tiết:")
 
     # --- 2. Xử lý lịch học theo từng ngày ---
-    # Sắp xếp để đảm bảo thứ tự đúng
     df_class_sorted = df_class.sort_values(by=['Thứ', 'Buổi', 'Tiết'])
     
     # Gom nhóm theo ngày
     for day, day_group in df_class_sorted.groupby('Thứ'):
         summary_parts.append(f"**{day}:**")
         
-        # Gom nhóm theo buổi (Sáng/Chiều)
-        session_parts = []
-        for session, session_group in day_group.groupby('Buổi'):
-            # Lấy danh sách các tiết và chuyển thành chuỗi
-            tiet_list = sorted(session_group['Tiết'].unique())
-            tiet_str = ", ".join(map(str, tiet_list))
-            session_parts.append(f"{session} (Tiết: {tiet_str})")
-        summary_parts.append(" &nbsp; &nbsp; " + " và ".join(session_parts))
-
-        # Gom nhóm theo môn học để hiển thị thông tin chi tiết
+        # *** SỬA LỖI: Gom nhóm theo môn học trước ***
         for _, lesson_group in day_group.groupby(['Môn học', 'Giáo viên BM', 'Phòng học']):
             lesson_info = lesson_group.iloc[0]
+            
+            # Gom nhóm các buổi và tiết cho môn học này
+            session_parts = []
+            for session, session_group in lesson_group.groupby('Buổi'):
+                tiet_list = sorted(session_group['Tiết'].unique())
+                tiet_str = ", ".join(map(str, tiet_list))
+                session_parts.append(f"{session} (Tiết: {tiet_str})")
+            
+            summary_parts.append(f" &nbsp; &nbsp; " + " và ".join(session_parts))
             summary_parts.append(f"- **Môn học:** {lesson_info['Môn học']}")
             if lesson_info['Giáo viên BM']:
                 summary_parts.append(f"  - **Giáo viên:** {lesson_info['Giáo viên BM']}")
