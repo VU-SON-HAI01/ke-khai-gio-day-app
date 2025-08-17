@@ -234,7 +234,9 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                     source_cell = output_sheet_qt.cell(row=QT_STYLE_ROW, column=col_idx)
                     new_cell = output_sheet_qt.cell(row=row_idx, column=col_idx)
                     if source_cell.has_style:
-                        new_cell.font = Font(name=source_cell.font.name, size=source_cell.font.size, color=source_cell.font.color, family=source_cell.font.family, scheme=source_cell.font.scheme, bold=False, italic=False)
+                        # *** SỬA LỖI FONT ***
+                        # Sao chép chính xác font style từ cell mẫu
+                        new_cell.font = source_cell.font.copy()
                         new_cell.border = source_cell.border.copy()
                         new_cell.fill = source_cell.fill.copy()
                         new_cell.number_format = source_cell.number_format
@@ -296,7 +298,9 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
 
                     if col_idx in template_styles:
                         source_cell_for_style = template_styles[col_idx]
-                        target_cell.font = Font(name=source_cell_for_style.font.name, size=source_cell_for_style.font.size, color=source_cell_for_style.font.color, family=source_cell_for_style.font.family, scheme=source_cell_for_style.font.scheme, bold=False, italic=False)
+                        # *** SỬA LỖI FONT ***
+                        # Sao chép chính xác font style từ cell mẫu
+                        target_cell.font = source_cell_for_style.font.copy()
                         target_cell.border = source_cell_for_style.border.copy()
                         target_cell.fill = source_cell_for_style.fill.copy()
                         target_cell.number_format = source_cell_for_style.number_format
