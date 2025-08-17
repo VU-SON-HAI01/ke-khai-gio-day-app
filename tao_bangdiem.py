@@ -5,6 +5,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.styles import Border, Side, Font
 import io
 import re
+import zipfile
 
 # --- CÁC HÀM HỖ TRỢ ---
 
@@ -342,10 +343,14 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
 st.title("⚙️ Công cụ Cập nhật Bảng điểm HSSV")
 st.markdown("---")
 
+# Khởi tạo session state
 if 'generated_files' not in st.session_state:
     st.session_state.generated_files = {}
 if 'skipped_sheets' not in st.session_state:
     st.session_state.skipped_sheets = []
+if 'zip_buffer' not in st.session_state:
+    st.session_state.zip_buffer = None
+
 
 st.header("Thông tin chung")
 col1, col2, col3 = st.columns(3)
@@ -405,6 +410,8 @@ with right_column:
 
     if uploaded_template_file and uploaded_data_file and uploaded_danh_muc_file:
         if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True):
+            # Xóa file zip cũ khi xử lý lại
+            st.session_state.zip_buffer = None
             try:
                 with st.spinner("Đang xử lý... Vui lòng chờ trong giây lát."):
                     st.session_state.generated_files, st.session_state.skipped_sheets = process_excel_files(
@@ -418,6 +425,14 @@ with right_column:
                 
                 if st.session_state.generated_files:
                     st.success(f"✅ Hoàn thành! Đã xử lý và tạo ra {len(st.session_state.generated_files)} file.")
+                    
+                    # *** TẠO FILE ZIP ***
+                    with st.spinner("Đang nén file..."):
+                        zip_buffer = io.BytesIO()
+                        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, False) as zf:
+                            for file_name, file_data in st.session_state.generated_files.items():
+                                zf.writestr(file_name, file_data)
+                        st.session_state.zip_buffer = zip_buffer
                 else:
                     st.warning("Quá trình xử lý hoàn tất nhưng không có file nào được tạo. Vui lòng kiểm tra lại các file đầu vào.")
                 
@@ -429,18 +444,13 @@ with right_column:
 
     st.header("Bước 3: Tải xuống kết quả")
     
-    if not st.session_state.generated_files:
-        st.info("Chưa có file nào được tạo. Vui lòng tải lên cả 3 file và nhấn nút 'Xử lý'.")
+    if st.session_state.zip_buffer:
+        st.download_button(
+            label="📥 Tải xuống tất cả file (dạng .zip)",
+            data=st.session_state.zip_buffer.getvalue(),
+            file_name=f"BangDiem_{cap_nhat_input.replace('-', '_')}.zip",
+            mime="application/zip",
+            use_container_width=True
+        )
     else:
-        st.markdown(f"Đã tạo thành công **{len(st.session_state.generated_files)}** file. Nhấn vào các nút bên dưới để tải về:")
-        
-        for final_file_name, file_data in st.session_state.generated_files.items():
-            st.download_button(
-                label=f"📄 Tải xuống {final_file_name}",
-                data=file_data,
-                file_name=final_file_name,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key=f"download_{final_file_name}"
-            )
-        
-        st.warning("Lưu ý: Các file này sẽ bị xóa nếu bạn tải lên file mới và xử lý lại.")
+        st.info("Chưa có file nào được tạo. Vui lòng tải lên cả 3 file và nhấn nút 'Xử lý'.")
