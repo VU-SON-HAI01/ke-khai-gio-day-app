@@ -153,6 +153,33 @@ def extract_schedule_from_excel(worksheet):
     
     return df
 
+def map_and_prefix_teacher_name(short_name, mapping):
+    """
+    Ánh xạ tên viết tắt sang tên đầy đủ và thêm tiền tố 'Thầy'/'Cô'.
+    """
+    # Đảm bảo short_name là một chuỗi và đã được xóa khoảng trắng
+    short_name_clean = str(short_name or '').strip()
+    
+    # Nếu tên trống, trả về chuỗi rỗng
+    if not short_name_clean:
+        return ''
+        
+    # Tìm tên đầy đủ trong dictionary ánh xạ
+    full_name = mapping.get(short_name_clean)
+    
+    if full_name:
+        # Nếu tìm thấy, thêm tiền tố phù hợp
+        if short_name_clean.startswith('T.'):
+            return f"Thầy {full_name}"
+        elif short_name_clean.startswith('C.'):
+            return f"Cô {full_name}"
+        else:
+            # Nếu không có tiền tố, trả về tên đầy đủ
+            return full_name
+    else:
+        # Nếu không tìm thấy, trả về tên viết tắt gốc
+        return short_name_clean
+
 def transform_to_database_format(df_wide, teacher_mapping):
     """
     Chuyển đổi DataFrame dạng rộng (wide) sang dạng dài (long) và tách thông tin chi tiết.
@@ -208,8 +235,8 @@ def transform_to_database_format(df_wide, teacher_mapping):
 
     # *** ÁNH XẠ TÊN GIÁO VIÊN ***
     if teacher_mapping:
-        df_final['Giáo viên CN'] = df_final['Giáo viên CN'].str.strip().map(teacher_mapping).fillna(df_final['Giáo viên CN'])
-        df_final['Giáo viên BM'] = df_final['Giáo viên BM'].str.strip().map(teacher_mapping).fillna(df_final['Giáo viên BM'])
+        df_final['Giáo viên CN'] = df_final['Giáo viên CN'].apply(lambda name: map_and_prefix_teacher_name(name, teacher_mapping))
+        df_final['Giáo viên BM'] = df_final['Giáo viên BM'].apply(lambda name: map_and_prefix_teacher_name(name, teacher_mapping))
     
     # Sắp xếp và chọn các cột cần thiết
     final_cols = [
