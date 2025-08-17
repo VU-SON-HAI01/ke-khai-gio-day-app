@@ -225,17 +225,25 @@ if uploaded_file is not None:
                 # --- PHẦN 2: CHUẨN BỊ DỮ LIỆU VÀ TẠO EXPANDER ---
                 number_to_day_map = {2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ', 5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'}
                 class_schedule['Thứ Đầy Đủ'] = class_schedule['Thứ'].map(number_to_day_map)
+                
+                # *** THAY ĐỔI 1: ĐỊNH NGHĨA THỨ TỰ CHO "BUỔI" ĐỂ "SÁNG" LUÔN ĐỨNG TRƯỚC ***
                 day_order = list(number_to_day_map.values())
+                session_order = ['Sáng', 'Chiều']
                 class_schedule['Thứ Đầy Đủ'] = pd.Categorical(class_schedule['Thứ Đầy Đủ'], categories=day_order, ordered=True)
+                class_schedule['Buổi'] = pd.Categorical(class_schedule['Buổi'], categories=session_order, ordered=True)
+                
                 class_schedule_sorted = class_schedule.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
 
                 # Gom nhóm theo Thứ và tạo expander cho mỗi ngày
                 for day, day_group in class_schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
                     with st.expander(f"**{day}**"):
                         day_summary_parts = []
-                        # Gom nhóm theo Buổi
-                        for session, session_group in day_group.groupby('Buổi'):
-                            day_summary_parts.append(f"&nbsp;&nbsp;&nbsp; buổi **{session}:**")
+                        # Gom nhóm theo Buổi (đã được sắp xếp Sáng -> Chiều)
+                        for session, session_group in day_group.groupby('Buổi', observed=False):
+                            
+                            # *** THAY ĐỔI 2: ĐỊNH DẠNG LẠI TIÊU ĐỀ BUỔI HỌC VỚI MÀU SẮC VÀ CHỮ HOA/THƯỜNG ***
+                            formatted_session_header = f"Buổi {session.lower()}:"
+                            day_summary_parts.append(f"<span style='color:#60A5FA; font-weight:bold;'>&nbsp;&nbsp;&nbsp;{formatted_session_header}</span>")
                             
                             subjects_in_session = {}
                             for _, row in session_group.iterrows():
