@@ -112,19 +112,19 @@ def transform_to_database_format(df_wide):
     header_parts = df_long['Lớp_Raw'].str.split('___', expand=True)
     
     # Tách Lớp và Sĩ số từ phần 1
-    lop_pattern = re.compile(r'^(.*?)\s*\((\d+)\)$')
+    lop_pattern = re.compile(r'^(.*?)\s*(?:\((\d+)\))?$') # Sĩ số là tùy chọn
     lop_extracted = header_parts[0].str.extract(lop_pattern)
     lop_extracted.columns = ['Lớp', 'Sĩ số']
 
-    # Tách thông tin chủ nhiệm từ phần 2
-    cn_pattern = re.compile(r'^(.*?)\s*-\s*(.*?)\s*\((.*?)\)$')
+    # Tách thông tin chủ nhiệm từ phần 2 (linh hoạt hơn)
+    cn_pattern = re.compile(r'^(.*?)\s*-\s*(.*?)(?:\s*\((.*?)\))?$') # Lớp VHPT là tùy chọn
     cn_extracted = header_parts[1].str.extract(cn_pattern)
     cn_extracted.columns = ['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
     
     # --- TÁCH DỮ LIỆU TỪ NỘI DUNG Ô (Chi tiết Môn học) ---
     mh_pattern = re.compile(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$')
     mh_extracted = df_long['Chi tiết Môn học'].astype(str).str.extract(mh_pattern)
-    mh_extracted.columns = ['Môn học', 'Phòng học', 'Giáo viên BM']
+    mh_extracted.columns = ['Môn học Tách', 'Phòng học', 'Giáo viên BM']
 
     # Ghép tất cả các phần đã tách vào DataFrame chính
     df_final = pd.concat([
@@ -135,12 +135,22 @@ def transform_to_database_format(df_wide):
         df_long[['Chi tiết Môn học']].reset_index(drop=True)
     ], axis=1)
 
-    # Tạo cột Môn học cuối cùng
-    df_final['Môn học'] = df_final['Môn học'].fillna(df_final['Chi tiết Môn học'])
+    # --- TẠO CÁC CỘT CUỐI CÙNG ---
+    # Cột Môn học
+    df_final['Môn học'] = df_final['Môn học Tách'].fillna(df_final['Chi tiết Môn học'])
+    
+    # Cột Trình độ
+    def get_trinh_do(class_name):
+        if 'C.' in str(class_name):
+            return 'Cao đẳng'
+        if 'T.' in str(class_name):
+            return 'Trung Cấp'
+        return ''
+    df_final['Trình độ'] = df_final['Lớp'].apply(get_trinh_do)
     
     # Sắp xếp và chọn các cột cần thiết
     final_cols = [
-        'Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Môn học', 
+        'Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 
         'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'
     ]
     df_final = df_final[final_cols]
@@ -185,7 +195,7 @@ if uploaded_file is not None:
                     
                     display_columns = [
                         'Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM', 
-                        'Sĩ số', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'
+                        'Sĩ số', 'Trình độ', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'
                     ]
                     
                     st.dataframe(
