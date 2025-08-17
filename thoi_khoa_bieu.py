@@ -1,152 +1,111 @@
 # Import các thư viện cần thiết
 import streamlit as st
 import pandas as pd
+import openpyxl
 import io
+
+# --- CÁC HÀM HỖ TRỢ ---
+
+def extract_schedule_from_excel(worksheet):
+    """
+    Trích xuất dữ liệu TKB từ một worksheet, tự động tìm vùng dữ liệu và xử lý ô gộp.
+    """
+    
+    # --- Bước 1: Tìm điểm bắt đầu của bảng dữ liệu (ô chứa "Thứ") ---
+    start_row, start_col = -1, -1
+    for r_idx, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10), 1):
+        for c_idx, cell in enumerate(row, 1):
+            if cell.value and "thứ" in str(cell.value).lower():
+                start_row, start_col = r_idx, c_idx
+                break
+        if start_row != -1:
+            break
+            
+    if start_row == -1:
+        st.error("Không tìm thấy ô tiêu đề 'Thứ' trong 10 dòng đầu tiên của file.")
+        return None
+
+    # --- Bước 2: Tìm điểm kết thúc của bảng dữ liệu ---
+    # Tìm hàng cuối cùng: hàng cuối cùng có giá trị số trong cột C (Tiết)
+    last_row = start_row
+    # Cột 'Tiết' thường là cột thứ 3 (C) so với cột 'Thứ' (A)
+    tiet_col_index = start_col + 2 
+    for r_idx in range(worksheet.max_row, start_row - 1, -1):
+        cell_value = worksheet.cell(row=r_idx, column=tiet_col_index).value
+        if cell_value is not None and isinstance(cell_value, (int, float)):
+            last_row = r_idx
+            break
+
+    # Tìm cột cuối cùng có dữ liệu
+    last_col = start_col
+    for row in worksheet.iter_rows(min_row=start_row, max_row=last_row):
+        for cell in row:
+            if cell.value is not None and cell.column > last_col:
+                last_col = cell.column
+
+    # --- Bước 3: Xử lý các ô bị gộp (merged cells) ---
+    # Tạo một dictionary để lưu giá trị của ô đầu tiên trong vùng gộp
+    merged_values = {}
+    for merged_range in worksheet.merged_cells.ranges:
+        top_left_cell = worksheet.cell(row=merged_range.min_row, column=merged_range.min_col)
+        for row in range(merged_range.min_row, merged_range.max_row + 1):
+            for col in range(merged_range.min_col, merged_range.max_col + 1):
+                # Lưu giá trị của ô đầu tiên cho tất cả các ô trong vùng gộp
+                merged_values[(row, col)] = top_left_cell.value
+
+    # --- Bước 4: Đọc dữ liệu vào một danh sách 2D, áp dụng giá trị từ ô gộp ---
+    data = []
+    for r_idx in range(start_row, last_row + 1):
+        row_data = []
+        for c_idx in range(start_col, last_col + 1):
+            if (r_idx, c_idx) in merged_values:
+                # Nếu ô này nằm trong vùng gộp, lấy giá trị đã lưu
+                row_data.append(merged_values[(r_idx, c_idx)])
+            else:
+                # Nếu không, lấy giá trị thực của ô
+                row_data.append(worksheet.cell(row=r_idx, column=c_idx).value)
+        data.append(row_data)
+
+    if not data:
+        return None
+
+    # --- Bước 5: Chuyển đổi thành DataFrame ---
+    # Dòng đầu tiên của dữ liệu được trích xuất sẽ là tiêu đề
+    df = pd.DataFrame(data[1:], columns=data[0])
+    
+    return df
 
 # --- Giao diện ứng dụng Streamlit ---
 
 # Đặt tiêu đề cho ứng dụng
 st.set_page_config(page_title="Trích xuất Thời Khóa Biểu", layout="wide")
-st.title("📤 Trích xuất Thời Khóa Biểu Lớp Học")
-st.write("Tải file của bạn lên, ứng dụng sẽ tự động lấy dữ liệu từ **dòng thứ 3** để tạo danh sách lớp. Sau khi chọn lớp, thời khóa biểu sẽ được hiển thị theo đúng mẫu.")
+st.title("📊 Trích xuất và Chuyển đổi Thời Khóa Biểu")
+st.write("Tải file Excel thời khóa biểu của bạn lên. Ứng dụng sẽ tự động tìm bảng dữ liệu, xử lý các ô bị gộp và chuyển đổi thành một DataFrame hoàn chỉnh.")
 
 # Tạo một cột để người dùng tải file lên
-uploaded_file = st.file_uploader("Chọn file Excel hoặc CSV của bạn", type=["xlsx", "csv"])
+uploaded_file = st.file_uploader("Chọn file Excel của bạn", type=["xlsx"])
 
 # Kiểm tra xem người dùng đã tải file lên chưa
 if uploaded_file is not None:
     try:
-        # Lấy tên file và phần mở rộng
-        file_name = uploaded_file.name
+        # Sử dụng io.BytesIO để openpyxl có thể đọc file từ bộ nhớ
+        file_bytes = io.BytesIO(uploaded_file.getvalue())
+        workbook = openpyxl.load_workbook(file_bytes, data_only=True)
+        # Mặc định xử lý sheet đầu tiên
+        sheet = workbook.active
+
+        st.success(f"Đã đọc thành công file: **{uploaded_file.name}**")
         
-        # Đọc file dựa trên định dạng (xlsx hoặc csv)
-        if file_name.endswith('.xlsx'):
-            df = pd.read_excel(uploaded_file, header=None, engine='openpyxl')
+        with st.spinner("Đang tìm và xử lý dữ liệu..."):
+            # Gọi hàm trích xuất dữ liệu
+            final_df = extract_schedule_from_excel(sheet)
+
+        if final_df is not None:
+            st.header("✅ Bảng dữ liệu đã được xử lý")
+            st.write("Dưới đây là DataFrame đã được làm sạch và xử lý các ô bị gộp. Bạn có thể kiểm tra và sử dụng dữ liệu này.")
+            st.dataframe(final_df)
         else:
-            df = pd.read_csv(uploaded_file, header=None)
-
-        # --- Xử lý dữ liệu ---
-
-        if len(df) >= 3:
-            options_list = df.iloc[2].dropna().astype(str).tolist()
-
-            st.success(f"Đã đọc thành công file: **{file_name}**")
-            
-            st.header("👇 1. Vui lòng chọn lớp để xem thời khóa biểu")
-            selected_option = st.selectbox(
-                label="Danh sách các lớp có trong file:",
-                options=options_list
-            )
-
-            # --- XỬ LÝ VÀ HIỂN THỊ THỜI KHÓA BIỂU THEO MẪU MỚI ---
-            if selected_option:
-                st.header(f"🗓️ 2. Thời khóa biểu của lớp: {selected_option}")
-
-                # Tìm vị trí cột của lớp đã chọn
-                header_row_list = df.iloc[2].tolist()
-                try:
-                    col_idx = header_row_list.index(selected_option)
-                except ValueError:
-                    st.error(f"Không tìm thấy lớp '{selected_option}' trong dòng tiêu đề.")
-                    st.stop()
-
-                # Trích xuất dữ liệu thô
-                schedule_data = df.iloc[3:, [1, 2, col_idx]].copy()
-                schedule_data.columns = ['Thứ', 'Tiết', 'Môn học']
-
-                # --- BƯỚC GỠ LỖI: HIỂN THỊ DỮ LIỆU THÔ ---
-                with st.expander("🔍 Kiểm tra dữ liệu thô được trích xuất (trước khi xử lý)"):
-                    st.write("Bảng dưới đây là dữ liệu được đọc trực tiếp từ các cột 'Thứ', 'Tiết' và cột của lớp bạn đã chọn. **Hãy kiểm tra xem dữ liệu ở đây có khớp với file Excel của bạn không.** Nếu dữ liệu ở đây bị sai, nghĩa là chương trình đã đọc file không chính xác.")
-                    st.dataframe(schedule_data)
-
-
-                # --- LÀM SẠCH VÀ MỞ RỘNG DỮ LIỆU (LOGIC MỚI) ---
-                schedule_data['Thứ'] = schedule_data['Thứ'].ffill()
-                schedule_data.dropna(subset=['Thứ', 'Môn học'], inplace=True)
-                schedule_data['Môn học'] = schedule_data['Môn học'].astype(str)
-
-                expanded_rows = []
-                for _, row in schedule_data.iterrows():
-                    thu = row['Thứ']
-                    mon_hoc = row['Môn học']
-                    tiet_val = str(row['Tiết']).strip()
-
-                    if not mon_hoc.strip():
-                        continue
-
-                    try:
-                        if '-' in tiet_val:
-                            parts = tiet_val.split('-')
-                            start_tiet = int(float(parts[0]))
-                            end_tiet = int(float(parts[1]))
-                            for tiet in range(start_tiet, end_tiet + 1):
-                                expanded_rows.append({'Thứ': thu, 'Tiết': tiet, 'Môn học': mon_hoc})
-                        else:
-                            tiet = int(float(tiet_val))
-                            expanded_rows.append({'Thứ': thu, 'Tiết': tiet, 'Môn học': mon_hoc})
-                    except (ValueError, TypeError):
-                        continue
-                
-                expanded_schedule = pd.DataFrame(expanded_rows)
-
-                if expanded_schedule.empty:
-                    st.warning("Không tìm thấy dữ liệu thời khóa biểu hợp lệ cho lớp đã chọn sau khi xử lý. Vui lòng kiểm tra dữ liệu thô ở trên.")
-                    st.stop()
-
-                # --- Tái cấu trúc DataFrame ---
-                tkb_pivot = pd.pivot_table(
-                    expanded_schedule, 
-                    index='Tiết', 
-                    columns='Thứ', 
-                    values='Môn học',
-                    aggfunc=lambda x: ' / '.join(x)
-                )
-                
-                tkb_final = tkb_pivot.reset_index()
-
-                all_days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
-                for day in all_days:
-                    if day not in tkb_final.columns:
-                        tkb_final[day] = ''
-                
-                tkb_final = tkb_final.fillna('')
-
-                # --- TẠO BẢNG THEO ĐÚNG MẪU ---
-                
-                tkb_sang = tkb_final[tkb_final['Tiết'] <= 5].copy()
-                tkb_chieu = tkb_final[tkb_final['Tiết'] >= 6].copy()
-
-                if not tkb_chieu.empty:
-                    tkb_chieu['Tiết'] = tkb_chieu['Tiết'] - 5
-
-                tkb_sang.insert(0, 'Buổi', 'Sáng')
-                tkb_chieu.insert(0, 'Buổi', 'Chiều')
-                
-                tkb_display = pd.concat([tkb_sang, tkb_chieu], ignore_index=True)
-                
-                final_columns_order = ['Buổi', 'Tiết'] + all_days
-                tkb_display = tkb_display[final_columns_order]
-
-                # --- LOGIC MỚI: TẠO HIỆU ỨNG GỘP Ô ---
-                tkb_styled = tkb_display.copy()
-                
-                columns_to_merge = ['Buổi'] + all_days
-                
-                for col in columns_to_merge:
-                    mask = (tkb_styled[col] == tkb_styled[col].shift(1)) & (tkb_styled[col] != '')
-                    tkb_styled.loc[mask, col] = ''
-
-                # --- Hiển thị Thời Khóa Biểu ---
-                st.write("#### 📅 Thời Khóa Biểu Chi Tiết")
-                # THAY ĐỔI: Sử dụng st.table để hiển thị bảng tĩnh
-                st.table(tkb_styled)
-
-            # Hiển thị file gốc
-            with st.expander("Xem toàn bộ nội dung file gốc đã tải lên"):
-                st.dataframe(df)
-        else:
-            st.warning("File bạn tải lên không có đủ 3 dòng. Vui lòng kiểm tra lại file.")
-            st.dataframe(df)
+            st.warning("Không thể trích xuất dữ liệu. Vui lòng kiểm tra lại định dạng file của bạn.")
 
     except Exception as e:
         st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
