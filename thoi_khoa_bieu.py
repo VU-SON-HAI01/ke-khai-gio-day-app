@@ -3,17 +3,19 @@ import streamlit as st
 import pandas as pd
 import openpyxl
 import io
+import re
 
 # --- CÁC HÀM HỖ TRỢ ---
 
 def extract_schedule_from_excel(worksheet):
     """
-    Trích xuất dữ liệu TKB từ một worksheet, tự động tìm vùng dữ liệu và xử lý ô gộp.
+    Trích xuất dữ liệu TKB từ một worksheet, tự động tìm vùng dữ liệu, 
+    xử lý ô gộp và xử lý tiêu đề đa dòng.
     """
     
     # --- Bước 1: Tìm điểm bắt đầu của bảng dữ liệu (ô chứa "Thứ") ---
     start_row, start_col = -1, -1
-    for r_idx, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10), 1):
+    for r_idx, row in enuamerate(worksheet.iter_rows(min_row=1, max_row=10), 1):
         for c_idx, cell in enumerate(row, 1):
             if cell.value and "thứ" in str(cell.value).lower():
                 start_row, start_col = r_idx, c_idx
@@ -50,6 +52,7 @@ def extract_schedule_from_excel(worksheet):
 
     # --- Bước 4: Đọc dữ liệu vào một danh sách 2D, áp dụng giá trị từ ô gộp ---
     data = []
+    # Đọc từ dòng tiêu đề đầu tiên để bao gồm cả 2 dòng header
     for r_idx in range(start_row, last_row + 1):
         row_data = []
         for c_idx in range(start_col, last_col + 1):
@@ -62,45 +65,93 @@ def extract_schedule_from_excel(worksheet):
     if not data:
         return None
 
-    # --- Bước 5: Chuyển đổi thành DataFrame ---
-    df = pd.DataFrame(data[1:], columns=data[0])
+    # --- Bước 5: Xử lý tiêu đề đa dòng và tạo DataFrame ---
+    header_level1 = data[0]
+    header_level2 = data[1]
+    
+    # Điền các giá trị bị thiếu trong header cấp 1 (do gộp ô)
+    filled_header_level1 = []
+    last_val = ""
+    for val in header_level1:
+        if val is not None and str(val).strip() != '':
+            last_val = val
+        filled_header_level1.append(last_val)
+
+    # Kết hợp 2 dòng tiêu đề thành một, dùng ký tự đặc biệt để sau này tách ra
+    combined_headers = []
+    for i in range(len(filled_header_level1)):
+        h1 = str(filled_header_level1[i] or '').strip()
+        h2 = str(header_level2[i] or '').strip()
+        # Đối với các cột lớp học, kết hợp cả 2 dòng. Các cột khác giữ nguyên.
+        if i >= 3: # Giả định các cột lớp học bắt đầu từ cột thứ 4
+             combined_headers.append(f"{h1}___{h2}")
+        else:
+             combined_headers.append(h1)
+
+    # Dữ liệu thực tế bắt đầu từ dòng thứ 3 (index 2)
+    actual_data = data[2:]
+    
+    df = pd.DataFrame(actual_data, columns=combined_headers)
     
     return df
 
 def transform_to_database_format(df_wide):
     """
-    Chuyển đổi DataFrame dạng rộng (wide) sang dạng dài (long) để dễ truy vấn.
+    Chuyển đổi DataFrame dạng rộng (wide) sang dạng dài (long) và tách thông tin chi tiết.
     """
-    # Lấy các cột cố định làm id_vars
-    id_vars = []
-    for col in ['Thứ', 'Buổi', 'Tiết']:
-        if col in df_wide.columns:
-            id_vars.append(col)
+    id_vars = ['Thứ', 'Buổi', 'Tiết']
     
-    if not id_vars:
-        st.error("DataFrame thiếu các cột 'Thứ', 'Buổi', hoặc 'Tiết' để chuyển đổi.")
-        return None
-
     # Chuyển đổi từ dạng rộng sang dạng dài
-    df_long = pd.melt(df_wide, id_vars=id_vars, var_name='Lớp', value_name='Môn học')
+    df_long = pd.melt(df_wide, id_vars=id_vars, var_name='Lớp_Raw', value_name='Chi tiết Môn học')
     
-    # Làm sạch dữ liệu
-    df_long.dropna(subset=['Môn học'], inplace=True)
-    df_long = df_long[df_long['Môn học'].astype(str).str.strip() != '']
+    # Làm sạch dữ liệu ban đầu
+    df_long.dropna(subset=['Chi tiết Môn học'], inplace=True)
+    df_long = df_long[df_long['Chi tiết Môn học'].astype(str).str.strip() != '']
     
-    return df_long
+    # --- TÁCH DỮ LIỆU TỪ TIÊU ĐỀ (Lớp_Raw) ---
+    header_parts = df_long['Lớp_Raw'].str.split('___', expand=True)
+    df_long['Lớp'] = header_parts[0]
+    
+    # Tách thông tin chủ nhiệm từ phần thứ 2 của tiêu đề
+    cn_pattern = re.compile(r'^(.*?)\s*-\s*(.*?)\s*\((.*?)\)$')
+    cn_extracted = header_parts[1].str.extract(cn_pattern)
+    cn_extracted.columns = ['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
+    
+    # --- TÁCH DỮ LIỆU TỪ NỘI DUNG Ô (Chi tiết Môn học) ---
+    # Regex mới để xử lý cả hai trường hợp: "Môn (Phòng-GV)" và "Nội dung khác"
+    mh_pattern = re.compile(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$')
+    mh_extracted = df_long['Chi tiết Môn học'].astype(str).str.extract(mh_pattern)
+    mh_extracted.columns = ['Môn học', 'Phòng học', 'Giáo viên BM']
+
+    # Ghép tất cả các phần đã tách vào DataFrame chính
+    df_final = pd.concat([df_long[['Thứ', 'Buổi', 'Tiết', 'Lớp']], 
+                          cn_extracted, 
+                          mh_extracted,
+                          df_long[['Chi tiết Môn học']]], axis=1)
+
+    # Tạo cột nội dung cuối cùng
+    df_final['Nội dung'] = df_final['Môn học'].fillna(df_final['Chi tiết Môn học'])
+    
+    # Sắp xếp và chọn các cột cần thiết
+    final_cols = [
+        'Thứ', 'Buổi', 'Tiết', 'Lớp', 'Nội dung', 
+        'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'
+    ]
+    df_final = df_final[final_cols]
+    
+    # Điền giá trị rỗng cho các ô không có dữ liệu
+    df_final.fillna('', inplace=True)
+    
+    return df_final
 
 # --- Giao diện ứng dụng Streamlit ---
 
-# Đặt tiêu đề cho ứng dụng
 st.set_page_config(page_title="Trích xuất và Truy vấn TKB", layout="wide")
 st.title("📊 Trích xuất và Truy vấn Thời Khóa Biểu")
 st.write("Tải file Excel TKB, ứng dụng sẽ tự động chuyển đổi thành cơ sở dữ liệu và cho phép bạn tra cứu thông tin chi tiết.")
 
-# Tạo một cột để người dùng tải file lên
 uploaded_file = st.file_uploader("Chọn file Excel của bạn", type=["xlsx"])
 
-# Kiểm tra xem người dùng đã tải file lên chưa
 if uploaded_file is not None:
     try:
         file_bytes = io.BytesIO(uploaded_file.getvalue())
@@ -110,41 +161,34 @@ if uploaded_file is not None:
         st.success(f"Đã đọc thành công file: **{uploaded_file.name}**")
         
         with st.spinner("Đang tìm và xử lý dữ liệu..."):
-            # Trích xuất dữ liệu thô đã được xử lý ô gộp
             raw_df = extract_schedule_from_excel(sheet)
 
         if raw_df is not None:
-            # Chuyển đổi sang dạng CSDL
             db_df = transform_to_database_format(raw_df)
 
             if db_df is not None:
                 st.markdown("---")
                 st.header("🔍 Tra cứu Thời Khóa Biểu")
                 
-                # Lấy danh sách lớp duy nhất để người dùng chọn
                 class_list = sorted(db_df['Lớp'].unique())
                 selected_class = st.selectbox("Chọn lớp để xem chi tiết:", options=class_list)
 
                 if selected_class:
-                    # Lọc CSDL theo lớp đã chọn
                     class_schedule = db_df[db_df['Lớp'] == selected_class]
-                    
-                    # Sắp xếp lại để dễ nhìn
                     class_schedule_sorted = class_schedule.sort_values(by=['Thứ', 'Buổi', 'Tiết'])
                     
-                    # Hiển thị kết quả
+                    display_columns = ['Thứ', 'Buổi', 'Tiết', 'Nội dung', 'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
+                    
                     st.dataframe(
-                        class_schedule_sorted[['Thứ', 'Buổi', 'Tiết', 'Môn học']],
+                        class_schedule_sorted[display_columns],
                         use_container_width=True,
                         hide_index=True
                     )
                 
-                # Hiển thị dữ liệu dạng CSDL (có thể ẩn đi nếu muốn)
                 with st.expander("Xem toàn bộ dữ liệu dạng Cơ sở dữ liệu"):
                     st.dataframe(db_df, use_container_width=True, hide_index=True)
             
-            # Hiển thị dữ liệu gốc đã được xử lý ô gộp
-            with st.expander("Xem dữ liệu gốc (đã xử lý ô gộp)"):
+            with st.expander("Xem dữ liệu gốc (đã xử lý ô gộp và tiêu đề)"):
                 st.dataframe(raw_df)
         else:
             st.warning("Không thể trích xuất dữ liệu. Vui lòng kiểm tra lại định dạng file của bạn.")
