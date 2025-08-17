@@ -41,19 +41,16 @@ def get_teacher_mapping(_gsheet_client, spreadsheet_id):
         worksheet = spreadsheet.worksheet("THONG_TIN_GV")
         df = pd.DataFrame(worksheet.get_all_records())
         
-        # *** KIỂM TRA LỖI CHI TIẾT HƠN ***
         required_cols = ["Ten_viet_tat", "Ho_ten_gv"]
         actual_cols = df.columns.tolist()
-        
         missing_cols = [col for col in required_cols if col not in actual_cols]
         
         if missing_cols:
             st.error(f"Lỗi: Sheet 'THONG_TIN_GV' bị thiếu các cột bắt buộc: {', '.join(missing_cols)}.")
             st.info(f"Các cột hiện có trong sheet là: {', '.join(actual_cols)}")
-            st.warning("Vui lòng kiểm tra lại tên cột trong file Google Sheet của bạn (lưu ý cả khoảng trắng và viết hoa/thường).")
+            st.warning("Vui lòng kiểm tra lại tên cột trong file Google Sheet của bạn.")
             return {}
             
-        # Tạo một dictionary, đảm bảo key (tên viết tắt) được xóa khoảng trắng
         mapping = pd.Series(df.Ho_ten_gv.values, index=df.Ten_viet_tat.str.strip()).to_dict()
         return mapping
     except gspread.exceptions.WorksheetNotFound:
@@ -70,8 +67,6 @@ def extract_schedule_from_excel(worksheet):
     Trích xuất dữ liệu TKB từ một worksheet, tự động tìm vùng dữ liệu, 
     xử lý ô gộp và xử lý tiêu đề đa dòng.
     """
-    
-    # --- Bước 1: Tìm điểm bắt đầu của bảng dữ liệu (ô chứa "Thứ") ---
     start_row, start_col = -1, -1
     for r_idx, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10), 1):
         for c_idx, cell in enumerate(row, 1):
@@ -85,7 +80,6 @@ def extract_schedule_from_excel(worksheet):
         st.error("Không tìm thấy ô tiêu đề 'Thứ' trong 10 dòng đầu tiên của file.")
         return None
 
-    # --- Bước 2: Tìm điểm kết thúc của bảng dữ liệu ---
     last_row = start_row
     tiet_col_index = start_col + 2 
     for r_idx in range(worksheet.max_row, start_row - 1, -1):
@@ -100,7 +94,6 @@ def extract_schedule_from_excel(worksheet):
             if cell.value is not None and cell.column > last_col:
                 last_col = cell.column
 
-    # --- Bước 3: Xử lý các ô bị gộp (merged cells) ---
     merged_values = {}
     for merged_range in worksheet.merged_cells.ranges:
         top_left_cell = worksheet.cell(row=merged_range.min_row, column=merged_range.min_col)
@@ -108,23 +101,16 @@ def extract_schedule_from_excel(worksheet):
             for col in range(merged_range.min_col, merged_range.max_col + 1):
                 merged_values[(row, col)] = top_left_cell.value
 
-    # --- Bước 4: Đọc dữ liệu vào một danh sách 2D, áp dụng giá trị từ ô gộp ---
     day_to_number_map = {'HAI': 2, 'BA': 3, 'TƯ': 4, 'NĂM': 5, 'SÁU': 6, 'BẢY': 7}
     data = []
-    # Đọc từ dòng tiêu đề đầu tiên để bao gồm cả 2 dòng header
     for r_idx in range(start_row, last_row + 1):
         row_data = []
         for c_idx in range(start_col, last_col + 1):
-            cell_value = None
-            if (r_idx, c_idx) in merged_values:
-                cell_value = merged_values[(r_idx, c_idx)]
-            else:
-                cell_value = worksheet.cell(row=r_idx, column=c_idx).value
+            cell_value = merged_values.get((r_idx, c_idx), worksheet.cell(row=r_idx, column=c_idx).value)
             
-            # *** SỬA LỖI: Chuẩn hóa cột "Thứ" thành số ***
-            if c_idx == start_col and r_idx > start_row: # Chỉ xử lý các dòng dữ liệu, bỏ qua header
+            if c_idx == start_col and r_idx > start_row:
                 clean_day = re.sub(r'\s+', '', str(cell_value or '')).strip().upper()
-                cell_value = day_to_number_map.get(clean_day, cell_value) # Chuyển sang số, nếu không khớp thì giữ nguyên
+                cell_value = day_to_number_map.get(clean_day, cell_value)
 
             row_data.append(cell_value)
         data.append(row_data)
@@ -132,11 +118,9 @@ def extract_schedule_from_excel(worksheet):
     if not data:
         return None
 
-    # --- Bước 5: Xử lý tiêu đề đa dòng và tạo DataFrame ---
     header_level1 = data[0]
     header_level2 = data[1]
     
-    # Điền các giá trị bị thiếu trong header cấp 1 (do gộp ô)
     filled_header_level1 = []
     last_val = ""
     for val in header_level1:
@@ -144,20 +128,16 @@ def extract_schedule_from_excel(worksheet):
             last_val = val
         filled_header_level1.append(last_val)
 
-    # Kết hợp 2 dòng tiêu đề thành một, dùng ký tự đặc biệt để sau này tách ra
     combined_headers = []
     for i in range(len(filled_header_level1)):
         h1 = str(filled_header_level1[i] or '').strip()
         h2 = str(header_level2[i] or '').strip()
-        # Đối với các cột lớp học, kết hợp cả 2 dòng. Các cột khác giữ nguyên.
-        if i >= 3: # Giả định các cột lớp học bắt đầu từ cột thứ 4
+        if i >= 3:
              combined_headers.append(f"{h1}___{h2}")
         else:
              combined_headers.append(h1)
 
-    # Dữ liệu thực tế bắt đầu từ dòng thứ 3 (index 2)
     actual_data = data[2:]
-    
     df = pd.DataFrame(actual_data, columns=combined_headers)
     
     return df
@@ -166,27 +146,20 @@ def map_and_prefix_teacher_name(short_name, mapping):
     """
     Ánh xạ tên viết tắt sang tên đầy đủ và thêm tiền tố 'Thầy'/'Cô'.
     """
-    # Đảm bảo short_name là một chuỗi và đã được xóa khoảng trắng
     short_name_clean = str(short_name or '').strip()
-    
-    # Nếu tên trống, trả về chuỗi rỗng
     if not short_name_clean:
         return ''
         
-    # Tìm tên đầy đủ trong dictionary ánh xạ
     full_name = mapping.get(short_name_clean)
     
     if full_name:
-        # Nếu tìm thấy, thêm tiền tố phù hợp
         if short_name_clean.startswith('T.'):
             return f"Thầy {full_name}"
         elif short_name_clean.startswith('C.'):
             return f"Cô {full_name}"
         else:
-            # Nếu không có tiền tố, trả về tên đầy đủ
             return full_name
     else:
-        # Nếu không tìm thấy, trả về tên viết tắt gốc
         return short_name_clean
 
 def transform_to_database_format(df_wide, teacher_mapping):
@@ -195,32 +168,25 @@ def transform_to_database_format(df_wide, teacher_mapping):
     """
     id_vars = ['Thứ', 'Buổi', 'Tiết']
     
-    # Chuyển đổi từ dạng rộng sang dạng dài
     df_long = pd.melt(df_wide, id_vars=id_vars, var_name='Lớp_Raw', value_name='Chi tiết Môn học')
     
-    # Làm sạch dữ liệu ban đầu
     df_long.dropna(subset=['Chi tiết Môn học'], inplace=True)
     df_long = df_long[df_long['Chi tiết Môn học'].astype(str).str.strip() != '']
     
-    # --- TÁCH DỮ LIỆU TỪ TIÊU ĐỀ (Lớp_Raw) ---
     header_parts = df_long['Lớp_Raw'].str.split('___', expand=True)
     
-    # Tách Lớp và Sĩ số từ phần 1
-    lop_pattern = re.compile(r'^(.*?)\s*(?:\((\d+)\))?$') # Sĩ số là tùy chọn
+    lop_pattern = re.compile(r'^(.*?)\s*(?:\((\d+)\))?$')
     lop_extracted = header_parts[0].str.extract(lop_pattern)
     lop_extracted.columns = ['Lớp', 'Sĩ số']
 
-    # Tách thông tin chủ nhiệm từ phần 2 (linh hoạt hơn)
-    cn_pattern = re.compile(r'^(.*?)\s*-\s*(.*?)(?:\s*\((.*?)\))?$') # Lớp VHPT là tùy chọn
+    cn_pattern = re.compile(r'^(.*?)\s*-\s*(.*?)(?:\s*\((.*?)\))?$')
     cn_extracted = header_parts[1].str.extract(cn_pattern)
     cn_extracted.columns = ['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
     
-    # --- TÁCH DỮ LIỆU TỪ NỘI DUNG Ô (Chi tiết Môn học) ---
     mh_pattern = re.compile(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$')
     mh_extracted = df_long['Chi tiết Môn học'].astype(str).str.extract(mh_pattern)
     mh_extracted.columns = ['Môn học Tách', 'Phòng học', 'Giáo viên BM']
 
-    # Ghép tất cả các phần đã tách vào DataFrame chính
     df_final = pd.concat([
         df_long[['Thứ', 'Buổi', 'Tiết']].reset_index(drop=True), 
         lop_extracted.reset_index(drop=True),
@@ -229,11 +195,8 @@ def transform_to_database_format(df_wide, teacher_mapping):
         df_long[['Chi tiết Môn học']].reset_index(drop=True)
     ], axis=1)
 
-    # --- TẠO CÁC CỘT CUỐI CÙNG ---
-    # Cột Môn học
     df_final['Môn học'] = df_final['Môn học Tách'].fillna(df_final['Chi tiết Môn học'])
     
-    # Cột Trình độ
     def get_trinh_do(class_name):
         if 'C.' in str(class_name):
             return 'Cao đẳng'
@@ -242,23 +205,23 @@ def transform_to_database_format(df_wide, teacher_mapping):
         return ''
     df_final['Trình độ'] = df_final['Lớp'].apply(get_trinh_do)
 
-    # *** ÁNH XẠ TÊN GIÁO VIÊN ***
     if teacher_mapping:
         df_final['Giáo viên CN'] = df_final['Giáo viên CN'].apply(lambda name: map_and_prefix_teacher_name(name, teacher_mapping))
         df_final['Giáo viên BM'] = df_final['Giáo viên BM'].apply(lambda name: map_and_prefix_teacher_name(name, teacher_mapping))
     
-    # Sắp xếp và chọn các cột cần thiết
     final_cols = [
         'Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 
         'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'
     ]
     df_final = df_final[final_cols]
     
-    # Điền giá trị rỗng cho các ô không có dữ liệu
     df_final.fillna('', inplace=True)
     
     return df_final
 
+# ==============================================================================
+# HÀM generate_schedule_summary ĐÃ ĐƯỢC CẬP NHẬT THEO YÊU CẦU MỚI
+# ==============================================================================
 def generate_schedule_summary(schedule_df):
     """
     Tạo một bản tóm tắt/diễn giải thời khóa biểu từ DataFrame.
@@ -271,76 +234,76 @@ def generate_schedule_summary(schedule_df):
         return "Không có dữ liệu thời khóa biểu để hiển thị."
 
     # Tạo một bản sao để tránh SettingWithCopyWarning
-    schedule_df = schedule_df.copy()
+    df_class = schedule_df.copy()
 
-    # 1. Chuẩn hóa và Sắp xếp
-    # Định nghĩa thứ tự đúng của các ngày trong tuần
-    day_mapping = {
-        'THỨ HAI': 2, 'THỨ BA': 3, 'THỨ TƯ': 4,
-        'THỨ NĂM': 5, 'THỨ SÁU': 6, 'THỨ BẢY': 7, 'CHỦ NHẬT': 1
+    # --- 1. Lấy và hiển thị thông tin chung ---
+    info = df_class.iloc[0]
+    summary_parts = ["#### 📝 Thông tin chung của lớp:"]
+    
+    general_info = [
+        ("Giáo viên CN", info.get("Giáo viên CN")),
+        ("Lớp VHPT", info.get("Lớp VHPT")),
+        ("Phòng SHCN", info.get("Phòng SHCN")),
+        ("Trình độ", info.get("Trình độ")),
+        ("Sĩ số", info.get("Sĩ số"))
+    ]
+    
+    for label, value in general_info:
+        if value:
+            summary_parts.append(f"- **{label}:** {value}")
+
+    summary_parts.append("---")
+    summary_parts.append("#### 🗓️ Lịch học chi tiết:")
+
+    # --- 2. Chuẩn hóa và Sắp xếp ---
+    number_to_day_map = {
+        2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ',
+        5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'
     }
-    # Tạo cột số để sắp xếp và chuyển 'Thứ' về chữ IN HOA để đồng bộ
-    schedule_df['Thứ Num'] = schedule_df['Thứ'].str.upper().map(day_mapping)
+    df_class['Thứ Đầy Đủ'] = df_class['Thứ'].map(number_to_day_map)
     
-    # Sắp xếp theo Thứ -> Buổi -> Tiết
-    schedule_df_sorted = schedule_df.sort_values(by=['Thứ Num', 'Buổi', 'Tiết'])
-
-    summary_lines = ["### Tóm Tắt Thời Khóa Biểu 📝", ""]
+    day_order = list(number_to_day_map.values())
+    df_class['Thứ Đầy Đủ'] = pd.Categorical(df_class['Thứ Đầy Đủ'], categories=day_order, ordered=True)
+    df_class_sorted = df_class.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
     
-    # 2. Gom nhóm theo Cấp 1: Thứ
-    # Dùng groupby().groups.keys() để giữ lại thứ tự đã sắp xếp
-    for day in schedule_df_sorted.groupby('Thứ', sort=False).groups.keys():
-        day_group = schedule_df_sorted[schedule_df_sorted['Thứ'] == day]
-        summary_lines.append(f"**🗓️ {day.upper()}**")
+    # --- 3. Gom nhóm và định dạng theo 3 cấp ---
+    # Cấp 1: Gom nhóm theo Thứ
+    for day, day_group in df_class_sorted.groupby('Thứ Đầy Đủ', observed=True):
+        summary_parts.append(f"**{day}:**")
         
-        # 3. Gom nhóm theo Cấp 2: Buổi
-        for session in day_group['Buổi'].unique():
-            summary_lines.append(f"&nbsp;&nbsp;&nbsp; buổi **{session}:**")
-            session_group = day_group[day_group['Buổi'] == session]
+        # Cấp 2: Gom nhóm theo Buổi
+        for session, session_group in day_group.groupby('Buổi'):
+            summary_parts.append(f"  - **{session}:**")
             
-            # 4. Gom nhóm theo Cấp 3: Môn học và tổng hợp thông tin
-            # Sử dụng dict để gom các tiết, giáo viên, phòng học của cùng 1 môn
             subjects_in_session = {}
             for _, row in session_group.iterrows():
                 subject = row['Môn học']
-                # Bỏ qua các dòng không có tên môn học
                 if pd.isna(subject) or str(subject).strip() == "":
                     continue
 
-                if subject not in subjects_in_session:
-                    subjects_in_session[subject] = {
-                        'Tiet': [],
-                        'GiaoVien': set(), # Dùng set để tránh trùng lặp tên
-                        'PhongHoc': set()  # Dùng set để tránh trùng lặp phòng
-                    }
+                # Tạo key duy nhất cho mỗi môn học + giáo viên + phòng
+                subject_key = (subject, row['Giáo viên BM'], row['Phòng học'])
+
+                if subject_key not in subjects_in_session:
+                    subjects_in_session[subject_key] = []
                 
-                # Thêm thông tin chi tiết
-                subjects_in_session[subject]['Tiet'].append(str(row['Tiết']))
-                if pd.notna(row['Giáo viên BM']):
-                    subjects_in_session[subject]['GiaoVien'].add(row['Giáo viên BM'])
-                if pd.notna(row['Phòng học']):
-                    subjects_in_session[subject]['PhongHoc'].add(row['Phòng học'])
-            
-            # 5. Định dạng và hiển thị thông tin môn học
+                subjects_in_session[subject_key].append(str(row['Tiết']))
+
+            # Cấp 3: Định dạng thông tin Môn học
             if not subjects_in_session:
-                summary_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 *Không có tiết học*")
+                summary_parts.append(f"    - *Không có tiết học*")
             else:
-                for subject, details in subjects_in_session.items():
-                    tiet_str = ", ".join(sorted(details['Tiet'], key=int))
-                    gv_str = ", ".join(sorted(list(details['GiaoVien'])))
-                    phong_str = ", ".join(sorted(list(details['PhongHoc'])))
+                for (subject, gv, phong), tiet_list in subjects_in_session.items():
+                    tiet_str = ", ".join(sorted(tiet_list, key=int))
                     
-                    summary_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 **{subject}**:")
-                    summary_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Tiết:** {tiet_str}")
-                    if gv_str:
-                        summary_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **GV:** {gv_str}")
-                    if phong_str:
-                        summary_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Phòng:** {phong_str}")
-        
-        summary_lines.append("") # Thêm một dòng trống để phân cách các ngày
-
-    return "\n".join(summary_lines)
-
+                    summary_parts.append(f"    - **Môn học:** {subject}")
+                    summary_parts.append(f"      - **Tiết:** {tiet_str}")
+                    if gv:
+                        summary_parts.append(f"      - **Giáo viên:** {gv}")
+                    if phong:
+                        summary_parts.append(f"      - **Phòng:** {phong}")
+    
+    return "\n".join(summary_parts)
 
 # --- Giao diện ứng dụng Streamlit ---
 
@@ -348,35 +311,18 @@ st.set_page_config(page_title="Trích xuất và Truy vấn TKB", layout="wide")
 st.title("📊 Trích xuất và Truy vấn Thời Khóa Biểu")
 st.write("Tải file Excel TKB, ứng dụng sẽ tự động chuyển đổi thành cơ sở dữ liệu và cho phép bạn tra cứu thông tin chi tiết.")
 
-# --- HƯỚNG DẪN CẤU HÌNH ---
 with st.expander("💡 Hướng dẫn cấu hình để ánh xạ tên giáo viên"):
     st.info("""
         Để ứng dụng có thể tự động chuyển tên giáo viên viết tắt sang tên đầy đủ, bạn cần:
         1.  **Tạo một Service Account** trên Google Cloud Platform và cấp quyền truy cập Google Sheets API.
         2.  **Chia sẻ file Google Sheet** có mã `1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI` với địa chỉ email của Service Account.
-        3.  **Thêm thông tin credentials** của Service Account vào `secrets.toml` của ứng dụng Streamlit theo mẫu sau:
-
-        ```toml
-        [gcp_service_account]
-        type = "service_account"
-        project_id = "your-project-id"
-        private_key_id = "your-private-key-id"
-        private_key = "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"
-        client_email = "your-service-account-email@...iam.gserviceaccount.com"
-        client_id = "your-client-id"
-        auth_uri = "[https://accounts.google.com/o/oauth2/auth](https://accounts.google.com/o/oauth2/auth)"
-        token_uri = "[https://oauth2.googleapis.com/token](https://oauth2.googleapis.com/token)"
-        auth_provider_x509_cert_url = "[https://www.googleapis.com/oauth2/v1/certs](https://www.googleapis.com/oauth2/v1/certs)"
-        client_x509_cert_url = "[https://www.googleapis.com/robot/v1/metadata/x509/your-service-account-email](https://www.googleapis.com/robot/v1/metadata/x509/your-service-account-email)..."
-        ```
+        3.  **Thêm thông tin credentials** của Service Account vào `secrets.toml` của ứng dụng Streamlit theo mẫu.
         Nếu không có cấu hình này, tên giáo viên sẽ được giữ nguyên ở dạng viết tắt.
     """)
 
 # --- KẾT NỐI VÀ LẤY DỮ LIỆU ÁNH XẠ ---
-# ID của Google Sheet chứa thông tin giáo viên
 TEACHER_INFO_SHEET_ID = "1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI"
 teacher_mapping_data = {}
-# Chỉ kết nối nếu có secrets được cấu hình
 if "gcp_service_account" in st.secrets:
     gsheet_client = connect_to_gsheet()
     teacher_mapping_data = get_teacher_mapping(gsheet_client, TEACHER_INFO_SHEET_ID)
@@ -398,7 +344,6 @@ if uploaded_file is not None:
             raw_df = extract_schedule_from_excel(sheet)
 
         if raw_df is not None:
-            # Truyền dữ liệu ánh xạ vào hàm chuyển đổi
             db_df = transform_to_database_format(raw_df, teacher_mapping_data)
 
             if db_df is not None:
@@ -411,11 +356,9 @@ if uploaded_file is not None:
                 if selected_class:
                     class_schedule = db_df[db_df['Lớp'] == selected_class]
                     
-                    # *** TẠO VÀ HIỂN THỊ BẢN DIỄN GIẢI ***
                     summary_text = generate_schedule_summary(class_schedule)
                     st.markdown(summary_text)
 
-                    # Hiển thị bảng dữ liệu chi tiết
                     st.write("#### Bảng dữ liệu chi tiết:")
                     class_schedule_sorted = class_schedule.sort_values(by=['Thứ', 'Buổi', 'Tiết'])
                     display_columns = [
