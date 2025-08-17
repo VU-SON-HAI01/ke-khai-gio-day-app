@@ -194,4 +194,5 @@ if uploaded_file is not None:
         else:
             st.warning("Không thể trích xuất dữ liệu. Vui lòng kiểm tra lại định dạng file của bạn.")
 
-    except Exception a
+    except Exception as e:
+        st.error(f"Đã xảy ra lỗi trong quá trình xử lý: {e}")
