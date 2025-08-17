@@ -109,15 +109,24 @@ def extract_schedule_from_excel(worksheet):
                 merged_values[(row, col)] = top_left_cell.value
 
     # --- Bước 4: Đọc dữ liệu vào một danh sách 2D, áp dụng giá trị từ ô gộp ---
+    day_to_number_map = {'HAI': 2, 'BA': 3, 'TƯ': 4, 'NĂM': 5, 'SÁU': 6, 'BẢY': 7}
     data = []
     # Đọc từ dòng tiêu đề đầu tiên để bao gồm cả 2 dòng header
     for r_idx in range(start_row, last_row + 1):
         row_data = []
         for c_idx in range(start_col, last_col + 1):
+            cell_value = None
             if (r_idx, c_idx) in merged_values:
-                row_data.append(merged_values[(r_idx, c_idx)])
+                cell_value = merged_values[(r_idx, c_idx)]
             else:
-                row_data.append(worksheet.cell(row=r_idx, column=c_idx).value)
+                cell_value = worksheet.cell(row=r_idx, column=c_idx).value
+            
+            # *** SỬA LỖI: Chuẩn hóa cột "Thứ" thành số ***
+            if c_idx == start_col and r_idx > start_row: # Chỉ xử lý các dòng dữ liệu, bỏ qua header
+                clean_day = re.sub(r'\s+', '', str(cell_value or '')).strip().upper()
+                cell_value = day_to_number_map.get(clean_day, cell_value) # Chuyển sang số, nếu không khớp thì giữ nguyên
+
+            row_data.append(cell_value)
         data.append(row_data)
 
     if not data:
@@ -277,15 +286,15 @@ def generate_schedule_summary(df_class):
     summary_parts.append("#### 🗓️ Lịch học chi tiết:")
 
     # --- 2. Xử lý lịch học theo từng ngày ---
-    # Ánh xạ và thứ tự sắp xếp
-    day_mapping = {
-        'H A I': 'THỨ HAI', 'B A': 'THỨ BA', 'T Ư': 'THỨ TƯ',
-        'N Ă M': 'THỨ NĂM', 'S Á U': 'THỨ SÁU', 'B Ả Y': 'THỨ BẢY'
+    # *** SỬA LỖI: Ánh xạ từ số sang tên đầy đủ ***
+    number_to_day_map = {
+        2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ',
+        5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'
     }
-    day_order = list(day_mapping.values())
+    day_order = list(number_to_day_map.values())
     
-    # Chuyển cột 'Thứ' sang tên đầy đủ và sắp xếp lại
-    df_class['Thứ Đầy Đủ'] = df_class['Thứ'].map(day_mapping)
+    # Chuyển cột 'Thứ' (số) sang tên đầy đủ và sắp xếp lại
+    df_class['Thứ Đầy Đủ'] = df_class['Thứ'].map(number_to_day_map)
     df_class['Thứ Đầy Đủ'] = pd.Categorical(df_class['Thứ Đầy Đủ'], categories=day_order, ordered=True)
     df_class_sorted = df_class.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
     
