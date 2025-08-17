@@ -146,7 +146,9 @@ def transform_to_database_format(df_wide, teacher_mapping):
     cn_extracted = header_parts[1].str.extract(r'^(.*?)\s*-\s*(.*?)(?:\s*\((.*?)\))?$')
     cn_extracted.columns = ['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
     
-    mh_extracted = df_long['Chi tiết Môn học'].astype(str).str.extract(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$')
+    # Tách dữ liệu Môn, Phòng, GV từ chuỗi phức tạp
+    mh_pattern = re.compile(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$')
+    mh_extracted = df_long['Chi tiết Môn học'].astype(str).str.extract(mh_pattern)
     mh_extracted.columns = ['Môn học Tách', 'Phòng học', 'Giáo viên BM']
 
     for col in mh_extracted.columns:
@@ -159,8 +161,13 @@ def transform_to_database_format(df_wide, teacher_mapping):
         mh_extracted.reset_index(drop=True)
     ], axis=1)
 
+    # Nếu tách bị lỗi (NaN), dùng lại chuỗi gốc. Nếu thành công, dùng phần đã tách.
     df_final['Môn học'] = df_final['Môn học Tách'].fillna(df_long['Chi tiết Môn học'])
     df_final['Trình độ'] = df_final['Lớp'].apply(lambda x: 'Cao đẳng' if 'C.' in str(x) else ('Trung Cấp' if 'T.' in str(x) else ''))
+
+    # Điền giá trị rỗng TRƯỚC KHI ánh xạ tên để tránh lỗi hiển thị "nan"
+    for col in ['Giáo viên CN', 'Giáo viên BM']:
+        df_final[col] = df_final[col].fillna('')
 
     if teacher_mapping:
         df_final['Giáo viên CN'] = df_final['Giáo viên CN'].apply(lambda n: map_and_prefix_teacher_name(n, teacher_mapping))
@@ -253,7 +260,7 @@ if uploaded_file is not None:
                                 can_consolidate = True
 
                         blue_color = "#60A5FA"
-                        green_color = "#00FF00" # Mã màu xanh lá cây theo yêu cầu
+                        green_color = "#00FF00"
 
                         if can_consolidate:
                             subject_info = sang_subjects.iloc[0]
@@ -287,7 +294,7 @@ if uploaded_file is not None:
                                         subjects_in_session[key].append(str(row['Tiết']))
 
                                 if not subjects_in_session:
-                                    day_summary_parts.append(f"{session_header}&nbsp;&nbsp;✨Nghỉ") # Thay đổi ở đây
+                                    day_summary_parts.append(f"{session_header}&nbsp;&nbsp;✨Nghỉ")
                                 else:
                                     for (subject, gv, phong), tiet_list in subjects_in_session.items():
                                         tiet_str = ", ".join(sorted(tiet_list, key=int))
