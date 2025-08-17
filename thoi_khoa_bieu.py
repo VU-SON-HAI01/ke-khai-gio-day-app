@@ -15,7 +15,6 @@ def extract_schedule_from_excel(worksheet):
     
     # --- Bước 1: Tìm điểm bắt đầu của bảng dữ liệu (ô chứa "Thứ") ---
     start_row, start_col = -1, -1
-    # SỬA LỖI: Sửa 'enuamerate' thành 'enumerate'
     for r_idx, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10), 1):
         for c_idx, cell in enumerate(row, 1):
             if cell.value and "thứ" in str(cell.value).lower():
@@ -111,31 +110,37 @@ def transform_to_database_format(df_wide):
     
     # --- TÁCH DỮ LIỆU TỪ TIÊU ĐỀ (Lớp_Raw) ---
     header_parts = df_long['Lớp_Raw'].str.split('___', expand=True)
-    df_long['Lớp'] = header_parts[0]
     
-    # Tách thông tin chủ nhiệm từ phần thứ 2 của tiêu đề
+    # Tách Lớp và Sĩ số từ phần 1
+    lop_pattern = re.compile(r'^(.*?)\s*\((\d+)\)$')
+    lop_extracted = header_parts[0].str.extract(lop_pattern)
+    lop_extracted.columns = ['Lớp', 'Sĩ số']
+
+    # Tách thông tin chủ nhiệm từ phần 2
     cn_pattern = re.compile(r'^(.*?)\s*-\s*(.*?)\s*\((.*?)\)$')
     cn_extracted = header_parts[1].str.extract(cn_pattern)
     cn_extracted.columns = ['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
     
     # --- TÁCH DỮ LIỆU TỪ NỘI DUNG Ô (Chi tiết Môn học) ---
-    # Regex mới để xử lý cả hai trường hợp: "Môn (Phòng-GV)" và "Nội dung khác"
     mh_pattern = re.compile(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$')
     mh_extracted = df_long['Chi tiết Môn học'].astype(str).str.extract(mh_pattern)
     mh_extracted.columns = ['Môn học', 'Phòng học', 'Giáo viên BM']
 
     # Ghép tất cả các phần đã tách vào DataFrame chính
-    df_final = pd.concat([df_long[['Thứ', 'Buổi', 'Tiết', 'Lớp']], 
-                          cn_extracted, 
-                          mh_extracted,
-                          df_long[['Chi tiết Môn học']]], axis=1)
+    df_final = pd.concat([
+        df_long[['Thứ', 'Buổi', 'Tiết']].reset_index(drop=True), 
+        lop_extracted.reset_index(drop=True),
+        cn_extracted.reset_index(drop=True), 
+        mh_extracted.reset_index(drop=True),
+        df_long[['Chi tiết Môn học']].reset_index(drop=True)
+    ], axis=1)
 
-    # Tạo cột nội dung cuối cùng
-    df_final['Nội dung'] = df_final['Môn học'].fillna(df_final['Chi tiết Môn học'])
+    # Tạo cột Môn học cuối cùng
+    df_final['Môn học'] = df_final['Môn học'].fillna(df_final['Chi tiết Môn học'])
     
     # Sắp xếp và chọn các cột cần thiết
     final_cols = [
-        'Thứ', 'Buổi', 'Tiết', 'Lớp', 'Nội dung', 
+        'Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Môn học', 
         'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'
     ]
     df_final = df_final[final_cols]
@@ -178,7 +183,10 @@ if uploaded_file is not None:
                     class_schedule = db_df[db_df['Lớp'] == selected_class]
                     class_schedule_sorted = class_schedule.sort_values(by=['Thứ', 'Buổi', 'Tiết'])
                     
-                    display_columns = ['Thứ', 'Buổi', 'Tiết', 'Nội dung', 'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
+                    display_columns = [
+                        'Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM', 
+                        'Sĩ số', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'
+                    ]
                     
                     st.dataframe(
                         class_schedule_sorted[display_columns],
@@ -195,4 +203,4 @@ if uploaded_file is not None:
             st.warning("Không thể trích xuất dữ liệu. Vui lòng kiểm tra lại định dạng file của bạn.")
 
     except Exception as e:
-        st.error(f"Đã xảy ra lỗi trong quá trình xử lý: {e}")
+        st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
