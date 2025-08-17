@@ -253,27 +253,25 @@ if uploaded_file is not None:
                                 can_consolidate = True
 
                         blue_color = "#60A5FA"
+                        green_color = "#00FF00" # Mã màu xanh lá cây theo yêu cầu
 
                         if can_consolidate:
-                            day_summary_parts = []
                             subject_info = sang_subjects.iloc[0]
                             all_periods = day_group['Tiết'].astype(str).tolist()
                             tiet_str = ", ".join(sorted(all_periods, key=int))
                             
                             session_header = f"<span style='color:{blue_color}; font-weight:bold;'>Cả ngày:</span>"
                             
-                            subject_part = f"📒 **Môn:** {subject_info['Môn học']}"
-                            tiet_part = f"⏰ **Tiết:** {tiet_str}"
-                            gv_part = f"🧑‍💼 **GV:** {subject_info['Giáo viên BM']}" if subject_info['Giáo viên BM'] else ""
-                            phong_part = f"🏤 **Phòng:** {subject_info['Phòng học']}" if subject_info['Phòng học'] else ""
+                            subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>"
+                            tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
+                            gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>" if subject_info['Giáo viên BM'] else ""
+                            phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{subject_info['Phòng học']}</span>" if subject_info['Phòng học'] else ""
 
                             all_parts = [part for part in [subject_part, tiet_part, gv_part, phong_part] if part]
                             details_str = "&nbsp;&nbsp;".join(all_parts)
 
                             full_line = f"{session_header}&nbsp;&nbsp;{details_str}"
-                            day_summary_parts.append(full_line)
-                            
-                            st.markdown("".join(day_summary_parts), unsafe_allow_html=True)
+                            st.markdown(full_line, unsafe_allow_html=True)
                         
                         else:
                             day_summary_parts = []
@@ -289,15 +287,15 @@ if uploaded_file is not None:
                                         subjects_in_session[key].append(str(row['Tiết']))
 
                                 if not subjects_in_session:
-                                    day_summary_parts.append(f"{session_header}&nbsp;&nbsp;*Không có tiết học*")
+                                    day_summary_parts.append(f"{session_header}&nbsp;&nbsp;✨Nghỉ") # Thay đổi ở đây
                                 else:
                                     for (subject, gv, phong), tiet_list in subjects_in_session.items():
                                         tiet_str = ", ".join(sorted(tiet_list, key=int))
                                         
-                                        subject_part = f"📒 **Môn:** {subject}"
-                                        tiet_part = f"⏰ **Tiết:** {tiet_str}"
-                                        gv_part = f"🧑‍💼 **GV:** {gv}" if gv else ""
-                                        phong_part = f"🏤 **Phòng:** {phong}" if phong else ""
+                                        subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>"
+                                        tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
+                                        gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{gv}</span>" if gv else ""
+                                        phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{phong}</span>" if phong else ""
 
                                         all_parts = [part for part in [subject_part, tiet_part, gv_part, phong_part] if part]
                                         details_str = "&nbsp;&nbsp;".join(all_parts)
