@@ -226,7 +226,6 @@ if uploaded_file is not None:
                 number_to_day_map = {2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ', 5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'}
                 class_schedule['Thứ Đầy Đủ'] = class_schedule['Thứ'].map(number_to_day_map)
                 
-                # *** THAY ĐỔI 1: ĐỊNH NGHĨA THỨ TỰ CHO "BUỔI" ĐỂ "SÁNG" LUÔN ĐỨNG TRƯỚC ***
                 day_order = list(number_to_day_map.values())
                 session_order = ['Sáng', 'Chiều']
                 class_schedule['Thứ Đầy Đủ'] = pd.Categorical(class_schedule['Thứ Đầy Đủ'], categories=day_order, ordered=True)
@@ -237,35 +236,68 @@ if uploaded_file is not None:
                 # Gom nhóm theo Thứ và tạo expander cho mỗi ngày
                 for day, day_group in class_schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
                     with st.expander(f"**{day}**"):
-                        day_summary_parts = []
-                        # Gom nhóm theo Buổi (đã được sắp xếp Sáng -> Chiều)
-                        for session, session_group in day_group.groupby('Buổi', observed=False):
-                            
-                            # *** THAY ĐỔI 2: ĐỊNH DẠNG LẠI TIÊU ĐỀ BUỔI HỌC VỚI MÀU SẮC VÀ CHỮ HOA/THƯỜNG ***
-                            formatted_session_header = f"Buổi {session.lower()}:"
-                            day_summary_parts.append(f"<span style='color:#60A5FA; font-weight:bold;'>&nbsp;&nbsp;&nbsp;{formatted_session_header}</span>")
-                            
-                            subjects_in_session = {}
-                            for _, row in session_group.iterrows():
-                                subject = row['Môn học']
-                                if pd.notna(subject) and subject.strip():
-                                    key = (subject, row['Giáo viên BM'], row['Phòng học'])
-                                    if key not in subjects_in_session:
-                                        subjects_in_session[key] = []
-                                    subjects_in_session[key].append(str(row['Tiết']))
-
-                            if not subjects_in_session:
-                                day_summary_parts.append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 *Không có tiết học*")
-                            else:
-                                for (subject, gv, phong), tiet_list in subjects_in_session.items():
-                                    tiet_str = ", ".join(sorted(tiet_list, key=int))
-                                    day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 **{subject}**:")
-                                    day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Tiết:** {tiet_str}")
-                                    if gv: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **GV:** {gv}")
-                                    if phong: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Phòng:** {phong}")
                         
-                        st.markdown("\n".join(day_summary_parts), unsafe_allow_html=True)
-                
+                        # *** THAY ĐỔI 1: LOGIC KIỂM TRA ĐỂ GOM "CẢ NGÀY" ***
+                        can_consolidate = False
+                        sessions = day_group['Buổi'].unique()
+                        if set(sessions) == {'Sáng', 'Chiều'}:
+                            sang_group = day_group[day_group['Buổi'] == 'Sáng']
+                            chieu_group = day_group[day_group['Buổi'] == 'Chiều']
+                            
+                            sang_subjects = sang_group[['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
+                            chieu_subjects = chieu_group[['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
+                            
+                            if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects):
+                                can_consolidate = True
+
+                        # NẾU CÓ THỂ GOM, HIỂN THỊ THEO ĐỊNH DẠNG "CẢ NGÀY"
+                        if can_consolidate:
+                            day_summary_parts = []
+                            subject_info = sang_subjects.iloc[0]
+                            all_periods = day_group['Tiết'].astype(str).tolist()
+                            tiet_str = ", ".join(sorted(all_periods, key=int))
+                            
+                            day_summary_parts.append("<span style='color:#60A5FA; font-weight:bold;'>&nbsp;&nbsp;&nbsp;Cả ngày:</span>")
+                            day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 **{subject_info['Môn học']}**:")
+                            day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Tiết:** {tiet_str}")
+                            if subject_info['Giáo viên BM']: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **GV:** {subject_info['Giáo viên BM']}")
+                            if subject_info['Phòng học']: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Phòng:** {subject_info['Phòng học']}")
+                            st.markdown("\n".join(day_summary_parts), unsafe_allow_html=True)
+                        
+                        # NẾU KHÔNG, GIỮ NGUYÊN LOGIC HIỂN THỊ SÁNG/CHIỀU RIÊNG BIỆT
+                        else:
+                            day_summary_parts = []
+                            is_first_session = True
+                            for session, session_group in day_group.groupby('Buổi', observed=False):
+                                # *** THAY ĐỔI 2: THÊM THẺ <br> ĐỂ XUỐNG DÒNG GIỮA CÁC BUỔI ***
+                                if not is_first_session:
+                                    day_summary_parts.append("<br>")
+
+                                formatted_session_header = f"Buổi {session.lower()}:"
+                                day_summary_parts.append(f"<span style='color:#60A5FA; font-weight:bold;'>&nbsp;&nbsp;&nbsp;{formatted_session_header}</span>")
+                                
+                                subjects_in_session = {}
+                                for _, row in session_group.iterrows():
+                                    subject = row['Môn học']
+                                    if pd.notna(subject) and subject.strip():
+                                        key = (subject, row['Giáo viên BM'], row['Phòng học'])
+                                        if key not in subjects_in_session: subjects_in_session[key] = []
+                                        subjects_in_session[key].append(str(row['Tiết']))
+
+                                if not subjects_in_session:
+                                    day_summary_parts.append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 *Không có tiết học*")
+                                else:
+                                    for (subject, gv, phong), tiet_list in subjects_in_session.items():
+                                        tiet_str = ", ".join(sorted(tiet_list, key=int))
+                                        day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 **{subject}**:")
+                                        day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Tiết:** {tiet_str}")
+                                        if gv: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **GV:** {gv}")
+                                        if phong: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Phòng:** {phong}")
+                                
+                                is_first_session = False
+                            
+                            st.markdown("\n".join(day_summary_parts), unsafe_allow_html=True)
+
                 # --- PHẦN 3: HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT ---
                 with st.expander("Xem bảng dữ liệu chi tiết của lớp"):
                     display_columns = ['Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM']
@@ -275,7 +307,7 @@ if uploaded_file is not None:
                         hide_index=True
                     )
         else:
-            st.warning("Không thể trích xuất dữ liệu. Vui lòng kiểm tra lại định dạng file.")
+            st.warning("Không thể trích xuất dữ liệu. Vui lòng kiểm tra lại định dạng file của bạn.")
 
     except Exception as e:
         st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
