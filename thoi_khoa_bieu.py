@@ -269,7 +269,6 @@ def generate_schedule_summary(df_class):
         ("Sĩ số", info.get("Sĩ số"))
     ]
     
-    # *** SỬA LỖI: Định dạng lại thông tin chung ***
     for label, value in general_info:
         if value:
             summary_parts.append(f"- **{label}:** {value}")
@@ -280,11 +279,18 @@ def generate_schedule_summary(df_class):
     # --- 2. Xử lý lịch học theo từng ngày ---
     df_class_sorted = df_class.sort_values(by=['Thứ', 'Buổi', 'Tiết'])
     
+    # Ánh xạ tên thứ viết tắt sang đầy đủ
+    day_mapping = {
+        'H A I': 'THỨ HAI', 'B A': 'THỨ BA', 'T Ư': 'THỨ TƯ',
+        'N Ă M': 'THỨ NĂM', 'S Á U': 'THỨ SÁU', 'B Ả Y': 'THỨ BẢY'
+    }
+    
     # Gom nhóm theo ngày
     for day, day_group in df_class_sorted.groupby('Thứ'):
-        summary_parts.append(f"**{day}:**")
+        full_day_name = day_mapping.get(day, day) # Lấy tên đầy đủ, nếu không có thì giữ nguyên
+        summary_parts.append(f"**{full_day_name}:**")
         
-        # *** SỬA LỖI: Gom nhóm theo môn học trước ***
+        # Gom nhóm theo môn học trước
         for _, lesson_group in day_group.groupby(['Môn học', 'Giáo viên BM', 'Phòng học']):
             lesson_info = lesson_group.iloc[0]
             
@@ -295,8 +301,9 @@ def generate_schedule_summary(df_class):
                 tiet_str = ", ".join(map(str, tiet_list))
                 session_parts.append(f"{session} (Tiết: {tiet_str})")
             
-            summary_parts.append(f" &nbsp; &nbsp; " + " và ".join(session_parts))
-            summary_parts.append(f"- **Môn học:** {lesson_info['Môn học']}")
+            # Xuống dòng trước khi in thông tin buổi
+            summary_parts.append(f"\n- " + " - ".join(session_parts))
+            summary_parts.append(f"  - **Môn học:** {lesson_info['Môn học']}")
             if lesson_info['Giáo viên BM']:
                 summary_parts.append(f"  - **Giáo viên:** {lesson_info['Giáo viên BM']}")
             if lesson_info['Phòng học']:
