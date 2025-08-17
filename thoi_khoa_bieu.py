@@ -277,18 +277,21 @@ def generate_schedule_summary(df_class):
     summary_parts.append("#### 🗓️ Lịch học chi tiết:")
 
     # --- 2. Xử lý lịch học theo từng ngày ---
-    df_class_sorted = df_class.sort_values(by=['Thứ', 'Buổi', 'Tiết'])
-    
-    # Ánh xạ tên thứ viết tắt sang đầy đủ
+    # Ánh xạ và thứ tự sắp xếp
     day_mapping = {
         'H A I': 'THỨ HAI', 'B A': 'THỨ BA', 'T Ư': 'THỨ TƯ',
         'N Ă M': 'THỨ NĂM', 'S Á U': 'THỨ SÁU', 'B Ả Y': 'THỨ BẢY'
     }
+    day_order = list(day_mapping.values())
+    
+    # Chuyển cột 'Thứ' sang tên đầy đủ và sắp xếp lại
+    df_class['Thứ Đầy Đủ'] = df_class['Thứ'].map(day_mapping)
+    df_class['Thứ Đầy Đủ'] = pd.Categorical(df_class['Thứ Đầy Đủ'], categories=day_order, ordered=True)
+    df_class_sorted = df_class.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
     
     # Gom nhóm theo ngày
-    for day, day_group in df_class_sorted.groupby('Thứ'):
-        full_day_name = day_mapping.get(day, day) # Lấy tên đầy đủ, nếu không có thì giữ nguyên
-        summary_parts.append(f"**{full_day_name}:**")
+    for day, day_group in df_class_sorted.groupby('Thứ Đầy Đủ'):
+        summary_parts.append(f"**{day}:**")
         
         # Gom nhóm theo môn học trước
         for _, lesson_group in day_group.groupby(['Môn học', 'Giáo viên BM', 'Phòng học']):
