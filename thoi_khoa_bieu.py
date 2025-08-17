@@ -133,41 +133,55 @@ def map_and_prefix_teacher_name(short_name, mapping):
     return short_name_clean
 
 def transform_to_database_format(df_wide, teacher_mapping):
+    """
+    Chuyển đổi DataFrame dạng rộng sang dài, xử lý các trường hợp đặc biệt cho môn học.
+    """
     id_vars = ['Thứ', 'Buổi', 'Tiết']
     df_long = pd.melt(df_wide, id_vars=id_vars, var_name='Lớp_Raw', value_name='Chi tiết Môn học')
     df_long.dropna(subset=['Chi tiết Môn học'], inplace=True)
     df_long = df_long[df_long['Chi tiết Môn học'].astype(str).str.strip() != '']
     
-    header_parts = df_long['Lớp_Raw'].str.split('___', expand=True)
+    # Hàm tùy chỉnh để xử lý logic tách môn học phức tạp
+    def parse_subject_details_custom(cell_text):
+        cell_text = str(cell_text).strip()
+        
+        # Quy tắc 1: Xử lý trường hợp đặc biệt "THPT"
+        if "THPT" in cell_text.upper():
+            return ("HỌC TKB VĂN HÓA THPT", "", "")
+        
+        # Quy tắc 2: Tách theo mẫu "Môn (Phòng - GV)"
+        match = re.search(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$', cell_text)
+        if match:
+            mon_hoc = match.group(1).strip()
+            phong_hoc = match.group(2).strip()
+            giao_vien = match.group(3).strip()
+            return (mon_hoc, phong_hoc, giao_vien)
+        
+        # Quy tắc 3: Nếu không khớp, trả về toàn bộ chuỗi là tên môn
+        return (cell_text, "", "")
+
+    # Áp dụng hàm xử lý và tạo các cột mới
+    parsed_cols = df_long['Chi tiết Môn học'].apply(parse_subject_details_custom)
+    mh_extracted = pd.DataFrame(parsed_cols.tolist(), index=df_long.index, columns=['Môn học', 'Phòng học', 'Giáo viên BM'])
     
+    # Tách các thông tin khác từ tiêu đề cột
+    header_parts = df_long['Lớp_Raw'].str.split('___', expand=True)
     lop_extracted = header_parts[0].str.extract(r'^(.*?)\s*(?:\((\d+)\))?$')
     lop_extracted.columns = ['Lớp', 'Sĩ số']
-
     cn_extracted = header_parts[1].str.extract(r'^(.*?)\s*-\s*(.*?)(?:\s*\((.*?)\))?$')
     cn_extracted.columns = ['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
     
-    # Tách dữ liệu Môn, Phòng, GV từ chuỗi phức tạp
-    mh_pattern = re.compile(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$')
-    mh_extracted = df_long['Chi tiết Môn học'].astype(str).str.extract(mh_pattern)
-    mh_extracted.columns = ['Môn học Tách', 'Phòng học', 'Giáo viên BM']
-
-    for col in mh_extracted.columns:
-        mh_extracted[col] = mh_extracted[col].str.strip()
-
+    # Ghép tất cả các phần lại để tạo DataFrame cuối cùng
     df_final = pd.concat([
-        df_long[id_vars].reset_index(drop=True), 
+        df_long[['Thứ', 'Buổi', 'Tiết']].reset_index(drop=True),
         lop_extracted.reset_index(drop=True),
-        cn_extracted.reset_index(drop=True), 
+        cn_extracted.reset_index(drop=True),
         mh_extracted.reset_index(drop=True)
     ], axis=1)
 
-    # Nếu tách bị lỗi (NaN), dùng lại chuỗi gốc. Nếu thành công, dùng phần đã tách.
-    df_final['Môn học'] = df_final['Môn học Tách'].fillna(df_long['Chi tiết Môn học'])
     df_final['Trình độ'] = df_final['Lớp'].apply(lambda x: 'Cao đẳng' if 'C.' in str(x) else ('Trung Cấp' if 'T.' in str(x) else ''))
 
-    # Điền giá trị rỗng TRƯỚC KHI ánh xạ tên để tránh lỗi hiển thị "nan"
-    for col in ['Giáo viên CN', 'Giáo viên BM']:
-        df_final[col] = df_final[col].fillna('')
+    df_final.fillna('', inplace=True)
 
     if teacher_mapping:
         df_final['Giáo viên CN'] = df_final['Giáo viên CN'].apply(lambda n: map_and_prefix_teacher_name(n, teacher_mapping))
@@ -175,8 +189,9 @@ def transform_to_database_format(df_wide, teacher_mapping):
     
     final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
     df_final = df_final[final_cols]
-    df_final.fillna('', inplace=True)
+    
     return df_final
+
 
 # --- Giao diện ứng dụng Streamlit ---
 
