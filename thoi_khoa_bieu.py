@@ -149,6 +149,10 @@ def transform_to_database_format(df_wide, teacher_mapping):
     mh_extracted = df_long['Chi tiết Môn học'].astype(str).str.extract(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$')
     mh_extracted.columns = ['Môn học Tách', 'Phòng học', 'Giáo viên BM']
 
+    # *** THAY ĐỔI 1: TỰ ĐỘNG XÓA KHOẢNG TRẮNG THỪA ĐỂ FIX LỖI GOM "CẢ NGÀY" ***
+    for col in mh_extracted.columns:
+        mh_extracted[col] = mh_extracted[col].str.strip()
+
     df_final = pd.concat([
         df_long[id_vars].reset_index(drop=True), 
         lop_extracted.reset_index(drop=True),
@@ -237,7 +241,6 @@ if uploaded_file is not None:
                 for day, day_group in class_schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
                     with st.expander(f"**{day}**"):
                         
-                        # *** THAY ĐỔI 1: LOGIC KIỂM TRA ĐỂ GOM "CẢ NGÀY" ***
                         can_consolidate = False
                         sessions = day_group['Buổi'].unique()
                         if set(sessions) == {'Sáng', 'Chiều'}:
@@ -250,7 +253,6 @@ if uploaded_file is not None:
                             if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects):
                                 can_consolidate = True
 
-                        # NẾU CÓ THỂ GOM, HIỂN THỊ THEO ĐỊNH DẠNG "CẢ NGÀY"
                         if can_consolidate:
                             day_summary_parts = []
                             subject_info = sang_subjects.iloc[0]
@@ -258,18 +260,17 @@ if uploaded_file is not None:
                             tiet_str = ", ".join(sorted(all_periods, key=int))
                             
                             day_summary_parts.append("<span style='color:#60A5FA; font-weight:bold;'>&nbsp;&nbsp;&nbsp;Cả ngày:</span>")
-                            day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 **{subject_info['Môn học']}**:")
+                            # *** THAY ĐỔI 2: ĐỔI ĐỊNH DẠNG HIỂN THỊ MÔN HỌC ***
+                            day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Môn:** {subject_info['Môn học']}")
                             day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Tiết:** {tiet_str}")
                             if subject_info['Giáo viên BM']: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **GV:** {subject_info['Giáo viên BM']}")
                             if subject_info['Phòng học']: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Phòng:** {subject_info['Phòng học']}")
                             st.markdown("\n".join(day_summary_parts), unsafe_allow_html=True)
                         
-                        # NẾU KHÔNG, GIỮ NGUYÊN LOGIC HIỂN THỊ SÁNG/CHIỀU RIÊNG BIỆT
                         else:
                             day_summary_parts = []
                             is_first_session = True
                             for session, session_group in day_group.groupby('Buổi', observed=False):
-                                # *** THAY ĐỔI 2: THÊM THẺ <br> ĐỂ XUỐNG DÒNG GIỮA CÁC BUỔI ***
                                 if not is_first_session:
                                     day_summary_parts.append("<br>")
 
@@ -285,11 +286,12 @@ if uploaded_file is not None:
                                         subjects_in_session[key].append(str(row['Tiết']))
 
                                 if not subjects_in_session:
-                                    day_summary_parts.append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 *Không có tiết học*")
+                                    day_summary_parts.append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *Không có tiết học*")
                                 else:
                                     for (subject, gv, phong), tiet_list in subjects_in_session.items():
                                         tiet_str = ", ".join(sorted(tiet_list, key=int))
-                                        day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🔹 **{subject}**:")
+                                        # *** THAY ĐỔI 2: ĐỔI ĐỊNH DẠNG HIỂN THỊ MÔN HỌC ***
+                                        day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Môn:** {subject}")
                                         day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Tiết:** {tiet_str}")
                                         if gv: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **GV:** {gv}")
                                         if phong: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Phòng:** {phong}")
