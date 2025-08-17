@@ -149,7 +149,6 @@ def transform_to_database_format(df_wide, teacher_mapping):
     mh_extracted = df_long['Chi tiết Môn học'].astype(str).str.extract(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$')
     mh_extracted.columns = ['Môn học Tách', 'Phòng học', 'Giáo viên BM']
 
-    # *** THAY ĐỔI 1: TỰ ĐỘNG XÓA KHOẢNG TRẮNG THỪA ĐỂ FIX LỖI GOM "CẢ NGÀY" ***
     for col in mh_extracted.columns:
         mh_extracted[col] = mh_extracted[col].str.strip()
 
@@ -253,29 +252,35 @@ if uploaded_file is not None:
                             if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects):
                                 can_consolidate = True
 
+                        # *** THAY ĐỔI: ĐỊNH NGHĨA MÀU SẮC ĐỂ DÙNG LẠI ***
+                        green_color = "#34D399"
+                        blue_color = "#60A5FA"
+
                         if can_consolidate:
                             day_summary_parts = []
                             subject_info = sang_subjects.iloc[0]
                             all_periods = day_group['Tiết'].astype(str).tolist()
                             tiet_str = ", ".join(sorted(all_periods, key=int))
                             
-                            day_summary_parts.append("<span style='color:#60A5FA; font-weight:bold;'>&nbsp;&nbsp;&nbsp;Cả ngày:</span>")
-                            # *** THAY ĐỔI 2: ĐỔI ĐỊNH DẠNG HIỂN THỊ MÔN HỌC ***
-                            day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Môn:** {subject_info['Môn học']}")
-                            day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Tiết:** {tiet_str}")
-                            if subject_info['Giáo viên BM']: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **GV:** {subject_info['Giáo viên BM']}")
-                            if subject_info['Phòng học']: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Phòng:** {subject_info['Phòng học']}")
+                            session_header = f"<span style='color:{blue_color}; font-weight:bold;'>Cả ngày học =></span>"
+                            
+                            subject_part = f"**Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>"
+                            tiet_part = f"**Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
+                            gv_part = f"**GV:** <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>" if subject_info['Giáo viên BM'] else ""
+                            phong_part = f"**Phòng:** <span style='color:{green_color};'>{subject_info['Phòng học']}</span>" if subject_info['Phòng học'] else ""
+
+                            all_parts = [part for part in [subject_part, tiet_part, gv_part, phong_part] if part]
+                            details_str = " /// ".join(all_parts)
+
+                            full_line = f"{session_header} &nbsp;&nbsp;{details_str}"
+                            day_summary_parts.append(full_line)
+                            
                             st.markdown("\n".join(day_summary_parts), unsafe_allow_html=True)
                         
                         else:
                             day_summary_parts = []
-                            is_first_session = True
                             for session, session_group in day_group.groupby('Buổi', observed=False):
-                                if not is_first_session:
-                                    day_summary_parts.append("<br>")
-
-                                formatted_session_header = f"Buổi {session.lower()}:"
-                                day_summary_parts.append(f"<span style='color:#60A5FA; font-weight:bold;'>&nbsp;&nbsp;&nbsp;{formatted_session_header}</span>")
+                                session_header = f"<span style='color:{blue_color}; font-weight:bold;'>Buổi {session.lower()} học =></span>"
                                 
                                 subjects_in_session = {}
                                 for _, row in session_group.iterrows():
@@ -286,19 +291,23 @@ if uploaded_file is not None:
                                         subjects_in_session[key].append(str(row['Tiết']))
 
                                 if not subjects_in_session:
-                                    day_summary_parts.append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *Không có tiết học*")
+                                    day_summary_parts.append(f"{session_header} &nbsp;&nbsp;*Không có tiết học*")
                                 else:
                                     for (subject, gv, phong), tiet_list in subjects_in_session.items():
                                         tiet_str = ", ".join(sorted(tiet_list, key=int))
-                                        # *** THAY ĐỔI 2: ĐỔI ĐỊNH DẠNG HIỂN THỊ MÔN HỌC ***
-                                        day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Môn:** {subject}")
-                                        day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Tiết:** {tiet_str}")
-                                        if gv: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **GV:** {gv}")
-                                        if phong: day_summary_parts.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- **Phòng:** {phong}")
-                                
-                                is_first_session = False
+                                        
+                                        subject_part = f"**Môn:** <span style='color:{green_color};'>{subject}</span>"
+                                        tiet_part = f"**Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
+                                        gv_part = f"**GV:** <span style='color:{green_color};'>{gv}</span>" if gv else ""
+                                        phong_part = f"**Phòng:** <span style='color:{green_color};'>{phong}</span>" if phong else ""
+
+                                        all_parts = [part for part in [subject_part, tiet_part, gv_part, phong_part] if part]
+                                        details_str = " /// ".join(all_parts)
+                                        
+                                        full_line = f"{session_header} &nbsp;&nbsp;{details_str}"
+                                        day_summary_parts.append(full_line)
                             
-                            st.markdown("\n".join(day_summary_parts), unsafe_allow_html=True)
+                            st.markdown("<br>".join(day_summary_parts), unsafe_allow_html=True)
 
                 # --- PHẦN 3: HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT ---
                 with st.expander("Xem bảng dữ liệu chi tiết của lớp"):
