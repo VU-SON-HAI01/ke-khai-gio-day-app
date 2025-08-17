@@ -15,7 +15,8 @@ def extract_schedule_from_excel(worksheet):
     
     # --- Bước 1: Tìm điểm bắt đầu của bảng dữ liệu (ô chứa "Thứ") ---
     start_row, start_col = -1, -1
-    for r_idx, row in enuamerate(worksheet.iter_rows(min_row=1, max_row=10), 1):
+    # SỬA LỖI: Sửa 'enuamerate' thành 'enumerate'
+    for r_idx, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10), 1):
         for c_idx, cell in enumerate(row, 1):
             if cell.value and "thứ" in str(cell.value).lower():
                 start_row, start_col = r_idx, c_idx
@@ -193,5 +194,4 @@ if uploaded_file is not None:
         else:
             st.warning("Không thể trích xuất dữ liệu. Vui lòng kiểm tra lại định dạng file của bạn.")
 
-    except Exception as e:
-        st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
+    except Exception a
