@@ -4,8 +4,55 @@ import pandas as pd
 import openpyxl
 import io
 import re
+import gspread
+from google.oauth2.service_account import Credentials
 
-# --- CÁC HÀM HỖ TRỢ ---
+# --- CÁC HÀM KẾT NỐI GOOGLE SHEETS ---
+
+# Sử dụng cache_resource để chỉ kết nối một lần
+@st.cache_resource
+def connect_to_gsheet():
+    """
+    Kết nối tới Google Sheets sử dụng Service Account credentials từ st.secrets.
+    """
+    try:
+        creds_dict = st.secrets["gcp_service_account"]
+        creds = Credentials.from_service_account_info(
+            creds_dict,
+            scopes=["https://www.googleapis.com/auth/spreadsheets"],
+        )
+        client = gspread.authorize(creds)
+        return client
+    except Exception as e:
+        st.error(f"Lỗi kết nối Google Sheets: {e}")
+        st.info("Vui lòng đảm bảo bạn đã cấu hình 'gcp_service_account' trong st.secrets.")
+        return None
+
+# Sử dụng cache_data để cache dữ liệu trả về
+@st.cache_data(ttl=600) # Cache dữ liệu trong 10 phút
+def get_teacher_mapping(_gsheet_client, spreadsheet_id):
+    """
+    Lấy dữ liệu ánh xạ tên giáo viên từ Google Sheet và tạo một dictionary.
+    """
+    if _gsheet_client is None:
+        return {}
+    try:
+        spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
+        worksheet = spreadsheet.worksheet("THONG_TIN_GV")
+        df = pd.DataFrame(worksheet.get_all_records())
+        
+        if "Ten_viet_tat" not in df.columns or "Ho_ten_gv" not in df.columns:
+            st.error("Sheet 'THONG_TIN_GV' phải chứa cột 'Ten_viet_tat' và 'Ho_ten_gv'.")
+            return {}
+            
+        # Tạo một dictionary, đảm bảo key (tên viết tắt) được xóa khoảng trắng
+        mapping = pd.Series(df.Ho_ten_gv.values, index=df.Ten_viet_tat.str.strip()).to_dict()
+        return mapping
+    except Exception as e:
+        st.error(f"Lỗi khi tải bản đồ tên giáo viên từ Google Sheet: {e}")
+        return {}
+
+# --- CÁC HÀM XỬ LÝ EXCEL ---
 
 def extract_schedule_from_excel(worksheet):
     """
@@ -95,7 +142,7 @@ def extract_schedule_from_excel(worksheet):
     
     return df
 
-def transform_to_database_format(df_wide):
+def transform_to_database_format(df_wide, teacher_mapping):
     """
     Chuyển đổi DataFrame dạng rộng (wide) sang dạng dài (long) và tách thông tin chi tiết.
     """
@@ -147,6 +194,11 @@ def transform_to_database_format(df_wide):
             return 'Trung Cấp'
         return ''
     df_final['Trình độ'] = df_final['Lớp'].apply(get_trinh_do)
+
+    # *** ÁNH XẠ TÊN GIÁO VIÊN ***
+    if teacher_mapping:
+        df_final['Giáo viên CN'] = df_final['Giáo viên CN'].str.strip().map(teacher_mapping).fillna(df_final['Giáo viên CN'])
+        df_final['Giáo viên BM'] = df_final['Giáo viên BM'].str.strip().map(teacher_mapping).fillna(df_final['Giáo viên BM'])
     
     # Sắp xếp và chọn các cột cần thiết
     final_cols = [
@@ -166,6 +218,42 @@ st.set_page_config(page_title="Trích xuất và Truy vấn TKB", layout="wide")
 st.title("📊 Trích xuất và Truy vấn Thời Khóa Biểu")
 st.write("Tải file Excel TKB, ứng dụng sẽ tự động chuyển đổi thành cơ sở dữ liệu và cho phép bạn tra cứu thông tin chi tiết.")
 
+# --- HƯỚNG DẪN CẤU HÌNH ---
+with st.expander("💡 Hướng dẫn cấu hình để ánh xạ tên giáo viên"):
+    st.info("""
+        Để ứng dụng có thể tự động chuyển tên giáo viên viết tắt sang tên đầy đủ, bạn cần:
+        1.  **Tạo một Service Account** trên Google Cloud Platform và cấp quyền truy cập Google Sheets API.
+        2.  **Chia sẻ file Google Sheet** có mã `1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI` với địa chỉ email của Service Account.
+        3.  **Thêm thông tin credentials** của Service Account vào `secrets.toml` của ứng dụng Streamlit theo mẫu sau:
+
+        ```toml
+        [gcp_service_account]
+        type = "service_account"
+        project_id = "your-project-id"
+        private_key_id = "your-private-key-id"
+        private_key = "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"
+        client_email = "your-service-account-email@...iam.gserviceaccount.com"
+        client_id = "your-client-id"
+        auth_uri = "[https://accounts.google.com/o/oauth2/auth](https://accounts.google.com/o/oauth2/auth)"
+        token_uri = "[https://oauth2.googleapis.com/token](https://oauth2.googleapis.com/token)"
+        auth_provider_x509_cert_url = "[https://www.googleapis.com/oauth2/v1/certs](https://www.googleapis.com/oauth2/v1/certs)"
+        client_x509_cert_url = "[https://www.googleapis.com/robot/v1/metadata/x509/your-service-account-email](https://www.googleapis.com/robot/v1/metadata/x509/your-service-account-email)..."
+        ```
+        Nếu không có cấu hình này, tên giáo viên sẽ được giữ nguyên ở dạng viết tắt.
+    """)
+
+# --- KẾT NỐI VÀ LẤY DỮ LIỆU ÁNH XẠ ---
+# ID của Google Sheet chứa thông tin giáo viên
+TEACHER_INFO_SHEET_ID = "1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI"
+teacher_mapping_data = {}
+# Chỉ kết nối nếu có secrets được cấu hình
+if "gcp_service_account" in st.secrets:
+    gsheet_client = connect_to_gsheet()
+    teacher_mapping_data = get_teacher_mapping(gsheet_client, TEACHER_INFO_SHEET_ID)
+else:
+    st.warning("Không tìm thấy cấu hình Google Sheets trong `st.secrets`. Tên giáo viên sẽ không được ánh xạ.", icon="⚠️")
+
+
 uploaded_file = st.file_uploader("Chọn file Excel của bạn", type=["xlsx"])
 
 if uploaded_file is not None:
@@ -180,7 +268,8 @@ if uploaded_file is not None:
             raw_df = extract_schedule_from_excel(sheet)
 
         if raw_df is not None:
-            db_df = transform_to_database_format(raw_df)
+            # Truyền dữ liệu ánh xạ vào hàm chuyển đổi
+            db_df = transform_to_database_format(raw_df, teacher_mapping_data)
 
             if db_df is not None:
                 st.markdown("---")
