@@ -302,7 +302,10 @@ def generate_schedule_summary(schedule_df):
                         summary_parts.append(f"      - **Giáo viên:** {gv}")
                     if phong:
                         summary_parts.append(f"      - **Phòng:** {phong}")
-    
+            
+        
+        # <<< THÊM DÒNG NÀY ĐỂ TẠO KHOẢNG CÁCH GIỮA CÁC NGÀY >>>
+        summary_parts.append("")
     return "\n".join(summary_parts)
 
 # --- Giao diện ứng dụng Streamlit ---
