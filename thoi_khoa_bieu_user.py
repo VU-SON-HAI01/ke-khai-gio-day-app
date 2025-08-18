@@ -55,14 +55,12 @@ def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
     except Exception as e:
         st.error(f"Lỗi khi tải dữ liệu từ sheet '{sheet_name}': {e}"); return pd.DataFrame()
 
-# --- HÀM HIỂN THỊ GIAO DIỆN TRA CỨU ---
-def display_schedule_interface(df_data):
-    if df_data.empty:
-        st.info("Chưa có dữ liệu để tra cứu."); return
+# --- CÁC HÀM HIỂN THỊ GIAO DIỆN ---
 
-    st.header("🔍 Tra cứu Thời Khóa Biểu")
+def display_class_schedule(df_data):
+    """Hàm hiển thị giao diện tra cứu theo Lớp."""
     class_list = sorted(df_data['Lớp'].unique())
-    selected_class = st.selectbox("Chọn lớp để xem chi tiết:", options=class_list)
+    selected_class = st.selectbox("Chọn lớp để xem chi tiết:", options=class_list, key="select_class")
 
     if selected_class:
         class_schedule = df_data[df_data['Lớp'] == selected_class].copy()
@@ -83,75 +81,93 @@ def display_schedule_interface(df_data):
         st.markdown(f"{gvcn_part}&nbsp;&nbsp;&nbsp;&nbsp;{trinhdo_part}&nbsp;&nbsp;&nbsp;&nbsp;{siso_part}&nbsp;&nbsp;&nbsp;&nbsp;{psh_part}", unsafe_allow_html=True)
 
         st.markdown("--- \n ##### 🗓️ Lịch học chi tiết")
+        render_schedule_details(class_schedule, mode='class')
 
-        number_to_day_map = {2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ', 5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'}
-        class_schedule['Thứ Đầy Đủ'] = class_schedule['Thứ'].map(number_to_day_map)
+def display_teacher_schedule(df_data):
+    """Hàm hiển thị giao diện tra cứu theo Giáo viên."""
+    teacher_list = sorted(df_data[df_data['Giáo viên BM'].ne('')]['Giáo viên BM'].dropna().unique())
+    selected_teacher = st.selectbox("Chọn giáo viên để xem chi tiết:", options=teacher_list, key="select_teacher")
+
+    if selected_teacher:
+        teacher_schedule = df_data[df_data['Giáo viên BM'] == selected_teacher].copy()
         
-        day_order = list(number_to_day_map.values()); session_order = ['Sáng', 'Chiều']
-        class_schedule['Thứ Đầy Đủ'] = pd.Categorical(class_schedule['Thứ Đầy Đủ'], categories=day_order, ordered=True)
-        class_schedule['Buổi'] = pd.Categorical(class_schedule['Buổi'], categories=session_order, ordered=True)
-        class_schedule_sorted = class_schedule.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
+        st.markdown(f"--- \n ##### 🗓️ Lịch dạy chi tiết của giáo viên **{selected_teacher}**")
+        render_schedule_details(teacher_schedule, mode='teacher')
 
-        for day, day_group in class_schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
-            with st.expander(f"**{day}**"):
-                can_consolidate = False
-                if set(day_group['Buổi'].unique()) == {'Sáng', 'Chiều'}:
-                    sang_subjects = day_group[day_group['Buổi'] == 'Sáng'][['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
-                    chieu_subjects = day_group[day_group['Buổi'] == 'Chiều'][['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
-                    if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects): can_consolidate = True
+def render_schedule_details(schedule_df, mode='class'):
+    """Hàm chung để hiển thị chi tiết lịch học hoặc lịch dạy."""
+    green_color = "#00FF00"
+    number_to_day_map = {2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ', 5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'}
+    schedule_df['Thứ Đầy Đủ'] = schedule_df['Thứ'].map(number_to_day_map)
+    
+    day_order = list(number_to_day_map.values()); session_order = ['Sáng', 'Chiều']
+    schedule_df['Thứ Đầy Đủ'] = pd.Categorical(schedule_df['Thứ Đầy Đủ'], categories=day_order, ordered=True)
+    schedule_df['Buổi'] = pd.Categorical(schedule_df['Buổi'], categories=session_order, ordered=True)
+    schedule_sorted = schedule_df.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
 
-                if can_consolidate:
+    for day, day_group in schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
+        with st.expander(f"**{day}**"):
+            can_consolidate = False
+            if set(day_group['Buổi'].unique()) == {'Sáng', 'Chiều'}:
+                sang_subjects = day_group[day_group['Buổi'] == 'Sáng'][['Môn học', 'Giáo viên BM', 'Phòng học', 'Lớp']].drop_duplicates()
+                chieu_subjects = day_group[day_group['Buổi'] == 'Chiều'][['Môn học', 'Giáo viên BM', 'Phòng học', 'Lớp']].drop_duplicates()
+                if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects): can_consolidate = True
+
+            if can_consolidate:
+                col1, col2 = st.columns([1, 6])
+                with col1: st.markdown(f'<p style="color:#17a2b8; font-weight:bold;">CẢ NGÀY</p>', unsafe_allow_html=True)
+                with col2:
+                    subject_info = sang_subjects.iloc[0]
+                    tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
+                    tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
+                    subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>"
+                    phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{subject_info['Phòng học']}</span>" if subject_info['Phòng học'] else ""
+                    
+                    if mode == 'class':
+                        context_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>" if subject_info['Giáo viên BM'] else ""
+                    else: # mode == 'teacher'
+                        context_part = f"📝 **Lớp:** <span style='color:{green_color};'>{subject_info['Lớp']}</span>" if subject_info['Lớp'] else ""
+                    
+                    all_parts = [p for p in [tiet_part, subject_part, context_part, phong_part] if p]
+                    st.markdown("&nbsp;&nbsp;".join(all_parts), unsafe_allow_html=True)
+            else:
+                for session, session_group in day_group.groupby('Buổi', observed=False):
+                    if session_group.empty: continue
                     col1, col2 = st.columns([1, 6])
-                    with col1: st.markdown(f'<p style="color:#17a2b8; font-weight:bold;">CẢ NGÀY</p>', unsafe_allow_html=True)
+                    with col1:
+                        color = "#28a745" if session == "Sáng" else "#dc3545"
+                        st.markdown(f'<p style="color:{color}; font-weight:bold;">{session.upper()}</p>', unsafe_allow_html=True)
                     with col2:
-                        subject_info = sang_subjects.iloc[0]
-                        tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
-                        tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
-                        subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>"
-                        gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>" if subject_info['Giáo viên BM'] else ""
-                        phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{subject_info['Phòng học']}</span>" if subject_info['Phòng học'] else ""
-                        all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part] if p]
-                        st.markdown("&nbsp;&nbsp;".join(all_parts), unsafe_allow_html=True)
-                else:
-                    for session, session_group in day_group.groupby('Buổi', observed=False):
-                        if session_group.empty: continue
-                        col1, col2 = st.columns([1, 6])
-                        with col1:
-                            color = "#28a745" if session == "Sáng" else "#dc3545"
-                            st.markdown(f'<p style="color:{color}; font-weight:bold;">{session.upper()}</p>', unsafe_allow_html=True)
-                        with col2:
-                            subjects_in_session = {}
-                            for _, row in session_group.iterrows():
-                                if pd.notna(row['Môn học']) and row['Môn học'].strip():
-                                    # Cập nhật key để bao gồm cả Ngày áp dụng, giúp tách các môn trùng lặp
-                                    key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'], row.get('Ngày áp dụng', ''))
-                                    if key not in subjects_in_session: subjects_in_session[key] = []
-                                    subjects_in_session[key].append(str(row['Tiết']))
-                            if not subjects_in_session:
-                                st.markdown("✨Nghỉ")
-                            else:
-                                for (subject, gv, phong, ghi_chu, ngay_ap_dung), tiet_list in subjects_in_session.items():
-                                    tiet_str = ", ".join(sorted(tiet_list, key=int))
-                                    tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
-                                    subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>"
-                                    gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{gv}</span>" if gv else ""
-                                    phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{phong}</span>" if phong else ""
-                                    ghi_chu_part = ""
-                                    
-                                    # Logic hiển thị ngày bắt đầu học
-                                    if ghi_chu and "học từ" in ghi_chu.lower():
-                                        date_match = re.search(r'(\d+/\d+)', ghi_chu)
-                                        if date_match:
-                                            ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
-                                    elif ngay_ap_dung and str(ngay_ap_dung).strip():
-                                        ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{ngay_ap_dung}\"</span>"
+                        subjects_in_session = {}
+                        for _, row in session_group.iterrows():
+                            if pd.notna(row['Môn học']) and row['Môn học'].strip():
+                                key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'], row.get('Ngày áp dụng', ''), row.get('Lớp', ''))
+                                if key not in subjects_in_session: subjects_in_session[key] = []
+                                subjects_in_session[key].append(str(row['Tiết']))
+                        if not subjects_in_session:
+                            st.markdown("✨Nghỉ")
+                        else:
+                            for (subject, gv, phong, ghi_chu, ngay_ap_dung, lop), tiet_list in subjects_in_session.items():
+                                tiet_str = ", ".join(sorted(tiet_list, key=int))
+                                tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
+                                subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>"
+                                phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{phong}</span>" if phong else ""
+                                
+                                if mode == 'class':
+                                    context_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{gv}</span>" if gv else ""
+                                else: # mode == 'teacher'
+                                    context_part = f"📝 **Lớp:** <span style='color:{green_color};'>{lop}</span>" if lop else ""
 
-                                    all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part, ghi_chu_part] if p]
-                                    st.markdown("&nbsp;&nbsp;".join(all_parts), unsafe_allow_html=True)
+                                ghi_chu_part = ""
+                                if ghi_chu and "học từ" in ghi_chu.lower():
+                                    date_match = re.search(r'(\d+/\d+)', ghi_chu)
+                                    if date_match:
+                                        ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
+                                elif ngay_ap_dung and str(ngay_ap_dung).strip():
+                                    ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{ngay_ap_dung}\"</span>"
 
-        with st.expander("Xem bảng dữ liệu chi tiết của lớp"):
-            display_columns = ['Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Ghi chú', 'Ngày áp dụng']
-            st.dataframe(class_schedule_sorted[display_columns], use_container_width=True, hide_index=True)
+                                all_parts = [p for p in [tiet_part, subject_part, context_part, phong_part, ghi_chu_part] if p]
+                                st.markdown("&nbsp;&nbsp;".join(all_parts), unsafe_allow_html=True)
 
 # --- Giao diện chính của ứng dụng ---
 
@@ -174,7 +190,14 @@ if gsheet_client:
         if selected_sheet:
             with st.spinner(f"Đang tải dữ liệu từ sheet '{selected_sheet}'..."):
                 df_from_gsheet = load_data_from_gsheet(gsheet_client, TEACHER_INFO_SHEET_ID, selected_sheet)
+            
             if not df_from_gsheet.empty:
-                display_schedule_interface(df_from_gsheet)
+                tab_class, tab_teacher = st.tabs(["Tra cứu theo Lớp", "Tra cứu theo Giáo viên"])
+                
+                with tab_class:
+                    display_class_schedule(df_from_gsheet)
+                
+                with tab_teacher:
+                    display_teacher_schedule(df_from_gsheet)
     else:
         st.info("Chưa có dữ liệu TKB nào trên Google Sheet để hiển thị.")
