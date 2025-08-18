@@ -49,6 +49,27 @@ def get_teacher_mapping(_gsheet_client, spreadsheet_id):
         st.error(f"Lỗi khi tải dữ liệu giáo viên: {e}")
         return {}
 
+def save_df_to_gsheet(client, spreadsheet_id, sheet_name, df):
+    """
+    Lưu một DataFrame vào một sheet cụ thể của Google Sheet.
+    Nếu sheet đã tồn tại, sẽ xóa nội dung cũ trước khi ghi.
+    Nếu sheet chưa tồn tại, sẽ tạo mới.
+    """
+    try:
+        spreadsheet = client.open_by_key(spreadsheet_id)
+        try:
+            worksheet = spreadsheet.worksheet(sheet_name)
+            worksheet.clear()
+        except gspread.WorksheetNotFound:
+            worksheet = spreadsheet.add_worksheet(title=sheet_name, rows="1", cols="1")
+
+        # Chuyển đổi dataframe thành list of lists để gspread có thể ghi
+        data_to_upload = [df.columns.values.tolist()] + df.values.tolist()
+        worksheet.update(data_to_upload, 'A1')
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
 # --- CÁC HÀM XỬ LÝ EXCEL ---
 
 def extract_schedule_from_excel(worksheet):
@@ -141,15 +162,11 @@ def transform_to_database_format(df_wide, teacher_mapping):
     df_long.dropna(subset=['Chi tiết Môn học'], inplace=True)
     df_long = df_long[df_long['Chi tiết Môn học'].astype(str).str.strip() != '']
     
-    # Hàm tùy chỉnh để xử lý logic tách môn học phức tạp
     def parse_subject_details_custom(cell_text):
         cell_text = str(cell_text).strip()
-        
-        # Quy tắc 1: Xử lý trường hợp đặc biệt "THPT"
         if "THPT" in cell_text.upper():
             return ("HỌC TKB VĂN HÓA THPT", "", "")
         
-        # Quy tắc 2: Tách theo mẫu "Môn (Phòng - GV)"
         match = re.search(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$', cell_text)
         if match:
             mon_hoc = match.group(1).strip()
@@ -157,21 +174,17 @@ def transform_to_database_format(df_wide, teacher_mapping):
             giao_vien = match.group(3).strip()
             return (mon_hoc, phong_hoc, giao_vien)
         
-        # Quy tắc 3: Nếu không khớp, trả về toàn bộ chuỗi là tên môn
         return (cell_text, "", "")
 
-    # Áp dụng hàm xử lý và tạo các cột mới
     parsed_cols = df_long['Chi tiết Môn học'].apply(parse_subject_details_custom)
     mh_extracted = pd.DataFrame(parsed_cols.tolist(), index=df_long.index, columns=['Môn học', 'Phòng học', 'Giáo viên BM'])
     
-    # Tách các thông tin khác từ tiêu đề cột
     header_parts = df_long['Lớp_Raw'].str.split('___', expand=True)
     lop_extracted = header_parts[0].str.extract(r'^(.*?)\s*(?:\((\d+)\))?$')
     lop_extracted.columns = ['Lớp', 'Sĩ số']
     cn_extracted = header_parts[1].str.extract(r'^(.*?)\s*-\s*(.*?)(?:\s*\((.*?)\))?$')
     cn_extracted.columns = ['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
     
-    # Ghép tất cả các phần lại để tạo DataFrame cuối cùng
     df_final = pd.concat([
         df_long[['Thứ', 'Buổi', 'Tiết']].reset_index(drop=True),
         lop_extracted.reset_index(drop=True),
@@ -180,7 +193,6 @@ def transform_to_database_format(df_wide, teacher_mapping):
     ], axis=1)
 
     df_final['Trình độ'] = df_final['Lớp'].apply(lambda x: 'Cao đẳng' if 'C.' in str(x) else ('Trung Cấp' if 'T.' in str(x) else ''))
-
     df_final.fillna('', inplace=True)
 
     if teacher_mapping:
@@ -197,20 +209,39 @@ def transform_to_database_format(df_wide, teacher_mapping):
 
 st.set_page_config(page_title="Trích xuất và Truy vấn TKB", layout="wide")
 st.title("📊 Trích xuất và Truy vấn Thời Khóa Biểu")
-st.write("Tải file Excel TKB, ứng dụng sẽ tự động chuyển đổi và cho phép bạn tra cứu thông tin chi tiết.")
+st.write("Tải file Excel TKB, ứng dụng sẽ tự động chuyển đổi, cho phép tra cứu và lưu trữ dữ liệu.")
 
-with st.expander("💡 Hướng dẫn cấu hình"):
-    st.info("Để ánh xạ tên giáo viên, cần tạo Service Account trên Google Cloud và chia sẻ Google Sheet chứa thông tin giáo viên.")
+with st.expander("💡 Hướng dẫn & Cấu hình Secrets"):
+    st.info("""
+        Để ứng dụng có thể tự động ánh xạ tên giáo viên và lưu dữ liệu lên Google Sheets, bạn cần:
+        1.  **Tạo một Service Account** trên Google Cloud Platform và cấp quyền truy cập Google Sheets API.
+        2.  **Chia sẻ file Google Sheet** của bạn (ID: `1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI`) với địa chỉ `client_email` của Service Account và cấp quyền **Editor**.
+        3.  **Thêm thông tin credentials** của Service Account vào `secrets.toml` của ứng dụng Streamlit theo mẫu dưới đây.
+    """)
+    st.code("""
+[gcp_service_account]
+type = "service_account"
+project_id = "your-project-id"
+private_key_id = "your-private-key-id"
+private_key = "-----BEGIN PRIVATE KEY-----\\n...your-private-key...\\n-----END PRIVATE KEY-----\\n"
+client_email = "your-service-account-email@...iam.gserviceaccount.com"
+client_id = "your-client-id"
+auth_uri = "https://accounts.google.com/o/oauth2/auth"
+token_uri = "https://oauth2.googleapis.com/token"
+auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
+client_x509_cert_url = "https://www.googleapis.com/robot/v1/metadata/x509/your-service-account-email..."
+    """, language='toml')
 
 # --- KẾT NỐI VÀ LẤY DỮ LIỆU ÁNH XẠ ---
 TEACHER_INFO_SHEET_ID = "1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI"
 teacher_mapping_data = {}
+gsheet_client = None
 if "gcp_service_account" in st.secrets:
     gsheet_client = connect_to_gsheet()
     if gsheet_client:
         teacher_mapping_data = get_teacher_mapping(gsheet_client, TEACHER_INFO_SHEET_ID)
 else:
-    st.warning("Không có cấu hình Google Sheets. Tên giáo viên sẽ không được ánh xạ.", icon="⚠️")
+    st.warning("Không tìm thấy cấu hình Google Sheets trong `st.secrets`. Các tính năng liên quan sẽ bị vô hiệu hóa.", icon="⚠️")
 
 uploaded_file = st.file_uploader("Chọn file Excel của bạn", type=["xlsx"])
 
@@ -223,6 +254,35 @@ if uploaded_file is not None:
         if raw_df is not None:
             db_df = transform_to_database_format(raw_df, teacher_mapping_data)
 
+            # --- PHẦN LƯU TRỮ DỮ LIỆU ---
+            st.markdown("---")
+            st.header("📤 Lưu trữ dữ liệu")
+            st.info(f"Dữ liệu sau khi xử lý sẽ được lưu vào Google Sheet có ID: **{TEACHER_INFO_SHEET_ID}**")
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                nam_hoc = st.text_input("Năm học (VD: 2425):", value="2425")
+            with col2:
+                hoc_ky = st.text_input("Học kỳ (VD: HK1):", value="HK1")
+            with col3:
+                giai_doan = st.text_input("Giai đoạn (VD: GD1):", value="GD1")
+
+            sheet_name = f"DATA_{nam_hoc}_{hoc_ky}_{giai_doan}"
+            st.write(f"Tên sheet sẽ được tạo/cập nhật là: **{sheet_name}**")
+
+            if st.button("Lưu dữ liệu lên Google Sheet", key="save_button"):
+                if gsheet_client:
+                    with st.spinner(f"Đang lưu dữ liệu vào sheet '{sheet_name}'..."):
+                        db_df_str = db_df.astype(str)
+                        success, error_message = save_df_to_gsheet(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, db_df_str)
+                        if success:
+                            st.success(f"Lưu dữ liệu thành công! Vui lòng kiểm tra Google Sheet.")
+                        else:
+                            st.error(f"Lỗi khi lưu dữ liệu: {error_message}")
+                else:
+                    st.error("Không thể lưu do chưa kết nối được với Google Sheets. Vui lòng kiểm tra cấu hình secrets.")
+
+            # --- PHẦN TRA CỨU VÀ HIỂN THỊ ---
             st.markdown("---")
             st.header("🔍 Tra cứu Thời Khóa Biểu")
             
@@ -232,7 +292,6 @@ if uploaded_file is not None:
             if selected_class:
                 class_schedule = db_df[db_df['Lớp'] == selected_class].copy()
                 
-                # --- PHẦN 1: HIỂN THỊ THÔNG TIN CHUNG ---
                 st.markdown("##### 📝 Thông tin chung của lớp")
                 info = class_schedule.iloc[0]
                 info_cols = st.columns(4)
@@ -247,7 +306,6 @@ if uploaded_file is not None:
 
                 st.markdown("--- \n ##### 🗓️ Lịch học chi tiết")
 
-                # --- PHẦN 2: CHUẨN BỊ DỮ LIỆU VÀ TẠO EXPANDER ---
                 number_to_day_map = {2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ', 5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'}
                 class_schedule['Thứ Đầy Đủ'] = class_schedule['Thứ'].map(number_to_day_map)
                 
@@ -258,7 +316,6 @@ if uploaded_file is not None:
                 
                 class_schedule_sorted = class_schedule.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
 
-                # Gom nhóm theo Thứ và tạo expander cho mỗi ngày
                 for day, day_group in class_schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
                     with st.expander(f"**{day}**"):
                         
@@ -291,7 +348,6 @@ if uploaded_file is not None:
 
                             all_parts = [part for part in [subject_part, tiet_part, gv_part, phong_part] if part]
                             details_str = "&nbsp;&nbsp;".join(all_parts)
-
                             full_line = f"{session_header}&nbsp;&nbsp;{details_str}"
                             st.markdown(full_line, unsafe_allow_html=True)
                         
@@ -327,7 +383,6 @@ if uploaded_file is not None:
                             
                             st.markdown("<br>".join(day_summary_parts), unsafe_allow_html=True)
 
-                # --- PHẦN 3: HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT ---
                 with st.expander("Xem bảng dữ liệu chi tiết của lớp"):
                     display_columns = ['Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM']
                     st.dataframe(
