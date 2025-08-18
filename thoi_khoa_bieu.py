@@ -366,7 +366,7 @@ with tab2:
                 with col3: giai_doan = st.text_input("Giai đoạn:", value="GD1", key="gd")
                 with col4:
                     khoa_list = get_khoa_list(gsheet_client, TEACHER_INFO_SHEET_ID)
-                    khoa = st.selectbox("Khoa:", options=khoa_list, key="khoa")
+                    khoa = st.selectbox("Khoa:", options=khoa_list, key="khoa", help="Danh sách được lấy từ sheet DANH_MUC")
 
                 sheet_name = f"DATA_{nam_hoc}_{hoc_ky}_{giai_doan}"
                 st.write(f"Tên sheet sẽ được tạo/cập nhật là: **{sheet_name}**")
