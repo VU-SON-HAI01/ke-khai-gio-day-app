@@ -120,6 +120,29 @@ def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
 # --- CÁC HÀM XỬ LÝ EXCEL ---
 
 def extract_schedule_from_excel(worksheet):
+    """
+    Trích xuất dữ liệu TKB và ngày áp dụng từ một worksheet.
+    """
+    ngay_ap_dung = ""
+    # Tìm ngày áp dụng trong 5 dòng đầu tiên
+    for r_idx in range(1, 6):
+        for c_idx in range(1, 10): # Quét 10 cột đầu
+            cell_value = str(worksheet.cell(row=r_idx, column=c_idx).value or '').strip()
+            if "áp dụng từ" in cell_value.lower():
+                date_match = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', cell_value)
+                if date_match:
+                    ngay_ap_dung = date_match.group(1)
+                else: # Thử tìm ở ô kế bên phải
+                    try:
+                        next_cell_value = str(worksheet.cell(row=r_idx, column=c_idx + 1).value or '')
+                        date_match_next = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', next_cell_value)
+                        if date_match_next:
+                            ngay_ap_dung = date_match_next.group(1)
+                    except:
+                        pass
+                break
+        if ngay_ap_dung: break
+
     start_row, start_col = -1, -1
     for r_idx, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10), 1):
         for c_idx, cell in enumerate(row, 1):
@@ -127,7 +150,8 @@ def extract_schedule_from_excel(worksheet):
                 start_row, start_col = r_idx, c_idx; break
         if start_row != -1: break
     if start_row == -1:
-        st.error("Không tìm thấy ô tiêu đề 'Thứ' trong 10 dòng đầu tiên."); return None
+        st.error("Không tìm thấy ô tiêu đề 'Thứ' trong 10 dòng đầu tiên."); return None, None
+    
     last_row = start_row
     for r_idx in range(worksheet.max_row, start_row - 1, -1):
         cell_value = worksheet.cell(row=r_idx, column=start_col + 2).value
@@ -137,12 +161,14 @@ def extract_schedule_from_excel(worksheet):
     for row in worksheet.iter_rows(min_row=start_row, max_row=last_row):
         for cell in row:
             if cell.value is not None and cell.column > last_col: last_col = cell.column
+    
     merged_values = {}
     for merged_range in worksheet.merged_cells.ranges:
         top_left_cell = worksheet.cell(row=merged_range.min_row, column=merged_range.min_col)
         for row_ in range(merged_range.min_row, merged_range.max_row + 1):
             for col_ in range(merged_range.min_col, merged_range.max_col + 1):
                 merged_values[(row_, col_)] = top_left_cell.value
+    
     day_to_number_map = {'HAI': 2, 'BA': 3, 'TƯ': 4, 'NĂM': 5, 'SÁU': 6, 'BẢY': 7}
     data = []
     for r_idx in range(start_row, last_row + 1):
@@ -151,15 +177,19 @@ def extract_schedule_from_excel(worksheet):
             clean_day = re.sub(r'\s+', '', str(row_data[0] or '')).strip().upper()
             row_data[0] = day_to_number_map.get(clean_day, row_data[0])
         data.append(row_data)
-    if not data: return None
+    
+    if not data: return None, ngay_ap_dung
+    
     header_level1, header_level2 = data[0], data[1]
     filled_header_level1 = []
     last_val = ""
     for val in header_level1:
         if val is not None and str(val).strip() != '': last_val = val
         filled_header_level1.append(last_val)
+    
     combined_headers = [f"{str(h1 or '').strip()}___{str(h2 or '').strip()}" if i >= 3 else str(h1 or '').strip() for i, (h1, h2) in enumerate(zip(filled_header_level1, header_level2))]
-    return pd.DataFrame(data[2:], columns=combined_headers)
+    df = pd.DataFrame(data[2:], columns=combined_headers)
+    return df, ngay_ap_dung
 
 def map_and_prefix_teacher_name(short_name, mapping):
     short_name_clean = str(short_name or '').strip()
@@ -171,7 +201,7 @@ def map_and_prefix_teacher_name(short_name, mapping):
         return full_name
     return short_name_clean
 
-def transform_to_database_format(df_wide, teacher_mapping):
+def transform_to_database_format(df_wide, teacher_mapping, ngay_ap_dung):
     id_vars = ['Thứ', 'Buổi', 'Tiết']
     df_long = pd.melt(df_wide, id_vars=id_vars, var_name='Lớp_Raw', value_name='Chi tiết Môn học')
     df_long.dropna(subset=['Chi tiết Môn học'], inplace=True)
@@ -201,15 +231,13 @@ def transform_to_database_format(df_wide, teacher_mapping):
     header_parts = df_long['Lớp_Raw'].str.split('___', expand=True)
     lop_extracted = header_parts[0].str.extract(r'^(.*?)\s*(?:\((\d+)\))?$'); lop_extracted.columns = ['Lớp', 'Sĩ số']
     
-    # Cải tiến logic tách Phòng SHCN và GVCN
     def parse_cn_details(text):
         if not text or pd.isna(text): return ("", "", "")
         text = str(text)
         parts = text.split('-')
         phong_shcn = parts[0].strip()
         gvcn = parts[1].strip() if len(parts) > 1 else ""
-        lop_vhpt = "" # Hiện tại chưa có logic tách lớp VHPT từ đây
-        return (phong_shcn, gvcn, lop_vhpt)
+        return (phong_shcn, gvcn, "")
 
     cn_details = header_parts[1].apply(parse_cn_details)
     cn_extracted = pd.DataFrame(cn_details.tolist(), index=df_long.index, columns=['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'])
@@ -222,8 +250,9 @@ def transform_to_database_format(df_wide, teacher_mapping):
         df_final['Giáo viên CN'] = df_final['Giáo viên CN'].apply(lambda n: map_and_prefix_teacher_name(n, teacher_mapping))
         df_final['Giáo viên BM'] = df_final['Giáo viên BM'].apply(lambda n: map_and_prefix_teacher_name(n, teacher_mapping))
     
-    final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT', 'Ghi chú', 'KHOA']
+    final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT', 'Ghi chú', 'KHOA', 'Ngày áp dụng']
     df_final['KHOA'] = '' 
+    df_final['Ngày áp dụng'] = ngay_ap_dung
     return df_final[final_cols]
 
 # --- HÀM HIỂN THỊ GIAO DIỆN TRA CỨU ---
@@ -355,10 +384,12 @@ with tab2:
         try:
             workbook = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()), data_only=True)
             with st.spinner("Đang xử lý dữ liệu từ file Excel..."):
-                raw_df = extract_schedule_from_excel(workbook.active)
+                raw_df, ngay_ap_dung = extract_schedule_from_excel(workbook.active)
             if raw_df is not None:
-                db_df = transform_to_database_format(raw_df, teacher_mapping_data)
+                db_df = transform_to_database_format(raw_df, teacher_mapping_data, ngay_ap_dung)
                 st.success("Xử lý file Excel thành công!")
+                if ngay_ap_dung:
+                    st.info(f"Đã tìm thấy ngày áp dụng trong file: **{ngay_ap_dung}**")
                 
                 st.markdown("---")
                 st.subheader("📤 Lưu trữ dữ liệu đã xử lý")
