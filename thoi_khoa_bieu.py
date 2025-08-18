@@ -98,15 +98,20 @@ def update_gsheet_by_khoa(client, spreadsheet_id, sheet_name, df_new, khoa_to_up
 # --- CÁC HÀM XỬ LÝ EXCEL ---
 
 def extract_schedule_from_excel(worksheet):
+    """
+    Trích xuất dữ liệu TKB và ngày áp dụng từ một worksheet.
+    """
     ngay_ap_dung = ""
+    # Quét từ A1 đến Z5 để tìm ngày áp dụng
     for r_idx in range(1, 6):
-        for c_idx in range(1, 27):
+        for c_idx in range(1, 27): # Cột A đến Z
             cell_value = str(worksheet.cell(row=r_idx, column=c_idx).value or '').strip()
             if "áp dụng" in cell_value.lower():
+                # Tìm kiếm ngày tháng linh hoạt hơn
                 date_match = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', cell_value)
                 if date_match:
                     ngay_ap_dung = date_match.group(1)
-                else: 
+                else: # Thử tìm ở ô kế bên phải
                     try:
                         next_cell_value = str(worksheet.cell(row=r_idx, column=c_idx + 1).value or '')
                         date_match_next = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', next_cell_value)
@@ -255,35 +260,40 @@ uploaded_file = st.file_uploader("Chọn file Excel TKB của bạn", type=["xls
 if uploaded_file:
     try:
         workbook = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()), data_only=True)
-        sheet_names = workbook.sheetnames
+        all_sheet_names = workbook.sheetnames
         
-        selected_sheets = st.multiselect("Chọn các sheet TKB cần xử lý:", options=sheet_names)
+        sheets_to_display = [s for s in all_sheet_names if s.upper() not in ["DANH_MUC", "THONG_TIN_GV"]]
+        
+        selected_sheets = st.multiselect("Chọn các sheet TKB cần xử lý:", options=sheets_to_display)
 
         if st.button("Xử lý các sheet đã chọn") and selected_sheets:
             all_processed_dfs = []
-            overall_ngay_ap_dung = ""
+            ngay_ap_dung_dict = {} # Dùng dict để lưu ngày áp dụng cho từng sheet
             
             with st.spinner("Đang xử lý dữ liệu từ các sheet đã chọn..."):
                 for sheet_name in selected_sheets:
                     worksheet = workbook[sheet_name]
                     raw_df, ngay_ap_dung = extract_schedule_from_excel(worksheet)
                     if raw_df is not None:
-                        # Ưu tiên lấy ngày áp dụng đầu tiên tìm thấy
-                        if ngay_ap_dung and not overall_ngay_ap_dung:
-                            overall_ngay_ap_dung = ngay_ap_dung
+                        if ngay_ap_dung:
+                            ngay_ap_dung_dict[sheet_name] = ngay_ap_dung
                         
                         db_df = transform_to_database_format(raw_df, teacher_mapping_data, ngay_ap_dung)
                         all_processed_dfs.append(db_df)
             
             if all_processed_dfs:
-                # Ghép nối tất cả các dataframe đã xử lý
                 final_db_df = pd.concat(all_processed_dfs, ignore_index=True)
-                # Cập nhật lại ngày áp dụng cho toàn bộ dataframe
-                final_db_df['Ngày áp dụng'] = overall_ngay_ap_dung
                 st.session_state['processed_df'] = final_db_df
                 st.success("Xử lý file Excel thành công!")
-                if overall_ngay_ap_dung:
-                    st.info(f"Đã tìm thấy ngày áp dụng trong file: **{overall_ngay_ap_dung}**")
+                
+                # Hiển thị tất cả các ngày áp dụng đã tìm thấy
+                if ngay_ap_dung_dict:
+                    st.write("Đã tìm thấy ngày áp dụng trong các sheet sau:")
+                    for sheet, date in ngay_ap_dung_dict.items():
+                        st.info(f"- Sheet **'{sheet}'**: {date}")
+                else:
+                    st.warning("Không tìm thấy thông tin 'Ngày áp dụng' trong các sheet đã chọn.")
+
             else:
                 st.warning("Không thể trích xuất dữ liệu từ các sheet đã chọn.")
 
