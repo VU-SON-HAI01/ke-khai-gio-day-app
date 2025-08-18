@@ -187,7 +187,7 @@ def transform_to_database_format(df_wide, teacher_mapping):
         df_final['Giáo viên BM'] = df_final['Giáo viên BM'].apply(lambda n: map_and_prefix_teacher_name(n, teacher_mapping))
     
     final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT', 'Ghi chú', 'KHOA']
-    df_final['KHOA'] = '' 
+    df_final['KHOA'] = '' # Thêm cột KHOA rỗng
     return df_final[final_cols]
 
 # --- HÀM HIỂN THỊ GIAO DIỆN TRA CỨU ---
@@ -240,29 +240,12 @@ def display_schedule_interface(df_data):
                     chieu_subjects = day_group[day_group['Buổi'] == 'Chiều'][['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
                     if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects): can_consolidate = True
 
-                green_color = "#00FF00"
-                
-                # CSS cho các nút Buổi học
-                st.markdown("""
-                <style>
-                    .session-button {
-                        display: inline-block;
-                        padding: 4px 12px;
-                        border-radius: 8px;
-                        color: white;
-                        font-weight: bold;
-                        margin-right: 10px;
-                    }
-                    .sang { background-color: #28a745; }
-                    .chieu { background-color: #dc3545; }
-                    .cangay { background-color: #17a2b8; }
-                </style>
-                """, unsafe_allow_html=True)
+                blue_color, green_color = "#60A5FA", "#00FF00"
 
                 if can_consolidate:
                     subject_info = sang_subjects.iloc[0]
                     tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
-                    session_header = f"<div class='session-button cangay'>Cả ngày</div>"
+                    session_header = f"<span style='color:{blue_color}; font-weight:bold;'>Cả ngày:</span>"
                     tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
                     subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>"
                     gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>" if subject_info['Giáo viên BM'] else ""
@@ -273,9 +256,7 @@ def display_schedule_interface(df_data):
                 else:
                     day_summary_parts = []
                     for session, session_group in day_group.groupby('Buổi', observed=False):
-                        session_class = "sang" if session == "Sáng" else "chieu"
-                        session_header = f"<div class='session-button {session_class}'>{session}</div>"
-                        
+                        session_header = f"<span style='color:{blue_color}; font-weight:bold;'>Buổi {session.lower()}:</span>"
                         subjects_in_session = {}
                         for _, row in session_group.iterrows():
                             if pd.notna(row['Môn học']) and row['Môn học'].strip():
@@ -371,7 +352,7 @@ with tab2:
                 if st.button("Lưu vào Google Sheet", key="save_button"):
                     if gsheet_client:
                         with st.spinner(f"Đang lưu..."):
-                            db_df['KHOA'] = khoa
+                            db_df['KHOA'] = khoa # Gán giá trị Khoa vào dataframe
                             success, error_message = save_df_to_gsheet(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, db_df.astype(str))
                             if success:
                                 st.success(f"Lưu dữ liệu thành công! Bạn có thể qua tab 'Tra cứu' để xem.")
