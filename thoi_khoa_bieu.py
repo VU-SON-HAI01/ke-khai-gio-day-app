@@ -355,3 +355,38 @@ with tab2:
             if raw_df is not None:
                 db_df = transform_to_database_format(raw_df, teacher_mapping_data)
                 st.success("Xử lý file Excel thành công!")
+                
+                st.markdown("---")
+                st.subheader("📤 Lưu trữ dữ liệu đã xử lý")
+                st.info(f"Dữ liệu sẽ được lưu vào Google Sheet có ID: **{TEACHER_INFO_SHEET_ID}**")
+
+                col1, col2, col3, col4 = st.columns(4)
+                with col1: nam_hoc = st.text_input("Năm học:", value="2425", key="nh")
+                with col2: hoc_ky = st.text_input("Học kỳ:", value="HK1", key="hk")
+                with col3: giai_doan = st.text_input("Giai đoạn:", value="GD1", key="gd")
+                with col4:
+                    khoa_list = get_khoa_list(gsheet_client, TEACHER_INFO_SHEET_ID)
+                    khoa = st.selectbox("Khoa:", options=khoa_list, key="khoa")
+
+                sheet_name = f"DATA_{nam_hoc}_{hoc_ky}_{giai_doan}"
+                st.write(f"Tên sheet sẽ được tạo/cập nhật là: **{sheet_name}**")
+
+                if st.button("Lưu vào Google Sheet", key="save_button"):
+                    if gsheet_client and khoa:
+                        with st.spinner(f"Đang cập nhật dữ liệu cho khoa '{khoa}'..."):
+                            db_df['KHOA'] = khoa
+                            success, error_message = update_gsheet_by_khoa(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, db_df, khoa)
+                            if success:
+                                st.success(f"Cập nhật dữ liệu thành công! Bạn có thể qua tab 'Tra cứu' để xem.")
+                                st.cache_data.clear()
+                            else:
+                                st.error(f"Lỗi khi lưu: {error_message}")
+                    else:
+                        st.error("Không thể lưu. Vui lòng chọn một Khoa và đảm bảo đã kết nối Google Sheets.")
+                
+                with st.expander("Xem trước dữ liệu đã xử lý"):
+                    st.dataframe(db_df)
+            else:
+                st.warning("Không thể trích xuất dữ liệu từ file Excel.")
+        except Exception as e:
+            st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
