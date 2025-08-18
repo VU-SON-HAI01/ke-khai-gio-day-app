@@ -219,7 +219,7 @@ def display_schedule_interface(df_data):
         info_line = f"{gvcn_part}&nbsp;&nbsp;&nbsp;&nbsp;{trinhdo_part}&nbsp;&nbsp;&nbsp;&nbsp;{siso_part}&nbsp;&nbsp;&nbsp;&nbsp;{psh_part}"
         st.markdown(info_line, unsafe_allow_html=True)
 
-        st.markdown("--- \n ##### 🗓️ Lịch học chi tiết")
+        st.markdown("##### 🗓️ Lịch học chi tiết")
 
         number_to_day_map = {2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ', 5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'}
         class_schedule['Thứ Đầy Đủ'] = class_schedule['Thứ'].map(number_to_day_map)
