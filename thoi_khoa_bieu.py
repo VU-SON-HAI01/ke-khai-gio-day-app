@@ -186,7 +186,8 @@ def transform_to_database_format(df_wide, teacher_mapping):
         df_final['Giáo viên CN'] = df_final['Giáo viên CN'].apply(lambda n: map_and_prefix_teacher_name(n, teacher_mapping))
         df_final['Giáo viên BM'] = df_final['Giáo viên BM'].apply(lambda n: map_and_prefix_teacher_name(n, teacher_mapping))
     
-    final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT', 'Ghi chú']
+    final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT', 'Ghi chú', 'KHOA']
+    df_final['KHOA'] = '' # Thêm cột KHOA rỗng
     return df_final[final_cols]
 
 # --- HÀM HIỂN THỊ GIAO DIỆN TRA CỨU ---
@@ -219,7 +220,7 @@ def display_schedule_interface(df_data):
         info_line = f"{gvcn_part}&nbsp;&nbsp;&nbsp;&nbsp;{trinhdo_part}&nbsp;&nbsp;&nbsp;&nbsp;{siso_part}&nbsp;&nbsp;&nbsp;&nbsp;{psh_part}"
         st.markdown(info_line, unsafe_allow_html=True)
 
-        st.markdown("##### 🗓️ Lịch học chi tiết")
+        st.markdown("--- \n ##### 🗓️ Lịch học chi tiết")
 
         number_to_day_map = {2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ', 5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'}
         class_schedule['Thứ Đầy Đủ'] = class_schedule['Thứ'].map(number_to_day_map)
@@ -234,19 +235,16 @@ def display_schedule_interface(df_data):
         for day, day_group in class_schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
             with st.expander(f"**{day}**"):
                 can_consolidate = False
-                sessions = day_group['Buổi'].unique()
-                if set(sessions) == {'Sáng', 'Chiều'}:
-                    sang_group = day_group[day_group['Buổi'] == 'Sáng']; chieu_group = day_group[day_group['Buổi'] == 'Chiều']
-                    sang_subjects = sang_group[['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
-                    chieu_subjects = chieu_group[['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
+                if set(day_group['Buổi'].unique()) == {'Sáng', 'Chiều'}:
+                    sang_subjects = day_group[day_group['Buổi'] == 'Sáng'][['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
+                    chieu_subjects = day_group[day_group['Buổi'] == 'Chiều'][['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
                     if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects): can_consolidate = True
 
                 blue_color, green_color = "#60A5FA", "#00FF00"
 
                 if can_consolidate:
                     subject_info = sang_subjects.iloc[0]
-                    all_periods = day_group['Tiết'].astype(str).tolist()
-                    tiet_str = ", ".join(sorted(all_periods, key=int))
+                    tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
                     session_header = f"<span style='color:{blue_color}; font-weight:bold;'>Cả ngày:</span>"
                     tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
                     subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>"
@@ -261,21 +259,25 @@ def display_schedule_interface(df_data):
                         session_header = f"<span style='color:{blue_color}; font-weight:bold;'>Buổi {session.lower()}:</span>"
                         subjects_in_session = {}
                         for _, row in session_group.iterrows():
-                            subject = row['Môn học']
-                            if pd.notna(subject) and subject.strip():
-                                key = (subject, row['Giáo viên BM'], row['Phòng học'])
+                            if pd.notna(row['Môn học']) and row['Môn học'].strip():
+                                key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'])
                                 if key not in subjects_in_session: subjects_in_session[key] = []
                                 subjects_in_session[key].append(str(row['Tiết']))
                         if not subjects_in_session:
                             day_summary_parts.append(f"{session_header}&nbsp;&nbsp;✨Nghỉ")
                         else:
-                            for (subject, gv, phong), tiet_list in subjects_in_session.items():
+                            for (subject, gv, phong, ghi_chu), tiet_list in subjects_in_session.items():
                                 tiet_str = ", ".join(sorted(tiet_list, key=int))
                                 tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
                                 subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>"
                                 gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{gv}</span>" if gv else ""
                                 phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{phong}</span>" if phong else ""
-                                all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part] if p]
+                                ghi_chu_part = ""
+                                if ghi_chu and ghi_chu.strip():
+                                    date_match = re.search(r'(\d+/\d+)', ghi_chu)
+                                    if date_match:
+                                        ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
+                                all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part, ghi_chu_part] if p]
                                 details_str = "&nbsp;&nbsp;".join(all_parts)
                                 day_summary_parts.append(f"{session_header}&nbsp;&nbsp;{details_str}")
                     st.markdown("<br>".join(day_summary_parts), unsafe_allow_html=True)
@@ -338,10 +340,11 @@ with tab2:
                 st.subheader("📤 Lưu trữ dữ liệu đã xử lý")
                 st.info(f"Dữ liệu sẽ được lưu vào Google Sheet có ID: **{TEACHER_INFO_SHEET_ID}**")
 
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1: nam_hoc = st.text_input("Năm học:", value="2425", key="nh")
                 with col2: hoc_ky = st.text_input("Học kỳ:", value="HK1", key="hk")
                 with col3: giai_doan = st.text_input("Giai đoạn:", value="GD1", key="gd")
+                with col4: khoa = st.text_input("Khoa:", value="Công nghệ thông tin", key="khoa")
 
                 sheet_name = f"DATA_{nam_hoc}_{hoc_ky}_{giai_doan}"
                 st.write(f"Tên sheet sẽ được tạo/cập nhật là: **{sheet_name}**")
@@ -349,6 +352,7 @@ with tab2:
                 if st.button("Lưu vào Google Sheet", key="save_button"):
                     if gsheet_client:
                         with st.spinner(f"Đang lưu..."):
+                            db_df['KHOA'] = khoa # Gán giá trị Khoa vào dataframe
                             success, error_message = save_df_to_gsheet(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, db_df.astype(str))
                             if success:
                                 st.success(f"Lưu dữ liệu thành công! Bạn có thể qua tab 'Tra cứu' để xem.")
