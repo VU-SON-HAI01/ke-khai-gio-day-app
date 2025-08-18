@@ -275,7 +275,7 @@ def display_schedule_interface(df_data):
                             if session == "Sáng":
                                 st.markdown(f'<p style="color:#ff6600; font-weight:bold;">SÁNG</p>', unsafe_allow_html=True)
                             else:
-                                st.markdown(f'<p style="color:#000066; font-weight:bold;">CHIỀU</p>', unsafe_allow_html=True)
+                                st.markdown(f'<p style="color:#00ffff; font-weight:bold;">CHIỀU</p>', unsafe_allow_html=True)
 
                         with col2:
                             if not subjects_in_session:
