@@ -276,7 +276,7 @@ def display_schedule_interface(df_data):
                                 if ghi_chu and ghi_chu.strip():
                                     date_match = re.search(r'(\d+/\d+)', ghi_chu)
                                     if date_match:
-                                        ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\{date_match.group(1)}\</span>"
+                                        ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
                                 all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part, ghi_chu_part] if p]
                                 details_str = "&nbsp;&nbsp;".join(all_parts)
                                 day_summary_parts.append(f"{session_header}&nbsp;&nbsp;{details_str}")
