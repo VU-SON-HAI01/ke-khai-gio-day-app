@@ -120,13 +120,9 @@ def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
 # --- CÁC HÀM XỬ LÝ EXCEL ---
 
 def extract_schedule_from_excel(worksheet):
-    """
-    Trích xuất dữ liệu TKB và ngày áp dụng từ một worksheet.
-    """
     ngay_ap_dung = ""
-    # Quét từ A1 đến Z5 để tìm ngày áp dụng
     for r_idx in range(1, 6):
-        for c_idx in range(1, 27): # Cột A đến Z
+        for c_idx in range(1, 27):
             cell_value = str(worksheet.cell(row=r_idx, column=c_idx).value or '').strip()
             if "áp dụng" in cell_value.lower():
                 date_match = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', cell_value)
@@ -209,20 +205,25 @@ def transform_to_database_format(df_wide, teacher_mapping, ngay_ap_dung):
     
     def parse_subject_details_custom(cell_text):
         clean_text = re.sub(r'\s{2,}', ' ', str(cell_text).replace('\n', ' ').strip())
-        ghi_chu = ""
-        note_match = re.search(r'\(?(Học từ.*?)\)?', clean_text, re.IGNORECASE)
+        ghi_chu, remaining_text = "", clean_text
+        
+        # Tách Ghi chú (Học từ...) trước, dù có ngoặc đơn hay không
+        note_match = re.search(r'(\(?(Học từ.*?)\)?)$', clean_text, re.IGNORECASE)
         if note_match:
+            full_note_str = note_match.group(0)
             ghi_chu = note_match.group(1).strip()
-            clean_text = clean_text.replace(note_match.group(0), '').strip()
-        remaining_text = clean_text
+            remaining_text = clean_text.replace(full_note_str, '').strip()
+            
         if "THPT" in remaining_text.upper():
             return ("HỌC TKB VĂN HÓA THPT", "", "", ghi_chu)
+            
         match = re.search(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$', remaining_text)
         if match:
             mon_hoc, phong_hoc, giao_vien = match.group(1).strip(), match.group(2).strip(), match.group(3).strip()
             after_paren_text = remaining_text[match.end():].strip()
             if after_paren_text: ghi_chu = f"{ghi_chu} {after_paren_text}".strip()
             return (mon_hoc, phong_hoc, giao_vien, ghi_chu)
+            
         return (remaining_text, "", "", ghi_chu)
 
     parsed_cols = df_long['Chi tiết Môn học'].apply(parse_subject_details_custom)
@@ -239,7 +240,7 @@ def transform_to_database_format(df_wide, teacher_mapping, ngay_ap_dung):
         gvcn = parts[1].strip() if len(parts) > 1 else ""
         return (phong_shcn, gvcn, "")
 
-    cn_details = header_parts[1].apply(parse_cn_details)
+    cn_details = header_parts[1].apply(parse_cn_details) if len(header_parts.columns) > 1 else pd.Series([("", "", "")] * len(df_long))
     cn_extracted = pd.DataFrame(cn_details.tolist(), index=df_long.index, columns=['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'])
 
     df_final = pd.concat([df_long[['Thứ', 'Buổi', 'Tiết']].reset_index(drop=True), lop_extracted.reset_index(drop=True), cn_extracted.reset_index(drop=True), mh_extracted.reset_index(drop=True)], axis=1)
