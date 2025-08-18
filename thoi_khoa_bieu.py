@@ -120,19 +120,16 @@ def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
 # --- CÁC HÀM XỬ LÝ EXCEL ---
 
 def extract_schedule_from_excel(worksheet):
-    """
-    Trích xuất dữ liệu TKB và ngày áp dụng từ một worksheet.
-    """
     ngay_ap_dung = ""
-    # Tìm ngày áp dụng trong 5 dòng đầu tiên
     for r_idx in range(1, 6):
-        for c_idx in range(1, 10): # Quét 10 cột đầu
+        for c_idx in range(1, 10):
             cell_value = str(worksheet.cell(row=r_idx, column=c_idx).value or '').strip()
-            if "áp dụng từ" in cell_value.lower():
+            if "áp dụng" in cell_value.lower():
+                # Tìm kiếm ngày tháng linh hoạt hơn
                 date_match = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', cell_value)
                 if date_match:
                     ngay_ap_dung = date_match.group(1)
-                else: # Thử tìm ở ô kế bên phải
+                else:
                     try:
                         next_cell_value = str(worksheet.cell(row=r_idx, column=c_idx + 1).value or '')
                         date_match_next = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', next_cell_value)
@@ -233,7 +230,7 @@ def transform_to_database_format(df_wide, teacher_mapping, ngay_ap_dung):
     
     def parse_cn_details(text):
         if not text or pd.isna(text): return ("", "", "")
-        text = str(text)
+        text = str(text).replace('(', '').replace(')', '')
         parts = text.split('-')
         phong_shcn = parts[0].strip()
         gvcn = parts[1].strip() if len(parts) > 1 else ""
