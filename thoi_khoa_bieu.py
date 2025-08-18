@@ -71,10 +71,6 @@ def get_khoa_list(_gsheet_client, spreadsheet_id):
 def update_gsheet_by_khoa(client, spreadsheet_id, sheet_name, df_new, khoa_to_update):
     """
     Cập nhật dữ liệu trong sheet dựa trên Khoa.
-    - Đọc dữ liệu hiện có.
-    - Xóa dữ liệu cũ của khoa cần cập nhật.
-    - Nối dữ liệu mới của khoa đó vào.
-    - Ghi đè toàn bộ sheet với dữ liệu đã được kết hợp.
     """
     try:
         spreadsheet = client.open_by_key(spreadsheet_id)
@@ -83,18 +79,14 @@ def update_gsheet_by_khoa(client, spreadsheet_id, sheet_name, df_new, khoa_to_up
             existing_data = worksheet.get_all_records()
             if existing_data:
                 df_existing = pd.DataFrame(existing_data)
-                # Giữ lại dữ liệu của các khoa khác
                 df_others = df_existing[df_existing['KHOA'] != khoa_to_update]
-                # Nối dữ liệu cũ của khoa khác với dữ liệu mới
                 df_combined = pd.concat([df_others, df_new], ignore_index=True)
-            else: # Sheet trống
+            else: 
                 df_combined = df_new
         except gspread.WorksheetNotFound:
-            # Nếu sheet chưa tồn tại, dữ liệu mới chính là dữ liệu kết hợp
             df_combined = df_new
             worksheet = spreadsheet.add_worksheet(title=sheet_name, rows="1", cols="1")
 
-        # Xóa nội dung cũ và ghi dữ liệu mới
         worksheet.clear()
         data_to_upload = [df_combined.columns.values.tolist()] + df_combined.astype(str).values.tolist()
         worksheet.update(data_to_upload, 'A1')
@@ -188,10 +180,10 @@ def transform_to_database_format(df_wide, teacher_mapping):
     def parse_subject_details_custom(cell_text):
         clean_text = re.sub(r'\s{2,}', ' ', str(cell_text).replace('\n', ' ').strip())
         ghi_chu = ""
-        note_match = re.search(r'(Học từ.*)', clean_text, re.IGNORECASE)
+        note_match = re.search(r'\(?(Học từ.*?)\)?', clean_text, re.IGNORECASE)
         if note_match:
             ghi_chu = note_match.group(1).strip()
-            clean_text = clean_text.replace(ghi_chu, '').strip()
+            clean_text = clean_text.replace(note_match.group(0), '').strip()
         remaining_text = clean_text
         if "THPT" in remaining_text.upper():
             return ("HỌC TKB VĂN HÓA THPT", "", "", ghi_chu)
@@ -208,8 +200,20 @@ def transform_to_database_format(df_wide, teacher_mapping):
     
     header_parts = df_long['Lớp_Raw'].str.split('___', expand=True)
     lop_extracted = header_parts[0].str.extract(r'^(.*?)\s*(?:\((\d+)\))?$'); lop_extracted.columns = ['Lớp', 'Sĩ số']
-    cn_extracted = header_parts[1].str.extract(r'^(.*?)\s*-\s*(.*?)(?:\s*\((.*?)\))?$'); cn_extracted.columns = ['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
     
+    # Cải tiến logic tách Phòng SHCN và GVCN
+    def parse_cn_details(text):
+        if not text or pd.isna(text): return ("", "", "")
+        text = str(text)
+        parts = text.split('-')
+        phong_shcn = parts[0].strip()
+        gvcn = parts[1].strip() if len(parts) > 1 else ""
+        lop_vhpt = "" # Hiện tại chưa có logic tách lớp VHPT từ đây
+        return (phong_shcn, gvcn, lop_vhpt)
+
+    cn_details = header_parts[1].apply(parse_cn_details)
+    cn_extracted = pd.DataFrame(cn_details.tolist(), index=df_long.index, columns=['Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT'])
+
     df_final = pd.concat([df_long[['Thứ', 'Buổi', 'Tiết']].reset_index(drop=True), lop_extracted.reset_index(drop=True), cn_extracted.reset_index(drop=True), mh_extracted.reset_index(drop=True)], axis=1)
     df_final['Trình độ'] = df_final['Lớp'].apply(lambda x: 'Cao đẳng' if 'C.' in str(x) else ('Trung Cấp' if 'T.' in str(x) else ''))
     df_final.fillna('', inplace=True)
