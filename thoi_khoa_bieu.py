@@ -45,18 +45,58 @@ def get_teacher_mapping(_gsheet_client, spreadsheet_id):
         st.error(f"Lỗi khi tải dữ liệu giáo viên: {e}")
         return {}
 
-def save_df_to_gsheet(client, spreadsheet_id, sheet_name, df):
+@st.cache_data(ttl=60)
+def get_khoa_list(_gsheet_client, spreadsheet_id):
     """
-    Lưu một DataFrame vào một sheet cụ thể của Google Sheet.
+    Lấy danh sách Khoa/Phòng/Trung tâm từ sheet DANH_MUC.
+    """
+    if _gsheet_client is None: return []
+    try:
+        spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
+        worksheet = spreadsheet.worksheet("DANH_MUC")
+        df = pd.DataFrame(worksheet.get_all_records())
+        khoa_col = "Khoa/Phòng/Trung tâm"
+        if khoa_col in df.columns:
+            return df[khoa_col].dropna().unique().tolist()
+        else:
+            st.error(f"Lỗi: Không tìm thấy cột '{khoa_col}' trong sheet 'DANH_MUC'.")
+            return []
+    except gspread.exceptions.WorksheetNotFound:
+        st.error("Lỗi: Không tìm thấy sheet 'DANH_MUC'. Vui lòng tạo sheet này.")
+        return []
+    except Exception as e:
+        st.error(f"Lỗi khi tải danh sách khoa: {e}")
+        return []
+
+def update_gsheet_by_khoa(client, spreadsheet_id, sheet_name, df_new, khoa_to_update):
+    """
+    Cập nhật dữ liệu trong sheet dựa trên Khoa.
+    - Đọc dữ liệu hiện có.
+    - Xóa dữ liệu cũ của khoa cần cập nhật.
+    - Nối dữ liệu mới của khoa đó vào.
+    - Ghi đè toàn bộ sheet với dữ liệu đã được kết hợp.
     """
     try:
         spreadsheet = client.open_by_key(spreadsheet_id)
         try:
             worksheet = spreadsheet.worksheet(sheet_name)
-            worksheet.clear()
+            existing_data = worksheet.get_all_records()
+            if existing_data:
+                df_existing = pd.DataFrame(existing_data)
+                # Giữ lại dữ liệu của các khoa khác
+                df_others = df_existing[df_existing['KHOA'] != khoa_to_update]
+                # Nối dữ liệu cũ của khoa khác với dữ liệu mới
+                df_combined = pd.concat([df_others, df_new], ignore_index=True)
+            else: # Sheet trống
+                df_combined = df_new
         except gspread.WorksheetNotFound:
+            # Nếu sheet chưa tồn tại, dữ liệu mới chính là dữ liệu kết hợp
+            df_combined = df_new
             worksheet = spreadsheet.add_worksheet(title=sheet_name, rows="1", cols="1")
-        data_to_upload = [df.columns.values.tolist()] + df.values.tolist()
+
+        # Xóa nội dung cũ và ghi dữ liệu mới
+        worksheet.clear()
+        data_to_upload = [df_combined.columns.values.tolist()] + df_combined.astype(str).values.tolist()
         worksheet.update(data_to_upload, 'A1')
         return True, None
     except Exception as e:
@@ -64,22 +104,15 @@ def save_df_to_gsheet(client, spreadsheet_id, sheet_name, df):
 
 @st.cache_data(ttl=60)
 def get_all_data_sheets(_client, spreadsheet_id):
-    """
-    Lấy danh sách tất cả các sheet dữ liệu (bắt đầu bằng "DATA_").
-    """
     if not _client: return []
     try:
         spreadsheet = _client.open_by_key(spreadsheet_id)
         return [s.title for s in spreadsheet.worksheets() if s.title.startswith("DATA_")]
     except Exception as e:
-        st.error(f"Lỗi khi lấy danh sách sheet: {e}")
-        return []
+        st.error(f"Lỗi khi lấy danh sách sheet: {e}"); return []
 
 @st.cache_data(ttl=60)
 def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
-    """
-    Tải dữ liệu từ một sheet cụ thể và chuyển thành DataFrame.
-    """
     if not _client or not sheet_name: return pd.DataFrame()
     try:
         spreadsheet = _client.open_by_key(spreadsheet_id)
@@ -90,8 +123,7 @@ def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         return df
     except Exception as e:
-        st.error(f"Lỗi khi tải dữ liệu từ sheet '{sheet_name}': {e}")
-        return pd.DataFrame()
+        st.error(f"Lỗi khi tải dữ liệu từ sheet '{sheet_name}': {e}"); return pd.DataFrame()
 
 # --- CÁC HÀM XỬ LÝ EXCEL ---
 
@@ -193,8 +225,7 @@ def transform_to_database_format(df_wide, teacher_mapping):
 # --- HÀM HIỂN THỊ GIAO DIỆN TRA CỨU ---
 def display_schedule_interface(df_data):
     if df_data.empty:
-        st.info("Chưa có dữ liệu để tra cứu.")
-        return
+        st.info("Chưa có dữ liệu để tra cứu."); return
 
     st.header("🔍 Tra cứu Thời Khóa Biểu")
     class_list = sorted(df_data['Lớp'].unique())
@@ -207,47 +238,34 @@ def display_schedule_interface(df_data):
         info = class_schedule.iloc[0]
         green_color = "#00FF00"
         
-        gvcn_val = info.get("Giáo viên CN") or "Chưa có"
-        trinhdo_val = info.get("Trình độ") or "Chưa có"
-        siso_val = str(info.get("Sĩ số") or "N/A")
-        psh_val = info.get("Phòng SHCN") or "Chưa có"
-
+        gvcn_val, trinhdo_val, siso_val, psh_val = info.get("Giáo viên CN") or "Chưa có", info.get("Trình độ") or "Chưa có", str(info.get("Sĩ số") or "N/A"), info.get("Phòng SHCN") or "Chưa có"
         gvcn_part = f"👨‍🏫 **Chủ nhiệm:** <span style='color:{green_color};'>{gvcn_val}</span>"
         trinhdo_part = f"🎖️ **Trình độ:** <span style='color:{green_color};'>{trinhdo_val}</span>"
         siso_part = f"👩‍👩‍👧‍👧 **Sĩ số:** <span style='color:{green_color};'>{siso_val}</span>"
         psh_part = f"🏤 **P.sinh hoạt:** <span style='color:{green_color};'>{psh_val}</span>"
-
-        info_line = f"{gvcn_part}&nbsp;&nbsp;&nbsp;&nbsp;{trinhdo_part}&nbsp;&nbsp;&nbsp;&nbsp;{siso_part}&nbsp;&nbsp;&nbsp;&nbsp;{psh_part}"
-        st.markdown(info_line, unsafe_allow_html=True)
+        st.markdown(f"{gvcn_part}&nbsp;&nbsp;&nbsp;&nbsp;{trinhdo_part}&nbsp;&nbsp;&nbsp;&nbsp;{siso_part}&nbsp;&nbsp;&nbsp;&nbsp;{psh_part}", unsafe_allow_html=True)
 
         st.markdown("--- \n ##### 🗓️ Lịch học chi tiết")
 
         number_to_day_map = {2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ', 5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'}
         class_schedule['Thứ Đầy Đủ'] = class_schedule['Thứ'].map(number_to_day_map)
         
-        day_order = list(number_to_day_map.values())
-        session_order = ['Sáng', 'Chiều']
+        day_order = list(number_to_day_map.values()); session_order = ['Sáng', 'Chiều']
         class_schedule['Thứ Đầy Đủ'] = pd.Categorical(class_schedule['Thứ Đầy Đủ'], categories=day_order, ordered=True)
         class_schedule['Buổi'] = pd.Categorical(class_schedule['Buổi'], categories=session_order, ordered=True)
-        
         class_schedule_sorted = class_schedule.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
 
         for day, day_group in class_schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
             with st.expander(f"**{day}**"):
-                
                 can_consolidate = False
                 if set(day_group['Buổi'].unique()) == {'Sáng', 'Chiều'}:
                     sang_subjects = day_group[day_group['Buổi'] == 'Sáng'][['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
                     chieu_subjects = day_group[day_group['Buổi'] == 'Chiều'][['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
                     if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects): can_consolidate = True
 
-                green_color = "#00FF00"
-                blue_color = "#60A5FA"
-
                 if can_consolidate:
                     col1, col2 = st.columns([1, 6])
-                    with col1:
-                        st.markdown(f"<p style='color:{blue_color}; font-weight:bold;'>CẢ NGÀY</p>", unsafe_allow_html=True)
+                    with col1: st.markdown(f'<p style="color:#17a2b8; font-weight:bold;">CẢ NGÀY</p>', unsafe_allow_html=True)
                     with col2:
                         subject_info = sang_subjects.iloc[0]
                         tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
@@ -256,28 +274,21 @@ def display_schedule_interface(df_data):
                         gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>" if subject_info['Giáo viên BM'] else ""
                         phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{subject_info['Phòng học']}</span>" if subject_info['Phòng học'] else ""
                         all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part] if p]
-                        details_str = "&nbsp;&nbsp;".join(all_parts)
-                        st.markdown(details_str, unsafe_allow_html=True)
+                        st.markdown("&nbsp;&nbsp;".join(all_parts), unsafe_allow_html=True)
                 else:
-                    day_summary_parts = []
                     for session, session_group in day_group.groupby('Buổi', observed=False):
                         if session_group.empty: continue
-
-                        subjects_in_session = {}
-                        for _, row in session_group.iterrows():
-                            if pd.notna(row['Môn học']) and row['Môn học'].strip():
-                                key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'])
-                                if key not in subjects_in_session: subjects_in_session[key] = []
-                                subjects_in_session[key].append(str(row['Tiết']))
-                        
                         col1, col2 = st.columns([1, 6])
                         with col1:
-                            if session == "Sáng":
-                                st.markdown(f'<p style="color:#ff6600; font-weight:bold;">SÁNG</p>', unsafe_allow_html=True)
-                            else:
-                                st.markdown(f'<p style="color:#00ffff; font-weight:bold;">CHIỀU</p>', unsafe_allow_html=True)
-
+                            color = "#28a745" if session == "Sáng" else "#dc3545"
+                            st.markdown(f'<p style="color:{color}; font-weight:bold;">{session.upper()}</p>', unsafe_allow_html=True)
                         with col2:
+                            subjects_in_session = {}
+                            for _, row in session_group.iterrows():
+                                if pd.notna(row['Môn học']) and row['Môn học'].strip():
+                                    key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'])
+                                    if key not in subjects_in_session: subjects_in_session[key] = []
+                                    subjects_in_session[key].append(str(row['Tiết']))
                             if not subjects_in_session:
                                 st.markdown("✨Nghỉ")
                             else:
@@ -293,8 +304,7 @@ def display_schedule_interface(df_data):
                                         if date_match:
                                             ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
                                     all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part, ghi_chu_part] if p]
-                                    details_str = "&nbsp;&nbsp;".join(all_parts)
-                                    st.markdown(details_str, unsafe_allow_html=True)
+                                    st.markdown("&nbsp;&nbsp;".join(all_parts), unsafe_allow_html=True)
 
         with st.expander("Xem bảng dữ liệu chi tiết của lớp"):
             display_columns = ['Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Ghi chú']
@@ -305,7 +315,6 @@ def display_schedule_interface(df_data):
 st.set_page_config(page_title="Trích xuất và Truy vấn TKB", layout="wide")
 st.title("📊 Trích xuất, Tra cứu và Lưu trữ Thời Khóa Biểu")
 
-# --- KẾT NỐI GOOGLE SHEET VÀ LẤY DỮ LIỆU CẦN THIẾT ---
 TEACHER_INFO_SHEET_ID = "1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI"
 teacher_mapping_data = {}
 gsheet_client = None
@@ -316,10 +325,8 @@ if "gcp_service_account" in st.secrets:
 else:
     st.warning("Không tìm thấy cấu hình Google Sheets trong `st.secrets`. Các tính năng liên quan sẽ bị vô hiệu hóa.", icon="⚠️")
 
-# --- TẠO 2 TAB CHO 2 CHỨC NĂNG CHÍNH ---
 tab1, tab2 = st.tabs(["Tra cứu TKB từ Google Sheet", "Tải lên & Xử lý TKB từ Excel"])
 
-# --- TAB 1: TRA CỨU TỪ GOOGLE SHEET ---
 with tab1:
     st.header("Tra cứu trực tiếp từ Google Sheet")
     if gsheet_client:
@@ -332,11 +339,10 @@ with tab1:
                 if not df_from_gsheet.empty:
                     display_schedule_interface(df_from_gsheet)
         else:
-            st.info("Chưa có dữ liệu TKB nào được lưu trên Google Sheet. Vui lòng sử dụng tab 'Tải lên & Xử lý' để thêm dữ liệu.")
+            st.info("Chưa có dữ liệu TKB nào được lưu trên Google Sheet.")
     else:
         st.error("Chưa kết nối được với Google Sheets. Vui lòng kiểm tra lại cấu hình `secrets.toml`.")
 
-# --- TAB 2: TẢI LÊN VÀ XỬ LÝ FILE EXCEL ---
 with tab2:
     st.header("Tải lên và xử lý file Excel mới")
     uploaded_file = st.file_uploader("Chọn file Excel TKB của bạn", type=["xlsx"])
@@ -349,36 +355,3 @@ with tab2:
             if raw_df is not None:
                 db_df = transform_to_database_format(raw_df, teacher_mapping_data)
                 st.success("Xử lý file Excel thành công!")
-                
-                st.markdown("---")
-                st.subheader("📤 Lưu trữ dữ liệu đã xử lý")
-                st.info(f"Dữ liệu sẽ được lưu vào Google Sheet có ID: **{TEACHER_INFO_SHEET_ID}**")
-
-                col1, col2, col3, col4 = st.columns(4)
-                with col1: nam_hoc = st.text_input("Năm học:", value="2425", key="nh")
-                with col2: hoc_ky = st.text_input("Học kỳ:", value="HK1", key="hk")
-                with col3: giai_doan = st.text_input("Giai đoạn:", value="GD1", key="gd")
-                with col4: khoa = st.text_input("Khoa:", value="Công nghệ thông tin", key="khoa")
-
-                sheet_name = f"DATA_{nam_hoc}_{hoc_ky}_{giai_doan}"
-                st.write(f"Tên sheet sẽ được tạo/cập nhật là: **{sheet_name}**")
-
-                if st.button("Lưu vào Google Sheet", key="save_button"):
-                    if gsheet_client:
-                        with st.spinner(f"Đang lưu..."):
-                            db_df['KHOA'] = khoa
-                            success, error_message = save_df_to_gsheet(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, db_df.astype(str))
-                            if success:
-                                st.success(f"Lưu dữ liệu thành công! Bạn có thể qua tab 'Tra cứu' để xem.")
-                                st.cache_data.clear()
-                            else:
-                                st.error(f"Lỗi khi lưu: {error_message}")
-                    else:
-                        st.error("Không thể lưu do chưa kết nối được với Google Sheets.")
-                
-                with st.expander("Xem trước dữ liệu đã xử lý"):
-                    st.dataframe(db_df)
-            else:
-                st.warning("Không thể trích xuất dữ liệu từ file Excel. Vui lòng kiểm tra lại định dạng file.")
-        except Exception as e:
-            st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
