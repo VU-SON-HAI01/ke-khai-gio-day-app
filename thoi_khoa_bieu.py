@@ -124,7 +124,7 @@ def extract_schedule_from_excel(worksheet):
                 start_row, start_col = r_idx, c_idx; break
         if start_row != -1: break
     if start_row == -1:
-        st.error("Không tìm thấy ô tiêu đề 'Thứ' trong 10 dòng đầu tiên."); return None, None
+        st.error(f"Không tìm thấy ô tiêu đề 'Thứ' trong sheet '{worksheet.title}'."); return None, None
     
     last_row = start_row
     for r_idx in range(worksheet.max_row, start_row - 1, -1):
@@ -183,20 +183,24 @@ def transform_to_database_format(df_wide, teacher_mapping, ngay_ap_dung):
     
     def parse_subject_details_custom(cell_text):
         clean_text = re.sub(r'\s{2,}', ' ', str(cell_text).replace('\n', ' ').strip())
-        ghi_chu = ""
-        note_match = re.search(r'\(?(Học từ.*?)\)?', clean_text, re.IGNORECASE)
+        ghi_chu, remaining_text = "", clean_text
+        
+        note_match = re.search(r'(\(?(Học từ.*?)\)?)$', clean_text, re.IGNORECASE)
         if note_match:
+            full_note_str = note_match.group(0)
             ghi_chu = note_match.group(1).strip()
-            clean_text = clean_text.replace(note_match.group(0), '').strip()
-        remaining_text = clean_text
+            remaining_text = clean_text.replace(full_note_str, '').strip()
+            
         if "THPT" in remaining_text.upper():
             return ("HỌC TKB VĂN HÓA THPT", "", "", ghi_chu)
+            
         match = re.search(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$', remaining_text)
         if match:
             mon_hoc, phong_hoc, giao_vien = match.group(1).strip(), match.group(2).strip(), match.group(3).strip()
             after_paren_text = remaining_text[match.end():].strip()
             if after_paren_text: ghi_chu = f"{ghi_chu} {after_paren_text}".strip()
             return (mon_hoc, phong_hoc, giao_vien, ghi_chu)
+            
         return (remaining_text, "", "", ghi_chu)
 
     parsed_cols = df_long['Chi tiết Môn học'].apply(parse_subject_details_custom)
@@ -251,13 +255,40 @@ uploaded_file = st.file_uploader("Chọn file Excel TKB của bạn", type=["xls
 if uploaded_file:
     try:
         workbook = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()), data_only=True)
-        with st.spinner("Đang xử lý dữ liệu từ file Excel..."):
-            raw_df, ngay_ap_dung = extract_schedule_from_excel(workbook.active)
-        if raw_df is not None:
-            db_df = transform_to_database_format(raw_df, teacher_mapping_data, ngay_ap_dung)
-            st.success("Xử lý file Excel thành công!")
-            if ngay_ap_dung:
-                st.info(f"Đã tìm thấy ngày áp dụng trong file: **{ngay_ap_dung}**")
+        sheet_names = workbook.sheetnames
+        
+        selected_sheets = st.multiselect("Chọn các sheet TKB cần xử lý:", options=sheet_names)
+
+        if st.button("Xử lý các sheet đã chọn") and selected_sheets:
+            all_processed_dfs = []
+            overall_ngay_ap_dung = ""
+            
+            with st.spinner("Đang xử lý dữ liệu từ các sheet đã chọn..."):
+                for sheet_name in selected_sheets:
+                    worksheet = workbook[sheet_name]
+                    raw_df, ngay_ap_dung = extract_schedule_from_excel(worksheet)
+                    if raw_df is not None:
+                        # Ưu tiên lấy ngày áp dụng đầu tiên tìm thấy
+                        if ngay_ap_dung and not overall_ngay_ap_dung:
+                            overall_ngay_ap_dung = ngay_ap_dung
+                        
+                        db_df = transform_to_database_format(raw_df, teacher_mapping_data, ngay_ap_dung)
+                        all_processed_dfs.append(db_df)
+            
+            if all_processed_dfs:
+                # Ghép nối tất cả các dataframe đã xử lý
+                final_db_df = pd.concat(all_processed_dfs, ignore_index=True)
+                # Cập nhật lại ngày áp dụng cho toàn bộ dataframe
+                final_db_df['Ngày áp dụng'] = overall_ngay_ap_dung
+                st.session_state['processed_df'] = final_db_df
+                st.success("Xử lý file Excel thành công!")
+                if overall_ngay_ap_dung:
+                    st.info(f"Đã tìm thấy ngày áp dụng trong file: **{overall_ngay_ap_dung}**")
+            else:
+                st.warning("Không thể trích xuất dữ liệu từ các sheet đã chọn.")
+
+        if 'processed_df' in st.session_state:
+            db_df_to_save = st.session_state['processed_df']
             
             st.markdown("---")
             st.subheader("📤 Lưu trữ dữ liệu đã xử lý")
@@ -277,8 +308,8 @@ if uploaded_file:
             if st.button("Lưu vào Google Sheet", key="save_button"):
                 if gsheet_client and khoa:
                     with st.spinner(f"Đang cập nhật dữ liệu cho khoa '{khoa}'..."):
-                        db_df['KHOA'] = khoa
-                        success, error_message = update_gsheet_by_khoa(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, db_df, khoa)
+                        db_df_to_save['KHOA'] = khoa
+                        success, error_message = update_gsheet_by_khoa(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, db_df_to_save, khoa)
                         if success:
                             st.success(f"Cập nhật dữ liệu thành công!")
                             st.cache_data.clear()
@@ -288,8 +319,7 @@ if uploaded_file:
                     st.error("Không thể lưu. Vui lòng chọn một Khoa và đảm bảo đã kết nối Google Sheets.")
             
             with st.expander("Xem trước dữ liệu đã xử lý"):
-                st.dataframe(db_df)
-        else:
-            st.warning("Không thể trích xuất dữ liệu từ file Excel.")
+                st.dataframe(db_df_to_save)
+
     except Exception as e:
         st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
