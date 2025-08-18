@@ -47,6 +47,7 @@ def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
         spreadsheet = _client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet(sheet_name)
         df = pd.DataFrame(worksheet.get_all_records())
+        # Đảm bảo các cột số có đúng kiểu dữ liệu để sắp xếp
         for col in ['Thứ', 'Tiết']:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -122,28 +123,34 @@ def display_schedule_interface(df_data):
                             subjects_in_session = {}
                             for _, row in session_group.iterrows():
                                 if pd.notna(row['Môn học']) and row['Môn học'].strip():
-                                    key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'])
+                                    # Cập nhật key để bao gồm cả Ngày áp dụng, giúp tách các môn trùng lặp
+                                    key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'], row.get('Ngày áp dụng', ''))
                                     if key not in subjects_in_session: subjects_in_session[key] = []
                                     subjects_in_session[key].append(str(row['Tiết']))
                             if not subjects_in_session:
                                 st.markdown("✨Nghỉ")
                             else:
-                                for (subject, gv, phong, ghi_chu), tiet_list in subjects_in_session.items():
+                                for (subject, gv, phong, ghi_chu, ngay_ap_dung), tiet_list in subjects_in_session.items():
                                     tiet_str = ", ".join(sorted(tiet_list, key=int))
                                     tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
                                     subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>"
                                     gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{gv}</span>" if gv else ""
                                     phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{phong}</span>" if phong else ""
                                     ghi_chu_part = ""
-                                    if ghi_chu and ghi_chu.strip():
+                                    
+                                    # Logic hiển thị ngày bắt đầu học
+                                    if ghi_chu and "học từ" in ghi_chu.lower():
                                         date_match = re.search(r'(\d+/\d+)', ghi_chu)
                                         if date_match:
                                             ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
+                                    elif ngay_ap_dung and str(ngay_ap_dung).strip():
+                                        ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{ngay_ap_dung}\"</span>"
+
                                     all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part, ghi_chu_part] if p]
                                     st.markdown("&nbsp;&nbsp;".join(all_parts), unsafe_allow_html=True)
 
         with st.expander("Xem bảng dữ liệu chi tiết của lớp"):
-            display_columns = ['Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Ghi chú']
+            display_columns = ['Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Ghi chú', 'Ngày áp dụng']
             st.dataframe(class_schedule_sorted[display_columns], use_container_width=True, hide_index=True)
 
 # --- Giao diện chính của ứng dụng ---
