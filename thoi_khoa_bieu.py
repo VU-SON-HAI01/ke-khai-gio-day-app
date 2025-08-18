@@ -120,16 +120,19 @@ def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
 # --- CÁC HÀM XỬ LÝ EXCEL ---
 
 def extract_schedule_from_excel(worksheet):
+    """
+    Trích xuất dữ liệu TKB và ngày áp dụng từ một worksheet.
+    """
     ngay_ap_dung = ""
+    # Quét từ A1 đến Z5 để tìm ngày áp dụng
     for r_idx in range(1, 6):
-        for c_idx in range(1, 10):
+        for c_idx in range(1, 27): # Cột A đến Z
             cell_value = str(worksheet.cell(row=r_idx, column=c_idx).value or '').strip()
             if "áp dụng" in cell_value.lower():
-                # Tìm kiếm ngày tháng linh hoạt hơn
                 date_match = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', cell_value)
                 if date_match:
                     ngay_ap_dung = date_match.group(1)
-                else:
+                else: 
                     try:
                         next_cell_value = str(worksheet.cell(row=r_idx, column=c_idx + 1).value or '')
                         date_match_next = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', next_cell_value)
