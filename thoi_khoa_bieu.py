@@ -52,8 +52,6 @@ def get_teacher_mapping(_gsheet_client, spreadsheet_id):
 def save_df_to_gsheet(client, spreadsheet_id, sheet_name, df):
     """
     Lưu một DataFrame vào một sheet cụ thể của Google Sheet.
-    Nếu sheet đã tồn tại, sẽ xóa nội dung cũ trước khi ghi.
-    Nếu sheet chưa tồn tại, sẽ tạo mới.
     """
     try:
         spreadsheet = client.open_by_key(spreadsheet_id)
@@ -63,7 +61,6 @@ def save_df_to_gsheet(client, spreadsheet_id, sheet_name, df):
         except gspread.WorksheetNotFound:
             worksheet = spreadsheet.add_worksheet(title=sheet_name, rows="1", cols="1")
 
-        # Chuyển đổi dataframe thành list of lists để gspread có thể ghi
         data_to_upload = [df.columns.values.tolist()] + df.values.tolist()
         worksheet.update(data_to_upload, 'A1')
         return True, None
@@ -163,21 +160,38 @@ def transform_to_database_format(df_wide, teacher_mapping):
     df_long = df_long[df_long['Chi tiết Môn học'].astype(str).str.strip() != '']
     
     def parse_subject_details_custom(cell_text):
-        cell_text = str(cell_text).strip()
-        if "THPT" in cell_text.upper():
-            return ("HỌC TKB VĂN HÓA THPT", "", "")
+        # 1. Làm sạch chuỗi ban đầu
+        clean_text = str(cell_text).replace('\n', ' ').strip()
+        clean_text = re.sub(r'\s{2,}', ' ', clean_text) # Thay thế 2+ khoảng trắng bằng 1
+
+        # 2. Tách phần ghi chú
+        ghi_chu = ""
+        note_match = re.search(r'(Học từ.*)', clean_text, re.IGNORECASE)
+        if note_match:
+            ghi_chu = note_match.group(1).strip()
+            clean_text = clean_text.replace(ghi_chu, '').strip()
         
-        match = re.search(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$', cell_text)
+        # 3. Xử lý phần còn lại của chuỗi
+        remaining_text = clean_text
+        
+        if "THPT" in remaining_text.upper():
+            return ("HỌC TKB VĂN HÓA THPT", "", "", ghi_chu)
+        
+        match = re.search(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$', remaining_text)
         if match:
             mon_hoc = match.group(1).strip()
             phong_hoc = match.group(2).strip()
             giao_vien = match.group(3).strip()
-            return (mon_hoc, phong_hoc, giao_vien)
+            # Kiểm tra xem có ghi chú sau dấu ')' không
+            after_paren_text = remaining_text[match.end():].strip()
+            if after_paren_text:
+                ghi_chu = f"{ghi_chu} {after_paren_text}".strip()
+            return (mon_hoc, phong_hoc, giao_vien, ghi_chu)
         
-        return (cell_text, "", "")
+        return (remaining_text, "", "", ghi_chu)
 
     parsed_cols = df_long['Chi tiết Môn học'].apply(parse_subject_details_custom)
-    mh_extracted = pd.DataFrame(parsed_cols.tolist(), index=df_long.index, columns=['Môn học', 'Phòng học', 'Giáo viên BM'])
+    mh_extracted = pd.DataFrame(parsed_cols.tolist(), index=df_long.index, columns=['Môn học', 'Phòng học', 'Giáo viên BM', 'Ghi chú'])
     
     header_parts = df_long['Lớp_Raw'].str.split('___', expand=True)
     lop_extracted = header_parts[0].str.extract(r'^(.*?)\s*(?:\((\d+)\))?$')
@@ -199,7 +213,7 @@ def transform_to_database_format(df_wide, teacher_mapping):
         df_final['Giáo viên CN'] = df_final['Giáo viên CN'].apply(lambda n: map_and_prefix_teacher_name(n, teacher_mapping))
         df_final['Giáo viên BM'] = df_final['Giáo viên BM'].apply(lambda n: map_and_prefix_teacher_name(n, teacher_mapping))
     
-    final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT']
+    final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Phòng SHCN', 'Giáo viên CN', 'Lớp VHPT', 'Ghi chú']
     df_final = df_final[final_cols]
     
     return df_final
@@ -384,7 +398,7 @@ if uploaded_file is not None:
                             st.markdown("<br>".join(day_summary_parts), unsafe_allow_html=True)
 
                 with st.expander("Xem bảng dữ liệu chi tiết của lớp"):
-                    display_columns = ['Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM']
+                    display_columns = ['Thứ', 'Buổi', 'Tiết', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Ghi chú']
                     st.dataframe(
                         class_schedule_sorted[display_columns].rename(columns={'Thứ Đầy Đủ': 'Thứ'}),
                         use_container_width=True,
