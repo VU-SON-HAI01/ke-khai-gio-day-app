@@ -234,10 +234,7 @@ def display_schedule_interface(df_data):
 
         for day, day_group in class_schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
             with st.expander(f"**{day}**"):
-                # Sử dụng st.columns để đặt badge và nội dung cạnh nhau
-                cols = st.columns([1, 5]) 
                 
-                # Logic gom "Cả ngày"
                 can_consolidate = False
                 if set(day_group['Buổi'].unique()) == {'Sáng', 'Chiều'}:
                     sang_subjects = day_group[day_group['Buổi'] == 'Sáng'][['Môn học', 'Giáo viên BM', 'Phòng học']].drop_duplicates()
@@ -245,11 +242,13 @@ def display_schedule_interface(df_data):
                     if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects): can_consolidate = True
 
                 green_color = "#00FF00"
+                blue_color = "#60A5FA"
 
                 if can_consolidate:
-                    with cols[0]:
-                        st.markdown(f'<p style="color:#17a2b8; font-weight:bold;">CẢ NGÀY</p>', unsafe_allow_html=True)
-                    with cols[1]:
+                    col1, col2 = st.columns([1, 6])
+                    with col1:
+                        st.markdown(f"<p style='color:{blue_color}; font-weight:bold;'>CẢ NGÀY</p>", unsafe_allow_html=True)
+                    with col2:
                         subject_info = sang_subjects.iloc[0]
                         tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
                         tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
@@ -260,50 +259,25 @@ def display_schedule_interface(df_data):
                         details_str = "&nbsp;&nbsp;".join(all_parts)
                         st.markdown(details_str, unsafe_allow_html=True)
                 else:
-                    # Hiển thị Sáng và Chiều riêng biệt
-                    sang_group = day_group[day_group['Buổi'] == 'Sáng']
-                    chieu_group = day_group[day_group['Buổi'] == 'Chiều']
+                    day_summary_parts = []
+                    for session, session_group in day_group.groupby('Buổi', observed=False):
+                        if session_group.empty: continue
 
-                    if not sang_group.empty:
-                        col_sang1, col_sang2 = st.columns([1, 5])
-                        with col_sang1:
-                            st.markdown(f'<p style="color:#28a745; font-weight:bold;">SÁNG</p>', unsafe_allow_html=True)
-                        with col_sang2:
-                            subjects_in_session = {}
-                            for _, row in sang_group.iterrows():
-                                if pd.notna(row['Môn học']) and row['Môn học'].strip():
-                                    key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'])
-                                    if key not in subjects_in_session: subjects_in_session[key] = []
-                                    subjects_in_session[key].append(str(row['Tiết']))
-                            if not subjects_in_session:
-                                st.markdown("✨Nghỉ")
+                        subjects_in_session = {}
+                        for _, row in session_group.iterrows():
+                            if pd.notna(row['Môn học']) and row['Môn học'].strip():
+                                key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'])
+                                if key not in subjects_in_session: subjects_in_session[key] = []
+                                subjects_in_session[key].append(str(row['Tiết']))
+                        
+                        col1, col2 = st.columns([1, 6])
+                        with col1:
+                            if session == "Sáng":
+                                st.markdown(f'<p style="color:#28a745; font-weight:bold;">SÁNG</p>', unsafe_allow_html=True)
                             else:
-                                for (subject, gv, phong, ghi_chu), tiet_list in subjects_in_session.items():
-                                    tiet_str = ", ".join(sorted(tiet_list, key=int))
-                                    tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
-                                    subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>"
-                                    gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{gv}</span>" if gv else ""
-                                    phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{phong}</span>" if phong else ""
-                                    ghi_chu_part = ""
-                                    if ghi_chu and ghi_chu.strip():
-                                        date_match = re.search(r'(\d+/\d+)', ghi_chu)
-                                        if date_match:
-                                            ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
-                                    all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part, ghi_chu_part] if p]
-                                    details_str = "&nbsp;&nbsp;".join(all_parts)
-                                    st.markdown(details_str, unsafe_allow_html=True)
+                                st.markdown(f'<p style="color:#dc3545; font-weight:bold;">CHIỀU</p>', unsafe_allow_html=True)
 
-                    if not chieu_group.empty:
-                        col_chieu1, col_chieu2 = st.columns([1, 5])
-                        with col_chieu1:
-                            st.markdown(f'<p style="color:#dc3545; font-weight:bold;">CHIỀU</p>', unsafe_allow_html=True)
-                        with col_chieu2:
-                            subjects_in_session = {}
-                            for _, row in chieu_group.iterrows():
-                                if pd.notna(row['Môn học']) and row['Môn học'].strip():
-                                    key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'])
-                                    if key not in subjects_in_session: subjects_in_session[key] = []
-                                    subjects_in_session[key].append(str(row['Tiết']))
+                        with col2:
                             if not subjects_in_session:
                                 st.markdown("✨Nghỉ")
                             else:
