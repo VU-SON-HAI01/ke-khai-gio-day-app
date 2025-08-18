@@ -62,15 +62,15 @@ def save_df_to_gsheet(client, spreadsheet_id, sheet_name, df):
     except Exception as e:
         return False, str(e)
 
-@st.cache_data(ttl=60) # Cache trong 1 phút để cập nhật sheet mới
+@st.cache_data(ttl=60)
 def get_all_data_sheets(_client, spreadsheet_id):
     """
-    Lấy danh sách tất cả các sheet dữ liệu (loại trừ sheet hệ thống).
+    Lấy danh sách tất cả các sheet dữ liệu (bắt đầu bằng "DATA_").
     """
     if not _client: return []
     try:
         spreadsheet = _client.open_by_key(spreadsheet_id)
-        return [s.title for s in spreadsheet.worksheets() if s.title.upper() != "THONG_TIN_GV"]
+        return [s.title for s in spreadsheet.worksheets() if s.title.startswith("DATA_")]
     except Exception as e:
         st.error(f"Lỗi khi lấy danh sách sheet: {e}")
         return []
@@ -85,7 +85,6 @@ def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
         spreadsheet = _client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet(sheet_name)
         df = pd.DataFrame(worksheet.get_all_records())
-        # Đảm bảo các cột số có đúng kiểu dữ liệu để sắp xếp
         for col in ['Thứ', 'Tiết']:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -205,11 +204,20 @@ def display_schedule_interface(df_data):
         
         st.markdown("##### 📝 Thông tin chung của lớp")
         info = class_schedule.iloc[0]
-        info_cols = st.columns(4)
-        with info_cols[0]: st.metric(label="GV Chủ nhiệm", value=info.get("Giáo viên CN") or "Chưa có")
-        with info_cols[1]: st.metric(label="Trình độ", value=info.get("Trình độ") or "Chưa có")
-        with info_cols[2]: st.metric(label="Sĩ số", value=str(info.get("Sĩ số") or "N/A"))
-        with info_cols[3]: st.metric(label="Phòng SHCN", value=info.get("Phòng SHCN") or "Chưa có")
+        green_color = "#00FF00"
+        
+        gvcn_val = info.get("Giáo viên CN") or "Chưa có"
+        trinhdo_val = info.get("Trình độ") or "Chưa có"
+        siso_val = str(info.get("Sĩ số") or "N/A")
+        psh_val = info.get("Phòng SHCN") or "Chưa có"
+
+        gvcn_part = f"👨‍🏫 **Chủ nhiệm:** <span style='color:{green_color};'>{gvcn_val}</span>"
+        trinhdo_part = f"🎖️ **Trình độ:** <span style='color:{green_color};'>{trinhdo_val}</span>"
+        siso_part = f"👩‍👩‍👧‍👧 **Sĩ số:** <span style='color:{green_color};'>{siso_val}</span>"
+        psh_part = f"🏤 **P.sinh hoạt:** <span style='color:{green_color};'>{psh_val}</span>"
+
+        info_line = f"{gvcn_part}&nbsp;&nbsp;&nbsp;&nbsp;{trinhdo_part}&nbsp;&nbsp;&nbsp;&nbsp;{siso_part}&nbsp;&nbsp;&nbsp;&nbsp;{psh_part}"
+        st.markdown(info_line, unsafe_allow_html=True)
 
         st.markdown("--- \n ##### 🗓️ Lịch học chi tiết")
 
@@ -240,11 +248,11 @@ def display_schedule_interface(df_data):
                     all_periods = day_group['Tiết'].astype(str).tolist()
                     tiet_str = ", ".join(sorted(all_periods, key=int))
                     session_header = f"<span style='color:{blue_color}; font-weight:bold;'>Cả ngày:</span>"
-                    subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>"
                     tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
+                    subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>"
                     gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>" if subject_info['Giáo viên BM'] else ""
                     phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{subject_info['Phòng học']}</span>" if subject_info['Phòng học'] else ""
-                    all_parts = [p for p in [subject_part, tiet_part, gv_part, phong_part] if p]
+                    all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part] if p]
                     details_str = "&nbsp;&nbsp;".join(all_parts)
                     st.markdown(f"{session_header}&nbsp;&nbsp;{details_str}", unsafe_allow_html=True)
                 else:
@@ -263,11 +271,11 @@ def display_schedule_interface(df_data):
                         else:
                             for (subject, gv, phong), tiet_list in subjects_in_session.items():
                                 tiet_str = ", ".join(sorted(tiet_list, key=int))
-                                subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>"
                                 tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
+                                subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>"
                                 gv_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{gv}</span>" if gv else ""
                                 phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{phong}</span>" if phong else ""
-                                all_parts = [p for p in [subject_part, tiet_part, gv_part, phong_part] if p]
+                                all_parts = [p for p in [tiet_part, subject_part, gv_part, phong_part] if p]
                                 details_str = "&nbsp;&nbsp;".join(all_parts)
                                 day_summary_parts.append(f"{session_header}&nbsp;&nbsp;{details_str}")
                     st.markdown("<br>".join(day_summary_parts), unsafe_allow_html=True)
@@ -344,7 +352,6 @@ with tab2:
                             success, error_message = save_df_to_gsheet(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, db_df.astype(str))
                             if success:
                                 st.success(f"Lưu dữ liệu thành công! Bạn có thể qua tab 'Tra cứu' để xem.")
-                                # Xóa cache để selectbox ở tab 1 được cập nhật
                                 st.cache_data.clear()
                             else:
                                 st.error(f"Lỗi khi lưu: {error_message}")
