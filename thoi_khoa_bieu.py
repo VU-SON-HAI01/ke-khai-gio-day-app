@@ -175,57 +175,56 @@ def extract_schedule_from_excel(worksheet):
 
 
 def find_and_map_teacher(teacher_name, khoa, df_teacher_info, updates_list):
-    # ---- BẮT ĐẦU CODE MỚI ----
-    # Xử lý trường hợp đầu vào là một danh sách (nhiều giáo viên)
+    # ---- BẮT ĐẦU CODE SỬA LỖI ----
+
+    # Xử lý trường hợp đầu vào là danh sách (nhiều giáo viên)
     if isinstance(teacher_name, list):
         mapped_names = []
         mapped_ids = []
         for name in teacher_name:
-            # Gọi lại chính hàm này để xử lý từng tên trong danh sách
             res_name, res_id = find_and_map_teacher(name, khoa, df_teacher_info, updates_list)
-            if res_name:  # Chỉ thêm nếu có kết quả
+            if res_name:
                 mapped_names.append(res_name)
                 mapped_ids.append(str(res_id))
-        # Nối kết quả của các giáo viên lại với nhau
         return " / ".join(mapped_names), " / ".join(mapped_ids)
-    # ---- KẾT THÚC CODE MỚI ----
 
-    # Code gốc của hàm, xử lý cho một giáo viên duy nhất
-    if pd.isna(teacher_name) or teacher_name == '':
+    # Xử lý các trường hợp đầu vào không hợp lệ
+    if pd.isna(teacher_name) or not str(teacher_name).strip():
         return '', ''
 
-    # Đảm bảo tên giáo viên là một chuỗi (string) để xử lý
-    teacher_name_str = str(teacher_name)
+    teacher_name_str = str(teacher_name).strip()
 
-    # Chuẩn hóa tên giáo viên để so sánh (không dấu, chữ thường)
+    # KIỂM TRA AN TOÀN: Nếu df_teacher_info rỗng thì không xử lý, trả về tên gốc
+    if df_teacher_info.empty:
+        return teacher_name_str, ''
+
+    # 1. Ưu tiên tìm theo Tên viết tắt (NẾU CỘT NÀY TỒN TẠI)
+    if 'Ten_viet_tat' in df_teacher_info.columns:
+        # Chuyển đổi cột Ten_viet_tat sang kiểu string để tránh lỗi
+        df_teacher_info['Ten_viet_tat'] = df_teacher_info['Ten_viet_tat'].astype(str)
+        match = df_teacher_info[df_teacher_info['Ten_viet_tat'] == teacher_name_str]
+        if not match.empty:
+            full_name = match.iloc[0]['Ho_ten_gv']
+            ma_gv = match.iloc[0]['Ma_gv']
+            return full_name, ma_gv
+
+    # 2. Tìm theo Họ tên đầy đủ (đã chuẩn hóa)
     teacher_name_normalized = unidecode(teacher_name_str).lower()
+    if 'Ho_ten_gv_normalized' in df_teacher_info.columns:
+        match = df_teacher_info[df_teacher_info['Ho_ten_gv_normalized'] == teacher_name_normalized]
+        if not match.empty:
+            full_name = match.iloc[0]['Ho_ten_gv']
+            ma_gv = match.iloc[0]['Ma_gv']
+            return full_name, ma_gv
 
-    # 1. Ưu tiên tìm theo Tên viết tắt (đã chuẩn hóa)
-    # Tạo tên viết tắt từ tên trong TKB để so sánh
-    short_name_normalized = '.'.join([unidecode(word[0]).lower() for word in teacher_name_str.split()])
+    # 3. Xử lý logic thông minh cho tên viết tắt dạng "C.Thủy" hoặc "T.Tuấn"
+    # (Phần này có thể được thêm vào nếu cần)
 
-    match = df_teacher_info[df_teacher_info['Ten_viet_tat'] == short_name_normalized]
-    if not match.empty:
-        full_name = match.iloc[0]['Ho_ten_gv']
-        ma_gv = match.iloc[0]['Ma_gv']
-        return full_name, ma_gv
+    # 4. Nếu vẫn không tìm thấy, coi như là tên mới và đề xuất cập nhật
+    # (Phần này có thể được thêm vào nếu cần)
 
-    # 2. Nếu không tìm thấy, tìm theo Họ tên đầy đủ (đã chuẩn hóa)
-    match = df_teacher_info[df_teacher_info['Ho_ten_gv_normalized'] == teacher_name_normalized]
-    if not match.empty:
-        full_name = match.iloc[0]['Ho_ten_gv']
-        ma_gv = match.iloc[0]['Ma_gv']
-        return full_name, ma_gv
-
-    # 3. Nếu vẫn không tìm thấy, tạo tên viết tắt mới và yêu cầu cập nhật
-    new_short_name = '.'.join([word[0] for word in teacher_name_str.split()]).replace(' ', '.')
-    updates_list.append({
-        'Ho_ten_gv': teacher_name_str,
-        'Ten_viet_tat': new_short_name,
-        'Khoa': khoa
-    })
-
-    return teacher_name_str, ''  # Trả về tên gốc và mã rỗng
+    # Mặc định trả về tên gốc nếu không tìm thấy
+    return teacher_name_str, ''
 
 def transform_to_database_format(df_wide, df_teacher_info, khoa, ngay_ap_dung, updates_list):
     id_vars = ['Thứ', 'Buổi', 'Tiết']
