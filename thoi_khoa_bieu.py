@@ -31,7 +31,6 @@ def load_teacher_info(_gsheet_client, spreadsheet_id):
         spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet("THONG_TIN_GV")
         df = pd.DataFrame(worksheet.get_all_records())
-        # Chuẩn hóa dữ liệu để dễ dàng so sánh
         df['Ho_ten_gv_normalized'] = df['Ho_ten_gv'].astype(str).apply(lambda x: unidecode(x).lower())
         return df
     except Exception as e:
@@ -72,6 +71,28 @@ def update_gsheet_by_khoa(client, spreadsheet_id, sheet_name, df_new, khoa_to_up
         return True, None
     except Exception as e:
         return False, str(e)
+
+def bulk_update_teacher_info(gsheet_client, spreadsheet_id, updates_list):
+    """
+    Cập nhật hàng loạt tên viết tắt vào sheet THONG_TIN_GV.
+    """
+    if not updates_list:
+        return True, "Không có tên viết tắt mới cần cập nhật."
+    try:
+        spreadsheet = gsheet_client.open_by_key(spreadsheet_id)
+        worksheet = spreadsheet.worksheet("THONG_TIN_GV")
+        
+        # Tạo danh sách các cell cần cập nhật
+        cell_updates = []
+        for row_index, short_name in updates_list:
+            # gspread hàng bắt đầu từ 1, index của df bắt đầu từ 0 -> +2 (1 cho header, 1 cho index)
+            cell_updates.append(gspread.Cell(row=row_index + 2, col=3, value=short_name))
+
+        worksheet.update_cells(cell_updates)
+        return True, f"Đã cập nhật thành công {len(updates_list)} tên viết tắt mới."
+    except Exception as e:
+        return False, f"Lỗi khi cập nhật hàng loạt tên viết tắt: {e}"
+
 
 # --- CÁC HÀM XỬ LÝ EXCEL ---
 
@@ -140,28 +161,22 @@ def extract_schedule_from_excel(worksheet):
     df = pd.DataFrame(data[2:], columns=combined_headers)
     return df, ngay_ap_dung
 
-def find_and_map_teacher(short_name, khoa, df_teacher_info, gsheet_client, spreadsheet_id):
-    """
-    Hàm ánh xạ thông minh: tìm tên đầy đủ, mã gv và tự động cập nhật tên viết tắt.
-    """
+def find_and_map_teacher(short_name, khoa, df_teacher_info, updates_list):
     short_name_clean = str(short_name).strip()
     if not short_name_clean or df_teacher_info.empty:
-        return short_name, "", "" # Trả về tên gốc, mã gv rỗng, tên đầy đủ rỗng
+        return short_name, ""
 
-    # 1. Tìm kiếm trực tiếp
     direct_match = df_teacher_info[df_teacher_info['Ten_viet_tat'] == short_name_clean]
     if not direct_match.empty:
         info = direct_match.iloc[0]
         prefix = "Thầy " if short_name_clean.startswith('T.') else "Cô " if short_name_clean.startswith('C.') else ""
-        return f"{prefix}{info['Ho_ten_gv']}", info['Ma_gv'], info['Ho_ten_gv']
+        return f"{prefix}{info['Ho_ten_gv']}", info['Ma_gv']
 
-    # 2. Tìm kiếm thông minh nếu không có kết quả trực tiếp
     match = re.match(r'([TC])\.\s*(.*)', short_name_clean)
     if match:
         prefix_char, name_part = match.groups()
         name_part_normalized = unidecode(name_part).lower()
         
-        # Lọc giáo viên theo khoa và tên
         khoa_teachers = df_teacher_info[df_teacher_info['Khoa'] == khoa]
         possible_matches = khoa_teachers[khoa_teachers['Ho_ten_gv_normalized'].str.endswith(name_part_normalized)]
         
@@ -169,23 +184,16 @@ def find_and_map_teacher(short_name, khoa, df_teacher_info, gsheet_client, sprea
             info = possible_matches.iloc[0]
             prefix = "Thầy " if prefix_char == 'T' else "Cô "
             
-            # Cập nhật lại sheet THONG_TIN_GV
-            try:
-                spreadsheet = gsheet_client.open_by_key(spreadsheet_id)
-                worksheet = spreadsheet.worksheet("THONG_TIN_GV")
-                cell = worksheet.find(info['Ho_ten_gv'])
-                if cell and not worksheet.cell(cell.row, 3).value: # Chỉ cập nhật nếu ô trống
-                    worksheet.update_cell(cell.row, 3, short_name_clean) # Cột 3 là Ten_viet_tat
-                    df_teacher_info.loc[df_teacher_info['Ho_ten_gv'] == info['Ho_ten_gv'], 'Ten_viet_tat'] = short_name_clean
-            except Exception as e:
-                st.warning(f"Lỗi khi cập nhật tên viết tắt cho '{info['Ho_ten_gv']}': {e}")
-
-            return f"{prefix}{info['Ho_ten_gv']}", info['Ma_gv'], info['Ho_ten_gv']
+            # Thêm vào danh sách cần cập nhật thay vì gọi API trực tiếp
+            updates_list.append((info.name, short_name_clean))
+            # Cập nhật dataframe trong bộ nhớ
+            df_teacher_info.loc[info.name, 'Ten_viet_tat'] = short_name_clean
             
-    # Nếu không tìm thấy, trả về giá trị gốc
-    return short_name, "", ""
+            return f"{prefix}{info['Ho_ten_gv']}", info['Ma_gv']
+            
+    return short_name, ""
 
-def transform_to_database_format(df_wide, df_teacher_info, gsheet_client, spreadsheet_id, khoa, ngay_ap_dung):
+def transform_to_database_format(df_wide, df_teacher_info, khoa, ngay_ap_dung, updates_list):
     id_vars = ['Thứ', 'Buổi', 'Tiết']
     df_long = pd.melt(df_wide, id_vars=id_vars, var_name='Lớp_Raw', value_name='Chi tiết Môn học')
     df_long.dropna(subset=['Chi tiết Môn học'], inplace=True)
@@ -226,17 +234,15 @@ def transform_to_database_format(df_wide, df_teacher_info, gsheet_client, spread
     df_final.fillna('', inplace=True)
 
     # Ánh xạ thông tin giáo viên
-    gv_bm_info = df_final['Giáo viên BM'].apply(lambda x: find_and_map_teacher(x, khoa, df_teacher_info, gsheet_client, spreadsheet_id))
-    df_final[['Giáo viên BM', 'Ma_gv_bm', 'Ho_ten_gv_bm']] = pd.DataFrame(gv_bm_info.tolist(), index=df_final.index)
+    gv_bm_info = df_final['Giáo viên BM'].apply(lambda x: find_and_map_teacher(x, khoa, df_teacher_info, updates_list))
+    df_final[['Giáo viên BM', 'Ma_gv_bm']] = pd.DataFrame(gv_bm_info.tolist(), index=df_final.index)
 
-    gv_cn_info = df_final['Giáo viên CN'].apply(lambda x: find_and_map_teacher(x, khoa, df_teacher_info, gsheet_client, spreadsheet_id))
-    df_final[['Giáo viên CN', 'Ma_gv_cn', 'Ho_ten_gv_cn']] = pd.DataFrame(gv_cn_info.tolist(), index=df_final.index)
+    gv_cn_info = df_final['Giáo viên CN'].apply(lambda x: find_and_map_teacher(x, khoa, df_teacher_info, updates_list))
+    df_final[['Giáo viên CN', 'Ma_gv_cn']] = pd.DataFrame(gv_cn_info.tolist(), index=df_final.index)
     
     final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Ma_gv_bm', 'Phòng SHCN', 'Giáo viên CN', 'Ma_gv_cn', 'Lớp VHPT', 'Ghi chú', 'KHOA', 'Ngày áp dụng']
     df_final['KHOA'] = khoa 
     df_final['Ngày áp dụng'] = ngay_ap_dung
-    # Bỏ các cột tạm thời
-    df_final = df_final.drop(columns=['Ho_ten_gv_bm', 'Ho_ten_gv_cn'], errors='ignore')
     return df_final[final_cols]
 
 # --- Giao diện chính của ứng dụng Streamlit ---
@@ -273,8 +279,9 @@ if uploaded_file:
                     raw_df, ngay_ap_dung = extract_schedule_from_excel(worksheet)
                     if raw_df is not None:
                         if ngay_ap_dung: ngay_ap_dung_dict[sheet_name] = ngay_ap_dung
-                        # Tạm thời chưa gán Khoa ở bước này
-                        db_df = transform_to_database_format(raw_df, st.session_state.df_teacher_info, gsheet_client, TEACHER_INFO_SHEET_ID, "", ngay_ap_dung)
+                        # Ở bước này, chưa có Khoa nên không thể ánh xạ thông minh
+                        # Chúng ta sẽ chỉ xử lý cấu trúc, việc ánh xạ sẽ làm trước khi lưu
+                        db_df = transform_to_database_format(raw_df, pd.DataFrame(), None, None, "", ngay_ap_dung, [])
                         all_processed_dfs.append(db_df)
             
             if all_processed_dfs:
@@ -307,27 +314,32 @@ if uploaded_file:
 
             if st.button("Lưu vào Google Sheet", key="save_button"):
                 if gsheet_client and khoa:
-                    with st.spinner(f"Đang ánh xạ lại GV và cập nhật dữ liệu cho khoa '{khoa}'..."):
-                        # Tạo bản sao để không ảnh hưởng đến session_state
+                    with st.spinner(f"Đang ánh xạ GV và cập nhật dữ liệu cho khoa '{khoa}'..."):
                         final_df_to_save = db_df_to_save.copy()
                         final_df_to_save['KHOA'] = khoa
                         
+                        updates_list = []
                         # Ánh xạ lại thông tin giáo viên với Khoa đã chọn
-                        gv_bm_info = final_df_to_save['Giáo viên BM'].apply(lambda x: find_and_map_teacher(x, khoa, st.session_state.df_teacher_info, gsheet_client, TEACHER_INFO_SHEET_ID))
-                        final_df_to_save[['Giáo viên BM', 'Ma_gv_bm', 'Ho_ten_gv_bm']] = pd.DataFrame(gv_bm_info.tolist(), index=final_df_to_save.index)
+                        gv_bm_info = final_df_to_save['Giáo viên BM'].apply(lambda x: find_and_map_teacher(x, khoa, st.session_state.df_teacher_info, updates_list))
+                        final_df_to_save[['Giáo viên BM', 'Ma_gv_bm']] = pd.DataFrame(gv_bm_info.tolist(), index=final_df_to_save.index)
 
-                        gv_cn_info = final_df_to_save['Giáo viên CN'].apply(lambda x: find_and_map_teacher(x, khoa, st.session_state.df_teacher_info, gsheet_client, TEACHER_INFO_SHEET_ID))
-                        final_df_to_save[['Giáo viên CN', 'Ma_gv_cn', 'Ho_ten_gv_cn']] = pd.DataFrame(gv_cn_info.tolist(), index=final_df_to_save.index)
+                        gv_cn_info = final_df_to_save['Giáo viên CN'].apply(lambda x: find_and_map_teacher(x, khoa, st.session_state.df_teacher_info, updates_list))
+                        final_df_to_save[['Giáo viên CN', 'Ma_gv_cn']] = pd.DataFrame(gv_cn_info.tolist(), index=final_df_to_save.index)
                         
-                        # Bỏ các cột tạm thời trước khi lưu
-                        final_df_to_save = final_df_to_save.drop(columns=['Ho_ten_gv_bm', 'Ho_ten_gv_cn'], errors='ignore')
+                        # Cập nhật hàng loạt tên viết tắt
+                        success_update_names, msg_update_names = bulk_update_teacher_info(gsheet_client, TEACHER_INFO_SHEET_ID, updates_list)
+                        if success_update_names:
+                            st.info(msg_update_names)
+                        else:
+                            st.error(msg_update_names)
 
+                        # Lưu dữ liệu TKB
                         success, error_message = update_gsheet_by_khoa(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, final_df_to_save, khoa)
                         if success:
-                            st.success(f"Cập nhật dữ liệu thành công!")
+                            st.success(f"Cập nhật dữ liệu TKB thành công!")
                             st.cache_data.clear()
                         else:
-                            st.error(f"Lỗi khi lưu: {error_message}")
+                            st.error(f"Lỗi khi lưu TKB: {error_message}")
                 else:
                     st.error("Không thể lưu. Vui lòng chọn một Khoa và đảm bảo đã kết nối Google Sheets.")
             
