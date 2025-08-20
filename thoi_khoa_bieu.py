@@ -294,18 +294,20 @@ if uploaded_file:
         if st.button("Xử lý các sheet đã chọn") and selected_sheets:
             all_processed_dfs = []
             ngay_ap_dung_dict = {}
-            
+
             with st.spinner("Đang xử lý dữ liệu..."):
                 for sheet_name in selected_sheets:
                     worksheet = workbook[sheet_name]
                     raw_df, ngay_ap_dung = extract_schedule_from_excel(worksheet)
                     if raw_df is not None:
                         if ngay_ap_dung: ngay_ap_dung_dict[sheet_name] = ngay_ap_dung
-                        # Ở bước này, chưa có Khoa nên không thể ánh xạ thông minh
-                        # Chúng ta sẽ chỉ xử lý cấu trúc, việc ánh xạ sẽ làm trước khi lưu
-                        db_df = transform_to_database_format(raw_df, pd.DataFrame(), None, None, "", ngay_ap_dung, [])
+
+                        # ---- DÒNG CODE ĐÃ ĐƯỢC SỬA LẠI ----
+                        # Ở bước này, chúng ta chưa có thông tin 'khoa', nên truyền vào None.
+                        # Danh sách 'updates_list' cũng được tạo rỗng.
+                        db_df = transform_to_database_format(raw_df, pd.DataFrame(), None, ngay_ap_dung, [])
                         all_processed_dfs.append(db_df)
-            
+
             if all_processed_dfs:
                 st.session_state['processed_df'] = pd.concat(all_processed_dfs, ignore_index=True)
                 st.success("Xử lý file Excel thành công!")
@@ -315,7 +317,6 @@ if uploaded_file:
                         st.info(f"- Sheet **'{sheet}'**: {date}")
             else:
                 st.warning("Không thể trích xuất dữ liệu từ các sheet đã chọn.")
-
         if 'processed_df' in st.session_state:
             db_df_to_save = st.session_state['processed_df']
             
