@@ -292,7 +292,7 @@ def transform_to_database_format(df_wide, ngay_ap_dung):
 # --- Giao diện chính của ứng dụng Streamlit ---
 
 st.set_page_config(page_title="Quản lý TKB", layout="wide")
-st.title("� Tải lên & Xử lý Thời Khóa Biểu")
+st.title("📥 Tải lên & Xử lý Thời Khóa Biểu")
 
 # Khởi tạo session_state
 if 'unmapped_teachers' not in st.session_state:
@@ -383,7 +383,6 @@ if uploaded_file:
                         df_after_mapping['Ma_gv_cn'] = df_after_mapping['Giáo viên CN'].apply(apply_mapping, key='id')
                         df_after_mapping['Giáo viên CN'] = df_after_mapping['Giáo viên CN'].apply(apply_mapping, key='full_name')
                         
-                        # Tìm các GV chưa được ánh xạ
                         unmapped_bm = df_after_mapping[df_after_mapping['Giáo viên BM'].astype(str).str.match(r'^[TC]\.')][['Giáo viên BM', 'Môn học']]
                         unmapped_cn = df_after_mapping[df_after_mapping['Giáo viên CN'].astype(str).str.match(r'^[TC]\.')][['Giáo viên CN', 'Lớp']]
                         
@@ -401,17 +400,16 @@ if uploaded_file:
                             st.session_state.unmapped_teachers = unmapped_teachers
                         else:
                             st.success("Tuyệt vời! Tất cả giáo viên đã được tự động ánh xạ thành công.")
-                            st.session_state.unmapped_teachers = {} # Đặt rỗng để có thể lưu ngay
+                            st.session_state.unmapped_teachers = {}
                 else:
                     st.error("Không thể bắt đầu. Vui lòng chọn một Khoa.")
 
-            # ---- GIAO DIỆN XỬ LÝ THỦ CÔNG ----
             if st.session_state.unmapped_teachers is not None:
                 unmapped_teachers = st.session_state.unmapped_teachers
                 df_teachers_in_khoa = st.session_state.df_teacher_info[st.session_state.df_teacher_info['Khoa'] == khoa]
                 teacher_list_in_khoa = ["-- Chọn --"] + df_teachers_in_khoa['Ho_ten_gv'].tolist()
 
-                if not unmapped_teachers: # Nếu không có ai cần xử lý
+                if not unmapped_teachers:
                      if st.button("2. Hoàn tất và Lưu vào Google Sheet", key="final_save_no_manual"):
                         with st.spinner("Đang lưu dữ liệu..."):
                             df_to_save = st.session_state.final_df_to_save
@@ -425,37 +423,32 @@ if uploaded_file:
                             success_save, msg_save = update_gsheet_by_khoa(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, df_to_save, khoa)
                             if success_save:
                                 st.success(f"Cập nhật dữ liệu TKB vào sheet '{sheet_name}' thành công!")
-                                st.cache_data.clear() # Xóa cache để làm mới
-                                st.session_state.unmapped_teachers = None # Reset
+                                st.cache_data.clear()
+                                st.session_state.unmapped_teachers = None
                             else:
                                 st.error(f"Lỗi khi lưu TKB: {msg_save}")
 
-                else: # Nếu có người cần xử lý
+                else:
                     st.markdown("---")
                     st.subheader("✍️ Xử lý thủ công các giáo viên chưa được ánh xạ")
                     with st.form("manual_update_form"):
                         manual_selections = {}
                         for short_name, context in unmapped_teachers.items():
                             cols = st.columns([1, 2, 3])
-                            with cols[0]:
-                                st.write(f"**{short_name}**")
-                            with cols[1]:
-                                st.caption(context)
+                            with cols[0]: st.write(f"**{short_name}**")
+                            with cols[1]: st.caption(context)
                             with cols[2]:
-                                manual_selections[short_name] = st.selectbox(
-                                    f"Chọn tên đúng cho {short_name}",
-                                    options=teacher_list_in_khoa,
-                                    label_visibility="collapsed",
-                                    key=f"select_{short_name}"
-                                )
+                                manual_selections[short_name] = st.selectbox(f"Chọn tên đúng cho {short_name}", options=teacher_list_in_khoa, label_visibility="collapsed", key=f"select_{short_name}")
                         
                         submitted = st.form_submit_button("2. Xác nhận lựa chọn và Lưu vào Google Sheet")
                         if submitted:
                             with st.spinner("Đang cập nhật lựa chọn và lưu dữ liệu..."):
                                 df_to_save = st.session_state.final_df_to_save.copy()
-                                updates_list = st.session_state.updates_list
+                                updates_list_auto = st.session_state.get('updates_list', [])
+                                full_teacher_df = st.session_state.df_teacher_info
                                 
-                                # Cập nhật dataframe với lựa chọn thủ công
+                                final_updates = {item['index']: item['value'] for item in updates_list_auto}
+
                                 for short_name, full_name in manual_selections.items():
                                     if full_name != "-- Chọn --":
                                         teacher_info = df_teachers_in_khoa[df_teachers_in_khoa['Ho_ten_gv'] == full_name].iloc[0]
@@ -464,8 +457,21 @@ if uploaded_file:
                                         df_to_save.loc[df_to_save['Giáo viên BM'] == short_name, ['Giáo viên BM', 'Ma_gv_bm']] = [full_name, teacher_id]
                                         df_to_save.loc[df_to_save['Giáo viên CN'] == short_name, ['Giáo viên CN', 'Ma_gv_cn']] = [full_name, teacher_id]
 
-                                if updates_list:
-                                    success_update, msg_update = bulk_update_teacher_info(gsheet_client, TEACHER_INFO_SHEET_ID, updates_list)
+                                        teacher_original_index = teacher_info.name
+                                        current_short_names_str = str(full_teacher_df.loc[teacher_original_index, 'Ten_viet_tat'])
+                                        existing_short_names = [s.strip() for s in current_short_names_str.split(';')]
+                                        
+                                        if short_name not in existing_short_names:
+                                            if pd.isna(current_short_names_str) or not current_short_names_str.strip():
+                                                new_short_names_str = short_name
+                                            else:
+                                                new_short_names_str = f"{current_short_names_str};{short_name}"
+                                            final_updates[teacher_original_index] = new_short_names_str
+                                
+                                final_updates_list = [{'index': k, 'value': v} for k, v in final_updates.items()]
+
+                                if final_updates_list:
+                                    success_update, msg_update = bulk_update_teacher_info(gsheet_client, TEACHER_INFO_SHEET_ID, final_updates_list)
                                     if success_update: st.info(msg_update)
                                     else: st.error(msg_update)
                                 
@@ -473,7 +479,7 @@ if uploaded_file:
                                 if success_save:
                                     st.success(f"Cập nhật dữ liệu TKB vào sheet '{sheet_name}' thành công!")
                                     st.cache_data.clear()
-                                    st.session_state.unmapped_teachers = None # Reset
+                                    st.session_state.unmapped_teachers = None
                                 else:
                                     st.error(f"Lỗi khi lưu TKB: {msg_save}")
 
