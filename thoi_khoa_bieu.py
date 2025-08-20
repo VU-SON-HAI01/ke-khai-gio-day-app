@@ -174,9 +174,8 @@ def find_and_map_teacher(short_name, khoa, df_teacher_info, gsheet_client, sprea
                 spreadsheet = gsheet_client.open_by_key(spreadsheet_id)
                 worksheet = spreadsheet.worksheet("THONG_TIN_GV")
                 cell = worksheet.find(info['Ho_ten_gv'])
-                if cell:
+                if cell and not worksheet.cell(cell.row, 3).value: # Chỉ cập nhật nếu ô trống
                     worksheet.update_cell(cell.row, 3, short_name_clean) # Cột 3 là Ten_viet_tat
-                    # Cập nhật lại dataframe trong bộ nhớ để không cần gọi API lại
                     df_teacher_info.loc[df_teacher_info['Ho_ten_gv'] == info['Ho_ten_gv'], 'Ten_viet_tat'] = short_name_clean
             except Exception as e:
                 st.warning(f"Lỗi khi cập nhật tên viết tắt cho '{info['Ho_ten_gv']}': {e}")
@@ -236,6 +235,8 @@ def transform_to_database_format(df_wide, df_teacher_info, gsheet_client, spread
     final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 'Môn học', 'Phòng học', 'Giáo viên BM', 'Ma_gv_bm', 'Phòng SHCN', 'Giáo viên CN', 'Ma_gv_cn', 'Lớp VHPT', 'Ghi chú', 'KHOA', 'Ngày áp dụng']
     df_final['KHOA'] = khoa 
     df_final['Ngày áp dụng'] = ngay_ap_dung
+    # Bỏ các cột tạm thời
+    df_final = df_final.drop(columns=['Ho_ten_gv_bm', 'Ho_ten_gv_cn'], errors='ignore')
     return df_final[final_cols]
 
 # --- Giao diện chính của ứng dụng Streamlit ---
@@ -248,7 +249,6 @@ gsheet_client = None
 if "gcp_service_account" in st.secrets:
     gsheet_client = connect_to_gsheet()
     if gsheet_client:
-        # Tải thông tin giáo viên một lần và lưu vào session state
         if 'df_teacher_info' not in st.session_state:
             st.session_state.df_teacher_info = load_teacher_info(gsheet_client, TEACHER_INFO_SHEET_ID)
 else:
@@ -273,7 +273,7 @@ if uploaded_file:
                     raw_df, ngay_ap_dung = extract_schedule_from_excel(worksheet)
                     if raw_df is not None:
                         if ngay_ap_dung: ngay_ap_dung_dict[sheet_name] = ngay_ap_dung
-                        # Truyền df_teacher_info vào hàm xử lý
+                        # Tạm thời chưa gán Khoa ở bước này
                         db_df = transform_to_database_format(raw_df, st.session_state.df_teacher_info, gsheet_client, TEACHER_INFO_SHEET_ID, "", ngay_ap_dung)
                         all_processed_dfs.append(db_df)
             
@@ -307,17 +307,20 @@ if uploaded_file:
 
             if st.button("Lưu vào Google Sheet", key="save_button"):
                 if gsheet_client and khoa:
-                    with st.spinner(f"Đang cập nhật dữ liệu cho khoa '{khoa}'..."):
-                        db_df_to_save['KHOA'] = khoa
-                        # Cần gọi lại hàm transform để ánh xạ GV theo khoa đã chọn
-                        final_df_to_save = transform_to_database_format(
-                            pd.read_excel(uploaded_file, sheet_name=selected_sheets, engine='openpyxl'), # Đọc lại dữ liệu thô
-                            st.session_state.df_teacher_info, 
-                            gsheet_client, 
-                            TEACHER_INFO_SHEET_ID, 
-                            khoa, 
-                            db_df_to_save['Ngày áp dụng'].iloc[0] if not db_df_to_save.empty else ""
-                        )
+                    with st.spinner(f"Đang ánh xạ lại GV và cập nhật dữ liệu cho khoa '{khoa}'..."):
+                        # Tạo bản sao để không ảnh hưởng đến session_state
+                        final_df_to_save = db_df_to_save.copy()
+                        final_df_to_save['KHOA'] = khoa
+                        
+                        # Ánh xạ lại thông tin giáo viên với Khoa đã chọn
+                        gv_bm_info = final_df_to_save['Giáo viên BM'].apply(lambda x: find_and_map_teacher(x, khoa, st.session_state.df_teacher_info, gsheet_client, TEACHER_INFO_SHEET_ID))
+                        final_df_to_save[['Giáo viên BM', 'Ma_gv_bm', 'Ho_ten_gv_bm']] = pd.DataFrame(gv_bm_info.tolist(), index=final_df_to_save.index)
+
+                        gv_cn_info = final_df_to_save['Giáo viên CN'].apply(lambda x: find_and_map_teacher(x, khoa, st.session_state.df_teacher_info, gsheet_client, TEACHER_INFO_SHEET_ID))
+                        final_df_to_save[['Giáo viên CN', 'Ma_gv_cn', 'Ho_ten_gv_cn']] = pd.DataFrame(gv_cn_info.tolist(), index=final_df_to_save.index)
+                        
+                        # Bỏ các cột tạm thời trước khi lưu
+                        final_df_to_save = final_df_to_save.drop(columns=['Ho_ten_gv_bm', 'Ho_ten_gv_cn'], errors='ignore')
 
                         success, error_message = update_gsheet_by_khoa(gsheet_client, TEACHER_INFO_SHEET_ID, sheet_name, final_df_to_save, khoa)
                         if success:
