@@ -483,5 +483,3 @@ if uploaded_file:
     except Exception as e:
         st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
         st.exception(e)
-
-�
