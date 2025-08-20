@@ -31,7 +31,19 @@ def load_teacher_info(_gsheet_client, spreadsheet_id):
         spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet("THONG_TIN_GV")
         df = pd.DataFrame(worksheet.get_all_records())
-        df['Ho_ten_gv_normalized'] = df['Ho_ten_gv'].astype(str).apply(lambda x: unidecode(x).lower())
+
+        # ---- DÒNG CODE MỚI ĐƯỢC THÊM VÀO ----
+        # Tự động xóa khoảng trắng thừa ở đầu và cuối của tất cả tên cột
+        df.columns = df.columns.str.strip()
+        # ------------------------------------
+
+        # Đảm bảo các cột cần thiết tồn tại trước khi sử dụng
+        if 'Ho_ten_gv' in df.columns:
+            df['Ho_ten_gv_normalized'] = df['Ho_ten_gv'].astype(str).apply(lambda x: unidecode(x).lower())
+        else:
+            st.error("Lỗi: Không tìm thấy cột 'Ho_ten_gv' trong sheet THONG_TIN_GV.")
+            return pd.DataFrame() # Trả về dataframe rỗng nếu thiếu cột quan trọng
+
         return df
     except Exception as e:
         st.error(f"Lỗi khi tải dữ liệu giáo viên: {e}")
