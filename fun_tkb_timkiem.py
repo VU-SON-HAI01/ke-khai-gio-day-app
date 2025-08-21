@@ -111,17 +111,14 @@ def render_schedule_details(schedule_df, mode='class'):
     schedule_df['Buổi'] = pd.Categorical(schedule_df['Buổi'], categories=session_order, ordered=True)
     schedule_sorted = schedule_df.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
 
-    first_day = True
     for day, day_group in schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
         # Bỏ qua và không hiển thị những ngày không có môn học
         if day_group['Môn học'].dropna().empty:
             continue
 
-        if not first_day:
-            st.markdown("---") 
-
-        st.markdown(f"##### **{day}**") 
-        first_day = False
+        # Thêm gạch chân cho tiêu đề ngày và thêm khoảng trống bên dưới
+        st.markdown(f"##### <u><b>{day}</b></u>", unsafe_allow_html=True) 
+        st.write("") # Thêm một khoảng trống nhỏ
 
         can_consolidate = False
         if set(day_group['Buổi'].unique()) == {'Sáng', 'Chiều'}:
