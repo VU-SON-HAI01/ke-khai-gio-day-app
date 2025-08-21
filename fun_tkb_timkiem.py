@@ -80,19 +80,17 @@ def load_all_data_and_get_dates(_client, spreadsheet_id):
         combined_df = pd.concat(all_dfs, ignore_index=True)
 
         if 'Ngày áp dụng' in combined_df.columns:
-            # Chuyển đổi sang chuỗi để xử lý nhất quán, loại bỏ giá trị rỗng/NaN
+            # Lấy tất cả các giá trị không rỗng và duy nhất từ cột 'Ngày áp dụng'
             dates = combined_df['Ngày áp dụng'].dropna().astype(str).unique()
-            # Cố gắng chuyển đổi sang datetime để sắp xếp đúng, sau đó quay lại chuỗi
-            try:
-                # Lọc ra những chuỗi có dạng ngày tháng dd/mm/yyyy hoặc d/m/yyyy
-                valid_dates = [d for d in dates if re.match(r'^\d{1,2}/\d{1,2}/\d{4}$', d)]
-                if not valid_dates:
-                    return combined_df, sorted(list(dates)) # Sắp xếp chuỗi nếu không có định dạng ngày
-                
-                sorted_dates = pd.to_datetime(valid_dates, dayfirst=True, errors='coerce').dropna().sort_values()
-                date_list = sorted_dates.strftime('%d/%m/%Y').tolist()
-            except Exception:
-                date_list = sorted(list(dates))
+
+            # *** PHẦN ĐƯỢC CẬP NHẬT ***
+            # Sử dụng pd.to_datetime để chuyển đổi linh hoạt nhiều định dạng ngày.
+            # errors='coerce' sẽ chuyển các giá trị không hợp lệ thành NaT (Not a Time).
+            valid_dates = pd.to_datetime(dates, dayfirst=True, errors='coerce')
+            
+            # Lọc bỏ các giá trị NaT, sắp xếp và chuyển về định dạng chuỗi dd/mm/yyyy
+            sorted_dates = pd.Series(valid_dates).dropna().sort_values()
+            date_list = sorted_dates.strftime('%d/%m/%Y').tolist()
         else:
             date_list = []
 
