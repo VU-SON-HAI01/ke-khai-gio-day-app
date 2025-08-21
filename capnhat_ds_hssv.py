@@ -85,18 +85,26 @@ def process_student_excel(excel_file, sheets_to_process):
                 st.warning(f"Không tìm thấy header (cell 'STT') trong sheet '{sheet_name}'. Bỏ qua.")
                 continue
 
-            header_df = df_raw.iloc[start_row:start_row+2, :].copy()
-            header_df = header_df.fillna(method='ffill', axis=1)
-            
+            # *** PHẦN ĐƯỢC CẬP NHẬT: Xử lý header gộp của Hộ khẩu thường trú ***
+            # Đọc 2 dòng header để xử lý các ô được gộp
+            header_row_1 = df_raw.iloc[start_row].tolist()
+            header_row_2 = df_raw.iloc[start_row + 1].tolist()
+
             final_headers = []
-            for col in header_df.columns:
-                main_header = str(header_df.iloc[0, col]).strip()
-                sub_header = str(header_df.iloc[1, col]).strip()
+            last_main_header = ""
+            for i in range(len(header_row_1)):
+                # Tự lan truyền giá trị của ô được gộp
+                main_header = str(header_row_1[i]).strip()
+                if main_header and main_header.lower() != 'nan':
+                    last_main_header = main_header
                 
-                if "hộ khẩu thường trú" in main_header.lower():
+                sub_header = str(header_row_2[i]).strip()
+
+                # Ưu tiên header phụ (Thôn, Xã,...) nếu header chính là Hộ khẩu thường trú
+                if "hộ khẩu thường trú" in last_main_header.lower() and sub_header and sub_header.lower() != 'nan':
                     final_headers.append(sub_header)
                 else:
-                    final_headers.append(main_header)
+                    final_headers.append(last_main_header)
             
             try:
                 end_col_index = final_headers.index('Ghi chú')
@@ -104,6 +112,7 @@ def process_student_excel(excel_file, sheets_to_process):
                 st.warning(f"Không tìm thấy cột 'Ghi chú' trong sheet '{sheet_name}'. Bỏ qua.")
                 continue
             
+            # Dữ liệu bắt đầu từ 2 dòng sau dòng 'STT'
             df = df_raw.iloc[start_row + 2:, start_col : end_col_index + 1]
             df.columns = final_headers[start_col : end_col_index + 1]
             df = df.loc[:, ~df.columns.duplicated(keep='first')]
@@ -144,21 +153,14 @@ def process_student_excel(excel_file, sheets_to_process):
             formatted_dates = valid_dates.dt.strftime('%d/%m/%Y')
             combined_df['Năm sinh'] = formatted_dates.fillna(combined_df['Năm sinh']).fillna('')
 
-        # *** PHẦN ĐƯỢC CẬP NHẬT: Định dạng lại cột SĐT ***
         if 'SĐT' in combined_df.columns:
             def format_phone_number(phone):
                 if pd.isna(phone):
                     return ''
-                # Chuyển thành chuỗi và chỉ giữ lại các chữ số
                 digits = re.sub(r'\D', '', str(phone))
-                
-                # Chỉ định dạng nếu có 10 chữ số
                 if len(digits) == 10:
                     return f"{digits[:3]} {digits[3:6]} {digits[6:]}"
-                
-                # Trả về giá trị gốc (đã làm sạch) nếu không đúng định dạng
                 return digits
-
             combined_df['SĐT'] = combined_df['SĐT'].apply(format_phone_number)
 
         final_df = pd.DataFrame()
