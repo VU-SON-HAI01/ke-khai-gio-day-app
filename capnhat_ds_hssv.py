@@ -4,6 +4,7 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 from gspread_dataframe import set_with_dataframe
+import re
 
 # --- CÁC HÀM KẾT NỐI VÀ ĐỌC GOOGLE SHEETS ---
 
@@ -32,19 +33,14 @@ def get_valid_classes_from_gsheet(client, spreadsheet_id):
         spreadsheet = client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet("DANH_MUC")
         
-        # Tự động tìm cột "Lớp học" thay vì giả định là cột B
-        headers = worksheet.row_values(1) # Giả sử header ở dòng 1
+        headers = worksheet.row_values(1) 
         try:
-            # Tìm index của cột (gspread dùng index 1-based)
             class_col_index = headers.index('Lớp học') + 1
         except ValueError:
             st.error("Lỗi: Không tìm thấy cột có tên 'Lớp học' trong sheet 'DANH_MUC'. Vui lòng kiểm tra lại header.")
             return None
 
-        # Lấy tất cả giá trị từ cột đã tìm thấy, bắt đầu từ dòng 2
         class_list = worksheet.col_values(class_col_index)[1:] 
-        
-        # Lọc ra các giá trị rỗng và chuyển thành set để xử lý nhanh
         valid_classes = {str(c).strip() for c in class_list if str(c).strip()}
         if not valid_classes:
             st.warning("Cột 'Lớp học' trong sheet 'DANH_MUC' không có dữ liệu.")
@@ -70,41 +66,50 @@ def find_start_cell(df_raw):
 
 def process_student_excel(excel_file, sheets_to_process):
     """
-    Đọc file Excel, trích xuất dữ liệu sinh viên từ các sheet hợp lệ đã được chỉ định.
+    Đọc file Excel, trích xuất, xử lý và hợp nhất dữ liệu sinh viên.
     """
     try:
         xls = pd.ExcelFile(excel_file)
         all_sheets_data = []
 
-        # Các cột mục tiêu trong Google Sheet
         target_gsheet_columns = [
-            'STT', 'Lớp', 'Họ và tên', 'Năm sinh', 'Giới tính', 'Dân tộc', 'Tôn giáo', 
+            'STT', 'Lớp', 'Họ đệm', 'Tên', 'Năm sinh', 'Giới tính', 'Dân tộc', 'Tôn giáo', 
             'Nơi sinh', 'Thôn', 'Xã', 'Huyện', 'Tỉnh', 'SĐT', 'Ghi chú'
         ]
 
         for sheet_name in sheets_to_process:
             df_raw = pd.read_excel(xls, sheet_name=sheet_name, header=None)
-            
             start_row, start_col = find_start_cell(df_raw)
             
             if start_row is None:
-                st.warning(f"Không tìm thấy header (cell 'STT') trong sheet '{sheet_name}'. Bỏ qua sheet này.")
+                st.warning(f"Không tìm thấy header (cell 'STT') trong sheet '{sheet_name}'. Bỏ qua.")
                 continue
 
-            headers = [str(h).strip() for h in df_raw.iloc[start_row, :]]
+            header_df = df_raw.iloc[start_row:start_row+2, :].copy()
+            header_df = header_df.fillna(method='ffill', axis=1)
+            
+            final_headers = []
+            for col in header_df.columns:
+                main_header = str(header_df.iloc[0, col]).strip()
+                sub_header = str(header_df.iloc[1, col]).strip()
+                
+                if "hộ khẩu thường trú" in main_header.lower():
+                    final_headers.append(sub_header)
+                else:
+                    final_headers.append(main_header)
             
             try:
-                end_col_index = len(headers) - 1 - headers[::-1].index('Ghi chú')
+                end_col_index = final_headers.index('Ghi chú')
             except ValueError:
-                st.warning(f"Không tìm thấy cột 'Ghi chú' trong sheet '{sheet_name}'. Bỏ qua sheet này.")
+                st.warning(f"Không tìm thấy cột 'Ghi chú' trong sheet '{sheet_name}'. Bỏ qua.")
                 continue
             
-            df = df_raw.iloc[start_row + 1:, start_col : end_col_index + 1]
-            df.columns = headers[start_col : end_col_index + 1]
+            df = df_raw.iloc[start_row + 2:, start_col : end_col_index + 1]
+            df.columns = final_headers[start_col : end_col_index + 1]
             df = df.loc[:, ~df.columns.duplicated(keep='first')]
 
             if 'Họ và tên' not in df.columns:
-                 st.warning(f"Không tìm thấy cột 'Họ và tên' trong sheet '{sheet_name}'. Bỏ qua sheet này.")
+                 st.warning(f"Không tìm thấy cột 'Họ và tên' trong sheet '{sheet_name}'. Bỏ qua.")
                  continue
 
             end_row_marker = -1
@@ -118,20 +123,45 @@ def process_student_excel(excel_file, sheets_to_process):
                 df = df.iloc[:end_row_marker]
 
             df.dropna(subset=['STT'], inplace=True)
-
-            if df.empty:
-                continue
+            if df.empty: continue
 
             df.insert(1, 'Lớp', sheet_name)
             all_sheets_data.append(df)
 
         if not all_sheets_data:
-            st.error("Không có dữ liệu hợp lệ nào được tìm thấy trong các sheet đã chọn để xử lý.")
+            st.error("Không có dữ liệu hợp lệ nào được tìm thấy trong các sheet đã chọn.")
             return None
 
         combined_df = pd.concat(all_sheets_data, ignore_index=True)
-        final_df = pd.DataFrame()
         
+        if 'Họ và tên' in combined_df.columns:
+            name_parts = combined_df['Họ và tên'].astype(str).str.rsplit(' ', n=1, expand=True)
+            combined_df['Họ đệm'] = name_parts[0].fillna('')
+            combined_df['Tên'] = name_parts[1].fillna('')
+        
+        if 'Năm sinh' in combined_df.columns:
+            valid_dates = pd.to_datetime(combined_df['Năm sinh'], errors='coerce')
+            formatted_dates = valid_dates.dt.strftime('%d/%m/%Y')
+            combined_df['Năm sinh'] = formatted_dates.fillna(combined_df['Năm sinh']).fillna('')
+
+        # *** PHẦN ĐƯỢC CẬP NHẬT: Định dạng lại cột SĐT ***
+        if 'SĐT' in combined_df.columns:
+            def format_phone_number(phone):
+                if pd.isna(phone):
+                    return ''
+                # Chuyển thành chuỗi và chỉ giữ lại các chữ số
+                digits = re.sub(r'\D', '', str(phone))
+                
+                # Chỉ định dạng nếu có 10 chữ số
+                if len(digits) == 10:
+                    return f"{digits[:3]} {digits[3:6]} {digits[6:]}"
+                
+                # Trả về giá trị gốc (đã làm sạch) nếu không đúng định dạng
+                return digits
+
+            combined_df['SĐT'] = combined_df['SĐT'].apply(format_phone_number)
+
+        final_df = pd.DataFrame()
         for col in target_gsheet_columns:
             if col in combined_df.columns:
                 final_df[col] = combined_df[col]
@@ -158,7 +188,8 @@ def upload_to_gsheet(client, spreadsheet_id, worksheet_name, df):
         worksheet.clear()
         
         st.write(f"Đang tải dữ liệu mới lên sheet '{worksheet_name}'...")
-        set_with_dataframe(worksheet, df)
+        df_str = df.astype(str)
+        set_with_dataframe(worksheet, df_str)
         
         return True
     except gspread.exceptions.WorksheetNotFound:
@@ -199,7 +230,6 @@ if uploaded_excel_file and SPREADSHEET_ID:
         if gsheet_client:
             st.success("✅ Kết nối Google Sheets thành công!")
             
-            # --- KIỂM TRA TÊN SHEET ---
             with st.spinner("Đang kiểm tra tên các sheet..."):
                 valid_classes = get_valid_classes_from_gsheet(gsheet_client, SPREADSHEET_ID)
                 if valid_classes is not None:
@@ -218,7 +248,6 @@ if uploaded_excel_file and SPREADSHEET_ID:
                     
                     st.success(f"Tìm thấy {len(sheets_to_process)} sheet hợp lệ để xử lý.")
 
-            # --- XỬ LÝ VÀ TẢI LÊN ---
             with st.spinner("Đang xử lý file Excel..."):
                 final_df = process_student_excel(uploaded_excel_file, sheets_to_process)
             
