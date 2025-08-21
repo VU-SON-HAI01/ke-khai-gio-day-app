@@ -111,13 +111,16 @@ def render_schedule_details(schedule_df, mode='class'):
     schedule_df['Buổi'] = pd.Categorical(schedule_df['Buổi'], categories=session_order, ordered=True)
     schedule_sorted = schedule_df.sort_values(by=['Thứ Đầy Đủ', 'Buổi', 'Tiết'])
 
-    # *** PHẦN ĐƯỢC CẬP NHẬT: Bỏ st.expander ***
     first_day = True
     for day, day_group in schedule_sorted.groupby('Thứ Đầy Đủ', observed=False):
-        if not first_day:
-            st.markdown("---") # Thêm đường kẻ ngang để phân tách các ngày
+        # Bỏ qua và không hiển thị những ngày không có môn học
+        if day_group['Môn học'].dropna().empty:
+            continue
 
-        st.markdown(f"##### **{day}**") # Hiển thị ngày như một tiêu đề
+        if not first_day:
+            st.markdown("---") 
+
+        st.markdown(f"##### **{day}**") 
         first_day = False
 
         can_consolidate = False
@@ -127,57 +130,65 @@ def render_schedule_details(schedule_df, mode='class'):
             if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects): can_consolidate = True
 
         if can_consolidate:
-            col1, col2 = st.columns([1, 6])
-            with col1: st.markdown(f'<p style="color:#17a2b8; font-weight:bold;">CẢ NGÀY</p>', unsafe_allow_html=True)
-            with col2:
-                subject_info = sang_subjects.iloc[0]
-                tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
-                tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
-                subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>"
-                phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{subject_info['Phòng học']}</span>" if subject_info['Phòng học'] else ""
-                
-                if mode == 'class':
-                    context_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>" if subject_info['Giáo viên BM'] else ""
-                else: # mode == 'teacher'
-                    context_part = f"📝 **Lớp:** <span style='color:{green_color};'>{subject_info['Lớp']}</span>" if subject_info['Lớp'] else ""
-                
-                all_parts = [p for p in [tiet_part, subject_part, context_part, phong_part] if p]
-                st.markdown("&nbsp;&nbsp;".join(all_parts), unsafe_allow_html=True)
+            st.markdown(f'<p style="color:#17a2b8; font-weight:bold;">CẢ NGÀY</p>', unsafe_allow_html=True)
+            subject_info = sang_subjects.iloc[0]
+            tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
+            
+            details = []
+            details.append(f"📖 **Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>")
+            details.append(f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>")
+            
+            if mode == 'class':
+                if subject_info['Giáo viên BM']: details.append(f"🧑‍💼 **GV:** <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>")
+            else: # mode == 'teacher'
+                if subject_info['Lớp']: details.append(f"📝 **Lớp:** <span style='color:{green_color};'>{subject_info['Lớp']}</span>")
+            
+            if subject_info['Phòng học']: details.append(f"🏤 **Phòng:** <span style='color:{green_color};'>{subject_info['Phòng học']}</span>")
+            
+            details_html = "<br>".join(f"&nbsp;&nbsp;{item}" for item in details)
+            st.markdown(f"<div>{details_html}</div>", unsafe_allow_html=True)
+
         else:
             for session, session_group in day_group.groupby('Buổi', observed=False):
-                if session_group.empty: continue
-                col1, col2 = st.columns([1, 6])
-                with col1:
-                    color = "#28a745" if session == "Sáng" else "#dc3545"
-                    st.markdown(f'<p style="color:{color}; font-weight:bold;">{session.upper()}</p>', unsafe_allow_html=True)
-                with col2:
-                    subjects_in_session = {}
-                    for _, row in session_group.iterrows():
-                        if pd.notna(row['Môn học']) and row['Môn học'].strip():
-                            key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'], row.get('Ngày áp dụng', ''), row.get('Lớp', ''))
-                            if key not in subjects_in_session: subjects_in_session[key] = []
-                            subjects_in_session[key].append(str(row['Tiết']))
-                    if not subjects_in_session:
-                        st.markdown("✨Nghỉ")
-                    else:
-                        for (subject, gv, phong, ghi_chu, ngay_ap_dung, lop), tiet_list in subjects_in_session.items():
-                            tiet_str = ", ".join(sorted(tiet_list, key=int))
-                            tiet_part = f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>"
-                            subject_part = f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>"
-                            phong_part = f"🏤 **Phòng:** <span style='color:{green_color};'>{phong}</span>" if phong else ""
-                            
-                            if mode == 'class':
-                                context_part = f"🧑‍💼 **GV:** <span style='color:{green_color};'>{gv}</span>" if gv else ""
-                            else: # mode == 'teacher'
-                                context_part = f"📝 **Lớp:** <span style='color:{green_color};'>{lop}</span>" if lop else ""
+                if session_group['Môn học'].dropna().empty: continue
+                
+                color = "#28a745" if session == "Sáng" else "#dc3545"
+                st.markdown(f'<p style="color:{color}; font-weight:bold;">{session.upper()}</p>', unsafe_allow_html=True)
+                
+                subjects_in_session = {}
+                for _, row in session_group.iterrows():
+                    if pd.notna(row['Môn học']) and row['Môn học'].strip():
+                        key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'], row.get('Ngày áp dụng', ''), row.get('Lớp', ''))
+                        if key not in subjects_in_session: subjects_in_session[key] = []
+                        subjects_in_session[key].append(str(row['Tiết']))
+                
+                if not subjects_in_session:
+                    st.markdown("&nbsp;&nbsp;✨Nghỉ")
+                else:
+                    for (subject, gv, phong, ghi_chu, ngay_ap_dung, lop), tiet_list in subjects_in_session.items():
+                        tiet_str = ", ".join(sorted(tiet_list, key=int))
+                        
+                        details = []
+                        details.append(f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>")
+                        details.append(f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>")
+                        
+                        if mode == 'class':
+                            if gv: details.append(f"🧑‍💼 **GV:** <span style='color:{green_color};'>{gv}</span>")
+                        else: # mode == 'teacher'
+                            if lop: details.append(f"📝 **Lớp:** <span style='color:{green_color};'>{lop}</span>")
+                        
+                        if phong: details.append(f"🏤 **Phòng:** <span style='color:{green_color};'>{phong}</span>")
 
-                            ghi_chu_part = ""
-                            if ghi_chu and "học từ" in ghi_chu.lower():
-                                date_match = re.search(r'(\d+/\d+)', ghi_chu)
-                                if date_match:
-                                    ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
-                            elif ngay_ap_dung and str(ngay_ap_dung).strip():
-                                ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{ngay_ap_dung}\"</span>"
+                        ghi_chu_part = ""
+                        if ghi_chu and "học từ" in ghi_chu.lower():
+                            date_match = re.search(r'(\d+/\d+)', ghi_chu)
+                            if date_match:
+                                ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
+                        elif ngay_ap_dung and str(ngay_ap_dung).strip():
+                            ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{ngay_ap_dung}\"</span>"
+                        
+                        if ghi_chu_part:
+                            details.append(ghi_chu_part)
 
-                            all_parts = [p for p in [tiet_part, subject_part, context_part, phong_part, ghi_chu_part] if p]
-                            st.markdown("&nbsp;&nbsp;".join(all_parts), unsafe_allow_html=True)
+                        details_html = "<br>".join(f"&nbsp;&nbsp;{item}" for item in details)
+                        st.markdown(f"<div>{details_html}</div><br>", unsafe_allow_html=True)
