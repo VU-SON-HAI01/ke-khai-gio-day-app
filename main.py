@@ -117,7 +117,7 @@ else:
             "Quản lý": [st.Page("quan_ly_giao_vien.py", title="Quản lý Giáo viên"),
                          st.Page("thoi_khoa_bieu.py", title="Cập nhật TKB")],
             "🔍Tra cứu TKB": [st.Page("1_tra_cuu_tkb_gv.py", title="Tra cứu theo GV"),
-                            st.Page("1_tra_cuu_tkb_lop.py", title="Tra cứu theo Lớp)],
+                            st.Page("1_tra_cuu_tkb_lop.py", title="Tra cứu theo Lớp")],
             "Cập nhật Bảng điểm": [st.Page("tao_bangdiem.py", title="Bảng điểm")]
         }
     else:
