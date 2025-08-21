@@ -158,10 +158,14 @@ def process_student_excel(excel_file, sheets_to_process):
                 # Chuyển thành chuỗi và chỉ giữ lại các chữ số
                 digits = re.sub(r'\D', '', str(phone))
                 
+                # Nếu SĐT có 9 số và không bắt đầu bằng 0, thêm 0 vào đầu
+                if len(digits) == 9 and not digits.startswith('0'):
+                    digits = '0' + digits
+                
                 # Chỉ định dạng nếu có 10 chữ số và bắt đầu bằng 0
                 if len(digits) == 10 and digits.startswith('0'):
-                    # Format: 0XX XXX XXXX
-                    return f"{digits[:3]} {digits[3:6]} {digits[6:]}"
+                    # Format: 0XX.XXX.XXXX
+                    return f"{digits[:3]}.{digits[3:6]}.{digits[6:]}"
                 
                 # Trả về giá trị gốc (đã làm sạch) nếu không đúng định dạng
                 return digits
