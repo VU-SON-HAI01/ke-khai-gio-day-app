@@ -24,42 +24,79 @@ def connect_to_gsheet():
         st.error(f"Lỗi kết nối Google Sheets: {e}")
         return None
 
-def find_header_row(sheet_df):
-    """
-    Tìm dòng chứa header bằng cách tìm cột 'Họ và tên'.
-    """
-    for i, row in sheet_df.iterrows():
-        if 'Họ và tên' in row.astype(str).values:
-            return i
-    return None
+# --- HÀM XỬ LÝ DỮ LIỆU EXCEL (ĐÃ CẬP NHẬT) ---
 
-# --- HÀM XỬ LÝ DỮ LIỆU EXCEL ---
+def find_start_cell(df_raw):
+    """Tìm dòng và cột bắt đầu của khối dữ liệu bằng cách định vị cell 'STT'."""
+    for r_idx, row in df_raw.iterrows():
+        for c_idx, cell in enumerate(row):
+            if str(cell).strip().lower() == 'stt':
+                return r_idx, c_idx
+    return None, None
+
 def process_student_excel(excel_file):
     """
-    Đọc file Excel, xử lý dữ liệu từ tất cả các sheet và gộp lại.
+    Đọc file Excel, trích xuất dữ liệu sinh viên dựa trên các điểm đánh dấu bắt đầu/kết thúc cụ thể,
+    và hợp nhất dữ liệu từ tất cả các sheet.
     """
     try:
         xls = pd.ExcelFile(excel_file)
         all_sheets_data = []
 
+        # Các cột mục tiêu trong Google Sheet
+        target_gsheet_columns = [
+            'STT', 'Lớp', 'Họ và tên', 'Năm sinh', 'Giới tính', 'Dân tộc', 'Tôn giáo', 
+            'Nơi sinh', 'Thôn', 'Xã', 'Huyện', 'Tỉnh', 'SĐT', 'Ghi chú'
+        ]
+
         for sheet_name in xls.sheet_names:
-            # Đọc sheet không dùng header mặc định để tìm header thủ công
             df_raw = pd.read_excel(xls, sheet_name=sheet_name, header=None)
             
-            header_row_index = find_header_row(df_raw)
+            start_row, start_col = find_start_cell(df_raw)
             
-            if header_row_index is None:
-                st.warning(f"Không tìm thấy header (cột 'Họ và tên') trong sheet '{sheet_name}'. Bỏ qua sheet này.")
+            if start_row is None:
+                st.warning(f"Không tìm thấy header (cell 'STT') trong sheet '{sheet_name}'. Bỏ qua sheet này.")
                 continue
 
-            # Đọc lại sheet với header đã xác định
-            df = pd.read_excel(xls, sheet_name=sheet_name, header=header_row_index)
+            # Trích xuất header từ dòng đã xác định
+            headers = [str(h).strip() for h in df_raw.iloc[start_row, :]]
             
-            # Xóa các dòng toàn giá trị NaN
-            df.dropna(how='all', inplace=True)
+            # Tìm cột kết thúc dựa trên 'Ghi chú'
+            try:
+                end_col_index = headers.index('Ghi chú')
+            except ValueError:
+                st.warning(f"Không tìm thấy cột 'Ghi chú' trong sheet '{sheet_name}'. Bỏ qua sheet này.")
+                continue
+            
+            # Trích xuất khối dữ liệu (từ dòng sau header)
+            df = df_raw.iloc[start_row + 1:, start_col : end_col_index + 1]
+            # Gán header chính xác
+            df.columns = headers[start_col : end_col_index + 1]
 
-            # Thêm cột 'Lớp' với giá trị là tên sheet
-            df.insert(0, 'Lớp', sheet_name)
+            # Xác định dòng kết thúc dựa trên cột 'Họ và tên'
+            if 'Họ và tên' not in df.columns:
+                 st.warning(f"Không tìm thấy cột 'Họ và tên' trong sheet '{sheet_name}'. Bỏ qua sheet này.")
+                 continue
+
+            end_row_marker = -1
+            for i, value in enumerate(df['Họ và tên']):
+                # Dừng lại nếu cell trống, NaN, hoặc là một số
+                if pd.isna(value) or str(value).strip() == '' or isinstance(value, (int, float)):
+                    end_row_marker = i
+                    break
+            
+            # Cắt DataFrame đến đúng số dòng
+            if end_row_marker != -1:
+                df = df.iloc[:end_row_marker]
+
+            # Bỏ các dòng không có STT (thường là các dòng trống)
+            df.dropna(subset=['STT'], inplace=True)
+
+            if df.empty:
+                continue
+
+            # Thêm cột 'Lớp'
+            df.insert(1, 'Lớp', sheet_name)
             
             all_sheets_data.append(df)
 
@@ -69,7 +106,22 @@ def process_student_excel(excel_file):
 
         # Gộp dữ liệu từ tất cả các sheet
         combined_df = pd.concat(all_sheets_data, ignore_index=True)
-        return combined_df
+        
+        # Tạo một DataFrame cuối cùng với cấu trúc cột của Google Sheet
+        final_df = pd.DataFrame()
+        
+        # Ánh xạ các cột từ dữ liệu đã trích xuất sang các cột mục tiêu
+        for col in target_gsheet_columns:
+            if col in combined_df.columns:
+                final_df[col] = combined_df[col]
+            else:
+                # Thêm cột bị thiếu với giá trị trống
+                final_df[col] = None
+        
+        # Đảm bảo thứ tự cột là chính xác
+        final_df = final_df[target_gsheet_columns]
+        
+        return final_df
 
     except Exception as e:
         st.error(f"Đã xảy ra lỗi khi xử lý file Excel: {e}")
