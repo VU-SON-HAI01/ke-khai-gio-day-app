@@ -140,11 +140,14 @@ def process_student_excel(excel_file, sheets_to_process):
         combined_df = pd.concat(all_sheets_data, ignore_index=True)
         
         if 'Năm sinh' in combined_df.columns:
+            # Chuyển đổi sang datetime, những giá trị không hợp lệ sẽ thành NaT (Not a Time)
             valid_dates = pd.to_datetime(combined_df['Năm sinh'], errors='coerce')
+            # Định dạng lại những ngày hợp lệ sang dd/mm/yyyy, những ngày không hợp lệ (NaT) sẽ thành NaN
+            # Mã '%d' và '%m' tự động thêm số 0 vào trước ngày/tháng có một chữ số
             formatted_dates = valid_dates.dt.strftime('%d/%m/%Y')
+            # Điền lại các giá trị gốc cho những ô không thể chuyển đổi, sau đó điền NaN còn lại bằng chuỗi rỗng
             combined_df['Năm sinh'] = formatted_dates.fillna(combined_df['Năm sinh']).fillna('')
 
-        # *** PHẦN ĐƯỢC CẬP NHẬT: Xử lý cột SĐT hoặc Tel ***
         phone_col_name = None
         if 'SĐT' in combined_df.columns:
             phone_col_name = 'SĐT'
@@ -155,24 +158,18 @@ def process_student_excel(excel_file, sheets_to_process):
             def format_phone_number(phone):
                 if pd.isna(phone):
                     return ''
-                # Chuyển thành chuỗi và chỉ giữ lại các chữ số
                 digits = re.sub(r'\D', '', str(phone))
                 
-                # Nếu SĐT có 9 số và không bắt đầu bằng 0, thêm 0 vào đầu
                 if len(digits) == 9 and not digits.startswith('0'):
                     digits = '0' + digits
                 
-                # Chỉ định dạng nếu có 10 chữ số và bắt đầu bằng 0
                 if len(digits) == 10 and digits.startswith('0'):
-                    # Format: 0XX.XXX.XXXX
                     return f"{digits[:3]}.{digits[3:6]}.{digits[6:]}"
                 
-                # Trả về giá trị gốc (đã làm sạch) nếu không đúng định dạng
                 return digits
 
             combined_df[phone_col_name] = combined_df[phone_col_name].apply(format_phone_number)
             
-            # Đổi tên cột 'Tel' thành 'SĐT' để khớp với Google Sheet
             if phone_col_name == 'Tel':
                 combined_df.rename(columns={'Tel': 'SĐT'}, inplace=True)
 
