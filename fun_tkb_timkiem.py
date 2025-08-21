@@ -105,11 +105,11 @@ def render_schedule_details(schedule_df, mode='class'):
     green_color = "#00FF00"
     # *** PHẦN ĐƯỢC CẬP NHẬT: Thêm emoji vào tên các Thứ ***
     number_to_day_map = {
-        2: '2️⃣ THỨ HAI', 3: '3️⃣ THỨ BA', 4: '4️⃣ THỨ TƯ', 
+        2: '2️⃣ THỨ HAI', 3: '3️⃣ THỨ BA', 4: '4️⃣ THỨ TƯ',
         5: '5️⃣ THỨ NĂM', 6: '6️⃣ THỨ SÁU', 7: '7️⃣ THỨ BẢY'
     }
     schedule_df['Thứ Đầy Đủ'] = schedule_df['Thứ'].map(number_to_day_map)
-    
+
     day_order = list(number_to_day_map.values()); session_order = ['Sáng', 'Chiều']
     schedule_df['Thứ Đầy Đủ'] = pd.Categorical(schedule_df['Thứ Đầy Đủ'], categories=day_order, ordered=True)
     schedule_df['Buổi'] = pd.Categorical(schedule_df['Buổi'], categories=session_order, ordered=True)
@@ -121,7 +121,7 @@ def render_schedule_details(schedule_df, mode='class'):
             continue
 
         # *** PHẦN ĐƯỢC CẬP NHẬT: Thay đổi định dạng tiêu đề ngày ***
-        st.markdown(f"##### <b>{day}</b>", unsafe_allow_html=True) 
+        st.markdown(f"##### <b>{day}</b>", unsafe_allow_html=True)
         st.markdown('<p style="color:blue; margin-top: -8px; margin-bottom: 10px;">--------------------</p>', unsafe_allow_html=True)
 
         can_consolidate = False
@@ -134,62 +134,63 @@ def render_schedule_details(schedule_df, mode='class'):
             st.markdown(f'<p style="color:#17a2b8; font-weight:bold;">CẢ NGÀY</p>', unsafe_allow_html=True)
             subject_info = sang_subjects.iloc[0]
             tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
-            
+
             details = []
             details.append(f"<b>📖 Môn:</b> <span style='color:{green_color};'>{subject_info['Môn học']}</span>")
             details.append(f"<b>⏰ Tiết:</b> <span style='color:{green_color};'>{tiet_str}</span>")
-            
+
             if mode == 'class':
                 if subject_info['Giáo viên BM']: details.append(f"<b>🧑‍💼 GV:</b> <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>")
             else: # mode == 'teacher'
                 if subject_info['Lớp']: details.append(f"<b>📝 Lớp:</b> <span style='color:{green_color};'>{subject_info['Lớp']}</span>")
-            
+
             if subject_info['Phòng học']: details.append(f"<b>🏤 Phòng:</b> <span style='color:{green_color};'>{subject_info['Phòng học']}</span>")
-            
+
             details_html = "<br>".join(f"&nbsp;&nbsp;{item}" for item in details)
             st.markdown(f"<div>{details_html}</div>", unsafe_allow_html=True)
 
         else:
             for session, session_group in day_group.groupby('Buổi', observed=False):
                 if session_group['Môn học'].dropna().empty: continue
-                
+
                 color = "#28a745" if session == "Sáng" else "#dc3545"
                 st.markdown(f'<p style="color:{color}; font-weight:bold;">{session.upper()}</p>', unsafe_allow_html=True)
-                
+
                 subjects_in_session = {}
                 for _, row in session_group.iterrows():
                     if pd.notna(row['Môn học']) and row['Môn học'].strip():
                         key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'], row.get('Ngày áp dụng', ''), row.get('Lớp', ''))
                         if key not in subjects_in_session: subjects_in_session[key] = []
                         subjects_in_session[key].append(str(row['Tiết']))
-                
+
                 if not subjects_in_session:
                     st.markdown("&nbsp;&nbsp;✨Nghỉ")
                 else:
                     for (subject, gv, phong, ghi_chu, ngay_ap_dung, lop), tiet_list in subjects_in_session.items():
                         tiet_str = ", ".join(sorted(tiet_list, key=int))
-                        
+
                         details = []
                         details.append(f"<b>📖 Môn:</b> <span style='color:{green_color};'>{subject}</span>")
                         details.append(f"<b>⏰ Tiết:</b> <span style='color:{green_color};'>{tiet_str}</span>")
-                        
+
                         if mode == 'class':
                             if gv: details.append(f"<b>🧑‍💼 GV:</b> <span style='color:{green_color};'>{gv}</span>")
                         else: # mode == 'teacher'
                             if lop: details.append(f"<b>📝 Lớp:</b> <span style='color:{green_color};'>{lop}</span>")
-                        
+
                         if phong: details.append(f"<b>🏤 Phòng:</b> <span style='color:{green_color};'>{phong}</span>")
 
                         ghi_chu_part = ""
                         if ghi_chu and "học từ" in ghi_chu.lower():
                             date_match = re.search(r'(\d+/\d+)', ghi_chu)
                             if date_match:
-                                ghi_chu_part = f"<b>🔜 Bắt đầu học từ:</b> <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
+                                ghi_chu_part = f"<b>� Bắt đầu học từ:</b> <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
                         elif ngay_ap_dung and str(ngay_ap_dung).strip():
                             ghi_chu_part = f"<b>🔜 Bắt đầu học từ:</b> <span style='color:{green_color};'>\"{ngay_ap_dung}\"</span>"
-                        
+
                         if ghi_chu_part:
                             details.append(ghi_chu_part)
 
                         details_html = "<br>".join(f"&nbsp;&nbsp;{item}" for item in details)
                         st.markdown(f"<div>{details_html}</div><br>", unsafe_allow_html=True)
+�
