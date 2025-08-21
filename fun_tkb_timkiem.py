@@ -103,7 +103,11 @@ def load_all_data_and_get_dates(_client, spreadsheet_id):
 def render_schedule_details(schedule_df, mode='class'):
     """Hàm chung để hiển thị chi tiết lịch học hoặc lịch dạy."""
     green_color = "#00FF00"
-    number_to_day_map = {2: 'THỨ HAI', 3: 'THỨ BA', 4: 'THỨ TƯ', 5: 'THỨ NĂM', 6: 'THỨ SÁU', 7: 'THỨ BẢY'}
+    # *** PHẦN ĐƯỢC CẬP NHẬT: Thêm emoji vào tên các Thứ ***
+    number_to_day_map = {
+        2: '2️⃣ THỨ HAI', 3: '3️⃣ THỨ BA', 4: '4️⃣ THỨ TƯ', 
+        5: '5️⃣ THỨ NĂM', 6: '6️⃣ THỨ SÁU', 7: '7️⃣ THỨ BẢY'
+    }
     schedule_df['Thứ Đầy Đủ'] = schedule_df['Thứ'].map(number_to_day_map)
     
     day_order = list(number_to_day_map.values()); session_order = ['Sáng', 'Chiều']
@@ -116,9 +120,9 @@ def render_schedule_details(schedule_df, mode='class'):
         if day_group['Môn học'].dropna().empty:
             continue
 
-        # Thêm gạch chân cho tiêu đề ngày và thêm khoảng trống bên dưới
-        st.markdown(f"##### <u><b>{day}</b></u>", unsafe_allow_html=True) 
-        st.write("") # Thêm một khoảng trống nhỏ
+        # *** PHẦN ĐƯỢC CẬP NHẬT: Thay đổi định dạng tiêu đề ngày ***
+        st.markdown(f"##### <b>{day}</b>", unsafe_allow_html=True) 
+        st.markdown('<p style="color:blue; margin-top: -8px; margin-bottom: 10px;">--------------------</p>', unsafe_allow_html=True)
 
         can_consolidate = False
         if set(day_group['Buổi'].unique()) == {'Sáng', 'Chiều'}:
