@@ -26,17 +26,31 @@ def connect_to_gsheet():
 
 def get_valid_classes_from_gsheet(client, spreadsheet_id):
     """
-    Lấy danh sách các lớp học hợp lệ từ sheet 'DANH_MUC'.
+    Lấy danh sách các lớp học hợp lệ từ sheet 'DANH_MUC' bằng cách tự động tìm cột 'Lớp học'.
     """
     try:
         spreadsheet = client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet("DANH_MUC")
-        # Giả sử cột "Lớp học" là cột B (index 2)
-        # Lấy tất cả giá trị từ cột B, bắt đầu từ dòng 2 (để bỏ qua header)
-        class_list = worksheet.col_values(2)[1:] 
+        
+        # Tự động tìm cột "Lớp học" thay vì giả định là cột B
+        headers = worksheet.row_values(1) # Giả sử header ở dòng 1
+        try:
+            # Tìm index của cột (gspread dùng index 1-based)
+            class_col_index = headers.index('Lớp học') + 1
+        except ValueError:
+            st.error("Lỗi: Không tìm thấy cột có tên 'Lớp học' trong sheet 'DANH_MUC'. Vui lòng kiểm tra lại header.")
+            return None
+
+        # Lấy tất cả giá trị từ cột đã tìm thấy, bắt đầu từ dòng 2
+        class_list = worksheet.col_values(class_col_index)[1:] 
+        
         # Lọc ra các giá trị rỗng và chuyển thành set để xử lý nhanh
         valid_classes = {str(c).strip() for c in class_list if str(c).strip()}
+        if not valid_classes:
+            st.warning("Cột 'Lớp học' trong sheet 'DANH_MUC' không có dữ liệu.")
+            
         return valid_classes
+        
     except gspread.exceptions.WorksheetNotFound:
         st.error("Lỗi: Không tìm thấy sheet 'DANH_MUC' trong Google Sheet.")
         return None
@@ -44,7 +58,7 @@ def get_valid_classes_from_gsheet(client, spreadsheet_id):
         st.error(f"Lỗi khi đọc danh sách lớp từ Google Sheet: {e}")
         return None
 
-# --- HÀM XỬ LÝ DỮ LIỆU EXCEL (ĐÃ CẬP NHẬT) ---
+# --- HÀM XỬ LÝ DỮ LIỆU EXCEL ---
 
 def find_start_cell(df_raw):
     """Tìm dòng và cột bắt đầu của khối dữ liệu bằng cách định vị cell 'STT'."""
