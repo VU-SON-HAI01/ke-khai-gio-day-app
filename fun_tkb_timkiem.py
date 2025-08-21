@@ -135,15 +135,15 @@ def render_schedule_details(schedule_df, mode='class'):
             tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
             
             details = []
-            details.append(f"📖 **Môn:** <span style='color:{green_color};'>{subject_info['Môn học']}</span>")
-            details.append(f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>")
+            details.append(f"<b>📖 Môn:</b> <span style='color:{green_color};'>{subject_info['Môn học']}</span>")
+            details.append(f"<b>⏰ Tiết:</b> <span style='color:{green_color};'>{tiet_str}</span>")
             
             if mode == 'class':
-                if subject_info['Giáo viên BM']: details.append(f"🧑‍💼 **GV:** <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>")
+                if subject_info['Giáo viên BM']: details.append(f"<b>🧑‍💼 GV:</b> <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>")
             else: # mode == 'teacher'
-                if subject_info['Lớp']: details.append(f"📝 **Lớp:** <span style='color:{green_color};'>{subject_info['Lớp']}</span>")
+                if subject_info['Lớp']: details.append(f"<b>📝 Lớp:</b> <span style='color:{green_color};'>{subject_info['Lớp']}</span>")
             
-            if subject_info['Phòng học']: details.append(f"🏤 **Phòng:** <span style='color:{green_color};'>{subject_info['Phòng học']}</span>")
+            if subject_info['Phòng học']: details.append(f"<b>🏤 Phòng:</b> <span style='color:{green_color};'>{subject_info['Phòng học']}</span>")
             
             details_html = "<br>".join(f"&nbsp;&nbsp;{item}" for item in details)
             st.markdown(f"<div>{details_html}</div>", unsafe_allow_html=True)
@@ -169,23 +169,23 @@ def render_schedule_details(schedule_df, mode='class'):
                         tiet_str = ", ".join(sorted(tiet_list, key=int))
                         
                         details = []
-                        details.append(f"📖 **Môn:** <span style='color:{green_color};'>{subject}</span>")
-                        details.append(f"⏰ **Tiết:** <span style='color:{green_color};'>{tiet_str}</span>")
+                        details.append(f"<b>📖 Môn:</b> <span style='color:{green_color};'>{subject}</span>")
+                        details.append(f"<b>⏰ Tiết:</b> <span style='color:{green_color};'>{tiet_str}</span>")
                         
                         if mode == 'class':
-                            if gv: details.append(f"🧑‍💼 **GV:** <span style='color:{green_color};'>{gv}</span>")
+                            if gv: details.append(f"<b>🧑‍💼 GV:</b> <span style='color:{green_color};'>{gv}</span>")
                         else: # mode == 'teacher'
-                            if lop: details.append(f"📝 **Lớp:** <span style='color:{green_color};'>{lop}</span>")
+                            if lop: details.append(f"<b>📝 Lớp:</b> <span style='color:{green_color};'>{lop}</span>")
                         
-                        if phong: details.append(f"🏤 **Phòng:** <span style='color:{green_color};'>{phong}</span>")
+                        if phong: details.append(f"<b>🏤 Phòng:</b> <span style='color:{green_color};'>{phong}</span>")
 
                         ghi_chu_part = ""
                         if ghi_chu and "học từ" in ghi_chu.lower():
                             date_match = re.search(r'(\d+/\d+)', ghi_chu)
                             if date_match:
-                                ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
+                                ghi_chu_part = f"<b>🔜 Bắt đầu học từ:</b> <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
                         elif ngay_ap_dung and str(ngay_ap_dung).strip():
-                            ghi_chu_part = f"🔜 **Bắt đầu học từ:** <span style='color:{green_color};'>\"{ngay_ap_dung}\"</span>"
+                            ghi_chu_part = f"<b>🔜 Bắt đầu học từ:</b> <span style='color:{green_color};'>\"{ngay_ap_dung}\"</span>"
                         
                         if ghi_chu_part:
                             details.append(ghi_chu_part)
