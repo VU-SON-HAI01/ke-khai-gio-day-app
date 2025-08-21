@@ -57,8 +57,9 @@ def get_valid_classes_from_gsheet(client, spreadsheet_id):
 # --- HÀM XỬ LÝ DỮ LIỆU EXCEL ---
 
 def find_start_cell(df_raw):
-    """Tìm dòng và cột bắt đầu của khối dữ liệu bằng cách định vị cell 'STT'."""
-    for r_idx, row in df_raw.iterrows():
+    """Tìm dòng và cột bắt đầu của khối dữ liệu bằng cách định vị cell 'STT' trong 11 dòng đầu."""
+    # Chỉ quét 11 dòng đầu tiên
+    for r_idx, row in df_raw.head(11).iterrows():
         for c_idx, cell in enumerate(row):
             if str(cell).strip().lower() == 'stt':
                 return r_idx, c_idx
@@ -82,25 +83,44 @@ def process_student_excel(excel_file, sheets_to_process):
             start_row, start_col = find_start_cell(df_raw)
             
             if start_row is None:
-                st.warning(f"Không tìm thấy header (cell 'STT') trong sheet '{sheet_name}'. Bỏ qua.")
+                st.warning(f"Không tìm thấy header (cell 'STT') trong 11 dòng đầu của sheet '{sheet_name}'. Bỏ qua.")
                 continue
 
-            # *** PHẦN ĐƯỢC CẬP NHẬT: Xử lý header gộp của Hộ khẩu thường trú ***
-            # Đọc 2 dòng header để xử lý các ô được gộp
+            # Xử lý header gộp (nếu có)
             header_row_1 = df_raw.iloc[start_row].tolist()
-            header_row_2 = df_raw.iloc[start_row + 1].tolist()
+            # Kiểm tra xem có dòng header thứ 2 không
+            if start_row + 1 < len(df_raw):
+                header_row_2 = df_raw.iloc[start_row + 1].tolist()
+                data_start_offset = 2 # Dữ liệu bắt đầu sau 2 dòng header
+            else:
+                header_row_2 = [None] * len(header_row_1)
+                data_start_offset = 1 # Dữ liệu bắt đầu sau 1 dòng header
 
             final_headers = []
             last_main_header = ""
+            
+            # Logic mới để xử lý tên cột Họ và Tên
+            # Tìm vị trí của 'Họ và tên' để xử lý 2 cột liền kề
+            ho_ten_index = -1
+            try:
+                ho_ten_index = [str(h).strip().lower() for h in header_row_1].index('họ và tên')
+            except ValueError:
+                pass # Không tìm thấy, sẽ xử lý sau
+
             for i in range(len(header_row_1)):
-                # Tự lan truyền giá trị của ô được gộp
                 main_header = str(header_row_1[i]).strip()
                 if main_header and main_header.lower() != 'nan':
                     last_main_header = main_header
-                
-                sub_header = str(header_row_2[i]).strip()
 
-                # Ưu tiên header phụ (Thôn, Xã,...) nếu header chính là Hộ khẩu thường trú
+                # Xử lý trường hợp đặc biệt của Họ và Tên
+                if ho_ten_index != -1 and i == ho_ten_index:
+                    final_headers.append("Họ đệm")
+                    continue
+                if ho_ten_index != -1 and i == ho_ten_index + 1:
+                    final_headers.append("Tên")
+                    continue
+
+                sub_header = str(header_row_2[i]).strip()
                 if "hộ khẩu thường trú" in last_main_header.lower() and sub_header and sub_header.lower() != 'nan':
                     final_headers.append(sub_header)
                 else:
@@ -109,21 +129,20 @@ def process_student_excel(excel_file, sheets_to_process):
             try:
                 end_col_index = final_headers.index('Ghi chú')
             except ValueError:
-                st.warning(f"Không tìm thấy cột 'Ghi chú' trong sheet '{sheet_name}'. Bỏ qua.")
+                st.warning(f"Không tìm thấy cột 'Ghi chú' trong header của sheet '{sheet_name}'. Bỏ qua.")
                 continue
             
-            # Dữ liệu bắt đầu từ 2 dòng sau dòng 'STT'
-            df = df_raw.iloc[start_row + 2:, start_col : end_col_index + 1]
+            df = df_raw.iloc[start_row + data_start_offset:, start_col : end_col_index + 1]
             df.columns = final_headers[start_col : end_col_index + 1]
             df = df.loc[:, ~df.columns.duplicated(keep='first')]
 
-            if 'Họ và tên' not in df.columns:
-                 st.warning(f"Không tìm thấy cột 'Họ và tên' trong sheet '{sheet_name}'. Bỏ qua.")
+            if 'Tên' not in df.columns:
+                 st.warning(f"Không thể xác định cột 'Tên' trong sheet '{sheet_name}'. Bỏ qua.")
                  continue
 
             end_row_marker = -1
-            ho_ten_list = df['Họ và tên'].tolist()
-            for i, value in enumerate(ho_ten_list):
+            ten_list = df['Tên'].tolist()
+            for i, value in enumerate(ten_list):
                 if pd.isna(value) or str(value).strip() == '' or isinstance(value, (int, float)):
                     end_row_marker = i
                     break
@@ -143,11 +162,6 @@ def process_student_excel(excel_file, sheets_to_process):
 
         combined_df = pd.concat(all_sheets_data, ignore_index=True)
         
-        if 'Họ và tên' in combined_df.columns:
-            name_parts = combined_df['Họ và tên'].astype(str).str.rsplit(' ', n=1, expand=True)
-            combined_df['Họ đệm'] = name_parts[0].fillna('')
-            combined_df['Tên'] = name_parts[1].fillna('')
-        
         if 'Năm sinh' in combined_df.columns:
             valid_dates = pd.to_datetime(combined_df['Năm sinh'], errors='coerce')
             formatted_dates = valid_dates.dt.strftime('%d/%m/%Y')
@@ -155,8 +169,7 @@ def process_student_excel(excel_file, sheets_to_process):
 
         if 'SĐT' in combined_df.columns:
             def format_phone_number(phone):
-                if pd.isna(phone):
-                    return ''
+                if pd.isna(phone): return ''
                 digits = re.sub(r'\D', '', str(phone))
                 if len(digits) == 10:
                     return f"{digits[:3]} {digits[3:6]} {digits[6:]}"
