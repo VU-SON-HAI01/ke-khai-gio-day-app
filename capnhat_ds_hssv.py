@@ -24,6 +24,26 @@ def connect_to_gsheet():
         st.error(f"Lỗi kết nối Google Sheets: {e}")
         return None
 
+def get_valid_classes_from_gsheet(client, spreadsheet_id):
+    """
+    Lấy danh sách các lớp học hợp lệ từ sheet 'DANH_MUC'.
+    """
+    try:
+        spreadsheet = client.open_by_key(spreadsheet_id)
+        worksheet = spreadsheet.worksheet("DANH_MUC")
+        # Giả sử cột "Lớp học" là cột B (index 2)
+        # Lấy tất cả giá trị từ cột B, bắt đầu từ dòng 2 (để bỏ qua header)
+        class_list = worksheet.col_values(2)[1:] 
+        # Lọc ra các giá trị rỗng và chuyển thành set để xử lý nhanh
+        valid_classes = {str(c).strip() for c in class_list if str(c).strip()}
+        return valid_classes
+    except gspread.exceptions.WorksheetNotFound:
+        st.error("Lỗi: Không tìm thấy sheet 'DANH_MUC' trong Google Sheet.")
+        return None
+    except Exception as e:
+        st.error(f"Lỗi khi đọc danh sách lớp từ Google Sheet: {e}")
+        return None
+
 # --- HÀM XỬ LÝ DỮ LIỆU EXCEL (ĐÃ CẬP NHẬT) ---
 
 def find_start_cell(df_raw):
@@ -34,10 +54,9 @@ def find_start_cell(df_raw):
                 return r_idx, c_idx
     return None, None
 
-def process_student_excel(excel_file):
+def process_student_excel(excel_file, sheets_to_process):
     """
-    Đọc file Excel, trích xuất dữ liệu sinh viên dựa trên các điểm đánh dấu bắt đầu/kết thúc cụ thể,
-    và hợp nhất dữ liệu từ tất cả các sheet.
+    Đọc file Excel, trích xuất dữ liệu sinh viên từ các sheet hợp lệ đã được chỉ định.
     """
     try:
         xls = pd.ExcelFile(excel_file)
@@ -49,7 +68,7 @@ def process_student_excel(excel_file):
             'Nơi sinh', 'Thôn', 'Xã', 'Huyện', 'Tỉnh', 'SĐT', 'Ghi chú'
         ]
 
-        for sheet_name in xls.sheet_names:
+        for sheet_name in sheets_to_process:
             df_raw = pd.read_excel(xls, sheet_name=sheet_name, header=None)
             
             start_row, start_col = find_start_cell(df_raw)
@@ -58,75 +77,54 @@ def process_student_excel(excel_file):
                 st.warning(f"Không tìm thấy header (cell 'STT') trong sheet '{sheet_name}'. Bỏ qua sheet này.")
                 continue
 
-            # Trích xuất header từ dòng đã xác định
             headers = [str(h).strip() for h in df_raw.iloc[start_row, :]]
             
-            # Tìm cột kết thúc dựa trên 'Ghi chú'
             try:
-                # Tìm vị trí cuối cùng của 'Ghi chú' để đảm bảo lấy hết dữ liệu
                 end_col_index = len(headers) - 1 - headers[::-1].index('Ghi chú')
             except ValueError:
                 st.warning(f"Không tìm thấy cột 'Ghi chú' trong sheet '{sheet_name}'. Bỏ qua sheet này.")
                 continue
             
-            # Trích xuất khối dữ liệu (từ dòng sau header)
             df = df_raw.iloc[start_row + 1:, start_col : end_col_index + 1]
-            # Gán header chính xác
             df.columns = headers[start_col : end_col_index + 1]
-
-            # *** PHẦN SỬA LỖI: Loại bỏ các cột bị trùng tên, chỉ giữ lại cột đầu tiên ***
             df = df.loc[:, ~df.columns.duplicated(keep='first')]
 
-            # Xác định dòng kết thúc dựa trên cột 'Họ và tên'
             if 'Họ và tên' not in df.columns:
                  st.warning(f"Không tìm thấy cột 'Họ và tên' trong sheet '{sheet_name}'. Bỏ qua sheet này.")
                  continue
 
             end_row_marker = -1
-            # Chuyển cột sang list để duyệt nhanh hơn
             ho_ten_list = df['Họ và tên'].tolist()
             for i, value in enumerate(ho_ten_list):
-                # Dừng lại nếu cell trống, NaN, hoặc là một số
                 if pd.isna(value) or str(value).strip() == '' or isinstance(value, (int, float)):
                     end_row_marker = i
                     break
             
-            # Cắt DataFrame đến đúng số dòng
             if end_row_marker != -1:
                 df = df.iloc[:end_row_marker]
 
-            # Bỏ các dòng không có STT (thường là các dòng trống)
             df.dropna(subset=['STT'], inplace=True)
 
             if df.empty:
                 continue
 
-            # Thêm cột 'Lớp'
             df.insert(1, 'Lớp', sheet_name)
-            
             all_sheets_data.append(df)
 
         if not all_sheets_data:
-            st.error("Không có dữ liệu hợp lệ nào được tìm thấy trong file Excel.")
+            st.error("Không có dữ liệu hợp lệ nào được tìm thấy trong các sheet đã chọn để xử lý.")
             return None
 
-        # Gộp dữ liệu từ tất cả các sheet
         combined_df = pd.concat(all_sheets_data, ignore_index=True)
-        
-        # Tạo một DataFrame cuối cùng với cấu trúc cột của Google Sheet
         final_df = pd.DataFrame()
         
-        # Ánh xạ các cột từ dữ liệu đã trích xuất sang các cột mục tiêu
         for col in target_gsheet_columns:
             if col in combined_df.columns:
                 final_df[col] = combined_df[col]
             else:
-                # Thêm cột bị thiếu với giá trị trống
                 final_df[col] = None
         
-        # Đảm bảo thứ tự cột là chính xác
         final_df = final_df[target_gsheet_columns]
-        
         return final_df
 
     except Exception as e:
@@ -146,7 +144,6 @@ def upload_to_gsheet(client, spreadsheet_id, worksheet_name, df):
         worksheet.clear()
         
         st.write(f"Đang tải dữ liệu mới lên sheet '{worksheet_name}'...")
-        # Sử dụng gspread-dataframe để tải lên dễ dàng
         set_with_dataframe(worksheet, df)
         
         return True
@@ -167,7 +164,7 @@ st.markdown("---")
 st.header("Bước 1: Cấu hình Google Sheet")
 SPREADSHEET_ID = st.text_input(
     "Nhập ID của Google Sheet (DA_TA)",
-    "1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI" # Có thể thay ID mặc định ở đây
+    "1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI" 
 )
 WORKSHEET_NAME = "DANHSACH_HSSV"
 st.info(f"Dữ liệu sẽ được ghi vào sheet có tên là: **{WORKSHEET_NAME}**")
@@ -181,15 +178,35 @@ uploaded_excel_file = st.file_uploader(
 )
 
 if uploaded_excel_file and SPREADSHEET_ID:
-    if st.button("⚡ Chuyển dữ liệu ngay", type="primary", use_container_width=True):
+    if st.button("⚡ Kiểm tra và Chuyển dữ liệu", type="primary", use_container_width=True):
         with st.spinner("Đang kết nối với Google Sheets..."):
             gsheet_client = connect_to_gsheet()
         
         if gsheet_client:
             st.success("✅ Kết nối Google Sheets thành công!")
             
+            # --- KIỂM TRA TÊN SHEET ---
+            with st.spinner("Đang kiểm tra tên các sheet..."):
+                valid_classes = get_valid_classes_from_gsheet(gsheet_client, SPREADSHEET_ID)
+                if valid_classes is not None:
+                    uploaded_sheets = set(pd.ExcelFile(uploaded_excel_file).sheet_names)
+                    
+                    mismatched_sheets = uploaded_sheets - valid_classes
+                    sheets_to_process = list(uploaded_sheets.intersection(valid_classes))
+
+                    if mismatched_sheets:
+                        st.warning(f"⚠️ Các sheet sau không có trong danh mục và sẽ bị bỏ qua:")
+                        st.json(list(mismatched_sheets))
+                    
+                    if not sheets_to_process:
+                        st.error("Không có sheet nào trong file Excel khớp với danh mục lớp học. Dừng xử lý.")
+                        st.stop()
+                    
+                    st.success(f"Tìm thấy {len(sheets_to_process)} sheet hợp lệ để xử lý.")
+
+            # --- XỬ LÝ VÀ TẢI LÊN ---
             with st.spinner("Đang xử lý file Excel..."):
-                final_df = process_student_excel(uploaded_excel_file)
+                final_df = process_student_excel(uploaded_excel_file, sheets_to_process)
             
             if final_df is not None:
                 st.success("✅ Xử lý file Excel hoàn tất!")
