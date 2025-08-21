@@ -139,14 +139,21 @@ def process_student_excel(excel_file, sheets_to_process):
 
         combined_df = pd.concat(all_sheets_data, ignore_index=True)
         
+        # *** PHẦN ĐƯỢC CẬP NHẬT: Logic định dạng Năm sinh mới ***
         if 'Năm sinh' in combined_df.columns:
-            # Chuyển đổi sang datetime, những giá trị không hợp lệ sẽ thành NaT (Not a Time)
-            valid_dates = pd.to_datetime(combined_df['Năm sinh'], errors='coerce')
-            # Định dạng lại những ngày hợp lệ sang dd/mm/yyyy, những ngày không hợp lệ (NaT) sẽ thành NaN
-            # Mã '%d' và '%m' tự động thêm số 0 vào trước ngày/tháng có một chữ số
-            formatted_dates = valid_dates.dt.strftime('%d/%m/%Y')
-            # Điền lại các giá trị gốc cho những ô không thể chuyển đổi, sau đó điền NaN còn lại bằng chuỗi rỗng
-            combined_df['Năm sinh'] = formatted_dates.fillna(combined_df['Năm sinh']).fillna('')
+            def format_dob(date_value):
+                if pd.isna(date_value) or str(date_value).strip() == '':
+                    return ''
+                try:
+                    # Cố gắng chuyển đổi thành đối tượng datetime
+                    dt_object = pd.to_datetime(date_value)
+                    # Nếu thành công, định dạng lại theo chuẩn dd/mm/yyyy
+                    return dt_object.strftime('%d/%m/%Y')
+                except (ValueError, TypeError):
+                    # Nếu lỗi, trả về giá trị gốc dạng chuỗi
+                    return str(date_value).strip()
+
+            combined_df['Năm sinh'] = combined_df['Năm sinh'].apply(format_dob)
 
         phone_col_name = None
         if 'SĐT' in combined_df.columns:
