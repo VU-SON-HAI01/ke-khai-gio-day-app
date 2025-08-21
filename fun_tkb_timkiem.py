@@ -80,14 +80,19 @@ def load_all_data_and_get_dates(_client, spreadsheet_id):
         combined_df = pd.concat(all_dfs, ignore_index=True)
 
         if 'Ngày áp dụng' in combined_df.columns:
-            dates = combined_df['Ngày áp dụng'].dropna().astype(str).unique()
-            valid_dates = pd.to_datetime(dates, dayfirst=True, errors='coerce')
-            
-            sorted_dates = pd.Series(valid_dates).dropna().sort_values()
-            
             # *** PHẦN ĐƯỢC SỬA LỖI ***
-            # Sử dụng .dt accessor để áp dụng strftime cho mỗi phần tử trong Series
-            date_list = sorted_dates.dt.strftime('%d/%m/%Y').tolist()
+            # 1. Chuyển đổi cột 'Ngày áp dụng' sang kiểu datetime để xử lý
+            #    Thao tác này sẽ loại bỏ các giá trị không hợp lệ (thành NaT)
+            valid_dates_series = pd.to_datetime(combined_df['Ngày áp dụng'], dayfirst=True, errors='coerce')
+
+            # 2. Tạo danh sách ngày cho bộ lọc từ các ngày hợp lệ
+            #    Lọc bỏ NaT, sắp xếp, định dạng và lấy giá trị duy nhất
+            date_list = sorted(valid_dates_series.dropna().dt.strftime('%d/%m/%Y').unique())
+
+            # 3. Chuẩn hóa cột 'Ngày áp dụng' trong DataFrame chính về cùng định dạng
+            #    Điều này đảm bảo việc so sánh để lọc sau này sẽ chính xác
+            combined_df['Ngày áp dụng'] = valid_dates_series.dt.strftime('%d/%m/%Y')
+
         else:
             date_list = []
 
