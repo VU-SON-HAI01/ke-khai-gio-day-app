@@ -86,63 +86,46 @@ def process_student_excel(excel_file, sheets_to_process):
                 st.warning(f"Không tìm thấy header (cell 'STT') trong 11 dòng đầu của sheet '{sheet_name}'. Bỏ qua.")
                 continue
 
-            # Xử lý header gộp (nếu có)
-            header_row_1 = df_raw.iloc[start_row].tolist()
-            # Kiểm tra xem có dòng header thứ 2 không
-            if start_row + 1 < len(df_raw):
-                header_row_2 = df_raw.iloc[start_row + 1].tolist()
-                data_start_offset = 2 # Dữ liệu bắt đầu sau 2 dòng header
-            else:
-                header_row_2 = [None] * len(header_row_1)
-                data_start_offset = 1 # Dữ liệu bắt đầu sau 1 dòng header
+            # *** PHẦN ĐƯỢC CẬP NHẬT: Logic xử lý header mới ***
+            header_list = df_raw.iloc[start_row].tolist()
+            final_headers = [str(h).strip() for h in header_list]
 
-            final_headers = []
-            last_main_header = ""
-            
-            # Logic mới để xử lý tên cột Họ và Tên
-            # Tìm vị trí của 'Họ và tên' để xử lý 2 cột liền kề
-            ho_ten_index = -1
-            try:
-                ho_ten_index = [str(h).strip().lower() for h in header_row_1].index('họ và tên')
-            except ValueError:
-                pass # Không tìm thấy, sẽ xử lý sau
-
-            for i in range(len(header_row_1)):
-                main_header = str(header_row_1[i]).strip()
-                if main_header and main_header.lower() != 'nan':
-                    last_main_header = main_header
-
-                # Xử lý trường hợp đặc biệt của Họ và Tên
-                if ho_ten_index != -1 and i == ho_ten_index:
-                    final_headers.append("Họ đệm")
-                    continue
-                if ho_ten_index != -1 and i == ho_ten_index + 1:
-                    final_headers.append("Tên")
-                    continue
-
-                sub_header = str(header_row_2[i]).strip()
-                if "hộ khẩu thường trú" in last_main_header.lower() and sub_header and sub_header.lower() != 'nan':
-                    final_headers.append(sub_header)
-                else:
-                    final_headers.append(last_main_header)
-            
+            # Xác định cột kết thúc
             try:
                 end_col_index = final_headers.index('Ghi chú')
             except ValueError:
                 st.warning(f"Không tìm thấy cột 'Ghi chú' trong header của sheet '{sheet_name}'. Bỏ qua.")
                 continue
             
-            df = df_raw.iloc[start_row + data_start_offset:, start_col : end_col_index + 1]
+            # Áp dụng quy tắc đặc biệt cho cột Họ và Tên
+            if start_col == 0: # Nếu STT là cột A
+                final_headers[start_col + 1] = "Họ đệm"
+                final_headers[start_col + 2] = "Tên"
+            
+            # Áp dụng quy tắc cho Hộ khẩu thường trú
+            try:
+                hokhau_index = [h.lower() for h in final_headers].index('hộ khẩu thường trú')
+                final_headers[hokhau_index] = "Thôn"
+                final_headers[hokhau_index + 1] = "Xã"
+                final_headers[hokhau_index + 2] = "Huyện"
+                final_headers[hokhau_index + 3] = "Tỉnh"
+            except ValueError:
+                pass # Bỏ qua nếu không có cột Hộ khẩu thường trú
+
+            # Trích xuất dữ liệu từ hàng ngay bên dưới header
+            df = df_raw.iloc[start_row + 1:, start_col : end_col_index + 1]
             df.columns = final_headers[start_col : end_col_index + 1]
             df = df.loc[:, ~df.columns.duplicated(keep='first')]
 
-            if 'Tên' not in df.columns:
-                 st.warning(f"Không thể xác định cột 'Tên' trong sheet '{sheet_name}'. Bỏ qua.")
-                 continue
+            # Xác định cột để kiểm tra điểm kết thúc (cột C nếu STT ở A)
+            termination_col_name = "Tên" if start_col == 0 and "Tên" in df.columns else None
+            if not termination_col_name:
+                st.warning(f"Không thể xác định cột Tên để tìm điểm kết thúc trong sheet '{sheet_name}'.")
+                continue
 
             end_row_marker = -1
-            ten_list = df['Tên'].tolist()
-            for i, value in enumerate(ten_list):
+            termination_list = df[termination_col_name].tolist()
+            for i, value in enumerate(termination_list):
                 if pd.isna(value) or str(value).strip() == '' or isinstance(value, (int, float)):
                     end_row_marker = i
                     break
