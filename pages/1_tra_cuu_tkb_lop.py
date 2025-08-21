@@ -2,7 +2,7 @@
 
 import streamlit as st
 import pandas as pd
-from utils import connect_to_gsheet, get_all_data_sheets, load_data_from_gsheet, render_schedule_details
+from fun_tkb_timkiem import connect_to_gsheet, get_all_data_sheets, load_data_from_gsheet, render_schedule_details
 
 def display_class_schedule(df_data):
     """Hàm hiển thị giao diện tra cứu theo Lớp."""
