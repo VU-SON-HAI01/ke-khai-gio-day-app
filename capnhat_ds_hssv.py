@@ -63,7 +63,8 @@ def process_student_excel(excel_file):
             
             # Tìm cột kết thúc dựa trên 'Ghi chú'
             try:
-                end_col_index = headers.index('Ghi chú')
+                # Tìm vị trí cuối cùng của 'Ghi chú' để đảm bảo lấy hết dữ liệu
+                end_col_index = len(headers) - 1 - headers[::-1].index('Ghi chú')
             except ValueError:
                 st.warning(f"Không tìm thấy cột 'Ghi chú' trong sheet '{sheet_name}'. Bỏ qua sheet này.")
                 continue
@@ -73,13 +74,18 @@ def process_student_excel(excel_file):
             # Gán header chính xác
             df.columns = headers[start_col : end_col_index + 1]
 
+            # *** PHẦN SỬA LỖI: Loại bỏ các cột bị trùng tên, chỉ giữ lại cột đầu tiên ***
+            df = df.loc[:, ~df.columns.duplicated(keep='first')]
+
             # Xác định dòng kết thúc dựa trên cột 'Họ và tên'
             if 'Họ và tên' not in df.columns:
                  st.warning(f"Không tìm thấy cột 'Họ và tên' trong sheet '{sheet_name}'. Bỏ qua sheet này.")
                  continue
 
             end_row_marker = -1
-            for i, value in enumerate(df['Họ và tên']):
+            # Chuyển cột sang list để duyệt nhanh hơn
+            ho_ten_list = df['Họ và tên'].tolist()
+            for i, value in enumerate(ho_ten_list):
                 # Dừng lại nếu cell trống, NaN, hoặc là một số
                 if pd.isna(value) or str(value).strip() == '' or isinstance(value, (int, float)):
                     end_row_marker = i
