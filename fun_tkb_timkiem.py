@@ -54,8 +54,56 @@ def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
     except Exception as e:
         st.error(f"Lỗi khi tải dữ liệu từ sheet '{sheet_name}': {e}"); return pd.DataFrame()
 
-# --- HÀM HIỂN THỊ CHI TIẾT LỊCH HỌC (DÙNG CHUNG) ---
+@st.cache_data(ttl=300) # Cache for 5 minutes
+def load_all_data_and_get_dates(_client, spreadsheet_id):
+    """
+    Tải dữ liệu từ tất cả các sheet "DATA_*", hợp nhất chúng,
+    và trả về DataFrame tổng hợp cùng danh sách các ngày áp dụng duy nhất.
+    """
+    if not _client:
+        return pd.DataFrame(), []
 
+    try:
+        sheet_list = get_all_data_sheets(_client, spreadsheet_id)
+        if not sheet_list:
+            return pd.DataFrame(), []
+
+        all_dfs = []
+        for sheet_name in sheet_list:
+            df = load_data_from_gsheet(_client, spreadsheet_id, sheet_name)
+            if not df.empty:
+                all_dfs.append(df)
+
+        if not all_dfs:
+            return pd.DataFrame(), []
+
+        combined_df = pd.concat(all_dfs, ignore_index=True)
+
+        if 'Ngày áp dụng' in combined_df.columns:
+            # Chuyển đổi sang chuỗi để xử lý nhất quán, loại bỏ giá trị rỗng/NaN
+            dates = combined_df['Ngày áp dụng'].dropna().astype(str).unique()
+            # Cố gắng chuyển đổi sang datetime để sắp xếp đúng, sau đó quay lại chuỗi
+            try:
+                # Lọc ra những chuỗi có dạng ngày tháng dd/mm/yyyy hoặc d/m/yyyy
+                valid_dates = [d for d in dates if re.match(r'^\d{1,2}/\d{1,2}/\d{4}$', d)]
+                if not valid_dates:
+                    return combined_df, sorted(list(dates)) # Sắp xếp chuỗi nếu không có định dạng ngày
+                
+                sorted_dates = pd.to_datetime(valid_dates, dayfirst=True, errors='coerce').dropna().sort_values()
+                date_list = sorted_dates.strftime('%d/%m/%Y').tolist()
+            except Exception:
+                date_list = sorted(list(dates))
+        else:
+            date_list = []
+
+        return combined_df, date_list
+
+    except Exception as e:
+        st.error(f"Lỗi khi tải và hợp nhất dữ liệu: {e}")
+        return pd.DataFrame(), []
+
+
+# --- HÀM HIỂN THỊ CHI TIẾT LỊCH HỌC (DÙNG CHUNG) ---
 def render_schedule_details(schedule_df, mode='class'):
     """Hàm chung để hiển thị chi tiết lịch học hoặc lịch dạy."""
     green_color = "#00FF00"
