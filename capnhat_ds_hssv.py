@@ -86,23 +86,19 @@ def process_student_excel(excel_file, sheets_to_process):
                 st.warning(f"Không tìm thấy header (cell 'STT') trong 11 dòng đầu của sheet '{sheet_name}'. Bỏ qua.")
                 continue
 
-            # *** PHẦN ĐƯỢC CẬP NHẬT: Logic xử lý header mới ***
             header_list = df_raw.iloc[start_row].tolist()
             final_headers = [str(h).strip() for h in header_list]
 
-            # Xác định cột kết thúc
             try:
                 end_col_index = final_headers.index('Ghi chú')
             except ValueError:
                 st.warning(f"Không tìm thấy cột 'Ghi chú' trong header của sheet '{sheet_name}'. Bỏ qua.")
                 continue
             
-            # Áp dụng quy tắc đặc biệt cho cột Họ và Tên
-            if start_col == 0: # Nếu STT là cột A
+            if start_col == 0:
                 final_headers[start_col + 1] = "Họ đệm"
                 final_headers[start_col + 2] = "Tên"
             
-            # Áp dụng quy tắc cho Hộ khẩu thường trú
             try:
                 hokhau_index = [h.lower() for h in final_headers].index('hộ khẩu thường trú')
                 final_headers[hokhau_index] = "Thôn"
@@ -110,14 +106,12 @@ def process_student_excel(excel_file, sheets_to_process):
                 final_headers[hokhau_index + 2] = "Huyện"
                 final_headers[hokhau_index + 3] = "Tỉnh"
             except ValueError:
-                pass # Bỏ qua nếu không có cột Hộ khẩu thường trú
+                pass 
 
-            # Trích xuất dữ liệu từ hàng ngay bên dưới header
             df = df_raw.iloc[start_row + 1:, start_col : end_col_index + 1]
             df.columns = final_headers[start_col : end_col_index + 1]
             df = df.loc[:, ~df.columns.duplicated(keep='first')]
 
-            # Xác định cột để kiểm tra điểm kết thúc (cột C nếu STT ở A)
             termination_col_name = "Tên" if start_col == 0 and "Tên" in df.columns else None
             if not termination_col_name:
                 st.warning(f"Không thể xác định cột Tên để tìm điểm kết thúc trong sheet '{sheet_name}'.")
@@ -150,14 +144,33 @@ def process_student_excel(excel_file, sheets_to_process):
             formatted_dates = valid_dates.dt.strftime('%d/%m/%Y')
             combined_df['Năm sinh'] = formatted_dates.fillna(combined_df['Năm sinh']).fillna('')
 
+        # *** PHẦN ĐƯỢC CẬP NHẬT: Xử lý cột SĐT hoặc Tel ***
+        phone_col_name = None
         if 'SĐT' in combined_df.columns:
+            phone_col_name = 'SĐT'
+        elif 'Tel' in combined_df.columns:
+            phone_col_name = 'Tel'
+
+        if phone_col_name:
             def format_phone_number(phone):
-                if pd.isna(phone): return ''
+                if pd.isna(phone):
+                    return ''
+                # Chuyển thành chuỗi và chỉ giữ lại các chữ số
                 digits = re.sub(r'\D', '', str(phone))
-                if len(digits) == 10:
+                
+                # Chỉ định dạng nếu có 10 chữ số và bắt đầu bằng 0
+                if len(digits) == 10 and digits.startswith('0'):
+                    # Format: 0XX XXX XXXX
                     return f"{digits[:3]} {digits[3:6]} {digits[6:]}"
+                
+                # Trả về giá trị gốc (đã làm sạch) nếu không đúng định dạng
                 return digits
-            combined_df['SĐT'] = combined_df['SĐT'].apply(format_phone_number)
+
+            combined_df[phone_col_name] = combined_df[phone_col_name].apply(format_phone_number)
+            
+            # Đổi tên cột 'Tel' thành 'SĐT' để khớp với Google Sheet
+            if phone_col_name == 'Tel':
+                combined_df.rename(columns={'Tel': 'SĐT'}, inplace=True)
 
         final_df = pd.DataFrame()
         for col in target_gsheet_columns:
