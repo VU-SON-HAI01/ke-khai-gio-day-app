@@ -193,4 +193,3 @@ def render_schedule_details(schedule_df, mode='class'):
 
                         details_html = "<br>".join(f"&nbsp;&nbsp;{item}" for item in details)
                         st.markdown(f"<div>{details_html}</div><br>", unsafe_allow_html=True)
-�
