@@ -116,7 +116,6 @@ else:
         pages = {
             "Quản lý": [st.Page("quan_ly_giao_vien.py", title="Quản lý Giáo viên"),
                          st.Page("thoi_khoa_bieu.py", title="Cập nhật TKB")],
-            # <<< PHẦN ĐƯỢC CẬP NHẬT >>>
             "🔍Tra cứu TKB": [st.Page("pages/1_tra_cuu_tkb_gv.py", title="Tra cứu theo GV"),
                             st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu theo Lớp"),
                             st.Page("pages/1_tra_cuu_thongtin_hssv.py", title="Tra cứu thông tin HSSV"),
@@ -156,11 +155,17 @@ else:
             st.write(f"**Khoa/Phòng:** :green[{st.session_state.get('ten_khoa', '')}]")
         
         st.header(f"Chào mừng, {st.session_state.get('tengv', '')}!")
-        # --- ĐIỀU HƯỚNG TRANG CHO USER THƯỜNG ---
+        # --- ĐIỀU HƯỚNG TRANG CHO USER THƯỜNG (ĐÃ CẬP NHẬT) ---
         pages = {
             "Kê khai": [st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
                         st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động")],
-            "Tra cứu": [st.Page("thoi_khoa_bieu_user.py", title="Tra cứu TKB")],
+            "Tra cứu": [
+                st.Page("pages/1_tra_cuu_tkb_gv.py", title="Tra cứu TKB theo GV"),
+                st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu TKB theo Lớp"),
+                # Thêm các trang chi tiết để link hoạt động
+                st.Page("pages/2_sodo_phonghoc.py", title="Sơ đồ Phòng học"),
+                st.Page("pages/2_thongtin_monhoc.py", title="Thông tin Môn học")
+            ],
             "Báo cáo": [st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file")],
             "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn")]
         }
