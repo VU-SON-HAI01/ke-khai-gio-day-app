@@ -45,36 +45,56 @@ def load_data_from_gsheet(_client, spreadsheet_id, sheet_name):
     except Exception as e:
         st.error(f"Lỗi khi tải dữ liệu từ sheet '{sheet_name}': {e}"); return pd.DataFrame()
 
-@st.cache_data(ttl=300)
-def load_all_data_and_get_dates(_client, spreadsheet_id):
-    if not _client:
-        return pd.DataFrame(), []
-    try:
-        sheet_list = get_all_data_sheets(_client, spreadsheet_id)
-        if not sheet_list:
-            return pd.DataFrame(), []
-        all_dfs = []
-        for sheet_name in sheet_list:
-            df = load_data_from_gsheet(_client, spreadsheet_id, sheet_name)
-            if not df.empty:
-                all_dfs.append(df)
-        if not all_dfs:
-            return pd.DataFrame(), []
-        combined_df = pd.concat(all_dfs, ignore_index=True)
-        if 'Ngày áp dụng' in combined_df.columns:
-            valid_dates_series = pd.to_datetime(combined_df['Ngày áp dụng'], dayfirst=True, errors='coerce')
-            date_list = sorted(valid_dates_series.dropna().dt.strftime('%d/%m/%Y').unique())
-            combined_df['Ngày áp dụng'] = valid_dates_series.dt.strftime('%d/%m/%Y')
-        else:
-            date_list = []
-        return combined_df, date_list
-    except Exception as e:
-        st.error(f"Lỗi khi tải và hợp nhất dữ liệu: {e}")
-        return pd.DataFrame(), []
+# --- PHẦN CẬP NHẬT QUAN TRỌNG ---
 
-# --- HÀM HIỂN THỊ CHI TIẾT LỊCH HỌC (ĐÃ CẬP NHẬT LINK ĐỂ KHÔNG BỊ LOGOUT) ---
+def inject_custom_css():
+    """
+    Hàm này chèn CSS để tùy chỉnh giao diện cho các link được tạo bởi st.page_link,
+    giúp chúng có màu xanh và không gạch chân giống như thiết kế cũ.
+    """
+    green_color = "#00FF00"
+    st.markdown(f"""
+        <style>
+            /* Nhắm vào các link được tạo bởi st.page_link đến các trang cụ thể */
+            a[data-testid="stPageLink-NavLink"][href*="2_thongtin_monhoc"],
+            a[data-testid="stPageLink-NavLink"][href*="2_sodo_phonghoc"] {{
+                color: {green_color} !important;
+                text-decoration: none !important;
+                font-weight: normal !important;
+                display: inline !important;
+                padding: 0 !important;
+            }}
+            /* Thêm gạch chân khi di chuột qua để người dùng biết đây là link */
+            a[data-testid="stPageLink-NavLink"][href*="2_thongtin_monhoc"]:hover,
+            a[data-testid="stPageLink-NavLink"][href*="2_sodo_phonghoc"]:hover {{
+                text-decoration: underline !important;
+                color: {green_color} !important;
+            }}
+        </style>
+    """, unsafe_allow_html=True)
+
+def display_schedule_item(label, value, link_page=None, query_params=None, is_html=False, color="#00FF00"):
+    """Hàm tiện ích để hiển thị một dòng thông tin (ví dụ: Môn: ABC)."""
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        st.markdown(f"<b>{label}</b>", unsafe_allow_html=True)
+    with col2:
+        if link_page:
+            st.page_link(link_page, label=value, query_params=query_params)
+        else:
+            if is_html:
+                st.markdown(value, unsafe_allow_html=True)
+            else:
+                st.markdown(f"<span style='color:{color};'>{value}</span>", unsafe_allow_html=True)
+
+
 def render_schedule_details(schedule_df, mode='class'):
-    """Hàm chung để hiển thị chi tiết lịch học hoặc lịch dạy."""
+    """
+    Hàm hiển thị chi tiết lịch học, đã được tái cấu trúc hoàn toàn để sử dụng
+    st.page_link, giúp giữ trạng thái đăng nhập khi chuyển trang.
+    """
+    inject_custom_css() # Chèn CSS tùy chỉnh vào trang
+
     green_color = "#00FF00"
     number_to_day_map = {
         2: '2️⃣ THỨ HAI', 3: '3️⃣ THỨ BA', 4: '4️⃣ THỨ TƯ',
@@ -93,94 +113,52 @@ def render_schedule_details(schedule_df, mode='class'):
 
         st.markdown(f"##### <b>{day}</b> <span style='color:white; font-weight: normal; margin-left: 10px;'>--------------------</span>", unsafe_allow_html=True)
 
-        can_consolidate = False
-        if set(day_group['Buổi'].unique()) == {'Sáng', 'Chiều'}:
-            sang_subjects = day_group[day_group['Buổi'] == 'Sáng'][['Môn học', 'Giáo viên BM', 'Phòng học', 'Lớp']].drop_duplicates()
-            chieu_subjects = day_group[day_group['Buổi'] == 'Chiều'][['Môn học', 'Giáo viên BM', 'Phòng học', 'Lớp']].drop_duplicates()
-            if len(sang_subjects) == 1 and sang_subjects.equals(chieu_subjects): can_consolidate = True
+        for session, session_group in day_group.groupby('Buổi', observed=False):
+            if session_group['Môn học'].dropna().empty: continue
 
-        if can_consolidate:
-            st.markdown(f'<p style="color:#17a2b8; font-weight:bold;">CẢ NGÀY</p>', unsafe_allow_html=True)
-            subject_info = sang_subjects.iloc[0]
-            tiet_str = ", ".join(sorted(day_group['Tiết'].astype(str).tolist(), key=int))
+            color = "#28a745" if session == "Sáng" else "#dc3545"
+            st.markdown(f'<p style="color:{color}; font-weight:bold;">{session.upper()}</p>', unsafe_allow_html=True)
 
-            details = []
-            
-            mon_hoc_text = subject_info['Môn học']
-            mon_hoc_encoded = quote_plus(mon_hoc_text)
-            # Link đúng: trỏ tới file 'pages/2_thongtin_monhoc.py'
-            mon_hoc_link = f"<a href='2_thongtin_monhoc?monhoc={mon_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{mon_hoc_text}</a>"
-            details.append(f"<b>📖 Môn:</b> {mon_hoc_link}")
+            subjects_in_session = {}
+            for _, row in session_group.iterrows():
+                if pd.notna(row['Môn học']) and row['Môn học'].strip():
+                    key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'], row.get('Ngày áp dụng', ''), row.get('Lớp', ''))
+                    if key not in subjects_in_session: subjects_in_session[key] = []
+                    subjects_in_session[key].append(str(row['Tiết']))
 
-            details.append(f"<b>⏰ Tiết:</b> <span style='color:{green_color};'>{tiet_str}</span>")
-
-            if mode == 'class':
-                if subject_info['Giáo viên BM']: details.append(f"<b>🧑‍💼 GV:</b> <span style='color:{green_color};'>{subject_info['Giáo viên BM']}</span>")
+            if not subjects_in_session:
+                st.markdown("&nbsp;&nbsp;✨Nghỉ")
             else:
-                if subject_info['Lớp']: details.append(f"<b>📝 Lớp:</b> <span style='color:{green_color};'>{subject_info['Lớp']}</span>")
-
-            if subject_info['Phòng học']:
-                phong_hoc_text = subject_info['Phòng học']
-                phong_hoc_encoded = quote_plus(phong_hoc_text)
-                # <<< SỬA LỖI TẠI ĐÂY >>>
-                # Link đúng: trỏ tới file 'pages/2_sodo_phonghoc.py'
-                phong_hoc_link = f"<a href='2_sodo_phonghoc?phong={phong_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{phong_hoc_text}</a>"
-                details.append(f"<b>🏤 Phòng:</b> {phong_hoc_link}")
-
-            details_html = "<br>".join(f"&nbsp;&nbsp;{item}" for item in details)
-            st.markdown(f"<div>{details_html}</div>", unsafe_allow_html=True)
-
-        else:
-            for session, session_group in day_group.groupby('Buổi', observed=False):
-                if session_group['Môn học'].dropna().empty: continue
-
-                color = "#28a745" if session == "Sáng" else "#dc3545"
-                st.markdown(f'<p style="color:{color}; font-weight:bold;">{session.upper()}</p>', unsafe_allow_html=True)
-
-                subjects_in_session = {}
-                for _, row in session_group.iterrows():
-                    if pd.notna(row['Môn học']) and row['Môn học'].strip():
-                        key = (row['Môn học'], row['Giáo viên BM'], row['Phòng học'], row['Ghi chú'], row.get('Ngày áp dụng', ''), row.get('Lớp', ''))
-                        if key not in subjects_in_session: subjects_in_session[key] = []
-                        subjects_in_session[key].append(str(row['Tiết']))
-
-                if not subjects_in_session:
-                    st.markdown("&nbsp;&nbsp;✨Nghỉ")
-                else:
-                    for (subject, gv, phong, ghi_chu, ngay_ap_dung, lop), tiet_list in subjects_in_session.items():
+                for (subject, gv, phong, ghi_chu, ngay_ap_dung, lop), tiet_list in subjects_in_session.items():
+                    with st.container():
                         tiet_str = ", ".join(sorted(tiet_list, key=int))
 
-                        details = []
-                        
-                        mon_hoc_encoded = quote_plus(subject)
-                        # Link đúng: trỏ tới file 'pages/2_thongtin_monhoc.py'
-                        mon_hoc_link = f"<a href='2_thongtin_monhoc?monhoc={mon_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{subject}</a>"
-                        details.append(f"<b>📖 Môn:</b> {mon_hoc_link}")
-                        
-                        details.append(f"<b>⏰ Tiết:</b> <span style='color:{green_color};'>{tiet_str}</span>")
+                        # Dòng 1: Môn học (dùng st.page_link)
+                        display_schedule_item("📖 Môn:", subject, link_page="pages/2_thongtin_monhoc.py", query_params={"monhoc": subject})
 
-                        if mode == 'class':
-                            if gv: details.append(f"<b>🧑‍💼 GV:</b> <span style='color:{green_color};'>{gv}</span>")
-                        else:
-                            if lop: details.append(f"<b>📝 Lớp:</b> <span style='color:{green_color};'>{lop}</span>")
+                        # Dòng 2: Tiết
+                        display_schedule_item("⏰ Tiết:", tiet_str)
 
+                        # Dòng 3: Giáo viên hoặc Lớp
+                        if mode == 'class' and gv:
+                            display_schedule_item("🧑‍💼 GV:", gv)
+                        elif mode == 'teacher' and lop:
+                            display_schedule_item("📝 Lớp:", lop)
+
+                        # Dòng 4: Phòng học (dùng st.page_link)
                         if phong:
-                            phong_hoc_encoded = quote_plus(phong)
-                            # <<< SỬA LỖI TẠI ĐÂY >>>
-                            # Link đúng: trỏ tới file 'pages/2_sodo_phonghoc.py'
-                            phong_hoc_link = f"<a href='2_sodo_phonghoc?phong={phong_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{phong}</a>"
-                            details.append(f"<b>🏤 Phòng:</b> {phong_hoc_link}")
+                            display_schedule_item("🏤 Phòng:", phong, link_page="pages/2_sodo_phonghoc.py", query_params={"phong": phong})
 
+                        # Dòng 5: Ghi chú
                         ghi_chu_part = ""
                         if ghi_chu and "học từ" in ghi_chu.lower():
                             date_match = re.search(r'(\d+/\d+)', ghi_chu)
                             if date_match:
-                                ghi_chu_part = f"<b>🔜 Bắt đầu học từ:</b> <span style='color:{green_color};'>\"{date_match.group(1)}\"</span>"
+                                ghi_chu_part = f"\"{date_match.group(1)}\""
                         elif ngay_ap_dung and str(ngay_ap_dung).strip():
-                            ghi_chu_part = f"<b>🔜 Bắt đầu học từ:</b> <span style='color:{green_color};'>\"{ngay_ap_dung}\"</span>"
+                            ghi_chu_part = f"\"{ngay_ap_dung}\""
 
                         if ghi_chu_part:
-                            details.append(ghi_chu_part)
+                            display_schedule_item("🔜 Bắt đầu học từ:", ghi_chu_part)
 
-                        details_html = "<br>".join(f"&nbsp;&nbsp;{item}" for item in details)
-                        st.markdown(f"<div>{details_html}</div><br>", unsafe_allow_html=True)
+                        st.markdown("<br>", unsafe_allow_html=True) # Thêm khoảng trắng
