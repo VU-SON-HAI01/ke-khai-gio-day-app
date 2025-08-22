@@ -4,7 +4,6 @@ import pandas as pd
 import re
 import gspread
 from google.oauth2.service_account import Credentials
-from urllib.parse import quote_plus
 
 # ==============================================================================
 # == CÁC HÀM TỪ fun_tkb_timkiem.py ĐÃ ĐƯỢC GỘP VÀO ĐÂY ĐỂ TRÁNH LỖI IMPORT ==
