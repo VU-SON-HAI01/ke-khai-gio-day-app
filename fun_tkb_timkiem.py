@@ -4,7 +4,7 @@ import pandas as pd
 import re
 import gspread
 from google.oauth2.service_account import Credentials
-from urllib.parse import quote_plus # <<< THÊM MỚI: Dùng để mã hóa URL
+from urllib.parse import quote_plus
 
 # --- CÁC HÀM KẾT NỐI VÀ ĐỌC GOOGLE SHEETS (KHÔNG THAY ĐỔI) ---
 
@@ -109,7 +109,8 @@ def render_schedule_details(schedule_df, mode='class'):
             # <<< CẬP NHẬT: Tạo hyperlink cho Môn học
             mon_hoc_text = subject_info['Môn học']
             mon_hoc_encoded = quote_plus(mon_hoc_text)
-            mon_hoc_link = f"<a href='thongtin_monhoc?monhoc={mon_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{mon_hoc_text}</a>"
+            # Thay đổi 'thongtin_monhoc' thành '2_thongtin_monhoc'
+            mon_hoc_link = f"<a href='2_thongtin_monhoc?monhoc={mon_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{mon_hoc_text}</a>"
             details.append(f"<b>📖 Môn:</b> {mon_hoc_link}")
 
             details.append(f"<b>⏰ Tiết:</b> <span style='color:{green_color};'>{tiet_str}</span>")
@@ -153,7 +154,8 @@ def render_schedule_details(schedule_df, mode='class'):
                         
                         # <<< CẬP NHẬT: Tạo hyperlink cho Môn học
                         mon_hoc_encoded = quote_plus(subject)
-                        mon_hoc_link = f"<a href='thongtin_monhoc?monhoc={mon_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{subject}</a>"
+                        # Thay đổi 'thongtin_monhoc' thành '2_thongtin_monhoc'
+                        mon_hoc_link = f"<a href='2_thongtin_monhoc?monhoc={mon_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{subject}</a>"
                         details.append(f"<b>📖 Môn:</b> {mon_hoc_link}")
                         
                         details.append(f"<b>⏰ Tiết:</b> <span style='color:{green_color};'>{tiet_str}</span>")
