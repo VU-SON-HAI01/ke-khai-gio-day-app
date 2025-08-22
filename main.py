@@ -117,10 +117,12 @@ else:
             "Quản lý": [st.Page("quan_ly_giao_vien.py", title="Quản lý Giáo viên"),
                          st.Page("thoi_khoa_bieu.py", title="Cập nhật TKB")],
             "🔍Tra cứu TKB": [st.Page("pages/1_tra_cuu_tkb_gv.py", title="Tra cứu theo GV"),
-                            st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu theo Lớp")],
+                            st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu theo Lớp"),
+                            st.Page("pages/1_tra_cuu_thongtin_hssv.py", title="Tra cứu thông tin HSSV")],
             "Quản lý HSSV": [st.Page("tao_bangdiem.py", title="Tạo Bảng điểm"),
                                   st.Page("capnhat_ds_hssv.py", title="Cập nhật danh sách HSSV")]
         }
+    
     else:
         # --- GIAO DIỆN CỦA USER THƯỜNG ---
         if 'initialized' not in st.session_state:
