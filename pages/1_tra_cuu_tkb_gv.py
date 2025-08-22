@@ -76,18 +76,19 @@ def inject_custom_css():
     """, unsafe_allow_html=True)
 
 def display_schedule_item(label, value, link_page=None, query_params=None, color="#00FF00"):
-    """Hàm tiện ích để hiển thị một dòng thông tin."""
+    """Hàm tiện ích để hiển thị một dòng thông tin, đã sửa lỗi TypeError."""
     col1, col2 = st.columns([1, 5])
     with col1:
         st.markdown(f"<b>{label}</b>", unsafe_allow_html=True)
     with col2:
-        if link_page and value: # Chỉ tạo link nếu 'value' không rỗng
-            # <<< SỬA LỖI TẠI ĐÂY >>>
-            # Chuyển đổi 'value' thành chuỗi bằng str() để tránh lỗi TypeError
-            st.page_link(link_page, label=str(value), query_params=query_params)
-        elif value:
+        # Chỉ tạo link nếu 'value' hợp lệ (không rỗng, không phải NaN)
+        if link_page and pd.notna(value) and str(value).strip():
+            # *** PHẦN SỬA LỖI: Đảm bảo tất cả giá trị trong query_params là chuỗi ***
+            safe_query_params = {k: str(v) for k, v in query_params.items() if pd.notna(v)}
+            st.page_link(link_page, label=str(value), query_params=safe_query_params)
+        elif pd.notna(value) and str(value).strip():
             st.markdown(f"<span style='color:{color};'>{value}</span>", unsafe_allow_html=True)
-        # Nếu value rỗng, không hiển thị gì cả
+        # Nếu value không hợp lệ, không hiển thị gì cả
 
 def render_schedule_details(schedule_df, mode='class'):
     """Hàm hiển thị chi tiết lịch học, sử dụng st.page_link."""
