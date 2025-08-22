@@ -72,7 +72,7 @@ def load_all_data_and_get_dates(_client, spreadsheet_id):
         st.error(f"Lỗi khi tải và hợp nhất dữ liệu: {e}")
         return pd.DataFrame(), []
 
-# --- HÀM HIỂN THỊ CHI TIẾT LỊCH HỌC (ĐÃ CẬP NHẬT VỚI HYPERLINK) ---
+# --- HÀM HIỂN THỊ CHI TIẾT LỊCH HỌC (ĐÃ CẬP NHẬT LINK ĐỂ KHÔNG BỊ LOGOUT) ---
 def render_schedule_details(schedule_df, mode='class'):
     """Hàm chung để hiển thị chi tiết lịch học hoặc lịch dạy."""
     green_color = "#00FF00"
@@ -106,10 +106,9 @@ def render_schedule_details(schedule_df, mode='class'):
 
             details = []
             
-            # <<< CẬP NHẬT: Tạo hyperlink cho Môn học
             mon_hoc_text = subject_info['Môn học']
             mon_hoc_encoded = quote_plus(mon_hoc_text)
-            # Thay đổi 'thongtin_monhoc' thành '2_thongtin_monhoc'
+            # Link đúng: trỏ tới file 'pages/2_thongtin_monhoc.py'
             mon_hoc_link = f"<a href='2_thongtin_monhoc?monhoc={mon_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{mon_hoc_text}</a>"
             details.append(f"<b>📖 Môn:</b> {mon_hoc_link}")
 
@@ -120,11 +119,12 @@ def render_schedule_details(schedule_df, mode='class'):
             else:
                 if subject_info['Lớp']: details.append(f"<b>📝 Lớp:</b> <span style='color:{green_color};'>{subject_info['Lớp']}</span>")
 
-            # <<< CẬP NHẬT: Tạo hyperlink cho Phòng học
             if subject_info['Phòng học']:
                 phong_hoc_text = subject_info['Phòng học']
                 phong_hoc_encoded = quote_plus(phong_hoc_text)
-                phong_hoc_link = f"<a href='sodo_phonghoc?phong={phong_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{phong_hoc_text}</a>"
+                # <<< SỬA LỖI TẠI ĐÂY >>>
+                # Link đúng: trỏ tới file 'pages/2_sodo_phonghoc.py'
+                phong_hoc_link = f"<a href='2_sodo_phonghoc?phong={phong_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{phong_hoc_text}</a>"
                 details.append(f"<b>🏤 Phòng:</b> {phong_hoc_link}")
 
             details_html = "<br>".join(f"&nbsp;&nbsp;{item}" for item in details)
@@ -152,9 +152,8 @@ def render_schedule_details(schedule_df, mode='class'):
 
                         details = []
                         
-                        # <<< CẬP NHẬT: Tạo hyperlink cho Môn học
                         mon_hoc_encoded = quote_plus(subject)
-                        # Thay đổi 'thongtin_monhoc' thành '2_thongtin_monhoc'
+                        # Link đúng: trỏ tới file 'pages/2_thongtin_monhoc.py'
                         mon_hoc_link = f"<a href='2_thongtin_monhoc?monhoc={mon_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{subject}</a>"
                         details.append(f"<b>📖 Môn:</b> {mon_hoc_link}")
                         
@@ -165,10 +164,11 @@ def render_schedule_details(schedule_df, mode='class'):
                         else:
                             if lop: details.append(f"<b>📝 Lớp:</b> <span style='color:{green_color};'>{lop}</span>")
 
-                        # <<< CẬP NHẬT: Tạo hyperlink cho Phòng học
                         if phong:
                             phong_hoc_encoded = quote_plus(phong)
-                            phong_hoc_link = f"<a href='sodo_phonghoc?phong={phong_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{phong}</a>"
+                            # <<< SỬA LỖI TẠI ĐÂY >>>
+                            # Link đúng: trỏ tới file 'pages/2_sodo_phonghoc.py'
+                            phong_hoc_link = f"<a href='2_sodo_phonghoc?phong={phong_hoc_encoded}' target='_self' style='color:{green_color}; text-decoration: none;'>{phong}</a>"
                             details.append(f"<b>🏤 Phòng:</b> {phong_hoc_link}")
 
                         ghi_chu_part = ""
