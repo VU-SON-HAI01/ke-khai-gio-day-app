@@ -65,7 +65,6 @@ def get_subject_details(subject_name, _client, spreadsheet_id):
         worksheet = spreadsheet.worksheet("DANHMUC_MONHOC")
         df = pd.DataFrame(worksheet.get_all_records())
         
-        # Tìm môn học (không phân biệt chữ hoa/thường và khoảng trắng)
         subject_info = df[df['Tên môn học'].str.strip().str.lower() == str(subject_name).strip().lower()]
         
         if not subject_info.empty:
@@ -73,37 +72,79 @@ def get_subject_details(subject_name, _client, spreadsheet_id):
         return None
     except gspread.exceptions.WorksheetNotFound:
         return {"Lỗi": "Không tìm thấy sheet 'DANHMUC_MONHOC'."}
-    except Exception as e:
-        return {"Lỗi": f"Không thể tải chi tiết môn học: {e}"}
+    except Exception:
+        return {"Lỗi": "Không thể tải chi tiết môn học."}
+
+def inject_tooltip_css():
+    """Chèn CSS để tạo tooltip khi di chuột qua."""
+    st.markdown("""
+        <style>
+            .tooltip-container {
+                position: relative;
+                display: inline-block;
+                cursor: pointer;
+            }
+            .tooltip-text {
+                visibility: hidden;
+                width: 300px;
+                background-color: #333;
+                color: #fff;
+                text-align: left;
+                border-radius: 6px;
+                padding: 10px;
+                position: absolute;
+                z-index: 1;
+                bottom: 125%;
+                left: 50%;
+                margin-left: -150px; /* Use half of the width to center the tooltip */
+                opacity: 0;
+                transition: opacity 0.3s;
+                border: 1px solid #fff;
+            }
+            .tooltip-container:hover .tooltip-text {
+                visibility: visible;
+                opacity: 1;
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
 def display_schedule_item(label, value, client=None, spreadsheet_id=None, color="#00FF00"):
-    """Hàm hiển thị một dòng thông tin, có popover cho môn học."""
+    """Hàm hiển thị một dòng thông tin, có tooltip cho môn học."""
     col1, col2 = st.columns([1, 5])
     with col1:
         st.markdown(f"<b>{label}</b>", unsafe_allow_html=True)
     with col2:
         if pd.notna(value) and str(value).strip():
-            # Nếu là Môn học, tạo popover để hiển thị ghi chú
+            # Nếu là Môn học, tạo tooltip để hiển thị ghi chú
             if label == "📖 Môn:" and client and spreadsheet_id:
-                with st.popover(str(value)):
-                    st.markdown(f"##### Chi tiết: {value}")
-                    details = get_subject_details(value, client, spreadsheet_id)
-                    if details:
-                        if "Lỗi" in details:
-                            st.error(details["Lỗi"])
-                        else:
-                            # Hiển thị tất cả thông tin tìm được
-                            for key, val in details.items():
-                                if key.lower() != 'tên môn học': # Bỏ qua lặp lại tên môn
-                                    st.markdown(f"**{key}:** {val}")
+                details = get_subject_details(value, client, spreadsheet_id)
+                tooltip_content = ""
+                if details:
+                    if "Lỗi" in details:
+                        tooltip_content = f"<p>{details['Lỗi']}</p>"
                     else:
-                        st.info("Không tìm thấy thông tin chi tiết cho môn học này.")
+                        for key, val in details.items():
+                            if key.lower() != 'tên môn học':
+                                tooltip_content += f"<p><b>{key}:</b> {val}</p>"
+                else:
+                    tooltip_content = "<p>Không tìm thấy thông tin chi tiết.</p>"
+
+                html = f"""
+                <div class="tooltip-container">
+                    <span style='color:{color};'>{str(value)}</span>
+                    <div class="tooltip-text">
+                        <h5>Chi tiết: {str(value)}</h5>
+                        {tooltip_content}
+                    </div>
+                </div>
+                """
+                st.markdown(html, unsafe_allow_html=True)
             else:
-                # Với các mục khác, chỉ hiển thị giá trị
                 st.markdown(f"<span style='color:{color};'>{value}</span>", unsafe_allow_html=True)
 
 def render_schedule_details(schedule_df, client, spreadsheet_id, mode='class'):
-    """Hàm hiển thị chi tiết lịch học, có popover cho môn học."""
+    """Hàm hiển thị chi tiết lịch học, có tooltip cho môn học."""
+    inject_tooltip_css()
     number_to_day_map = {
         2: '2️⃣ THỨ HAI', 3: '3️⃣ THỨ BA', 4: '4️⃣ THỨ TƯ',
         5: '5️⃣ THỨ NĂM', 6: '6️⃣ THỨ SÁU', 7: '7️⃣ THỨ BẢY'
