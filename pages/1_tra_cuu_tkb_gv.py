@@ -6,7 +6,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 # ==============================================================================
-# == CÁC HÀM HỖ TRỢ (ĐÃ GỘP VÀO ĐÂY) ==
+# == CÁC HÀM HỖ TRỢ ==
 # ==============================================================================
 
 @st.cache_resource
@@ -57,47 +57,57 @@ def load_all_data_and_get_dates(_client, spreadsheet_id):
         st.error(f"Lỗi khi tải và hợp nhất dữ liệu: {e}")
         return pd.DataFrame(), []
 
-def inject_custom_css():
-    """Chèn CSS để tùy chỉnh giao diện cho các link được tạo bởi st.page_link."""
-    green_color = "#00FF00"
-    st.markdown(f"""
-        <style>
-            a[data-testid="stPageLink-NavLink"][href*="2_thongtin_monhoc"],
-            a[data-testid="stPageLink-NavLink"][href*="2_sodo_phonghoc"] {{
-                color: {green_color} !important; text-decoration: none !important; font-weight: normal !important;
-                display: inline !important; padding: 0 !important;
-            }}
-            a[data-testid="stPageLink-NavLink"][href*="2_thongtin_monhoc"]:hover,
-            a[data-testid="stPageLink-NavLink"][href*="2_sodo_phonghoc"]:hover {{
-                text-decoration: underline !important; color: {green_color} !important;
-            }}
-        </style>
-    """, unsafe_allow_html=True)
+@st.cache_data(ttl=300)
+def get_subject_details(subject_name, _client, spreadsheet_id):
+    """Lấy thông tin chi tiết của một môn học từ sheet DANHMUC_MONHOC."""
+    try:
+        spreadsheet = _client.open_by_key(spreadsheet_id)
+        worksheet = spreadsheet.worksheet("DANHMUC_MONHOC")
+        df = pd.DataFrame(worksheet.get_all_records())
+        
+        # Tìm môn học (không phân biệt chữ hoa/thường và khoảng trắng)
+        subject_info = df[df['Tên môn học'].str.strip().str.lower() == str(subject_name).strip().lower()]
+        
+        if not subject_info.empty:
+            return subject_info.iloc[0].to_dict()
+        return None
+    except gspread.exceptions.WorksheetNotFound:
+        return {"Lỗi": "Không tìm thấy sheet 'DANHMUC_MONHOC'."}
+    except Exception as e:
+        return {"Lỗi": f"Không thể tải chi tiết môn học: {e}"}
 
-def display_schedule_item(label, value, link_page=None, query_params=None, color="#00FF00"):
-    """Hàm tiện ích để hiển thị một dòng thông tin, đã sửa lỗi TypeError."""
+def display_schedule_item(label, value, client=None, spreadsheet_id=None, color="#00FF00"):
+    """Hàm hiển thị một dòng thông tin, có popover cho môn học."""
     col1, col2 = st.columns([1, 5])
     with col1:
         st.markdown(f"<b>{label}</b>", unsafe_allow_html=True)
     with col2:
-        # Chỉ tạo link nếu 'value' hợp lệ (không rỗng, không phải NaN)
-        if link_page and pd.notna(value) and str(value).strip():
-            # *** PHẦN SỬA LỖI: Đảm bảo tất cả giá trị trong query_params là chuỗi ***
-            safe_query_params = {k: str(v) for k, v in query_params.items() if pd.notna(v)}
-            st.page_link(link_page, label=str(value), query_params=safe_query_params)
-        elif pd.notna(value) and str(value).strip():
-            st.markdown(f"<span style='color:{color};'>{value}</span>", unsafe_allow_html=True)
+        if pd.notna(value) and str(value).strip():
+            # Nếu là Môn học, tạo popover để hiển thị ghi chú
+            if label == "📖 Môn:" and client and spreadsheet_id:
+                with st.popover(str(value)):
+                    st.markdown(f"##### Chi tiết: {value}")
+                    details = get_subject_details(value, client, spreadsheet_id)
+                    if details:
+                        if "Lỗi" in details:
+                            st.error(details["Lỗi"])
+                        else:
+                            # Hiển thị tất cả thông tin tìm được
+                            for key, val in details.items():
+                                if key.lower() != 'tên môn học': # Bỏ qua lặp lại tên môn
+                                    st.markdown(f"**{key}:** {val}")
+                    else:
+                        st.info("Không tìm thấy thông tin chi tiết cho môn học này.")
+            else:
+                # Với các mục khác, chỉ hiển thị giá trị
+                st.markdown(f"<span style='color:{color};'>{value}</span>", unsafe_allow_html=True)
 
-def render_schedule_details(schedule_df, mode='class'):
-    """Hàm hiển thị chi tiết lịch học, sử dụng st.page_link."""
-    inject_custom_css()
+def render_schedule_details(schedule_df, client, spreadsheet_id, mode='class'):
+    """Hàm hiển thị chi tiết lịch học, có popover cho môn học."""
     number_to_day_map = {
         2: '2️⃣ THỨ HAI', 3: '3️⃣ THỨ BA', 4: '4️⃣ THỨ TƯ',
         5: '5️⃣ THỨ NĂM', 6: '6️⃣ THỨ SÁU', 7: '7️⃣ THỨ BẢY'
     }
-    if 'Thứ' not in schedule_df.columns:
-        st.warning("Dữ liệu TKB thiếu cột 'Thứ'.")
-        return
     schedule_df['Thứ Đầy Đủ'] = schedule_df['Thứ'].map(number_to_day_map)
     day_order = list(number_to_day_map.values())
     session_order = ['Sáng', 'Chiều']
@@ -128,14 +138,14 @@ def render_schedule_details(schedule_df, mode='class'):
                 for (subject, gv, phong, ghi_chu, ngay_ap_dung, lop), tiet_list in subjects_in_session.items():
                     with st.container():
                         tiet_str = ", ".join(sorted(tiet_list, key=int))
-                        display_schedule_item("📖 Môn:", subject, link_page="pages/2_thongtin_monhoc.py", query_params={"monhoc": subject})
+                        display_schedule_item("📖 Môn:", subject, client=client, spreadsheet_id=spreadsheet_id)
                         display_schedule_item("⏰ Tiết:", tiet_str)
                         if mode == 'class' and gv:
                             display_schedule_item("🧑‍💼 GV:", gv)
                         elif mode == 'teacher' and lop:
                             display_schedule_item("📝 Lớp:", lop)
                         if phong:
-                            display_schedule_item("🏤 Phòng:", phong, link_page="pages/2_sodo_phonghoc.py", query_params={"phong": phong})
+                            display_schedule_item("🏤 Phòng:", phong)
                         ghi_chu_part = ""
                         if ghi_chu and "học từ" in str(ghi_chu).lower():
                             date_match = re.search(r'(\d+/\d+)', str(ghi_chu))
@@ -150,7 +160,7 @@ def render_schedule_details(schedule_df, mode='class'):
 # == GIAO DIỆN CHÍNH CỦA TRANG TRA CỨU THEO GIÁO VIÊN ==
 # ==============================================================================
 
-def display_teacher_schedule(df_data):
+def display_teacher_schedule(df_data, client, spreadsheet_id):
     """Hàm hiển thị giao diện tra cứu theo Giáo viên."""
     teacher_list = sorted(df_data[df_data['Giáo viên BM'].ne('')]['Giáo viên BM'].dropna().unique())
     if not teacher_list:
@@ -160,7 +170,7 @@ def display_teacher_schedule(df_data):
     if selected_teacher:
         teacher_schedule = df_data[df_data['Giáo viên BM'] == selected_teacher].copy()
         st.markdown(f"--- \n ##### 🗓️ Lịch dạy chi tiết của giáo viên **{selected_teacher}**")
-        render_schedule_details(teacher_schedule, mode='teacher')
+        render_schedule_details(teacher_schedule, client, spreadsheet_id, mode='teacher')
 
 st.set_page_config(page_title="TKB theo Giáo viên", layout="wide")
 st.markdown("### 🗓️ Tra cứu Thời Khóa Biểu theo Giáo viên")
@@ -178,7 +188,7 @@ if gsheet_client:
         if selected_date:
             df_filtered_by_date = df_all_data[df_all_data['Ngày áp dụng'].astype(str) == str(selected_date)].copy()
             if not df_filtered_by_date.empty:
-                display_teacher_schedule(df_filtered_by_date)
+                display_teacher_schedule(df_filtered_by_date, gsheet_client, TEACHER_INFO_SHEET_ID)
             else:
                 st.info(f"Không có lịch dạy nào được ghi nhận cho ngày {selected_date}.")
 else:
