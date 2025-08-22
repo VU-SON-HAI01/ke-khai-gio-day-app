@@ -111,7 +111,7 @@ else:
             st.rerun()
 
     if user_email == ADMIN_EMAIL:
-        st.subheader("👨‍� Bảng điều khiển của Admin")
+        st.subheader("👨‍💻 Bảng điều khiển của Admin")
         # --- ĐIỀU HƯỚNG TRANG CHO ADMIN ---
         pages = {
             "Quản lý": [st.Page("quan_ly_giao_vien.py", title="Quản lý Giáo viên"),
