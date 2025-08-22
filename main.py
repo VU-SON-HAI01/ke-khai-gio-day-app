@@ -111,7 +111,7 @@ else:
             st.rerun()
 
     if user_email == ADMIN_EMAIL:
-        st.subheader("👨‍💻 Bảng điều khiển của Admin")
+        st.subheader("👨‍� Bảng điều khiển của Admin")
         # --- ĐIỀU HƯỚNG TRANG CHO ADMIN ---
         pages = {
             "Quản lý": [st.Page("quan_ly_giao_vien.py", title="Quản lý Giáo viên"),
@@ -162,6 +162,7 @@ else:
             "Tra cứu": [
                 st.Page("pages/1_tra_cuu_tkb_gv.py", title="Tra cứu TKB theo GV"),
                 st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu TKB theo Lớp"),
+                st.Page("pages/1_tra_cuu_thongtin_hssv.py", title="Tra cứu thông tin HSSV"),
                 # Thêm các trang chi tiết để link hoạt động
                 st.Page("pages/2_sodo_phonghoc.py", title="Sơ đồ Phòng học"),
                 st.Page("pages/2_thongtin_monhoc.py", title="Thông tin Môn học")
@@ -172,3 +173,4 @@ else:
 
     pg = st.navigation(pages)
     pg.run()
+�
