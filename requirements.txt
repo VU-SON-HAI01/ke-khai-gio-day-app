@@ -18,6 +18,9 @@ unidecode
 
 # PDF Generation
 fpdf2
+thefuzz>=0.20.0
+python-Levenshtein>=0.20.0
+
 
 
 
