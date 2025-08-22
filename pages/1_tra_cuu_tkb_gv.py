@@ -81,10 +81,13 @@ def display_schedule_item(label, value, link_page=None, query_params=None, color
     with col1:
         st.markdown(f"<b>{label}</b>", unsafe_allow_html=True)
     with col2:
-        if link_page:
-            st.page_link(link_page, label=value, query_params=query_params)
-        else:
+        if link_page and value: # Chỉ tạo link nếu 'value' không rỗng
+            # <<< SỬA LỖI TẠI ĐÂY >>>
+            # Chuyển đổi 'value' thành chuỗi bằng str() để tránh lỗi TypeError
+            st.page_link(link_page, label=str(value), query_params=query_params)
+        elif value:
             st.markdown(f"<span style='color:{color};'>{value}</span>", unsafe_allow_html=True)
+        # Nếu value rỗng, không hiển thị gì cả
 
 def render_schedule_details(schedule_df, mode='class'):
     """Hàm hiển thị chi tiết lịch học, sử dụng st.page_link."""
