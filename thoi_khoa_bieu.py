@@ -203,8 +203,6 @@ def normalize_common_subjects(df):
 
 def create_teacher_mapping(df_schedule, df_teacher_info_full, selected_khoa):
     """Tạo bản đồ ánh xạ tên GV và danh sách cần cập nhật."""
-    
-    # <<< SỬA LỖI 2: Cập nhật logic để trích xuất tên giáo viên riêng lẻ
     def get_all_individual_names(series):
         names = set()
         for item in series.dropna():
@@ -288,10 +286,7 @@ def transform_to_database_format(df_wide, ngay_ap_dung):
         final_mon_hoc = all_mon_hoc[0] if len(set(all_mon_hoc)) <= 1 and all_mon_hoc else "; ".join(set(all_mon_hoc))
         final_phong_hoc = " / ".join(sorted(list(set(p for p in all_phong_hoc if p))))
         gv_unique = sorted(list(set(g for g in all_gv if g)))
-        
-        # <<< SỬA LỖI 1: Luôn trả về chuỗi, không trả về list
         gv_to_return = " / ".join(gv_unique)
-        
         return (final_mon_hoc, final_phong_hoc, gv_to_return, ghi_chu)
 
     parsed_cols = df_long['Chi tiết Môn học'].apply(parse_subject_details_custom)
@@ -403,12 +398,13 @@ if uploaded_file:
                         df_after_mapping = db_df_to_process.copy()
                         df_after_mapping['KHOA'] = khoa
 
-                        # <<< SỬA LỖI 3: Cập nhật hàm apply_mapping để xử lý chuỗi nhiều GV
+                        # <<< SỬA LỖI: Chuyển đổi mọi thứ thành chuỗi trước khi join
                         def apply_mapping(name_str, key):
                             name_str = str(name_str).strip()
                             if not name_str: return ""
                             names_list = [n.strip() for n in name_str.split(' / ')]
-                            mapped_names = [teacher_mapping.get(name, {}).get(key, name) for name in names_list]
+                            # Bọc str() để đảm bảo mọi phần tử là chuỗi
+                            mapped_names = [str(teacher_mapping.get(name, {}).get(key, name)) for name in names_list]
                             return " / ".join(mapped_names)
 
                         df_after_mapping['Ma_gv_bm'] = df_after_mapping['Giáo viên BM'].apply(apply_mapping, key='id')
@@ -477,9 +473,8 @@ if uploaded_file:
                                 for short_name, full_name in manual_selections.items():
                                     if full_name != "-- Chọn --":
                                         teacher_info = df_teachers_in_khoa[df_teachers_in_khoa['Ho_ten_gv'] == full_name].iloc[0]
-                                        teacher_id = teacher_info['Ma_gv']
+                                        teacher_id = str(teacher_info['Ma_gv']) # Đảm bảo teacher_id là chuỗi
                                         
-                                        # Cập nhật cho cả GVBM và GVCN
                                         df_to_save['Giáo viên BM'] = df_to_save['Giáo viên BM'].str.replace(short_name, full_name, regex=False)
                                         df_to_save['Ma_gv_bm'] = df_to_save['Ma_gv_bm'].str.replace(short_name, teacher_id, regex=False)
                                         df_to_save['Giáo viên CN'] = df_to_save['Giáo viên CN'].str.replace(short_name, full_name, regex=False)
