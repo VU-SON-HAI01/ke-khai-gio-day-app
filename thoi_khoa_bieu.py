@@ -250,21 +250,76 @@ def transform_to_database_format(df_wide, ngay_ap_dung):
     df_long.dropna(subset=['Chi tiết Môn học'], inplace=True)
     df_long = df_long[df_long['Chi tiết Môn học'].astype(str).str.strip() != '']
 
-    def parse_subject_details_custom(cell_text):
-        clean_text = re.sub(r'\s{2,}', ' ', str(cell_text).replace('\n', ' ').strip())
-        ghi_chu, remaining_text = "", clean_text
-        note_match = re.search(r'(\(?(Học từ.*?)\)?)$', clean_text, re.IGNORECASE)
-        if note_match:
-            ghi_chu = note_match.group(1).strip()
-            remaining_text = clean_text.replace(note_match.group(0), '').strip()
-        if "THPT" in remaining_text.upper():
-            return ("HỌC TKB VĂN HÓA THPT", "", "", ghi_chu)
-        match = re.search(r'^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$', remaining_text)
+def parse_subject_details_custom(cell_text):
+    """
+    Hàm cải tiến để phân tích chi tiết môn học, có khả năng xử lý nhiều mục trong một ô
+    và các định dạng GV/Phòng linh hoạt.
+    """
+    clean_text = re.sub(r'\s{2,}', ' ', str(cell_text).replace('\n', ' ').strip())
+
+    # Xử lý các trường hợp đặc biệt trước (Ghi chú, THPT)
+    ghi_chu, remaining_text = "", clean_text
+    note_match = re.search(r'(\(?(Học từ.*?)\)?)$', clean_text, re.IGNORECASE)
+    if note_match:
+        ghi_chu = note_match.group(1).strip()
+        remaining_text = clean_text.replace(note_match.group(0), '').strip()
+    if "THPT" in remaining_text.upper():
+        return ("HỌC TKB VĂN HÓA THPT", "", "", ghi_chu)
+
+    # BƯỚC 1: Tách chuỗi thành các mục riêng biệt dựa trên dấu ';'
+    entries = [e.strip() for e in remaining_text.split(';')]
+    
+    all_mon_hoc = []
+    all_phong_hoc = []
+    all_gv = []
+
+    for entry in entries:
+        if not entry: continue
+
+        # BƯỚC 2: Dùng regex linh hoạt hơn để tách Môn học và (Nội dung trong ngoặc)
+        match = re.search(r'^(.*?)\s*\((.*)\)$', entry)
         if match:
-            mon_hoc, phong_hoc, gv = match.group(1).strip(), match.group(2).strip(), match.group(3).strip()
-            gv_list = [g.strip() for g in gv.split('/')]
-            return (mon_hoc, phong_hoc, gv_list[0] if len(gv_list) == 1 else gv_list, ghi_chu)
-        return (remaining_text, "", "", ghi_chu)
+            mon_hoc = match.group(1).strip()
+            content_in_parens = match.group(2).strip()
+
+            # BƯỚC 3: Phân tích nội dung trong ngoặc
+            # Trường hợp có cả phòng và GV, ví dụ: "TH1 - T.Độ"
+            if '-' in content_in_parens:
+                parts = content_in_parens.split('-', 1)
+                phong_hoc = parts[0].strip()
+                gv_part = parts[1].strip()
+            # Trường hợp chỉ có GV, ví dụ: "T.Độ" hoặc "C.Vân"
+            else:
+                phong_hoc = ""
+                gv_part = content_in_parens
+            
+            # Tách các GV nếu có nhiều GV dạy chung, ví dụ "T.Độ/C.Vân"
+            gv_list = [g.strip() for g in gv_part.split('/')]
+
+            all_mon_hoc.append(mon_hoc)
+            all_phong_hoc.append(phong_hoc)
+            all_gv.extend(gv_list)
+        else:
+            # Nếu không khớp mẫu, coi toàn bộ mục là tên môn
+            all_mon_hoc.append(entry)
+
+    # BƯỚC 4: Tổng hợp kết quả
+    # Nếu tất cả các môn học giống nhau, lấy 1 tên. Nếu khác nhau, nối lại.
+    final_mon_hoc = all_mon_hoc[0] if len(set(all_mon_hoc)) <= 1 and all_mon_hoc else "; ".join(set(all_mon_hoc))
+    
+    # Nối các phòng và GV (chỉ lấy các giá trị duy nhất)
+    final_phong_hoc = " / ".join(sorted(list(set(p for p in all_phong_hoc if p))))
+    
+    # Xử lý kết quả trả về cho cột 'Giáo viên BM'
+    gv_unique = sorted(list(set(g for g in all_gv if g)))
+    if len(gv_unique) > 1:
+        gv_to_return = gv_unique # Trả về list để hàm apply_mapping xử lý
+    elif len(gv_unique) == 1:
+        gv_to_return = gv_unique[0] # Trả về chuỗi
+    else:
+        gv_to_return = ""
+
+    return (final_mon_hoc, final_phong_hoc, gv_to_return, ghi_chu)
 
     parsed_cols = df_long['Chi tiết Môn học'].apply(parse_subject_details_custom)
     mh_extracted = pd.DataFrame(parsed_cols.tolist(), index=df_long.index, columns=['Môn học', 'Phòng học', 'Giáo viên BM', 'Ghi chú'])
