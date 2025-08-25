@@ -8,10 +8,10 @@ import re
 import gspread
 from google.oauth2.service_account import Credentials
 from unidecode import unidecode
-from thefuzz import process # <<< THÊM MỚI: Thư viện tìm chuỗi gần đúng
+from thefuzz import process # Thư viện tìm chuỗi gần đúng
 
 # --- CÁC HẰNG SỐ ---
-# <<< THÊM MỚI: Danh sách các môn học chung cần rà soát
+# Danh sách các môn học chung cần rà soát
 COMMON_SUBJECTS = [
     "Giáo dục chính trị",
     "Pháp luật",
@@ -29,9 +29,15 @@ def connect_to_gsheet():
     """Kết nối tới Google Sheets sử dụng service account credentials."""
     try:
         creds_dict = st.secrets["gcp_service_account"]
+        
+        # <<< SỬA LỖI: Thêm scope cho cả Drive và Spreadsheets để kết nối ổn định
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive.file"
+        ]
         creds = Credentials.from_service_account_info(
             creds_dict,
-            scopes=["https.www.googleapis.com/auth/spreadsheets"],
+            scopes=scopes,
         )
         return gspread.authorize(creds)
     except Exception as e:
@@ -185,7 +191,7 @@ def extract_schedule_from_excel(worksheet):
 
 # --- HÀM LOGIC CHÍNH ---
 
-# <<< THÊM MỚI: Hàm chuẩn hóa tên môn học chung
+# <<< NÂNG CẤP: Hàm chuẩn hóa tên môn học chung
 def normalize_common_subjects(df):
     """
     Rà soát cột 'Môn học', tìm các môn chung và chuẩn hóa tên.
@@ -314,7 +320,7 @@ def transform_to_database_format(df_wide, ngay_ap_dung):
     df_final['Trình độ'] = df_final['Lớp'].apply(lambda x: 'Cao đẳng' if 'C.' in str(x) else ('Trung Cấp' if 'T.' in str(x) else ''))
     df_final.fillna('', inplace=True)
     
-    # <<< THAY ĐỔI: Khởi tạo các cột mới và sắp xếp lại thứ tự cột
+    # Khởi tạo các cột mới và sắp xếp lại thứ tự cột
     df_final['Mã môn'] = ''
     df_final['Ma_gv_bm'] = ''
     df_final['Ma_gv_cn'] = ''
@@ -322,7 +328,7 @@ def transform_to_database_format(df_wide, ngay_ap_dung):
     df_final['Ngày áp dụng'] = ngay_ap_dung
     
     final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 
-                  'Môn học', 'Mã môn', 'Phòng học', # <<< THAY ĐỔI: Thêm 'Mã môn'
+                  'Môn học', 'Mã môn', 'Phòng học', # Thêm 'Mã môn'
                   'Giáo viên BM', 'Ma_gv_bm', 
                   'Phòng SHCN', 'Giáo viên CN', 'Ma_gv_cn', 
                   'Lớp VHPT', 'Ghi chú', 'KHOA', 'Ngày áp dụng']
@@ -372,7 +378,7 @@ if uploaded_file:
             if all_processed_dfs:
                 combined_df = pd.concat(all_processed_dfs, ignore_index=True)
                 
-                # <<< BƯỚC MỚI: Gọi hàm chuẩn hóa môn học chung
+                # <<< NÂNG CẤP: Gọi hàm chuẩn hóa môn học chung
                 with st.spinner("Đang rà soát và chuẩn hóa các môn học chung..."):
                     st.session_state['processed_df'] = normalize_common_subjects(combined_df)
                 
