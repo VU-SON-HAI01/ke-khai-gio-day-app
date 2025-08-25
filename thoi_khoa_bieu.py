@@ -8,19 +8,14 @@ import re
 import gspread
 from google.oauth2.service_account import Credentials
 from unidecode import unidecode
-from thefuzz import process # Thư viện tìm chuỗi gần đúng
+from thefuzz import process
 
 # --- CÁC HẰNG SỐ ---
-# Danh sách các môn học chung cần rà soát
 COMMON_SUBJECTS = [
-    "Giáo dục chính trị",
-    "Pháp luật",
-    "Giáo dục thể chất",
-    "Giáo dục quốc phòng và an ninh",
-    "Tin học",
-    "Tiếng Anh"
+    "Giáo dục chính trị", "Pháp luật", "Giáo dục thể chất",
+    "Giáo dục quốc phòng và an ninh", "Tin học", "Tiếng Anh"
 ]
-SIMILARITY_THRESHOLD = 85 # Ngưỡng tương đồng (0-100) để coi là một môn học chung
+SIMILARITY_THRESHOLD = 85
 
 # --- CÁC HÀM KẾT NỐI GOOGLE SHEETS ---
 
@@ -29,16 +24,11 @@ def connect_to_gsheet():
     """Kết nối tới Google Sheets sử dụng service account credentials."""
     try:
         creds_dict = st.secrets["gcp_service_account"]
-        
-        # <<< SỬA LỖI: Thêm scope cho cả Drive và Spreadsheets để kết nối ổn định
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive.file"
         ]
-        creds = Credentials.from_service_account_info(
-            creds_dict,
-            scopes=scopes,
-        )
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         return gspread.authorize(creds)
     except Exception as e:
         st.error(f"Lỗi kết nối Google Sheets: {e}")
@@ -53,13 +43,21 @@ def load_teacher_info(_gsheet_client, spreadsheet_id):
         worksheet = spreadsheet.worksheet("THONG_TIN_GV")
         df = pd.DataFrame(worksheet.get_all_records())
         df.columns = df.columns.str.strip()
-        if 'Ho_ten_gv' in df.columns:
-            df['Ho_ten_gv_normalized'] = df['Ho_ten_gv'].astype(str).apply(lambda x: unidecode(x).lower())
-            df['First_name'] = df['Ho_ten_gv'].astype(str).apply(lambda x: x.split(' ')[-1])
-            df['First_name_normalized'] = df['First_name'].astype(str).apply(lambda x: unidecode(x).lower())
-        else:
-            st.error("Lỗi: Không tìm thấy cột 'Ho_ten_gv' trong sheet THONG_TIN_GV.")
+        required_cols = ['Ho_ten_gv', 'Khoa', 'Ma_gv']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+
+        if missing_cols:
+            st.error(
+                f"**Lỗi Cấu Trúc File: Thiếu các cột bắt buộc trong sheet 'THONG_TIN_GV'.**\n\n"
+                f"Các cột bị thiếu là: **`{', '.join(missing_cols)}`**.\n\n"
+                f"*Vui lòng kiểm tra lại tên cột trong file Google Sheet của bạn.*\n\n"
+                f"Các cột hiện tại tìm thấy là: `{', '.join(df.columns)}`"
+            )
             return pd.DataFrame()
+
+        df['Ho_ten_gv_normalized'] = df['Ho_ten_gv'].astype(str).apply(lambda x: unidecode(x).lower())
+        df['First_name'] = df['Ho_ten_gv'].astype(str).apply(lambda x: x.split(' ')[-1])
+        df['First_name_normalized'] = df['First_name'].astype(str).apply(lambda x: unidecode(x).lower())
         return df
     except Exception as e:
         st.error(f"Lỗi khi tải dữ liệu giáo viên: {e}")
@@ -67,7 +65,6 @@ def load_teacher_info(_gsheet_client, spreadsheet_id):
 
 @st.cache_data(ttl=60)
 def get_khoa_list(_gsheet_client, spreadsheet_id):
-    """Lấy danh sách các Khoa/Phòng/Trung tâm từ sheet DANH_MUC."""
     if _gsheet_client is None: return []
     try:
         spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
@@ -79,7 +76,6 @@ def get_khoa_list(_gsheet_client, spreadsheet_id):
         return []
 
 def update_gsheet_by_khoa(client, spreadsheet_id, sheet_name, df_new, khoa_to_update):
-    """Cập nhật dữ liệu TKB vào sheet DATA, ghi đè dữ liệu của khoa được chọn."""
     try:
         spreadsheet = client.open_by_key(spreadsheet_id)
         try:
@@ -103,7 +99,6 @@ def update_gsheet_by_khoa(client, spreadsheet_id, sheet_name, df_new, khoa_to_up
         return False, str(e)
 
 def bulk_update_teacher_info(gsheet_client, spreadsheet_id, updates_list):
-    """Cập nhật hàng loạt tên viết tắt vào sheet THONG_TIN_GV."""
     if not updates_list: return True, "Không có tên viết tắt mới cần cập nhật."
     try:
         spreadsheet = gsheet_client.open_by_key(spreadsheet_id)
@@ -124,7 +119,6 @@ def bulk_update_teacher_info(gsheet_client, spreadsheet_id, updates_list):
 # --- CÁC HÀM XỬ LÝ EXCEL ---
 
 def extract_schedule_from_excel(worksheet):
-    """Trích xuất dữ liệu thô từ một sheet Excel TKB."""
     ngay_ap_dung = ""
     for r_idx in range(1, 6):
         for c_idx in range(1, 27):
@@ -191,25 +185,15 @@ def extract_schedule_from_excel(worksheet):
 
 # --- HÀM LOGIC CHÍNH ---
 
-# <<< NÂNG CẤP: Hàm chuẩn hóa tên môn học chung
 def normalize_common_subjects(df):
-    """
-    Rà soát cột 'Môn học', tìm các môn chung và chuẩn hóa tên.
-    Ghi chú 'MC' vào cột 'Mã môn' nếu tìm thấy.
-    """
     if 'Môn học' not in df.columns or 'Mã môn' not in df.columns:
         st.warning("Thiếu cột 'Môn học' hoặc 'Mã môn' để chuẩn hóa.")
         return df
 
     def match_and_update(row):
         subject_name = str(row['Môn học']).strip()
-        if not subject_name:
-            return row
-
-        # Tìm môn học có tên tương đồng nhất trong danh sách COMMON_SUBJECTS
+        if not subject_name: return row
         best_match, score = process.extractOne(subject_name, COMMON_SUBJECTS)
-
-        # Nếu độ tương đồng cao hơn ngưỡng, cập nhật lại tên và mã môn
         if score >= SIMILARITY_THRESHOLD:
             row['Môn học'] = best_match
             row['Mã môn'] = 'MC'
@@ -219,15 +203,20 @@ def normalize_common_subjects(df):
 
 def create_teacher_mapping(df_schedule, df_teacher_info_full, selected_khoa):
     """Tạo bản đồ ánh xạ tên GV và danh sách cần cập nhật."""
-    required_cols = ['Khoa', 'First_name_normalized', 'Ho_ten_gv', 'Ma_gv', 'Ten_viet_tat']
-    for col in required_cols:
-        if col not in df_teacher_info_full.columns:
-            st.error(f"Lỗi Dữ Liệu: Cột `{col}` không tìm thấy. Vui lòng kiểm tra lại sheet 'THONG_TIN_GV'.")
-            return {}, []
+    
+    # <<< SỬA LỖI 2: Cập nhật logic để trích xuất tên giáo viên riêng lẻ
+    def get_all_individual_names(series):
+        names = set()
+        for item in series.dropna():
+            for name in str(item).split(' / '):
+                if name.strip():
+                    names.add(name.strip())
+        return names
 
-    gv_bm_names = df_schedule['Giáo viên BM'].dropna().unique()
-    gv_cn_names = df_schedule['Giáo viên CN'].dropna().unique()
-    all_short_names = {str(name).strip() for name in list(gv_bm_names) + list(gv_cn_names) if str(name).strip()}
+    all_bm_names = get_all_individual_names(df_schedule['Giáo viên BM'])
+    all_cn_names = get_all_individual_names(df_schedule['Giáo viên CN'])
+    all_short_names = all_bm_names.union(all_cn_names)
+
     df_teachers_in_khoa = df_teacher_info_full[df_teacher_info_full['Khoa'] == selected_khoa].copy()
     mapping, updates_for_gsheet = {}, []
 
@@ -261,7 +250,6 @@ def create_teacher_mapping(df_schedule, df_teacher_info_full, selected_khoa):
     return mapping, updates_for_gsheet
 
 def transform_to_database_format(df_wide, ngay_ap_dung):
-    """Chuyển đổi TKB từ dạng cột (wide) sang dạng dòng (long)."""
     id_vars = ['Thứ', 'Buổi', 'Tiết']
     df_long = pd.melt(df_wide, id_vars=id_vars, var_name='Lớp_Raw', value_name='Chi tiết Môn học')
     df_long.dropna(subset=['Chi tiết Môn học'], inplace=True)
@@ -300,7 +288,10 @@ def transform_to_database_format(df_wide, ngay_ap_dung):
         final_mon_hoc = all_mon_hoc[0] if len(set(all_mon_hoc)) <= 1 and all_mon_hoc else "; ".join(set(all_mon_hoc))
         final_phong_hoc = " / ".join(sorted(list(set(p for p in all_phong_hoc if p))))
         gv_unique = sorted(list(set(g for g in all_gv if g)))
-        gv_to_return = gv_unique if len(gv_unique) > 1 else (gv_unique[0] if gv_unique else "")
+        
+        # <<< SỬA LỖI 1: Luôn trả về chuỗi, không trả về list
+        gv_to_return = " / ".join(gv_unique)
+        
         return (final_mon_hoc, final_phong_hoc, gv_to_return, ghi_chu)
 
     parsed_cols = df_long['Chi tiết Môn học'].apply(parse_subject_details_custom)
@@ -320,7 +311,6 @@ def transform_to_database_format(df_wide, ngay_ap_dung):
     df_final['Trình độ'] = df_final['Lớp'].apply(lambda x: 'Cao đẳng' if 'C.' in str(x) else ('Trung Cấp' if 'T.' in str(x) else ''))
     df_final.fillna('', inplace=True)
     
-    # Khởi tạo các cột mới và sắp xếp lại thứ tự cột
     df_final['Mã môn'] = ''
     df_final['Ma_gv_bm'] = ''
     df_final['Ma_gv_cn'] = ''
@@ -328,7 +318,7 @@ def transform_to_database_format(df_wide, ngay_ap_dung):
     df_final['Ngày áp dụng'] = ngay_ap_dung
     
     final_cols = ['Thứ', 'Buổi', 'Tiết', 'Lớp', 'Sĩ số', 'Trình độ', 
-                  'Môn học', 'Mã môn', 'Phòng học', # Thêm 'Mã môn'
+                  'Môn học', 'Mã môn', 'Phòng học', 
                   'Giáo viên BM', 'Ma_gv_bm', 
                   'Phòng SHCN', 'Giáo viên CN', 'Ma_gv_cn', 
                   'Lớp VHPT', 'Ghi chú', 'KHOA', 'Ngày áp dụng']
@@ -377,14 +367,10 @@ if uploaded_file:
 
             if all_processed_dfs:
                 combined_df = pd.concat(all_processed_dfs, ignore_index=True)
-                
-                # <<< NÂNG CẤP: Gọi hàm chuẩn hóa môn học chung
                 with st.spinner("Đang rà soát và chuẩn hóa các môn học chung..."):
                     st.session_state['processed_df'] = normalize_common_subjects(combined_df)
-                
                 st.success("Xử lý file Excel thành công!")
                 st.info("Đã tự động rà soát và chuẩn hóa các môn học chung (MC).")
-
                 if ngay_ap_dung_dict:
                     st.write("Đã tìm thấy ngày áp dụng trong các sheet sau:")
                     for sheet, date in ngay_ap_dung_dict.items():
@@ -394,7 +380,6 @@ if uploaded_file:
 
         if 'processed_df' in st.session_state:
             db_df_to_process = st.session_state['processed_df']
-
             st.markdown("---")
             st.subheader("📤 Lưu trữ dữ liệu đã xử lý")
             st.info(f"Dữ liệu sẽ được lưu vào Google Sheet có ID: **{TEACHER_INFO_SHEET_ID}**")
@@ -411,30 +396,38 @@ if uploaded_file:
             st.write(f"Tên sheet sẽ được tạo/cập nhật là: **{sheet_name}**")
 
             if st.button("1. Bắt đầu ánh xạ và kiểm tra", key="start_mapping_button"):
-                if gsheet_client and khoa and not db_df_to_process.empty:
+                if gsheet_client and khoa and not db_df_to_process.empty and not st.session_state.df_teacher_info.empty:
                     with st.spinner(f"Đang tự động ánh xạ GV cho khoa '{khoa}'..."):
                         teacher_mapping, updates_list = create_teacher_mapping(db_df_to_process, st.session_state.df_teacher_info, khoa)
                         
                         df_after_mapping = db_df_to_process.copy()
                         df_after_mapping['KHOA'] = khoa
 
-                        def apply_mapping(name_or_list, key):
-                            if isinstance(name_or_list, list):
-                                return " / ".join([teacher_mapping.get(str(n).strip(), {}).get(key, str(n).strip()) for n in name_or_list])
-                            name_str = str(name_or_list).strip()
-                            return teacher_mapping.get(name_str, {}).get(key, name_str)
+                        # <<< SỬA LỖI 3: Cập nhật hàm apply_mapping để xử lý chuỗi nhiều GV
+                        def apply_mapping(name_str, key):
+                            name_str = str(name_str).strip()
+                            if not name_str: return ""
+                            names_list = [n.strip() for n in name_str.split(' / ')]
+                            mapped_names = [teacher_mapping.get(name, {}).get(key, name) for name in names_list]
+                            return " / ".join(mapped_names)
 
                         df_after_mapping['Ma_gv_bm'] = df_after_mapping['Giáo viên BM'].apply(apply_mapping, key='id')
                         df_after_mapping['Giáo viên BM'] = df_after_mapping['Giáo viên BM'].apply(apply_mapping, key='full_name')
                         df_after_mapping['Ma_gv_cn'] = df_after_mapping['Giáo viên CN'].apply(apply_mapping, key='id')
                         df_after_mapping['Giáo viên CN'] = df_after_mapping['Giáo viên CN'].apply(apply_mapping, key='full_name')
                         
-                        unmapped_bm = df_after_mapping[df_after_mapping['Giáo viên BM'].astype(str).str.match(r'^[TC]\.')][['Giáo viên BM', 'Môn học']]
-                        unmapped_cn = df_after_mapping[df_after_mapping['Giáo viên CN'].astype(str).str.match(r'^[TC]\.')][['Giáo viên CN', 'Lớp']]
+                        unmapped_bm = df_after_mapping[df_after_mapping['Giáo viên BM'].str.contains(r'^[TC]\.', na=False)][['Giáo viên BM', 'Môn học']]
+                        unmapped_cn = df_after_mapping[df_after_mapping['Giáo viên CN'].str.contains(r'^[TC]\.', na=False)][['Giáo viên CN', 'Lớp']]
                         
                         unmapped_teachers = {}
-                        for _, row in unmapped_bm.iterrows(): unmapped_teachers[row['Giáo viên BM']] = f"Môn: {row['Môn học']}"
-                        for _, row in unmapped_cn.iterrows(): unmapped_teachers[row['Giáo viên CN']] = f"CN Lớp: {row['Lớp']}"
+                        for _, row in unmapped_bm.iterrows():
+                            for name in row['Giáo viên BM'].split(' / '):
+                                if re.match(r'^[TC]\.', name.strip()):
+                                    unmapped_teachers[name.strip()] = f"Môn: {row['Môn học']}"
+                        for _, row in unmapped_cn.iterrows():
+                            for name in row['Giáo viên CN'].split(' / '):
+                                if re.match(r'^[TC]\.', name.strip()):
+                                    unmapped_teachers[name.strip()] = f"CN Lớp: {row['Lớp']}"
                         
                         st.session_state.final_df_to_save = df_after_mapping
                         st.session_state.updates_list = updates_list
@@ -446,7 +439,7 @@ if uploaded_file:
                             st.success("Tuyệt vời! Tất cả giáo viên đã được tự động ánh xạ thành công.")
                             st.session_state.unmapped_teachers = {}
                 else:
-                    st.error("Không thể bắt đầu. Vui lòng chọn một Khoa.")
+                    st.error("Không thể bắt đầu. Vui lòng chọn một Khoa và đảm bảo dữ liệu giáo viên đã được tải thành công.")
 
             if st.session_state.unmapped_teachers is not None:
                 unmapped_teachers = st.session_state.unmapped_teachers
@@ -484,8 +477,13 @@ if uploaded_file:
                                 for short_name, full_name in manual_selections.items():
                                     if full_name != "-- Chọn --":
                                         teacher_info = df_teachers_in_khoa[df_teachers_in_khoa['Ho_ten_gv'] == full_name].iloc[0]
-                                        df_to_save.loc[df_to_save['Giáo viên BM'] == short_name, ['Giáo viên BM', 'Ma_gv_bm']] = [full_name, teacher_info['Ma_gv']]
-                                        df_to_save.loc[df_to_save['Giáo viên CN'] == short_name, ['Giáo viên CN', 'Ma_gv_cn']] = [full_name, teacher_info['Ma_gv']]
+                                        teacher_id = teacher_info['Ma_gv']
+                                        
+                                        # Cập nhật cho cả GVBM và GVCN
+                                        df_to_save['Giáo viên BM'] = df_to_save['Giáo viên BM'].str.replace(short_name, full_name, regex=False)
+                                        df_to_save['Ma_gv_bm'] = df_to_save['Ma_gv_bm'].str.replace(short_name, teacher_id, regex=False)
+                                        df_to_save['Giáo viên CN'] = df_to_save['Giáo viên CN'].str.replace(short_name, full_name, regex=False)
+                                        df_to_save['Ma_gv_cn'] = df_to_save['Ma_gv_cn'].str.replace(short_name, teacher_id, regex=False)
                                         
                                         current_short_names_str = str(st.session_state.df_teacher_info.loc[teacher_info.name, 'Ten_viet_tat'])
                                         if short_name not in [s.strip() for s in current_short_names_str.split(';')]:
