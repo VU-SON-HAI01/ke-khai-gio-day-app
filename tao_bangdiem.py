@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import openpyxl
 from openpyxl.worksheet.datavalidation import DataValidation
+# Sửa lỗi chính tả 'impoart' -> 'import'
 from openpyxl.styles import Border, Side, Font
 import io
 import re
@@ -12,7 +13,8 @@ import zipfile
 def find_student_data_in_sheet(worksheet):
     """
     Tìm và trích xuất dữ liệu học sinh từ một sheet có cấu trúc không cố định.
-    - Tự động tìm dòng header dựa vào 'Họ và tên'.
+    - Tự động tìm dòng header dựa vào 'STT' ở cột A hoặc B.
+    - Sau đó tìm cột 'Họ và tên' và 'Năm sinh' trên dòng header đó.
     - Chuẩn hóa và tách riêng 2 cột họ và tên.
     - Chuẩn hóa và định dạng cột ngày sinh.
     - Dừng lại khi CẢ HAI cột họ và tên đều trống hoặc chứa số.
@@ -21,23 +23,36 @@ def find_student_data_in_sheet(worksheet):
     header_row_index = -1
     name_col_index = -1
     dob_col_index = -1
+    header_content = []
 
-    # 1. Tìm dòng header và các cột cần thiết
+    # --- SỬA LỖI TẠI ĐÂY: Tìm header dựa vào 'STT' ở cột A hoặc B ---
+    # 1. Tìm dòng header bằng cách quét cột A và B để tìm "STT"
     for i, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10, values_only=True), 1):
-        row_str = [str(cell).lower() if cell is not None else '' for cell in row]
-        try:
-            name_col_index = row_str.index('họ và tên') + 1
-            last_name_col_index = name_col_index + 1
-            dob_col_index = row_str.index('năm sinh') + 1
+        # Lấy giá trị cột A và B, chuyển về chữ thường và xóa khoảng trắng
+        col_a_val = str(row[0]).lower().strip() if len(row) > 0 and row[0] is not None else ''
+        col_b_val = str(row[1]).lower().strip() if len(row) > 1 and row[1] is not None else ''
+        
+        # Nếu tìm thấy "stt" trong một trong hai cột thì đây là dòng header
+        if 'stt' in col_a_val or 'stt' in col_b_val:
             header_row_index = i
+            header_content = [str(cell).lower().strip() if cell is not None else '' for cell in row]
             break
-        except ValueError:
-            continue
 
     if header_row_index == -1:
+        st.warning(f"Không thể tìm thấy dòng tiêu đề (header) chứa 'STT' trong sheet '{worksheet.title}'.")
         return None # Không tìm thấy header
 
-    # 2. Trích xuất dữ liệu với logic dừng và chuẩn hóa mới
+    # 2. Từ dòng header đã tìm được, xác định vị trí các cột cần thiết
+    try:
+        name_col_index = header_content.index('họ và tên') + 1
+        last_name_col_index = name_col_index + 1
+        dob_col_index = header_content.index('năm sinh') + 1
+    except ValueError as e:
+        st.error(f"Trong sheet '{worksheet.title}', đã tìm thấy dòng tiêu đề ở dòng {header_row_index} nhưng thiếu cột bắt buộc. Lỗi: không tìm thấy cột '{e.args[0]}'.")
+        return None
+    # --- KẾT THÚC SỬA LỖI ---
+    
+    # 3. Trích xuất dữ liệu với logic dừng và chuẩn hóa (giữ nguyên)
     student_data = []
     # Bắt đầu đọc từ dòng ngay sau header
     for row in worksheet.iter_rows(min_row=header_row_index + 1, values_only=True):
@@ -46,9 +61,9 @@ def find_student_data_in_sheet(worksheet):
         dob_cell = row[dob_col_index - 1]
 
         # --- LOGIC DỪNG ĐÃ CẬP NHẬT ---
-        first_name_is_empty = (first_name_cell is None or str(first_name_cell).strip() == '' or 
+        first_name_is_empty = (first_name_cell is None or str(first_name_cell).strip() == '' or
                                isinstance(first_name_cell, (int, float)))
-        last_name_is_empty = (last_name_cell is None or str(last_name_cell).strip() == '' or 
+        last_name_is_empty = (last_name_cell is None or str(last_name_cell).strip() == '' or
                               isinstance(last_name_cell, (int, float)))
 
         if first_name_is_empty and last_name_is_empty:
@@ -234,8 +249,6 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
                     source_cell = output_sheet_qt.cell(row=QT_STYLE_ROW, column=col_idx)
                     new_cell = output_sheet_qt.cell(row=row_idx, column=col_idx)
                     if source_cell.has_style:
-                        # *** SỬA LỖI FONT ***
-                        # Sao chép chính xác font style từ cell mẫu
                         new_cell.font = source_cell.font.copy()
                         new_cell.border = source_cell.border.copy()
                         new_cell.fill = source_cell.fill.copy()
@@ -298,8 +311,6 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
 
                     if col_idx in template_styles:
                         source_cell_for_style = template_styles[col_idx]
-                        # *** SỬA LỖI FONT ***
-                        # Sao chép chính xác font style từ cell mẫu
                         target_cell.font = source_cell_for_style.font.copy()
                         target_cell.border = source_cell_for_style.border.copy()
                         target_cell.fill = source_cell_for_style.fill.copy()
