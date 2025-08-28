@@ -54,6 +54,7 @@ def load_abbreviations_map(_gsheet_client, spreadsheet_id):
         st.warning(f"⚠️ Lỗi khi tải danh sách viết tắt từ sheet 'VIET_TAT': {e}")
         return {}
 
+
 @st.cache_data(ttl=600)
 def load_teacher_info(_gsheet_client, spreadsheet_id):
     """Tải và chuẩn hóa dữ liệu giáo viên từ sheet THONG_TIN_GV."""
@@ -223,7 +224,6 @@ def normalize_common_subjects(df, abbreviations_map):
         lookup_key = subject_name_original.lower()
         if lookup_key in abbreviations_map:
             row['Môn học'] = abbreviations_map[lookup_key]
-            # *** SỬA LỖI TẠI ĐÂY: Gán 'MC' cho 'Mã môn' thay vì 'Môn học' ***
             row['Mã môn'] = 'MC'
             return row
 
@@ -379,6 +379,11 @@ if "gcp_service_account" in st.secrets:
         abbreviations_map = load_abbreviations_map(gsheet_client, TEACHER_INFO_SHEET_ID)
 else:
     st.warning("Không tìm thấy cấu hình Google Sheets trong `st.secrets`.", icon="⚠️")
+
+# *** THÊM CÔNG CỤ GỠ LỖI TẠI ĐÂY ***
+if abbreviations_map:
+    with st.expander("Nội dung từ điển VIET_TAT đã tải (dùng để gỡ lỗi)"):
+        st.json(abbreviations_map)
 
 uploaded_file = st.file_uploader("Chọn file Excel TKB của bạn", type=["xlsx"])
 
