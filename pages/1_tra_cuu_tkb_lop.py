@@ -143,17 +143,27 @@ def render_schedule_details(schedule_df, client, spreadsheet_id, mode='class'):
             if session_group.get('Môn học', pd.Series()).dropna().empty: continue
             color = "#28a745" if session == "Sáng" else "#dc3545"
             st.markdown(f'<p style="color:{color}; font-weight:bold;">{session.upper()}</p>', unsafe_allow_html=True)
+            
             subjects_in_session = {}
             for _, row in session_group.iterrows():
-                if pd.notna(row.get('Môn học')) and str(row.get('Môn học')).strip():
+                # *** SỬA LỖI TẠI ĐÂY ***
+                # Thêm điều kiện kiểm tra để đảm bảo cả 'Môn học' và 'Tiết' đều có giá trị hợp lệ
+                mon_hoc_hop_le = pd.notna(row.get('Môn học')) and str(row.get('Môn học')).strip()
+                tiet_hop_le = pd.notna(row.get('Tiết')) and str(row.get('Tiết')).strip()
+
+                if mon_hoc_hop_le and tiet_hop_le:
                     key = (row.get('Môn học'), row.get('Giáo viên BM'), row.get('Phòng học'), row.get('Ghi chú'), row.get('Ngày áp dụng', ''), row.get('Lớp', ''))
-                    if key not in subjects_in_session: subjects_in_session[key] = []
-                    subjects_in_session[key].append(str(row['Tiết']))
+                    if key not in subjects_in_session:
+                        subjects_in_session[key] = []
+                    # Chuyển đổi 'Tiết' thành int để loại bỏ phần thập phân (vd: 5.0 -> 5) và sau đó thành str
+                    subjects_in_session[key].append(str(int(float(row['Tiết']))))
+            
             if not subjects_in_session:
                 st.markdown("&nbsp;&nbsp;✨Nghỉ")
             else:
                 for (subject, gv, phong, ghi_chu, ngay_ap_dung, lop), tiet_list in subjects_in_session.items():
                     with st.container():
+                        # Dòng này giờ sẽ an toàn vì đã lọc các giá trị rỗng/không hợp lệ
                         tiet_str = ", ".join(sorted(tiet_list, key=int))
                         display_schedule_item("📖 Môn:", subject, client=client, spreadsheet_id=spreadsheet_id)
                         display_schedule_item("⏰ Tiết:", tiet_str)
