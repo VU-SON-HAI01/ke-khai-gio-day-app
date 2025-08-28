@@ -10,14 +10,6 @@ from google.oauth2.service_account import Credentials
 from unidecode import unidecode
 from thefuzz import process
 
-# --- CÁC HẰNG SỐ ---
-# XÓA: Hằng số này không còn cần thiết vì ta sẽ tải trực tiếp từ Google Sheet
-# COMMON_SUBJECTS = [
-#     "Giáo dục chính trị", "Pháp luật", "Giáo dục thể chất",
-#     "Giáo dục quốc phòng và an ninh", "Tin học", "Tiếng Anh"
-# ]
-# SIMILARITY_THRESHOLD = 85
-
 # --- CÁC HÀM KẾT NỐI GOOGLE SHEETS ---
 
 @st.cache_resource
@@ -27,8 +19,7 @@ def connect_to_gsheet():
         creds_dict = st.secrets["gcp_service_account"]
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive.file"
-        ]
+            "https://www.googleapis.com/auth/drive.file"]
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         return gspread.authorize(creds)
     except Exception as e:
