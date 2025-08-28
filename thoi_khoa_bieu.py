@@ -47,7 +47,6 @@ def load_abbreviations_map(_gsheet_client, spreadsheet_id):
         st.warning(f"⚠️ Lỗi khi tải danh sách viết tắt từ sheet 'VIET_TAT': {e}")
         return {}
 
-# MỚI: Hàm tải danh sách các môn chung từ sheet DANH_MUC
 @st.cache_data(ttl=600)
 def load_common_subjects_map(_gsheet_client, spreadsheet_id):
     """Tải bản đồ ánh xạ Tên môn chung và Mã môn chung từ sheet DANH_MUC."""
@@ -56,7 +55,6 @@ def load_common_subjects_map(_gsheet_client, spreadsheet_id):
         spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet("DANH_MUC")
         records = worksheet.get_all_records()
-        # Chuẩn hóa tên môn học về chữ thường để dễ so sánh
         common_subjects_map = {
             str(record.get('Tên_mônchung')).strip().lower(): str(record.get('Mã_mônchung')).strip()
             for record in records if record.get('Tên_mônchung') and record.get('Mã_mônchung')
@@ -270,7 +268,6 @@ def create_teacher_mapping(df_schedule, df_teacher_info_full, selected_khoa):
             mapping[short_name] = {'full_name': short_name, 'id': ''}
     return mapping, updates_for_gsheet
 
-# SỬA ĐỔI: Hàm được tái cấu trúc hoàn toàn để tích hợp logic chuẩn hóa
 def transform_to_database_format(df_wide, ngay_ap_dung, abbreviations_map, common_subjects_map):
     id_vars = ['Thứ', 'Buổi', 'Tiết']
     df_long = pd.melt(df_wide, id_vars=id_vars, var_name='Lớp_Raw', value_name='Chi tiết Môn học')
@@ -285,7 +282,7 @@ def transform_to_database_format(df_wide, ngay_ap_dung, abbreviations_map, commo
         clean_text = re.sub(r'\s{2,}', ' ', str(cell_text).replace('\n', ' ').strip())
         ghi_chu, remaining_text = "", clean_text
 
-        # 1. Tách Ghi chú (Học từ... / Chỉ học...)
+        # BƯỚC A: Tách Ghi chú (Học từ... / Chỉ học...) ra trước
         note_match = re.search(r'\(?((?:Học từ|Chỉ học).*?)\)?$', clean_text, re.IGNORECASE)
         if note_match:
             ghi_chu = note_match.group(1).strip()
@@ -300,9 +297,11 @@ def transform_to_database_format(df_wide, ngay_ap_dung, abbreviations_map, commo
         for entry in entries:
             if not entry: continue
             
-            mon_hoc_raw, phong_hoc, gv_part = entry, "", ""
+            mon_hoc_raw = entry
+            phong_hoc = ""
+            gv_part = ""
             
-            # 2. Tách Môn học, Phòng học, Giáo viên
+            # BƯỚC B: Tách Môn học thô, Phòng học, và Giáo viên từ một entry
             match = re.search(r'^(.*?)\s*\((.*)\)$', entry)
             if match:
                 mon_hoc_raw, content_in_parens = match.group(1).strip(), match.group(2).strip()
@@ -312,13 +311,19 @@ def transform_to_database_format(df_wide, ngay_ap_dung, abbreviations_map, commo
                 else:
                     phong_hoc, gv_part = "", content_in_parens
             
-            # 3. Chuẩn hóa tên môn học (tra cứu VIET_TAT)
-            mon_hoc_normalized_key = mon_hoc_raw.lower()
-            mon_hoc_day_du = abbreviations_map.get(mon_hoc_normalized_key, mon_hoc_raw)
+            # BƯỚC C: Tra cứu tên môn học thô trong sheet VIET_TAT để lấy tên đầy đủ
+            # Chuyển tên môn về chữ thường để tra cứu không phân biệt hoa/thường
+            mon_hoc_lookup_key = mon_hoc_raw.lower()
+            # Lấy tên đầy đủ từ map, nếu không tìm thấy thì giữ nguyên tên gốc
+            mon_hoc_day_du = abbreviations_map.get(mon_hoc_lookup_key, mon_hoc_raw)
 
-            # 4. Tra cứu Mã môn chung từ DANH_MUC
-            ma_mon = common_subjects_map.get(mon_hoc_day_du.lower(), '')
+            # BƯỚC D: Dùng tên đầy đủ (sau bước C) để tra cứu trong sheet DANH_MUC
+            # Chuyển tên đầy đủ về chữ thường để tra cứu
+            mon_chung_lookup_key = mon_hoc_day_du.lower()
+            # Lấy mã môn chung tương ứng, nếu không phải môn chung thì kết quả là chuỗi rỗng
+            ma_mon = common_subjects_map.get(mon_chung_lookup_key, '')
 
+            # Thêm kết quả đã xử lý vào các danh sách
             all_mon_hoc.append(mon_hoc_day_du)
             if ma_mon: all_ma_mon.append(ma_mon)
             if phong_hoc: all_phong_hoc.append(phong_hoc)
@@ -378,7 +383,7 @@ if 'final_df_to_save' not in st.session_state: st.session_state.final_df_to_save
 TEACHER_INFO_SHEET_ID = "1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI"
 gsheet_client = None
 abbreviations_map = {}
-common_subjects_map = {} # MỚI
+common_subjects_map = {}
 
 # Connect to Google Sheets and load initial data
 if "gcp_service_account" in st.secrets:
@@ -387,7 +392,7 @@ if "gcp_service_account" in st.secrets:
         if 'df_teacher_info' not in st.session_state:
             st.session_state.df_teacher_info = load_teacher_info(gsheet_client, TEACHER_INFO_SHEET_ID)
         abbreviations_map = load_abbreviations_map(gsheet_client, TEACHER_INFO_SHEET_ID)
-        common_subjects_map = load_common_subjects_map(gsheet_client, TEACHER_INFO_SHEET_ID) # MỚI
+        common_subjects_map = load_common_subjects_map(gsheet_client, TEACHER_INFO_SHEET_ID)
 else:
     st.warning("Không tìm thấy cấu hình Google Sheets trong `st.secrets`.", icon="⚠️")
 
@@ -413,13 +418,12 @@ if uploaded_file:
                     raw_df, ngay_ap_dung = extract_schedule_from_excel(worksheet)
                     if raw_df is not None:
                         if ngay_ap_dung: ngay_ap_dung_dict[sheet_name] = ngay_ap_dung
-                        # SỬA ĐỔI: Truyền các map cần thiết vào hàm
                         db_df = transform_to_database_format(raw_df, ngay_ap_dung, abbreviations_map, common_subjects_map)
                         all_processed_dfs.append(db_df)
 
             if all_processed_dfs:
                 combined_df = pd.concat(all_processed_dfs, ignore_index=True)
-                st.session_state['processed_df'] = combined_df # SỬA ĐỔI: Gán trực tiếp dataframe đã xử lý
+                st.session_state['processed_df'] = combined_df
 
                 st.success("Xử lý file Excel thành công!")
                 st.info("Đã tự động bóc tách, chuẩn hóa tên môn và tra cứu mã môn chung.")
@@ -561,4 +565,3 @@ if uploaded_file:
     except Exception as e:
         st.error(f"Đã có lỗi xảy ra khi xử lý file: {e}")
         st.exception(e)
-
