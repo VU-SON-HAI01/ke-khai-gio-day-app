@@ -40,10 +40,8 @@ def load_abbreviations_map(_gsheet_client, spreadsheet_id):
     if _gsheet_client is None: return {}
     try:
         spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
-        # *** ĐÃ SỬA LỖI TẠI ĐÂY: Sửa "VIETTAT" thành "VIET_TAT" ***
         worksheet = spreadsheet.worksheet("VIET_TAT")
         records = worksheet.get_all_records()
-        # Tạo một dictionary với key là từ viết tắt (chữ thường) và value là từ đầy đủ
         abbreviations_map = {
             str(record.get('Viết_tắt_1')).strip().lower(): str(record.get('Đầy_đủ_1')).strip()
             for record in records if record.get('Viết_tắt_1') and record.get('Đầy_đủ_1')
@@ -55,7 +53,6 @@ def load_abbreviations_map(_gsheet_client, spreadsheet_id):
     except Exception as e:
         st.warning(f"⚠️ Lỗi khi tải danh sách viết tắt từ sheet 'VIET_TAT': {e}")
         return {}
-
 
 @st.cache_data(ttl=600)
 def load_teacher_info(_gsheet_client, spreadsheet_id):
@@ -226,6 +223,7 @@ def normalize_common_subjects(df, abbreviations_map):
         lookup_key = subject_name_original.lower()
         if lookup_key in abbreviations_map:
             row['Môn học'] = abbreviations_map[lookup_key]
+            # *** SỬA LỖI TẠI ĐÂY: Gán 'MC' cho 'Mã môn' thay vì 'Môn học' ***
             row['Mã môn'] = 'MC'
             return row
 
@@ -388,7 +386,7 @@ if uploaded_file:
     try:
         workbook = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()), data_only=True)
         all_sheet_names = workbook.sheetnames
-        sheets_to_display = [s for s in all_sheet_names if s.upper() not in ["DANH_MUC", "THONG_TIN_GV"]]
+        sheets_to_display = [s for s in all_sheet_names if s.upper() not in ["DANH_MUC", "THONG_TIN_GV", "VIET_TAT"]]
         selected_sheets = st.multiselect("Chọn các sheet TKB cần xử lý:", options=sheets_to_display)
 
         if st.button("Xử lý các sheet đã chọn", key="process_button"):
@@ -410,6 +408,7 @@ if uploaded_file:
                 combined_df = pd.concat(all_processed_dfs, ignore_index=True)
                 with st.spinner("Đang rà soát và chuẩn hóa các môn học chung..."):
                     st.session_state['processed_df'] = normalize_common_subjects(combined_df, abbreviations_map)
+
                 st.success("Xử lý file Excel thành công!")
                 st.info("Đã tự động rà soát và chuẩn hóa các môn học chung (MC).")
                 if ngay_ap_dung_dict:
