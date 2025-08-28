@@ -36,11 +36,12 @@ def connect_to_gsheet():
 
 @st.cache_data(ttl=600)
 def load_abbreviations_map(_gsheet_client, spreadsheet_id):
-    """Tải bản đồ ánh xạ viết tắt từ sheet VIETTAT."""
+    """Tải bản đồ ánh xạ viết tắt từ sheet VIET_TAT."""
     if _gsheet_client is None: return {}
     try:
         spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
-        worksheet = spreadsheet.worksheet("VIETTAT")
+        # *** ĐÃ SỬA LỖI TẠI ĐÂY: Sửa "VIETTAT" thành "VIET_TAT" ***
+        worksheet = spreadsheet.worksheet("VIET_TAT")
         records = worksheet.get_all_records()
         # Tạo một dictionary với key là từ viết tắt (chữ thường) và value là từ đầy đủ
         abbreviations_map = {
@@ -49,11 +50,12 @@ def load_abbreviations_map(_gsheet_client, spreadsheet_id):
         }
         return abbreviations_map
     except gspread.exceptions.WorksheetNotFound:
-        st.warning("⚠️ Không tìm thấy sheet 'VIETTAT'. Tính năng chuẩn hóa viết tắt sẽ bị bỏ qua.")
+        st.warning("⚠️ Không tìm thấy sheet 'VIET_TAT'. Tính năng chuẩn hóa viết tắt sẽ bị bỏ qua.")
         return {}
     except Exception as e:
-        st.warning(f"⚠️ Lỗi khi tải danh sách viết tắt từ sheet 'VIETTAT': {e}")
+        st.warning(f"⚠️ Lỗi khi tải danh sách viết tắt từ sheet 'VIET_TAT': {e}")
         return {}
+
 
 @st.cache_data(ttl=600)
 def load_teacher_info(_gsheet_client, spreadsheet_id):
@@ -209,7 +211,7 @@ def extract_schedule_from_excel(worksheet):
 def normalize_common_subjects(df, abbreviations_map):
     """
     Chuẩn hóa tên các môn học chung.
-    Ưu tiên xử lý viết tắt từ sheet VIETTAT, sau đó mới so sánh gần đúng.
+    Ưu tiên xử lý viết tắt từ sheet VIET_TAT, sau đó mới so sánh gần đúng.
     """
     if 'Môn học' not in df.columns or 'Mã môn' not in df.columns:
         st.warning("Thiếu cột 'Môn học' hoặc 'Mã môn' để chuẩn hóa.")
