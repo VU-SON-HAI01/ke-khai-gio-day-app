@@ -34,6 +34,29 @@ def connect_to_gsheet():
         st.error(f"Lỗi kết nối Google Sheets: {e}")
         return None
 
+# *** HÀM MỚI: Đọc danh sách viết tắt từ Google Sheet ***
+@st.cache_data(ttl=600)
+def load_abbreviations_map(_gsheet_client, spreadsheet_id):
+    """Tải bản đồ ánh xạ viết tắt từ sheet VIETTAT."""
+    if _gsheet_client is None: return {}
+    try:
+        spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
+        worksheet = spreadsheet.worksheet("VIETTAT")
+        records = worksheet.get_all_records()
+        # Tạo một dictionary với key là từ viết tắt (chữ thường) và value là từ đầy đủ
+        abbreviations_map = {
+            str(record.get('Viết_tắt_1')).strip().lower(): str(record.get('Đầy_đủ_1')).strip()
+            for record in records if record.get('Viết_tắt_1') and record.get('Đầy_đủ_1')
+        }
+        return abbreviations_map
+    except gspread.exceptions.WorksheetNotFound:
+        st.warning("⚠️ Không tìm thấy sheet 'VIETTAT'. Tính năng chuẩn hóa viết tắt sẽ bị bỏ qua.")
+        return {}
+    except Exception as e:
+        st.warning(f"⚠️ Lỗi khi tải danh sách viết tắt từ sheet 'VIETTAT': {e}")
+        return {}
+
+
 @st.cache_data(ttl=600)
 def load_teacher_info(_gsheet_client, spreadsheet_id):
     """Tải và chuẩn hóa dữ liệu giáo viên từ sheet THONG_TIN_GV."""
@@ -185,18 +208,35 @@ def extract_schedule_from_excel(worksheet):
 
 # --- HÀM LOGIC CHÍNH ---
 
-def normalize_common_subjects(df):
+# *** HÀM ĐÃ SỬA ĐỔI: Sử dụng bản đồ viết tắt được tải từ Google Sheet ***
+def normalize_common_subjects(df, abbreviations_map):
+    """
+    Chuẩn hóa tên các môn học chung.
+    Ưu tiên xử lý viết tắt từ sheet VIETTAT, sau đó mới so sánh gần đúng.
+    """
     if 'Môn học' not in df.columns or 'Mã môn' not in df.columns:
         st.warning("Thiếu cột 'Môn học' hoặc 'Mã môn' để chuẩn hóa.")
         return df
 
     def match_and_update(row):
-        subject_name = str(row['Môn học']).strip()
-        if not subject_name: return row
-        best_match, score = process.extractOne(subject_name, COMMON_SUBJECTS)
+        subject_name_original = str(row['Môn học']).strip()
+        if not subject_name_original:
+            return row
+
+        # Bước 1: Tra cứu trong bản đồ viết tắt (đã được chuyển thành chữ thường)
+        lookup_key = subject_name_original.lower()
+        if lookup_key in abbreviations_map:
+            row['Môn học'] = abbreviations_map[lookup_key]
+            row['Mã môn'] = 'MC'
+            return row # Tìm thấy, trả về kết quả ngay
+
+        # Bước 2: Nếu không có trong danh sách viết tắt, tiến hành so sánh gần đúng
+        best_match, score = process.extractOne(subject_name_original, COMMON_SUBJECTS)
+        
         if score >= SIMILARITY_THRESHOLD:
             row['Môn học'] = best_match
             row['Mã môn'] = 'MC'
+            
         return row
 
     return df.apply(match_and_update, axis=1)
@@ -257,14 +297,10 @@ def transform_to_database_format(df_wide, ngay_ap_dung):
         clean_text = re.sub(r'\s{2,}', ' ', str(cell_text).replace('\n', ' ').strip())
         ghi_chu, remaining_text = "", clean_text
         
-        # *** ĐÃ CẬP NHẬT TẠI ĐÂY ***
-        # Regex mới để nhận diện "Học từ" hoặc "Chỉ học" và loại bỏ dấu ngoặc đơn ()
         note_match = re.search(r'\(?((?:Học từ|Chỉ học).*?)\)?$', clean_text, re.IGNORECASE)
         
         if note_match:
-            # group(1) sẽ lấy nội dung bên trong dấu ngoặc
             ghi_chu = note_match.group(1).strip()
-            # group(0) là toàn bộ chuỗi khớp (bao gồm cả dấu ngoặc) để loại bỏ khỏi văn bản gốc
             remaining_text = clean_text.replace(note_match.group(0), '').strip()
             
         if "THPT" in remaining_text.upper():
@@ -336,10 +372,15 @@ if 'final_df_to_save' not in st.session_state: st.session_state.final_df_to_save
 
 TEACHER_INFO_SHEET_ID = "1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI"
 gsheet_client = None
+abbreviations_map = {} # Khởi tạo dictionary rỗng
+
 if "gcp_service_account" in st.secrets:
     gsheet_client = connect_to_gsheet()
-    if gsheet_client and 'df_teacher_info' not in st.session_state:
-        st.session_state.df_teacher_info = load_teacher_info(gsheet_client, TEACHER_INFO_SHEET_ID)
+    if gsheet_client:
+        if 'df_teacher_info' not in st.session_state:
+            st.session_state.df_teacher_info = load_teacher_info(gsheet_client, TEACHER_INFO_SHEET_ID)
+        # *** THAY ĐỔI: Tải danh sách viết tắt khi ứng dụng khởi động ***
+        abbreviations_map = load_abbreviations_map(gsheet_client, TEACHER_INFO_SHEET_ID)
 else:
     st.warning("Không tìm thấy cấu hình Google Sheets trong `st.secrets`.", icon="⚠️")
 
@@ -370,7 +411,8 @@ if uploaded_file:
             if all_processed_dfs:
                 combined_df = pd.concat(all_processed_dfs, ignore_index=True)
                 with st.spinner("Đang rà soát và chuẩn hóa các môn học chung..."):
-                    st.session_state['processed_df'] = normalize_common_subjects(combined_df)
+                    # *** THAY ĐỔI: Truyền bản đồ viết tắt vào hàm xử lý ***
+                    st.session_state['processed_df'] = normalize_common_subjects(combined_df, abbreviations_map)
                 st.success("Xử lý file Excel thành công!")
                 st.info("Đã tự động rà soát và chuẩn hóa các môn học chung (MC).")
                 if ngay_ap_dung_dict:
