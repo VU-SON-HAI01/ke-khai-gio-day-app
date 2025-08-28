@@ -256,10 +256,17 @@ def transform_to_database_format(df_wide, ngay_ap_dung):
     def parse_subject_details_custom(cell_text):
         clean_text = re.sub(r'\s{2,}', ' ', str(cell_text).replace('\n', ' ').strip())
         ghi_chu, remaining_text = "", clean_text
-        note_match = re.search(r'(\(?(Học từ.*?)\)?)$', clean_text, re.IGNORECASE)
+        
+        # *** ĐÃ CẬP NHẬT TẠI ĐÂY ***
+        # Regex mới để nhận diện "Học từ" hoặc "Chỉ học" và loại bỏ dấu ngoặc đơn ()
+        note_match = re.search(r'\(?((?:Học từ|Chỉ học).*?)\)?$', clean_text, re.IGNORECASE)
+        
         if note_match:
+            # group(1) sẽ lấy nội dung bên trong dấu ngoặc
             ghi_chu = note_match.group(1).strip()
+            # group(0) là toàn bộ chuỗi khớp (bao gồm cả dấu ngoặc) để loại bỏ khỏi văn bản gốc
             remaining_text = clean_text.replace(note_match.group(0), '').strip()
+            
         if "THPT" in remaining_text.upper():
             return ("HỌC TKB VĂN HÓA THPT", "", "", ghi_chu)
 
@@ -398,12 +405,10 @@ if uploaded_file:
                         df_after_mapping = db_df_to_process.copy()
                         df_after_mapping['KHOA'] = khoa
 
-                        # <<< SỬA LỖI: Chuyển đổi mọi thứ thành chuỗi trước khi join
                         def apply_mapping(name_str, key):
                             name_str = str(name_str).strip()
                             if not name_str: return ""
                             names_list = [n.strip() for n in name_str.split(' / ')]
-                            # Bọc str() để đảm bảo mọi phần tử là chuỗi
                             mapped_names = [str(teacher_mapping.get(name, {}).get(key, name)) for name in names_list]
                             return " / ".join(mapped_names)
 
@@ -473,7 +478,7 @@ if uploaded_file:
                                 for short_name, full_name in manual_selections.items():
                                     if full_name != "-- Chọn --":
                                         teacher_info = df_teachers_in_khoa[df_teachers_in_khoa['Ho_ten_gv'] == full_name].iloc[0]
-                                        teacher_id = str(teacher_info['Ma_gv']) # Đảm bảo teacher_id là chuỗi
+                                        teacher_id = str(teacher_info['Ma_gv'])
                                         
                                         df_to_save['Giáo viên BM'] = df_to_save['Giáo viên BM'].str.replace(short_name, full_name, regex=False)
                                         df_to_save['Ma_gv_bm'] = df_to_save['Ma_gv_bm'].str.replace(short_name, teacher_id, regex=False)
