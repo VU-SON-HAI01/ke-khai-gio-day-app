@@ -34,7 +34,6 @@ def connect_to_gsheet():
         st.error(f"Lỗi kết nối Google Sheets: {e}")
         return None
 
-# *** HÀM MỚI: Đọc danh sách viết tắt từ Google Sheet ***
 @st.cache_data(ttl=600)
 def load_abbreviations_map(_gsheet_client, spreadsheet_id):
     """Tải bản đồ ánh xạ viết tắt từ sheet VIETTAT."""
@@ -55,7 +54,6 @@ def load_abbreviations_map(_gsheet_client, spreadsheet_id):
     except Exception as e:
         st.warning(f"⚠️ Lỗi khi tải danh sách viết tắt từ sheet 'VIETTAT': {e}")
         return {}
-
 
 @st.cache_data(ttl=600)
 def load_teacher_info(_gsheet_client, spreadsheet_id):
@@ -208,7 +206,6 @@ def extract_schedule_from_excel(worksheet):
 
 # --- HÀM LOGIC CHÍNH ---
 
-# *** HÀM ĐÃ SỬA ĐỔI: Sử dụng bản đồ viết tắt được tải từ Google Sheet ***
 def normalize_common_subjects(df, abbreviations_map):
     """
     Chuẩn hóa tên các môn học chung.
@@ -223,12 +220,12 @@ def normalize_common_subjects(df, abbreviations_map):
         if not subject_name_original:
             return row
 
-        # Bước 1: Tra cứu trong bản đồ viết tắt (đã được chuyển thành chữ thường)
+        # Bước 1: Tra cứu trong bản đồ viết tắt (không phân biệt hoa thường)
         lookup_key = subject_name_original.lower()
         if lookup_key in abbreviations_map:
             row['Môn học'] = abbreviations_map[lookup_key]
             row['Mã môn'] = 'MC'
-            return row # Tìm thấy, trả về kết quả ngay
+            return row
 
         # Bước 2: Nếu không có trong danh sách viết tắt, tiến hành so sánh gần đúng
         best_match, score = process.extractOne(subject_name_original, COMMON_SUBJECTS)
@@ -372,14 +369,13 @@ if 'final_df_to_save' not in st.session_state: st.session_state.final_df_to_save
 
 TEACHER_INFO_SHEET_ID = "1TJfaywQM1VNGjDbWyC3osTLLOvlgzP0-bQjz8J-_BoI"
 gsheet_client = None
-abbreviations_map = {} # Khởi tạo dictionary rỗng
+abbreviations_map = {}
 
 if "gcp_service_account" in st.secrets:
     gsheet_client = connect_to_gsheet()
     if gsheet_client:
         if 'df_teacher_info' not in st.session_state:
             st.session_state.df_teacher_info = load_teacher_info(gsheet_client, TEACHER_INFO_SHEET_ID)
-        # *** THAY ĐỔI: Tải danh sách viết tắt khi ứng dụng khởi động ***
         abbreviations_map = load_abbreviations_map(gsheet_client, TEACHER_INFO_SHEET_ID)
 else:
     st.warning("Không tìm thấy cấu hình Google Sheets trong `st.secrets`.", icon="⚠️")
@@ -411,7 +407,6 @@ if uploaded_file:
             if all_processed_dfs:
                 combined_df = pd.concat(all_processed_dfs, ignore_index=True)
                 with st.spinner("Đang rà soát và chuẩn hóa các môn học chung..."):
-                    # *** THAY ĐỔI: Truyền bản đồ viết tắt vào hàm xử lý ***
                     st.session_state['processed_df'] = normalize_common_subjects(combined_df, abbreviations_map)
                 st.success("Xử lý file Excel thành công!")
                 st.info("Đã tự động rà soát và chuẩn hóa các môn học chung (MC).")
