@@ -50,17 +50,12 @@ def load_data_from_sheet(_gsheet_client, sheet_id, sheet_name):
         return None
 
 # --- HÀM HỖ TRỢ ---
-def parse_value_from_string(text, prefix):
-    """Trích xuất giá trị từ một chuỗi có tiền tố, ví dụ: '- Họ và tên: ABC' -> 'ABC'."""
-    if isinstance(text, str) and text.startswith(prefix):
-        return text[len(prefix):].strip()
-    return text if isinstance(text, str) else ""
-
 def get_evaluation_criteria(df):
     """Lấy danh sách các nội dung và điểm tối đa để đánh giá."""
     try:
         start_row_index = df[df[0] == 'STT'].index[0]
         end_row_index = df[df[1].str.contains("Tổng điểm", na=False)].index[0]
+        # Lấy cột B (Nội dung - index 1) và cột D (Điểm tối đa - index 3)
         criteria_df = df.iloc[start_row_index + 1 : end_row_index].copy()
         criteria_df = criteria_df[[1, 3]].dropna(how='all')
         criteria_df.columns = ["noi_dung", "diem_toi_da"]
@@ -141,28 +136,30 @@ def render_evaluation_page():
 
         if df_existing is not None and not df_existing.empty:
             st.info(f"Đã tìm thấy và tải dữ liệu từ phiếu của tháng {selected_month}/{selected_year}.")
-            ho_ten_val = parse_value_from_string(df_existing.iloc[5, 0], "- Họ và tên:")
-            chuc_vu_val = parse_value_from_string(df_existing.iloc[6, 0], "- Chức vụ:")
-            don_vi_val = parse_value_from_string(df_existing.iloc[7, 0], "- Đơn vị công tác:")
-            nhiem_vu_val = df_existing.iloc[9, 0]
+            try:
+                ho_ten_val = df_existing.iloc[4, 1] # Hàng 5, Cột B
+                chuc_vu_val = df_existing.iloc[5, 1] # Hàng 6, Cột B
+                don_vi_val = df_existing.iloc[6, 1] # Hàng 7, Cột B
+                nhiem_vu_val = df_existing.iloc[8, 1] # Hàng 9, Cột B
 
-            start_row_index = df_goc[df_goc[0] == 'STT'].index[0] + 1
-            loaded_scores = []
-            for i in range(len(df_criteria)):
-                try:
-                    score = df_existing.iloc[start_row_index + i, 4]
+                start_row_index = df_goc[df_goc[0] == 'STT'].index[0] + 1
+                loaded_scores = []
+                for i in range(len(df_criteria)):
+                    score = df_existing.iloc[start_row_index + i, 4] # Cột E
                     loaded_scores.append(float(score))
-                except (ValueError, TypeError, IndexError):
-                    loaded_scores.append(float(df_criteria.iloc[i]['diem_toi_da']))
-            diem_tu_cham_defaults = loaded_scores
+                diem_tu_cham_defaults = loaded_scores
+            except (ValueError, TypeError, IndexError):
+                st.warning("Định dạng sheet cũ không khớp. Đang sử dụng dữ liệu mặc định.")
+
+
         else:
             st.info(f"Chưa có phiếu cho tháng {selected_month}/{selected_year}. Đang tạo phiếu mới từ mẫu.")
 
         # --- Hiển thị Giao diện ---
         st.header("A. THÔNG TIN CÁ NHÂN")
-        ho_ten_input = st.text_input("- Họ và tên:", value=ho_ten_val)
-        chuc_vu_input = st.text_input("- Chức vụ:", value=chuc_vu_val)
-        don_vi_input = st.text_input("- Đơn vị công tác:", value=don_vi_val)
+        ho_ten_input = st.text_input("Họ và tên:", value=ho_ten_val)
+        chuc_vu_input = st.text_input("Chức vụ:", value=chuc_vu_val)
+        don_vi_input = st.text_input("Đơn vị công tác:", value=don_vi_val)
 
         st.header("I. Nhiệm vụ được phân công trong tháng:")
         nhiem_vu_input = st.text_area("Liệt kê nhiệm vụ:", value=nhiem_vu_val, height=150)
@@ -206,17 +203,13 @@ def render_evaluation_page():
                     # Cập nhật giá trị vào các ô cụ thể để không làm mất định dạng
                     batch_updates = []
                     
-                    # Thông tin cá nhân và nhiệm vụ (Cột A)
-                    batch_updates.append({'range': 'A5', 'values': [[f"Tháng: {selected_month}/{selected_year}"]]})
-                    batch_updates.append({'range': 'A6', 'values': [[f"- Họ và tên: {ho_ten_input}"]]})
-                    batch_updates.append({'range': 'A7', 'values': [[f"- Chức vụ: {chuc_vu_input}"]]})
-                    batch_updates.append({'range': 'A8', 'values': [[f"- Đơn vị công tác: {don_vi_input}"]]})
-                    batch_updates.append({'range': 'A10', 'values': [[nhiem_vu_input]]})
+                    # Thông tin cá nhân và nhiệm vụ
+                    batch_updates.append({'range': 'A4', 'values': [[f"Tháng: {selected_month}/{selected_year}"]]})
+                    batch_updates.append({'range': 'B5', 'values': [[ho_ten_input]]})
+                    batch_updates.append({'range': 'B6', 'values': [[chuc_vu_input]]})
+                    batch_updates.append({'range': 'B7', 'values': [[don_vi_input]]})
+                    batch_updates.append({'range': 'B9', 'values': [[nhiem_vu_input]]})
                     
-                    # Xóa các dòng nhiệm vụ mẫu cũ
-                    for i in range(11, 15):
-                         batch_updates.append({'range': f'A{i}', 'values': [['']]})
-
                     # Điểm tự chấm (Cột E)
                     start_row_index_df = df_goc[df_goc[0] == 'STT'].index[0] + 1
                     for i, diem in enumerate(diem_tu_cham_list):
