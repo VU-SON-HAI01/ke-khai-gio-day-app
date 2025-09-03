@@ -136,7 +136,7 @@ def render_evaluation_page():
         )
         diem_tu_cham_defaults = [float(row['diem_toi_da']) for _, row in df_criteria.iterrows()]
 
-        sheet_name_to_load = f"THANG_{selected_month}_{selected_year}_{username}"
+        sheet_name_to_load = f"THANG_{selected_month}_{selected_year}"
         df_existing = load_data_from_sheet(gsheet_client, GOOGLE_SHEET_ID, sheet_name_to_load)
 
         if df_existing is not None and not df_existing.empty:
@@ -167,7 +167,7 @@ def render_evaluation_page():
         st.header("I. Nhiệm vụ được phân công trong tháng:")
         nhiem_vu_input = st.text_area("Liệt kê nhiệm vụ:", value=nhiem_vu_val, height=150)
             
-        st.header("II. TỰ CHẤM ĐIỂM, XẾP LOẠI CHẤT LƯỢNG HÀNG THÁNG")
+        st.header("II. TỰ CHẤM ĐIỂM, XẾP LOẠI CHẤT LƯỢỢNG HÀNG THÁNG")
         
         with st.form("evaluation_form"):
             diem_tu_cham_list = []
@@ -190,39 +190,53 @@ def render_evaluation_page():
                 st.metric(label="Tổng điểm tự chấm", value=f"{total_score:.2f}")
                 st.success(f"**Tự xếp loại:** {xep_loai}")
 
-                sheet_name_to_save = f"THANG_{selected_month}_{selected_year}_{username}"
+                sheet_name_to_save = f"THANG_{selected_month}_{selected_year}"
                 try:
                     spreadsheet = gsheet_client.open_by_key(GOOGLE_SHEET_ID)
+                    worksheet = None
                     try:
                         worksheet = spreadsheet.worksheet(sheet_name_to_save)
-                        worksheet.clear()
                     except gspread.WorksheetNotFound:
-                        worksheet = spreadsheet.add_worksheet(title=sheet_name_to_save, rows=100, cols=20)
+                        source_sheet = spreadsheet.worksheet(SHEET_GOC_NAME)
+                        worksheet = spreadsheet.duplicate_sheet(
+                            source_sheet_id=source_sheet.id,
+                            new_sheet_name=sheet_name_to_save
+                        )
                     
-                    data_to_write = df_goc.values.tolist()
-                    data_to_write[4][0] = f"Tháng: {selected_month}/{selected_year}"
-                    data_to_write[5][0] = f"- Họ và tên: {ho_ten_input}"
-                    data_to_write[6][0] = f"- Chức vụ: {chuc_vu_input}"
-                    data_to_write[7][0] = f"- Đơn vị công tác: {don_vi_input}"
+                    # Cập nhật giá trị vào các ô cụ thể để không làm mất định dạng
+                    batch_updates = []
                     
-                    task_start_row = 9
-                    data_to_write[task_start_row][0] = nhiem_vu_input
-                    for i in range(1, 5):
-                        if task_start_row + i < len(data_to_write):
-                            data_to_write[task_start_row + i][0] = ""
+                    # Thông tin cá nhân và nhiệm vụ (Cột A)
+                    batch_updates.append({'range': 'A5', 'values': [[f"Tháng: {selected_month}/{selected_year}"]]})
+                    batch_updates.append({'range': 'A6', 'values': [[f"- Họ và tên: {ho_ten_input}"]]})
+                    batch_updates.append({'range': 'A7', 'values': [[f"- Chức vụ: {chuc_vu_input}"]]})
+                    batch_updates.append({'range': 'A8', 'values': [[f"- Đơn vị công tác: {don_vi_input}"]]})
+                    batch_updates.append({'range': 'A10', 'values': [[nhiem_vu_input]]})
                     
-                    start_row_index = df_goc[df_goc[0] == 'STT'].index[0] + 1
-                    for i, diem in enumerate(diem_tu_cham_list):
-                        data_to_write[start_row_index + i][4] = diem
+                    # Xóa các dòng nhiệm vụ mẫu cũ
+                    for i in range(11, 15):
+                         batch_updates.append({'range': f'A{i}', 'values': [['']]})
 
-                    end_row_index = df_goc[df_goc[1].str.contains("Tổng điểm", na=False)].index[0]
-                    data_to_write[end_row_index][4] = total_score
+                    # Điểm tự chấm (Cột E)
+                    start_row_index_df = df_goc[df_goc[0] == 'STT'].index[0] + 1
+                    for i, diem in enumerate(diem_tu_cham_list):
+                        cell_row = start_row_index_df + i + 1
+                        batch_updates.append({'range': f'E{cell_row}', 'values': [[diem]]})
+
+                    # Tổng điểm và xếp loại
+                    end_row_index_df = df_goc[df_goc[1].str.contains("Tổng điểm", na=False)].index[0]
+                    batch_updates.append({'range': f'E{end_row_index_df + 1}', 'values': [[total_score]]})
                     
-                    self_ranking_row_index = df_goc[df_goc[0].str.contains("Tự xếp loại", na=False)].index[0]
-                    data_to_write[self_ranking_row_index][0] = f"- Tự xếp loại: {xep_loai}"
+                    self_ranking_row_index_df = df_goc[df_goc[0].str.contains("Tự xếp loại", na=False)].index[0]
+                    batch_updates.append({'range': f'A{self_ranking_row_index_df + 1}', 'values': [[f"- Tự xếp loại: {xep_loai}"]]})
                     
-                    worksheet.update(data_to_write, value_input_option='USER_ENTERED')
+                    if batch_updates:
+                        worksheet.batch_update(batch_updates, value_input_option='USER_ENTERED')
+                    
                     st.success(f"Đã lưu phiếu đánh giá vào sheet '{sheet_name_to_save}' thành công!")
+                    # Xóa cache để lần sau tải lại cho đúng
+                    st.cache_data.clear()
+
                 except Exception as e:
                     st.error(f"Đã xảy ra lỗi khi lưu vào Google Sheet: {e}")
 
