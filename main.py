@@ -122,7 +122,9 @@ else:
                             st.Page("pages/2_sodo_phonghoc.py", title="Sơ đồ Phòng học"),
                             st.Page("pages/2_thongtin_monhoc.py", title="Thông tin Môn học")],
             "Quản lý HSSV": [st.Page("tao_bangdiem.py", title="Tạo Bảng điểm"),
-                                  st.Page("capnhat_ds_hssv.py", title="Cập nhật danh sách HSSV")]
+                                  st.Page("capnhat_ds_hssv.py", title="Cập nhật danh sách HSSV")],
+            "Thi đua": [st.Page("phieu_danh_gia.py", title="Đánh giá xếp loại"),
+                                  st.Page("phieu_danh_gia.py", title="Phiếu đánh giá theo tháng")],
         }
     
     else:
