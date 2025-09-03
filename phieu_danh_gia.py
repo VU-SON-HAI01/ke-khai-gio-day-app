@@ -95,13 +95,12 @@ def classify_score(score):
 def render_evaluation_page():
     """Hiển thị nội dung trang dựa trên vai trò của người dùng."""
     # Giả sử username và role được lưu trong session_state từ file main.py
-    username = st.session_state.get("username")
-    role = st.session_state.get("role")
+    # Cung cấp giá trị mặc định để tránh lỗi nếu session_state chưa được thiết lập
+    username = st.session_state.get("username", "user")
+    role = st.session_state.get("role", "user")
 
-    # Kiểm tra nếu người dùng chưa đăng nhập
-    if not username or not role:
-        st.warning("Vui lòng đăng nhập để sử dụng chức năng này.")
-        st.stop()
+    # Đã bỏ phần kiểm tra đăng nhập theo yêu cầu.
+    # File main.py chịu trách nhiệm kiểm soát truy cập vào trang này.
 
     gsheet_client = connect_to_gsheet()
     if gsheet_client is None:
@@ -114,13 +113,14 @@ def render_evaluation_page():
         
         try:
             spreadsheet = gsheet_client.open_by_key(GOOGLE_SHEET_ID)
+            # Lọc các sheet không phải là trang gốc
             all_sheets = [s.title for s in spreadsheet.worksheets() if s.title != SHEET_GOC_NAME]
             
             if not all_sheets:
                 st.info("Chưa có phiếu đánh giá nào được nộp.")
                 return
 
-            selected_sheet = st.selectbox("Chọn tháng để xem:", all_sheets)
+            selected_sheet = st.selectbox("Chọn phiếu để xem:", all_sheets)
             if selected_sheet:
                 df_view = load_data_from_sheet(gsheet_client, GOOGLE_SHEET_ID, selected_sheet)
                 if df_view is not None:
@@ -218,3 +218,4 @@ def render_evaluation_page():
 # --- LUỒNG CHẠY CHÍNH ---
 # Vì đây là một trang con, chỉ cần gọi hàm để hiển thị nội dung.
 render_evaluation_page()
+
