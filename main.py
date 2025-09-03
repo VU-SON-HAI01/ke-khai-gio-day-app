@@ -114,18 +114,25 @@ else:
         st.subheader("👨‍💻 Bảng điều khiển của Admin")
         # --- ĐIỀU HƯỚNG TRANG CHO ADMIN ---
         pages = {
-            "Quản lý": [st.Page("quan_ly_giao_vien.py", title="Quản lý Giáo viên"),
-                         st.Page("thoi_khoa_bieu.py", title="Cập nhật TKB")],
-            "🔍Tra cứu TKB": [st.Page("pages/1_tra_cuu_tkb_gv.py", title="Tra cứu theo GV"),
-                            st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu theo Lớp"),
-                            st.Page("pages/1_tra_cuu_thongtin_hssv.py", title="Tra cứu thông tin HSSV"),
-                            st.Page("pages/2_sodo_phonghoc.py", title="Sơ đồ Phòng học"),
-                            st.Page("pages/2_thongtin_monhoc.py", title="Thông tin Môn học")],
-            "Quản lý HSSV": [st.Page("tao_bangdiem.py", title="Tạo Bảng điểm"),
-                                  st.Page("capnhat_ds_hssv.py", title="Cập nhật danh sách HSSV")],
-            "Thi đua": [st.Page("phieu_danh_gia.py", title="Đánh giá xếp loại"),
-                                  st.Page("phieu_danh_gia.py", title="Phiếu đánh giá theo tháng")],
-        }
+    "Quản lý": [
+        st.Page("quan_ly_giao_vien.py", title="Quản lý Giáo viên", icon="🧑‍🏫"),
+        st.Page("thoi_khoa_bieu.py", title="Cập nhật TKB", icon="🗓️")
+    ],
+    "🔍 Tra cứu TKB": [
+        st.Page("pages/1_tra_cuu_tkb_gv.py", title="Tra cứu theo GV"),
+        st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu theo Lớp"),
+        st.Page("pages/1_tra_cuu_thongtin_hssv.py", title="Tra cứu thông tin HSSV"),
+        st.Page("pages/2_sodo_phonghoc.py", title="Sơ đồ Phòng học"),
+        st.Page("pages/2_thongtin_monhoc.py", title="Thông tin Môn học")
+    ],
+    "Quản lý HSSV": [
+        st.Page("tao_bangdiem.py", title="Tạo Bảng điểm", icon="📊"),
+        st.Page("capnhat_ds_hssv.py", title="Cập nhật danh sách HSSV", icon="📋")
+    ],
+    "Thi đua": [
+        st.Page("phieu_danh_gia.py", title="Phiếu đánh giá theo tháng", icon="📝")
+    ],
+}
     
     else:
         # --- GIAO DIỆN CỦA USER THƯỜNG ---
