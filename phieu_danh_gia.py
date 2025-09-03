@@ -3,7 +3,6 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
-import hashlib # Thư viện để mã hóa mật khẩu
 
 # --- CẤU HÌNH VÀ HẰNG SỐ ---
 # ID của Google Sheet bạn cung cấp
@@ -92,56 +91,24 @@ def classify_score(score):
     else:
         return "Không hoàn thành nhiệm vụ"
 
-def hash_password(password):
-    """Mã hóa mật khẩu sử dụng SHA-256."""
-    return hashlib.sha256(password.encode()).hexdigest()
+# --- NỘI DUNG TRANG ĐÁNH GIÁ ---
+def render_evaluation_page():
+    """Hiển thị nội dung trang dựa trên vai trò của người dùng."""
+    # Giả sử username và role được lưu trong session_state từ file main.py
+    username = st.session_state.get("username")
+    role = st.session_state.get("role")
 
-# --- GIAO DIỆN ĐĂNG NHẬP ---
-def login_page():
-    """Hiển thị form đăng nhập và xác thực người dùng."""
-    st.header("🔐 Đăng nhập hệ thống")
-    
-    # Lấy thông tin người dùng từ Streamlit Secrets
-    # Ví dụ cấu trúc trong secrets.toml:
-    # [users]
-    # admin = "hashed_password_admin"
-    # vusonhai = "hashed_password_user"
-    users = st.secrets.get("users", {})
-    
-    username = st.text_input("Tên đăng nhập")
-    password = st.text_input("Mật khẩu", type="password")
+    # Kiểm tra nếu người dùng chưa đăng nhập
+    if not username or not role:
+        st.warning("Vui lòng đăng nhập để sử dụng chức năng này.")
+        st.stop()
 
-    if st.button("Đăng nhập"):
-        hashed_pass = hash_password(password)
-        if username in users and users[username] == hashed_pass:
-            st.session_state["logged_in"] = True
-            st.session_state["username"] = username
-            # Giả sử 'admin' là tài khoản quản trị
-            st.session_state["role"] = "admin" if username == "admin" else "user"
-            st.rerun()
-        else:
-            st.error("Tên đăng nhập hoặc mật khẩu không đúng.")
-
-# --- TRANG CHỦ CỦA ỨNG DỤNG ---
-def main_app():
-    username = st.session_state.get("username", "Guest")
-    role = st.session_state.get("role", "user")
-
-    st.sidebar.title(f"Xin chào, {username}!")
-    st.sidebar.write(f"Vai trò: **{role.upper()}**")
-    if st.sidebar.button("Đăng xuất"):
-        for key in st.session_state.keys():
-            del st.session_state[key]
-        st.rerun()
-    
-    st.sidebar.markdown("---")
-    
     gsheet_client = connect_to_gsheet()
     if gsheet_client is None:
         return
 
+    # Giao diện cho Admin: Xem các phiếu đã nộp
     if role == "admin":
-        # Giao diện cho Admin: Xem các phiếu đã nộp
         st.title("📊 Trang quản trị viên")
         st.header("Danh sách các phiếu đã đánh giá")
         
@@ -161,8 +128,8 @@ def main_app():
         except Exception as e:
             st.error(f"Không thể tải danh sách các sheet: {e}")
 
+    # Giao diện cho User: Điền phiếu đánh giá
     else:
-        # Giao diện cho User: Điền phiếu đánh giá
         st.title("📝 PHIẾU ĐÁNH GIÁ, XẾP LOẠI CHẤT LƯỢNG THEO THÁNG")
         
         df_goc = load_data_from_sheet(gsheet_client, GOOGLE_SHEET_ID, SHEET_GOC_NAME)
@@ -194,8 +161,7 @@ def main_app():
         selected_year = st.number_input("Năm:", value=current_year)
         
         diem_tu_cham_list = []
-        total_score = 0
-
+        
         # Form nhập điểm
         with st.form("evaluation_form"):
             for index, row in df_criteria.iterrows():
@@ -204,7 +170,7 @@ def main_app():
                     f"Điểm tự chấm cho mục {index+1}",
                     min_value=0.0,
                     max_value=float(row['diem_toi_da']),
-                    value=float(row['diem_toi_da']), # Mặc định là điểm tối đa
+                    value=float(row['diem_toi_da']),
                     step=0.5,
                     key=f"diem_{index}"
                 )
@@ -213,7 +179,6 @@ def main_app():
             submitted = st.form_submit_button("Nộp phiếu đánh giá")
 
             if submitted:
-                # Tính tổng điểm
                 total_score = sum(diem_tu_cham_list)
                 xep_loai = classify_score(total_score)
                 
@@ -222,33 +187,27 @@ def main_app():
                 st.success(f"**Tự xếp loại:** {xep_loai}")
 
                 # Lưu kết quả vào Google Sheet
-                sheet_name_to_save = f"THANG_{selected_month}_{selected_year}"
+                sheet_name_to_save = f"THANG_{selected_month}_{selected_year}_{username}"
                 try:
                     spreadsheet = gsheet_client.open_by_key(GOOGLE_SHEET_ID)
                     try:
-                        # Thử lấy sheet, nếu không có sẽ tạo mới
                         worksheet = spreadsheet.worksheet(sheet_name_to_save)
-                        worksheet.clear() # Xóa dữ liệu cũ nếu ghi đè
+                        worksheet.clear()
                     except gspread.WorksheetNotFound:
                         worksheet = spreadsheet.add_worksheet(title=sheet_name_to_save, rows=100, cols=20)
                     
-                    # Chuẩn bị dữ liệu để ghi
-                    # Sao chép toàn bộ TRANG_GOC và điền điểm
                     data_to_write = df_goc.values.tolist()
                     start_row_index = df_goc[df_goc[0] == 'STT'].index[0] + 1
                     
                     for i, diem in enumerate(diem_tu_cham_list):
-                        # Cột E là cột thứ 4 (index 4) để điền điểm tự chấm
                         data_to_write[start_row_index + i][4] = diem
 
-                    # Cập nhật tổng điểm và xếp loại
                     end_row_index = df_goc[df_goc[1].str.contains("Tổng điểm", na=False)].index[0]
                     data_to_write[end_row_index][4] = total_score
                     
                     self_ranking_row_index = df_goc[df_goc[0].str.contains("Tự xếp loại", na=False)].index[0]
                     data_to_write[self_ranking_row_index][0] = f"- Tự xếp loại: {xep_loai}"
                     
-                    # Ghi dữ liệu vào sheet
                     worksheet.update(data_to_write, value_input_option='USER_ENTERED')
                     
                     st.success(f"Đã lưu phiếu đánh giá vào sheet '{sheet_name_to_save}' thành công!")
@@ -257,10 +216,5 @@ def main_app():
                     st.error(f"Đã xảy ra lỗi khi lưu vào Google Sheet: {e}")
 
 # --- LUỒNG CHẠY CHÍNH ---
-if "logged_in" not in st.session_state:
-    st.session_state["logged_in"] = False
-
-if st.session_state["logged_in"]:
-    main_app()
-else:
-    login_page()
+# Vì đây là một trang con, chỉ cần gọi hàm để hiển thị nội dung.
+render_evaluation_page()
