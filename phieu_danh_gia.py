@@ -50,16 +50,6 @@ def load_data_from_sheet(_gsheet_client, sheet_id, sheet_name):
         return None
 
 # --- HÀM HỖ TRỢ ---
-def get_user_info(df):
-    """Trích xuất thông tin cá nhân từ DataFrame của TRANG_GOC."""
-    try:
-        ho_ten = df.iloc[5, 1]  # Giả sử Họ và tên ở hàng 6, cột B
-        chuc_vu = df.iloc[6, 1] # Giả sử Chức vụ ở hàng 7, cột B
-        don_vi = df.iloc[7, 1] # Giả sử Đơn vị ở hàng 8, cột B
-        return ho_ten, chuc_vu, don_vi
-    except IndexError:
-        return "Không xác định", "Không xác định", "Không xác định"
-
 def get_evaluation_criteria(df):
     """Lấy danh sách các nội dung và điểm tối đa để đánh giá."""
     try:
@@ -94,26 +84,19 @@ def classify_score(score):
 # --- NỘI DUNG TRANG ĐÁNH GIÁ ---
 def render_evaluation_page():
     """Hiển thị nội dung trang dựa trên vai trò của người dùng."""
-    # Giả sử username và role được lưu trong session_state từ file main.py
-    # Cung cấp giá trị mặc định để tránh lỗi nếu session_state chưa được thiết lập
     username = st.session_state.get("username", "user")
     role = st.session_state.get("role", "user")
-
-    # Đã bỏ phần kiểm tra đăng nhập theo yêu cầu.
-    # File main.py chịu trách nhiệm kiểm soát truy cập vào trang này.
 
     gsheet_client = connect_to_gsheet()
     if gsheet_client is None:
         return
 
-    # Giao diện cho Admin: Xem các phiếu đã nộp
     if role == "admin":
         st.title("📊 Trang quản trị viên")
         st.header("Danh sách các phiếu đã đánh giá")
         
         try:
             spreadsheet = gsheet_client.open_by_key(GOOGLE_SHEET_ID)
-            # Lọc các sheet không phải là trang gốc
             all_sheets = [s.title for s in spreadsheet.worksheets() if s.title != SHEET_GOC_NAME]
             
             if not all_sheets:
@@ -128,7 +111,6 @@ def render_evaluation_page():
         except Exception as e:
             st.error(f"Không thể tải danh sách các sheet: {e}")
 
-    # Giao diện cho User: Điền phiếu đánh giá
     else:
         st.title("📝 PHIẾU ĐÁNH GIÁ, XẾP LOẠI CHẤT LƯỢNG THEO THÁNG")
         
@@ -137,32 +119,35 @@ def render_evaluation_page():
             st.error("Không tải được dữ liệu từ `TRANG_GOC`.")
             return
 
-        # Hiển thị thông tin cá nhân
-        ho_ten, chuc_vu, don_vi = get_user_info(df_goc)
-        st.header("A. THÔNG TIN CÁ NHÂN")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write(f"**Họ và tên:** {ho_ten}")
-            st.write(f"**Chức vụ:** {chuc_vu}")
-        with col2:
-            st.write(f"**Đơn vị:** {don_vi}")
-
-        # Lấy danh sách tiêu chí
-        df_criteria = get_evaluation_criteria(df_goc)
-        if df_criteria.empty:
-            return
-            
-        st.header("B. NỘI DUNG TỰ ĐÁNH GIÁ")
-        
         current_month = datetime.now().month
         current_year = datetime.now().year
         
         selected_month = st.selectbox("Chọn tháng đánh giá:", range(1, 13), index=current_month - 1)
         selected_year = st.number_input("Năm:", value=current_year)
+
+        st.header("A. THÔNG TIN CÁ NHÂN")
+        ho_ten_input = st.text_input("- Họ và tên:", value="Vũ Sơn Hải")
+        chuc_vu_input = st.text_input("- Chức vụ:", value="Nhân viên")
+        don_vi_input = st.text_input("- Đơn vị công tác:", value="Phòng Đào tạo, NCKH và QHQT")
+
+        st.header("I. Nhiệm vụ được phân công trong tháng:")
+        nhiem_vu_default = (
+            "- Quản trị website, cập nhật thông tin, bài viết\n"
+            "- Các hoạt động liên quan đến truyền thông Nhà trường\n"
+            "- Cập nhật phần mềm Kê giờ năm học 2024 – 2025\n"
+            "- Tham gia hoàn thiện đề tài Xây dựng video truyền thông, giới thiệu về Trường Cao đằng Đắk Lắk\n"
+            "- Các hoạt động khác của Phòng"
+        )
+        nhiem_vu_input = st.text_area("Liệt kê nhiệm vụ:", value=nhiem_vu_default, height=150)
+
+        df_criteria = get_evaluation_criteria(df_goc)
+        if df_criteria.empty:
+            return
+            
+        st.header("II. TỰ CHẤM ĐIỂM, XẾP LOẠI CHẤT LƯỢNG HÀNG THÁNG")
         
         diem_tu_cham_list = []
         
-        # Form nhập điểm
         with st.form("evaluation_form"):
             for index, row in df_criteria.iterrows():
                 st.markdown(f"**{row['noi_dung']}** (Tối đa: {row['diem_toi_da']})")
@@ -182,11 +167,10 @@ def render_evaluation_page():
                 total_score = sum(diem_tu_cham_list)
                 xep_loai = classify_score(total_score)
                 
-                st.subheader("C. KẾT QUẢ TỰ XẾP LOẠI")
+                st.subheader("KẾT QUẢ TỰ XẾP LOẠI")
                 st.metric(label="Tổng điểm tự chấm", value=f"{total_score:.2f}")
                 st.success(f"**Tự xếp loại:** {xep_loai}")
 
-                # Lưu kết quả vào Google Sheet
                 sheet_name_to_save = f"THANG_{selected_month}_{selected_year}_{username}"
                 try:
                     spreadsheet = gsheet_client.open_by_key(GOOGLE_SHEET_ID)
@@ -197,8 +181,22 @@ def render_evaluation_page():
                         worksheet = spreadsheet.add_worksheet(title=sheet_name_to_save, rows=100, cols=20)
                     
                     data_to_write = df_goc.values.tolist()
-                    start_row_index = df_goc[df_goc[0] == 'STT'].index[0] + 1
                     
+                    # Cập nhật thông tin cá nhân và nhiệm vụ
+                    data_to_write[4][0] = f"Tháng: {selected_month}/{selected_year}"
+                    data_to_write[5][0] = f"- Họ và tên: {ho_ten_input}"
+                    data_to_write[6][0] = f"- Chức vụ: {chuc_vu_input}"
+                    data_to_write[7][0] = f"- Đơn vị công tác: {don_vi_input}"
+                    
+                    # Ghi nhiệm vụ vào và xóa các dòng mẫu cũ
+                    task_start_row = 9 # Giả sử nhiệm vụ bắt đầu từ hàng 10 (index 9)
+                    data_to_write[task_start_row][0] = nhiem_vu_input
+                    for i in range(1, 5): # Xóa 4 dòng nhiệm vụ mẫu tiếp theo
+                        if task_start_row + i < len(data_to_write):
+                            data_to_write[task_start_row + i][0] = ""
+                    
+                    # Cập nhật điểm
+                    start_row_index = df_goc[df_goc[0] == 'STT'].index[0] + 1
                     for i, diem in enumerate(diem_tu_cham_list):
                         data_to_write[start_row_index + i][4] = diem
 
@@ -216,6 +214,5 @@ def render_evaluation_page():
                     st.error(f"Đã xảy ra lỗi khi lưu vào Google Sheet: {e}")
 
 # --- LUỒNG CHẠY CHÍNH ---
-# Vì đây là một trang con, chỉ cần gọi hàm để hiển thị nội dung.
 render_evaluation_page()
 
