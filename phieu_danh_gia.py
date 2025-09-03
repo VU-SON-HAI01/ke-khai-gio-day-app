@@ -43,26 +43,27 @@ def load_data_from_sheet(_gsheet_client, sheet_id, sheet_name):
                 break
         return pd.DataFrame(data[first_row_with_data:])
     except gspread.exceptions.WorksheetNotFound:
-        st.error(f"Không tìm thấy sheet với tên '{sheet_name}'. Vui lòng kiểm tra lại.")
+        # st.error(f"Không tìm thấy sheet với tên '{sheet_name}'. Vui lòng kiểm tra lại.")
         return None
     except Exception as e:
         st.error(f"Lỗi khi tải dữ liệu từ sheet '{sheet_name}': {e}")
         return None
 
 # --- HÀM HỖ TRỢ ---
+def parse_value_from_string(text, prefix):
+    """Trích xuất giá trị từ một chuỗi có tiền tố, ví dụ: '- Họ và tên: ABC' -> 'ABC'."""
+    if isinstance(text, str) and text.startswith(prefix):
+        return text[len(prefix):].strip()
+    return text if isinstance(text, str) else ""
+
 def get_evaluation_criteria(df):
     """Lấy danh sách các nội dung và điểm tối đa để đánh giá."""
     try:
-        # Tìm vị trí bắt đầu của bảng chấm điểm
         start_row_index = df[df[0] == 'STT'].index[0]
-        # Tìm vị trí kết thúc
         end_row_index = df[df[1].str.contains("Tổng điểm", na=False)].index[0]
-        
         criteria_df = df.iloc[start_row_index + 1 : end_row_index].copy()
-        # Lấy các cột cần thiết: Nội dung đánh giá, Điểm tối đa
         criteria_df = criteria_df[[1, 3]].dropna(how='all')
         criteria_df.columns = ["noi_dung", "diem_toi_da"]
-        # Lọc ra các dòng thực sự là tiêu chí (có điểm tối đa)
         criteria_df = criteria_df[pd.to_numeric(criteria_df['diem_toi_da'], errors='coerce').notna()]
         criteria_df['diem_toi_da'] = pd.to_numeric(criteria_df['diem_toi_da'])
         return criteria_df
@@ -88,21 +89,17 @@ def render_evaluation_page():
     role = st.session_state.get("role", "user")
 
     gsheet_client = connect_to_gsheet()
-    if gsheet_client is None:
-        return
+    if gsheet_client is None: return
 
     if role == "admin":
         st.title("📊 Trang quản trị viên")
         st.header("Danh sách các phiếu đã đánh giá")
-        
         try:
             spreadsheet = gsheet_client.open_by_key(GOOGLE_SHEET_ID)
             all_sheets = [s.title for s in spreadsheet.worksheets() if s.title != SHEET_GOC_NAME]
-            
             if not all_sheets:
                 st.info("Chưa có phiếu đánh giá nào được nộp.")
                 return
-
             selected_sheet = st.selectbox("Chọn phiếu để xem:", all_sheets)
             if selected_sheet:
                 df_view = load_data_from_sheet(gsheet_client, GOOGLE_SHEET_ID, selected_sheet)
@@ -110,7 +107,6 @@ def render_evaluation_page():
                     st.dataframe(df_view)
         except Exception as e:
             st.error(f"Không thể tải danh sách các sheet: {e}")
-
     else:
         st.title("📝 PHIẾU ĐÁNH GIÁ, XẾP LOẠI CHẤT LƯỢNG THEO THÁNG")
         
@@ -119,45 +115,68 @@ def render_evaluation_page():
             st.error("Không tải được dữ liệu từ `TRANG_GOC`.")
             return
 
+        df_criteria = get_evaluation_criteria(df_goc)
+        if df_criteria.empty: return
+
         current_month = datetime.now().month
         current_year = datetime.now().year
-        
         selected_month = st.selectbox("Chọn tháng đánh giá:", range(1, 13), index=current_month - 1)
         selected_year = st.number_input("Năm:", value=current_year)
 
-        st.header("A. THÔNG TIN CÁ NHÂN")
-        ho_ten_input = st.text_input("- Họ và tên:", value="Vũ Sơn Hải")
-        chuc_vu_input = st.text_input("- Chức vụ:", value="Nhân viên")
-        don_vi_input = st.text_input("- Đơn vị công tác:", value="Phòng Đào tạo, NCKH và QHQT")
-
-        st.header("I. Nhiệm vụ được phân công trong tháng:")
-        nhiem_vu_default = (
+        # --- Tải dữ liệu động ---
+        ho_ten_val = "Vũ Sơn Hải"
+        chuc_vu_val = "Nhân viên"
+        don_vi_val = "Phòng Đào tạo, NCKH và QHQT"
+        nhiem_vu_val = (
             "- Quản trị website, cập nhật thông tin, bài viết\n"
             "- Các hoạt động liên quan đến truyền thông Nhà trường\n"
             "- Cập nhật phần mềm Kê giờ năm học 2024 – 2025\n"
             "- Tham gia hoàn thiện đề tài Xây dựng video truyền thông, giới thiệu về Trường Cao đằng Đắk Lắk\n"
             "- Các hoạt động khác của Phòng"
         )
-        nhiem_vu_input = st.text_area("Liệt kê nhiệm vụ:", value=nhiem_vu_default, height=150)
+        diem_tu_cham_defaults = [float(row['diem_toi_da']) for _, row in df_criteria.iterrows()]
 
-        df_criteria = get_evaluation_criteria(df_goc)
-        if df_criteria.empty:
-            return
+        sheet_name_to_load = f"THANG_{selected_month}_{selected_year}_{username}"
+        df_existing = load_data_from_sheet(gsheet_client, GOOGLE_SHEET_ID, sheet_name_to_load)
+
+        if df_existing is not None and not df_existing.empty:
+            st.info(f"Đã tìm thấy và tải dữ liệu từ phiếu của tháng {selected_month}/{selected_year}.")
+            ho_ten_val = parse_value_from_string(df_existing.iloc[5, 0], "- Họ và tên:")
+            chuc_vu_val = parse_value_from_string(df_existing.iloc[6, 0], "- Chức vụ:")
+            don_vi_val = parse_value_from_string(df_existing.iloc[7, 0], "- Đơn vị công tác:")
+            nhiem_vu_val = df_existing.iloc[9, 0]
+
+            start_row_index = df_goc[df_goc[0] == 'STT'].index[0] + 1
+            loaded_scores = []
+            for i in range(len(df_criteria)):
+                try:
+                    score = df_existing.iloc[start_row_index + i, 4]
+                    loaded_scores.append(float(score))
+                except (ValueError, TypeError, IndexError):
+                    loaded_scores.append(float(df_criteria.iloc[i]['diem_toi_da']))
+            diem_tu_cham_defaults = loaded_scores
+        else:
+            st.info(f"Chưa có phiếu cho tháng {selected_month}/{selected_year}. Đang tạo phiếu mới từ mẫu.")
+
+        # --- Hiển thị Giao diện ---
+        st.header("A. THÔNG TIN CÁ NHÂN")
+        ho_ten_input = st.text_input("- Họ và tên:", value=ho_ten_val)
+        chuc_vu_input = st.text_input("- Chức vụ:", value=chuc_vu_val)
+        don_vi_input = st.text_input("- Đơn vị công tác:", value=don_vi_val)
+
+        st.header("I. Nhiệm vụ được phân công trong tháng:")
+        nhiem_vu_input = st.text_area("Liệt kê nhiệm vụ:", value=nhiem_vu_val, height=150)
             
         st.header("II. TỰ CHẤM ĐIỂM, XẾP LOẠI CHẤT LƯỢNG HÀNG THÁNG")
         
-        diem_tu_cham_list = []
-        
         with st.form("evaluation_form"):
-            for index, row in df_criteria.iterrows():
+            diem_tu_cham_list = []
+            for i, (index, row) in enumerate(df_criteria.iterrows()):
                 st.markdown(f"**{row['noi_dung']}** (Tối đa: {row['diem_toi_da']})")
                 diem = st.number_input(
                     f"Điểm tự chấm cho mục {index+1}",
-                    min_value=0.0,
-                    max_value=float(row['diem_toi_da']),
-                    value=float(row['diem_toi_da']),
-                    step=0.5,
-                    key=f"diem_{index}"
+                    min_value=0.0, max_value=float(row['diem_toi_da']),
+                    value=diem_tu_cham_defaults[i], step=0.5, key=f"diem_{index}"
                 )
                 diem_tu_cham_list.append(diem)
             
@@ -181,21 +200,17 @@ def render_evaluation_page():
                         worksheet = spreadsheet.add_worksheet(title=sheet_name_to_save, rows=100, cols=20)
                     
                     data_to_write = df_goc.values.tolist()
-                    
-                    # Cập nhật thông tin cá nhân và nhiệm vụ
                     data_to_write[4][0] = f"Tháng: {selected_month}/{selected_year}"
                     data_to_write[5][0] = f"- Họ và tên: {ho_ten_input}"
                     data_to_write[6][0] = f"- Chức vụ: {chuc_vu_input}"
                     data_to_write[7][0] = f"- Đơn vị công tác: {don_vi_input}"
                     
-                    # Ghi nhiệm vụ vào và xóa các dòng mẫu cũ
-                    task_start_row = 9 # Giả sử nhiệm vụ bắt đầu từ hàng 10 (index 9)
+                    task_start_row = 9
                     data_to_write[task_start_row][0] = nhiem_vu_input
-                    for i in range(1, 5): # Xóa 4 dòng nhiệm vụ mẫu tiếp theo
+                    for i in range(1, 5):
                         if task_start_row + i < len(data_to_write):
                             data_to_write[task_start_row + i][0] = ""
                     
-                    # Cập nhật điểm
                     start_row_index = df_goc[df_goc[0] == 'STT'].index[0] + 1
                     for i, diem in enumerate(diem_tu_cham_list):
                         data_to_write[start_row_index + i][4] = diem
@@ -207,9 +222,7 @@ def render_evaluation_page():
                     data_to_write[self_ranking_row_index][0] = f"- Tự xếp loại: {xep_loai}"
                     
                     worksheet.update(data_to_write, value_input_option='USER_ENTERED')
-                    
                     st.success(f"Đã lưu phiếu đánh giá vào sheet '{sheet_name_to_save}' thành công!")
-
                 except Exception as e:
                     st.error(f"Đã xảy ra lỗi khi lưu vào Google Sheet: {e}")
 
