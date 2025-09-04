@@ -1,339 +1,189 @@
 import streamlit as st
-import pandas as pd
+import requests
+from streamlit_oauth import OAuth2Component
 import gspread
-from gspread_dataframe import set_with_dataframe
-import fun_quydoi as fq
-import numpy as np
+import pandas as pd
+from google.oauth2.service_account import Credentials as ServiceAccountCredentials
+import os
 
-# --- KIỂM TRA TRẠNG THÁI KHỞI TẠO ---
-# Kiểm tra xem người dùng đã đăng nhập từ trang chính chưa
-if not st.session_state.get('initialized', False):
-    st.warning("Vui lòng đăng nhập từ trang chính để tiếp tục.")
+# --- CẤU HÌNH BAN ĐẦU ---
+st.set_page_config(layout="wide", page_title="Hệ thống Kê khai Giờ giảng")
+st.image("image/banner-top-kegio.jpg", use_container_width=True)
+
+# --- TẢI CẤU HÌNH TỪ STREAMLIT SECRETS ---
+try:
+    CLIENT_ID = st.secrets["google_oauth"]["clientId"]
+    CLIENT_SECRET = st.secrets["google_oauth"]["clientSecret"]
+    REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
+    ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
+    USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
+    ADMIN_EMAIL = "vshai48kd1@gmail.com"
+except KeyError as e:
+    st.error(f"Lỗi: Không tìm thấy thông tin cấu hình '{e.args[0]}' trong st.secrets.")
     st.stop()
 
-# --- LẤY DỮ LIỆU CƠ SỞ TỪ SESSION STATE ---
-# Tải các DataFrame cần thiết đã được lưu trong session state khi đăng nhập
-spreadsheet = st.session_state.spreadsheet
-df_lop_g = st.session_state.get('df_lop', pd.DataFrame())
-df_mon_g = st.session_state.get('df_mon', pd.DataFrame())
-df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
-df_nangnhoc_g = st.session_state.get('df_nangnhoc', pd.DataFrame())
-df_hesosiso_g = st.session_state.get('df_hesosiso', pd.DataFrame())
+# --- URLS VÀ SCOPES CHO OAUTH2 ---
+AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+TOKEN_URL = "https://oauth2.googleapis.com/token"
+REVOKE_URL = "https://oauth2.googleapis.com/revoke"
+SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/drive"]
 
-# --- CẤU HÌNH ---
-INPUT_SHEET_NAME = "input_giangday"
-OUTPUT_SHEET_NAME = "ket_qua_giangday"
-KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp', 'VHPT']
+# --- CÁC HÀM HỖ TRỢ ---
 
-# --- CÁC HÀM TƯƠNG TÁC DỮ LIỆU & CHUYỂN ĐỔI ---
-
-def get_default_input():
-    """Tạo một dictionary chứa dữ liệu input mặc định."""
-    filtered_lops = df_lop_g[df_lop_g['Mã lớp'].str.startswith('48', na=False)]['Lớp']
-    default_lop = filtered_lops.iloc[0] if not filtered_lops.empty else (df_lop_g['Lớp'].iloc[0] if not df_lop_g.empty else '')
-    
-    return {
-        'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '',
-        'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH',
-        'tiet': '4 4 4 4 4 4 4 4 4 8 8 8', 'tiet_lt': '0', 'tiet_th': '0'
-    }
-
-def load_input_data(spreadsheet_obj):
-    """Tải dữ liệu input từ Google Sheet."""
+@st.cache_resource
+def connect_as_service_account():
     try:
-        worksheet = spreadsheet_obj.worksheet(INPUT_SHEET_NAME)
-        data = worksheet.get_all_records()
-        if not data: return get_default_input()
-        
-        input_data = data[0]
-        if 'tuan' in input_data and isinstance(input_data['tuan'], str):
-            try:
-                parts = input_data['tuan'].split('-')
-                input_data['tuan'] = (int(parts[0].strip()), int(parts[1].strip())) if len(parts) == 2 else (1, 12)
-            except (ValueError, TypeError):
-                input_data['tuan'] = (1, 12)
-        return input_data
-    except gspread.exceptions.WorksheetNotFound:
-        return get_default_input()
+        creds_dict = st.secrets["gcp_service_account"]
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        creds = ServiceAccountCredentials.from_service_account_info(creds_dict, scopes=scopes)
+        return gspread.authorize(creds)
     except Exception as e:
-        st.error(f"Lỗi khi đọc dữ liệu input: {e}")
-        return get_default_input()
+        st.error(f"Lỗi kết nối với tư cách Service Account: {e}")
+        return None
 
-def save_input_data(spreadsheet_obj, worksheet_name, input_data):
-    """Lưu dictionary input vào Google Sheet."""
+@st.cache_data
+def load_all_parquet_data(base_path='data_base/'):
+    files_to_load = ['df_giaovien.parquet', 'df_khoa.parquet']
+    loaded_dfs = {}
+    for file_name in files_to_load:
+        try:
+            df = pd.read_parquet(os.path.join(base_path, file_name), engine='pyarrow')
+            loaded_dfs[file_name.replace('.parquet', '')] = df
+        except Exception as e:
+            st.warning(f"Không thể tải file '{file_name}': {e}")
+    return loaded_dfs
+
+def get_user_info(sa_gspread_client, email, all_base_data):
     try:
-        worksheet = spreadsheet_obj.worksheet(worksheet_name)
-    except gspread.exceptions.WorksheetNotFound:
-        worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=2, cols=20)
-    
-    data_to_save = input_data.copy()
-    if 'tuan' in data_to_save and isinstance(data_to_save['tuan'], tuple):
-        data_to_save['tuan'] = f"{data_to_save['tuan'][0]}-{data_to_save['tuan'][1]}"
+        mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+        df = pd.DataFrame(mapping_sheet.get_all_records())
+        user_row = df[df['email'] == email]
+        if user_row.empty:
+            return None, None
         
-    set_with_dataframe(worksheet, pd.DataFrame([data_to_save]), include_index=False)
-    st.success(f"Đã lưu cấu hình vào trang tính '{worksheet_name}'!")
-
-def save_result_data(spreadsheet_obj, worksheet_name, result_df):
-    """Lưu dataframe kết quả vào Google Sheet."""
-    try:
-        worksheet = spreadsheet_obj.worksheet(worksheet_name)
-    except gspread.exceptions.WorksheetNotFound:
-        worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=result_df.shape[0]+1, cols=result_df.shape[1])
-    set_with_dataframe(worksheet, result_df, include_index=False)
-    st.success(f"Đã lưu bảng kết quả vào trang tính '{worksheet_name}'!")
-
-
-def create_tiet_editor_df(input_data):
-    """Tạo DataFrame cho st.data_editor từ dữ liệu text trong session_state."""
-    tuan_chon = input_data.get('tuan', (1, 12))
-    cach_ke = input_data.get('cach_ke', 'Kê theo MĐ, MH')
-    cols = [f"Tuần {i}" for i in range(tuan_chon[0], tuan_chon[1] + 1)]
-    
-    data_map = {}
-    if cach_ke == 'Kê theo MĐ, MH':
-        idx = ['Số tiết']
-        data_map['Số tiết'] = str(input_data.get('tiet', '0'))
-    else:
-        idx = ['Tiết LT', 'Tiết TH']
-        data_map['Tiết LT'] = str(input_data.get('tiet_lt', '0'))
-        data_map['Tiết TH'] = str(input_data.get('tiet_th', '0'))
-
-    df = pd.DataFrame(index=idx, columns=cols).fillna(0)
-    
-    for key, values_str in data_map.items():
-        if values_str and values_str.strip():
-            values = np.fromstring(values_str, dtype=int, sep=' ')
-        else:
-            values = np.array([], dtype=int)
-            
-        num_vals_to_fill = min(len(values), len(cols))
-        if num_vals_to_fill > 0:
-            df.loc[key, df.columns[:num_vals_to_fill]] = values[:num_vals_to_fill]
-    
-    return df
-
-# --- CÁC HÀM CALLBACK CHO WIDGETS ---
-def handle_config_change(key_map):
-    """Callback chung để cập nhật input_data từ các widget."""
-    for session_key, data_key in key_map.items():
-        if session_key in st.session_state:
-            # Kiểm tra xem giá trị có thực sự thay đổi không
-            if st.session_state.input_data.get(data_key) != st.session_state[session_key]:
-                st.session_state.input_data[data_key] = st.session_state[session_key]
-                # Nếu thay đổi Khóa, reset Lớp và Môn
-                if data_key == 'khoa':
-                    st.session_state.input_data['lop_hoc'] = None
-                    st.session_state.input_data['mon_hoc'] = None
-                # Nếu thay đổi Lớp, reset Môn
-                elif data_key == 'lop_hoc':
-                    st.session_state.input_data['mon_hoc'] = None
-
-# --- KHỞI TẠO SESSION STATE ---
-if 'input_data' not in st.session_state:
-    st.session_state.input_data = load_input_data(spreadsheet)
-
-# --- GIAO DIỆN CHÍNH ---
-st.header("KÊ GIỜ GIẢNG GV 2025", divider=True)
-st.subheader("I. Cấu hình giảng dạy")
-
-# --- CÁC WIDGET LỰA CHỌN ---
-col1, col2 = st.columns(2)
-with col1:
-    khoa_index = KHOA_OPTIONS.index(st.session_state.input_data.get('khoa', KHOA_OPTIONS[0]))
-    st.selectbox(
-        "Chọn Khóa/Hệ", 
-        options=KHOA_OPTIONS, 
-        index=khoa_index,
-        key='khoa_selector',
-        on_change=handle_config_change,
-        args=({'khoa_selector': 'khoa'},)
-    )
-
-    # Lọc danh sách lớp dựa trên khóa đã chọn trong session_state
-    khoa_chon_state = st.session_state.input_data.get('khoa', KHOA_OPTIONS[0])
-    filtered_lop_options = df_lop_g['Lớp'].tolist()
-    if khoa_chon_state.startswith('Khóa'):
-        khoa_number = khoa_chon_state.split(' ')[1]
-        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_number, na=False)]['Lớp'].tolist()
-    if not filtered_lop_options: st.warning(f"Không có lớp cho '{khoa_chon_state}'.")
-    
-    current_lop = st.session_state.input_data.get('lop_hoc')
-    if current_lop not in filtered_lop_options:
-        current_lop = filtered_lop_options[0] if filtered_lop_options else None
-    
-    lop_hoc_index = filtered_lop_options.index(current_lop) if current_lop in filtered_lop_options else 0
-    st.selectbox(
-        "Chọn Lớp học", 
-        options=filtered_lop_options, 
-        index=lop_hoc_index,
-        key='lop_selector',
-        on_change=handle_config_change,
-        args=({'lop_selector': 'lop_hoc'},)
-    )
-
-with col2:
-    lop_chon_state = st.session_state.input_data.get('lop_hoc')
-    malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon_state]
-    dsmon_options = []
-    if not malop_info.empty:
-        manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
-        if manghe in df_mon_g.columns:
-            dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
-    
-    current_mon = st.session_state.input_data.get('mon_hoc')
-    if current_mon not in dsmon_options:
-        current_mon = dsmon_options[0] if dsmon_options else None
+        magv = str(user_row.iloc[0]['magv'])
+        df_giaovien = all_base_data.get('df_giaovien')
+        df_khoa = all_base_data.get('df_khoa')
         
-    mon_hoc_index = dsmon_options.index(current_mon) if current_mon in dsmon_options else 0
-    st.selectbox(
-        "Chọn Môn học", 
-        options=dsmon_options, 
-        index=mon_hoc_index,
-        key='mon_selector',
-        on_change=handle_config_change,
-        args=({'mon_selector': 'mon_hoc'},)
+        teacher_row = df_giaovien[df_giaovien['Magv'].astype(str) == magv]
+        if not teacher_row.empty:
+            info = teacher_row.iloc[0].to_dict()
+            khoa_row = df_khoa[df_khoa['Mã'] == str(magv)[0]]
+            info['ten_khoa'] = khoa_row.iloc[0]['Khoa/Phòng/Trung tâm'] if not khoa_row.empty else "Không rõ"
+            return magv, info
+        return magv, None
+    except Exception as e:
+        st.error(f"Lỗi khi truy cập file làm việc: {e}")
+        return None, None
+
+# --- GIAO DIỆN VÀ LUỒNG ỨNG DỤNG CHÍNH ---
+oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
+
+if 'token' not in st.session_state:
+    st.session_state.token = None
+
+if st.session_state.token is None:
+    st.info("Vui lòng đăng nhập bằng tài khoản Google.")
+    result = oauth2.authorize_button(
+        name="Đăng nhập với Google", icon="https://www.google.com.tw/favicon.ico",
+        redirect_uri=REDIRECT_URI, scope=" ".join(SCOPES), key="google_login", use_container_width=True
     )
-
-    mamon, tongtiet_mon, tiet_lt, tiet_th, tiet_kt = "N/A", 0, 0, 0, 0
-    mon_chon_state = st.session_state.input_data.get('mon_hoc')
-    if mon_chon_state and not malop_info.empty:
-        manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
-        if manghe in df_mon_g.columns:
-            mon_info_row_df = df_mon_g[df_mon_g[manghe] == mon_chon_state]
-            if not mon_info_row_df.empty:
-                mon_info_row = mon_info_row_df.iloc[0]
-                mon_name_col_idx = df_mon_g.columns.get_loc(manghe)
-                mamon = mon_info_row.iloc[mon_name_col_idx - 1]
-                
-                tiet_lt_val = pd.to_numeric(mon_info_row.get('LT'), errors='coerce')
-                tiet_th_val = pd.to_numeric(mon_info_row.get('TH'), errors='coerce')
-                tiet_kt_val = pd.to_numeric(mon_info_row.get('KT'), errors='coerce')
-
-                tiet_lt = int(tiet_lt_val) if pd.notna(tiet_lt_val) else 0
-                tiet_th = int(tiet_th_val) if pd.notna(tiet_th_val) else 0
-                tiet_kt = int(tiet_kt_val) if pd.notna(tiet_kt_val) else 0
-                
-                tongtiet_mon = tiet_lt + tiet_th + tiet_kt
-                st.markdown(f"Mã môn: :green[{mamon}] | Tổng tiết: :green[{tongtiet_mon}] (LT: :green[{tiet_lt}] | TH: :green[{tiet_th}] | KT: :green[{tiet_kt}])")
-
-    st.slider(
-        "Chọn Tuần giảng dạy", 1, 50, 
-        value=st.session_state.input_data.get('tuan', (1, 12)),
-        key='tuan_slider',
-        on_change=handle_config_change,
-        args=({'tuan_slider': 'tuan'},)
-    )
-
-st.divider()
-st.subheader("II. Phân bổ số tiết giảng dạy")
-st.radio(
-    "Chọn phương pháp kê khai", 
-    ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), 
-    horizontal=True,
-    index=0 if st.session_state.input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1,
-    key='cach_ke_radio',
-    on_change=handle_config_change,
-    args=({'cach_ke_radio': 'cach_ke'},)
-)
-
-# --- BẢNG NHẬP LIỆU ---
-tiet_df_editable = create_tiet_editor_df(st.session_state.input_data)
-# Loại bỏ on_change và làm việc trực tiếp với dataframe trả về
-edited_df = st.data_editor(
-    tiet_df_editable, 
-    use_container_width=True, 
-    key="tiet_editor"
-)
-
-# Cập nhật lại các chuỗi tiết trong session_state từ dataframe đã chỉnh sửa.
-# Cách làm này ổn định hơn việc dùng callback.
-cach_ke_state = st.session_state.input_data.get('cach_ke')
-if cach_ke_state == 'Kê theo MĐ, MH':
-    if 'Số tiết' in edited_df.index:
-        clean_series = edited_df.loc['Số tiết'].fillna(0).astype(int)
-        st.session_state.input_data['tiet'] = ' '.join(clean_series.astype(str))
-else: # 'Kê theo LT, TH chi tiết'
-    if 'Tiết LT' in edited_df.index and 'Tiết TH' in edited_df.index:
-        clean_lt = edited_df.loc['Tiết LT'].fillna(0).astype(int)
-        clean_th = edited_df.loc['Tiết TH'].fillna(0).astype(int)
-        st.session_state.input_data['tiet_lt'] = ' '.join(clean_lt.astype(str))
-        st.session_state.input_data['tiet_th'] = ' '.join(clean_th.astype(str))
-
-
-# --- BẢNG HIỂN THỊ TỔNG VÀ SO SÁNH ---
-st.markdown("---")
-st.markdown("""
-<style>
-.metric-card{border:1px solid #4a4a4a;border-radius:8px;padding:16px;text-align:center;background-color:#262730}
-.metric-card-label{font-size:1em;font-weight:normal;color:#fafafa;text-transform:uppercase}
-.metric-card-value{font-size:1.5em;font-weight:normal}
-.green{color:#28a745}
-.red{color:#dc3545}
-</style>
-""", unsafe_allow_html=True)
-
-if st.session_state.input_data.get('cach_ke') == 'Kê theo LT, TH chi tiết':
-    tong_tiet_df = pd.DataFrame(index=['Tổng tiết'], columns=edited_df.columns)
-    tong_tiet_df.loc['Tổng tiết'] = edited_df.loc['Tiết LT'].fillna(0) + edited_df.loc['Tiết TH'].fillna(0)
-    st.dataframe(tong_tiet_df, use_container_width=True)
-    
-    total_lt_input = edited_df.loc['Tiết LT'].fillna(0).sum()
-    total_th_input = edited_df.loc['Tiết TH'].fillna(0).sum()
-    total_all_input = total_lt_input + total_th_input
-
-    color_lt = "green" if total_lt_input == tiet_lt else "red"
-    color_th = "green" if total_th_input == (tiet_th + tiet_kt) else "red"
-    color_all = "green" if total_all_input == tongtiet_mon else "red"
-
-    col_sum1, col_sum2, col_sum3 = st.columns(3)
-    with col_sum1:
-        st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT LÝ THUYẾT</div><div class="metric-card-value {color_lt}">{int(total_lt_input)} / {int(tiet_lt)}</div></div>', unsafe_allow_html=True)
-    with col_sum2:
-        st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT THỰC HÀNH</div><div class="metric-card-value {color_th}">{int(total_th_input)} / {int(tiet_th + tiet_kt)}</div></div>', unsafe_allow_html=True)
-    with col_sum3:
-        st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
+    if result and 'token' in result:
+        st.session_state.token = result['token']
+        try:
+            user_response = requests.get("https://www.googleapis.com/oauth2/v1/userinfo",
+                                         headers={"Authorization": f"Bearer {result['token']['access_token']}"})
+            user_response.raise_for_status()
+            st.session_state.user_info = user_response.json()
+            st.rerun()
+        except requests.exceptions.RequestException as e:
+            st.error(f"Lỗi khi lấy thông tin người dùng: {e}")
+            st.session_state.token = None
 else:
-    total_all_input = edited_df.loc['Số tiết'].fillna(0).sum()
-    color_all = "green" if total_all_input == tongtiet_mon else "red"
-    st.markdown(f'<div class="metric-card"><div class="metric-card-label">TỔNG TIẾT</div><div class="metric-card-value {color_all}">{int(total_all_input)} / {int(tongtiet_mon)}</div></div>', unsafe_allow_html=True)
+    user_info = st.session_state.user_info
+    user_email = user_info.get('email')
 
-st.divider()
+    with st.sidebar:
+        st.header(f"Xin chào, {user_info.get('name', '')}!")
+        if st.button("Đăng xuất", use_container_width=True):
+            for key in list(st.session_state.keys()): del st.session_state[key]
+            st.rerun()
 
-# --- TÍNH TOÁN VÀ HIỂN THỊ KẾT QUẢ TỰ ĐỘNG ---
-try:
-    input_for_processing = {
-        'Lớp_chọn': st.session_state.input_data.get('lop_hoc'),
-        'Môn_chọn': st.session_state.input_data.get('mon_hoc'),
-        'Tuần_chọn': st.session_state.input_data.get('tuan'),
-        'Kiểu_kê_khai': st.session_state.input_data.get('cach_ke'),
-        'Tiết_nhập': st.session_state.input_data.get('tiet'),
-        'Tiết_LT_nhập': st.session_state.input_data.get('tiet_lt'),
-        'Tiết_TH_nhập': st.session_state.input_data.get('tiet_th'),
-    }
-    df_result, summary = fq.process_mon_data(
-        mon_data_row=input_for_processing,
-        dynamic_chuangv=st.session_state.chuangv,
-        df_lop_g=df_lop_g, df_mon_g=df_mon_g,
-        df_ngaytuan_g=df_ngaytuan_g, df_nangnhoc_g=df_nangnhoc_g,
-        df_hesosiso_g=df_hesosiso_g
-    )
+    if user_email == ADMIN_EMAIL:
+        st.subheader("👨‍💻 Bảng điều khiển của Admin")
+        # --- ĐIỀU HƯỚNG TRANG CHO ADMIN ---
+        pages = {
+            "Quản lý": [
+                st.Page("quan_ly_giao_vien.py", title="Quản lý Giáo viên", icon="🧑‍🏫"),
+                st.Page("thoi_khoa_bieu.py", title="Cập nhật TKB", icon="🗓️")
+            ],
+            # ĐIỀU CHỈNH: Thêm mục Kê khai & Báo cáo cho Admin
+            "Kê khai & Báo cáo": [
+                st.Page("quydoi_gioday.py", title="Kê giờ dạy", icon="✍️"),
+                st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động", icon="🏃"),
+                st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file", icon="📄")
+            ],
+            "🔍 Tra cứu TKB": [
+                st.Page("pages/1_tra_cuu_tkb_gv.py", title="Tra cứu theo GV"),
+                st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu theo Lớp"),
+                st.Page("pages/1_tra_cuu_thongtin_hssv.py", title="Tra cứu thông tin HSSV"),
+                st.Page("pages/2_sodo_phonghoc.py", title="Sơ đồ Phòng học"),
+                st.Page("pages/2_thongtin_monhoc.py", title="Thông tin Môn học")
+            ],
+            "Quản lý HSSV": [
+                st.Page("tao_bangdiem.py", title="Tạo Bảng điểm", icon="📊"),
+                st.Page("capnhat_ds_hssv.py", title="Cập nhật danh sách HSSV", icon="📋")
+            ],
+            "Thi đua": [
+                st.Page("phieu_danh_gia.py", title="Phiếu đánh giá theo tháng", icon="📝")
+            ],
+        }
     
-    st.session_state.df_result = df_result
-
-    st.subheader("III. Bảng kết quả tính toán")
-    if not df_result.empty:
-        st.dataframe(df_result, use_container_width=True)
-    elif "error" in summary:
-        st.error(f"Lỗi tính toán: {summary['error']}")
     else:
-        st.warning("Không có dữ liệu để tính toán. Vui lòng kiểm tra lại các lựa chọn.")
-except Exception as e:
-    st.error(f"Đã xảy ra lỗi không mong muốn trong quá trình tính toán: {e}")
+        # --- GIAO DIỆN CỦA USER THƯỜNG ---
+        if 'initialized' not in st.session_state:
+            with st.spinner("Đang kiểm tra quyền và tải dữ liệu..."):
+                sa_gspread_client = connect_as_service_account()
+                if sa_gspread_client:
+                    all_base_data = load_all_parquet_data()
+                    magv, teacher_info = get_user_info(sa_gspread_client, user_email, all_base_data)
+                    if magv and teacher_info:
+                        st.session_state.magv = magv
+                        st.session_state.tengv = teacher_info.get('Tên giảng viên')
+                        st.session_state.ten_khoa = teacher_info.get('ten_khoa')
+                        st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
+                        giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
+                        st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
+                        st.session_state.initialized = True
+                    else:
+                        st.error("Tài khoản của bạn chưa được đăng ký trong hệ thống.")
+                        st.warning(f"Vui lòng liên hệ Admin ({ADMIN_EMAIL}) để được cấp quyền.")
+                        st.stop()
+                else:
+                    st.stop()
+        
+        with st.sidebar:
+            st.header(":green[THÔNG TIN GIÁO VIÊN]")
+            st.write(f"**Tên GV:** :green[{st.session_state.get('tengv', '')}]")
+            st.write(f"**Mã GV:** :green[{st.session_state.get('magv', '')}]")
+            st.write(f"**Khoa/Phòng:** :green[{st.session_state.get('ten_khoa', '')}]")
+        
+        st.header(f"Chào mừng, {st.session_state.get('tengv', '')}!")
+        # --- ĐIỀU HƯỚNG TRANG CHO USER THƯỜNG (ĐÃ CẬP NHẬT) ---
+        pages = {
+            "Kê khai": [st.Page("quydoi_gioday.py", title="Kê giờ dạy"),
+                       st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động")],
+            "Tra cứu": [
+                st.Page("pages/1_tra_cuu_tkb_gv.py", title="Tra cứu TKB theo GV"),
+                st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu TKB theo Lớp"),
+                st.Page("pages/1_tra_cuu_thongtin_hssv.py", title="Tra cứu thông tin HSSV"),
+                # Thêm các trang chi tiết để link hoạt động
+                st.Page("pages/2_sodo_phonghoc.py", title="Sơ đồ Phòng học"),
+                st.Page("pages/2_thongtin_monhoc.py", title="Thông tin Môn học")
+            ],
+            "Báo cáo": [st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file")],
+            "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn")]
+        }
 
-st.divider()
-
-# --- NÚT LƯU ---
-if st.button("Lưu cấu hình & Kết quả", use_container_width=True, type="primary"):
-    save_input_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
-    if 'df_result' in st.session_state and not st.session_state.df_result.empty:
-        save_result_data(spreadsheet, OUTPUT_SHEET_NAME, st.session_state.df_result)
+    pg = st.navigation(pages)
+    pg.run()
