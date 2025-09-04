@@ -8,20 +8,15 @@ import os
 
 # --- CẤU HÌNH TRANG BAN ĐẦU ---
 st.set_page_config(layout="wide", page_title="Hệ thống Kê khai Giờ giảng")
-# SỬA LỖI 1: Thay thế 'use_column_width' bằng 'use_container_width' theo cảnh báo của Streamlit
 st.image("image/banner-top-kegio.jpg", use_container_width=True)
 
 # --- TẢI CẤU HÌNH TỪ STREAMLIT SECRETS ---
-# Di chuyển các thông tin nhạy cảm vào secrets để tăng cường bảo mật
 try:
     CLIENT_ID = st.secrets["google_oauth"]["clientId"]
     CLIENT_SECRET = st.secrets["google_oauth"]["clientSecret"]
     REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
     ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
-    # SỬA LỖI 2: Đặt ADMIN_EMAIL ở đây để tránh lỗi KeyError nếu chưa cấu hình trong secrets.
-    # Email này được lấy từ phiên bản code ban đầu của bạn.
-    # Bạn có thể chuyển lại vào secrets sau khi đã cập nhật file secrets.toml.
     ADMIN_EMAIL = "vshai48kd1@gmail.com"
 except KeyError as e:
     st.error(f"Lỗi: Không tìm thấy thông tin cấu hình '{e.args[0]}' trong st.secrets.")
@@ -112,7 +107,6 @@ def get_user_info(_sa_gspread_client, email, all_base_data):
         st.error(f"Đã xảy ra lỗi không mong muốn khi lấy thông tin người dùng: {e}")
     return None, None
 
-
 # --- KHỞI TẠO ---
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
 
@@ -151,13 +145,21 @@ else:
     with st.sidebar:
         st.header(f"Xin chào, {user_info.get('name', '')}!")
         if st.button("Đăng xuất", use_container_width=True):
-            st.session_state.clear() # Dọn dẹp toàn bộ session state khi đăng xuất
+            st.session_state.clear()
             st.rerun()
 
+    # SỬA LỖI: Định nghĩa nội dung trang trong một hàm
+    def ke_gio_day_page():
+        """Hàm này render nội dung cho trang 'Kê giờ dạy'."""
+        # Tên giáo viên được lấy từ session_state, nếu không có thì lấy tên từ user_info
+        welcome_name = st.session_state.get('tengv', user_info.get('name', ''))
+        st.header(f"Chào mừng, {welcome_name}!")
+        st.info("Đây là trang chính của hệ thống. Vui lòng chọn chức năng từ menu bên trái.")
+
     # --- ĐỊNH NGHĨA CÁC TRANG CỦA ỨNG DỤNG ---
-    # Tái sử dụng các định nghĩa trang chung cho cả Admin và User
+    # SỬA LỖI: Trỏ đến hàm ke_gio_day_page thay vì file "quydoi_gioday.py"
     kekhai_pages = [
-        st.Page("quydoi_gioday.py", title="Kê giờ dạy", icon="✍️"),
+        st.Page(ke_gio_day_page, title="Kê giờ dạy", icon="✍️"),
         st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động", icon="🏃")
     ]
     tracuu_pages = [
@@ -219,7 +221,7 @@ else:
             st.write(f"**Mã GV:** :green[{st.session_state.get('magv', '')}]")
             st.write(f"**Khoa/Phòng:** :green[{st.session_state.get('ten_khoa', '')}]")
 
-        st.header(f"Chào mừng, {st.session_state.get('tengv', '')}!")
+        # SỬA LỖI: Xóa dòng st.header bị lặp ở đây, vì nó đã được chuyển vào hàm ke_gio_day_page
         pages = {
             "Kê khai": kekhai_pages,
             "Tra cứu": tracuu_pages,
@@ -232,6 +234,5 @@ else:
         pg = st.navigation(pages)
         pg.run()
     else:
-        # Xử lý trường hợp người dùng đăng nhập nhưng không có quyền nào
         st.warning("Tài khoản của bạn đã được xác thực nhưng không được gán quyền truy cập trang nào.")
 
