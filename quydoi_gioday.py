@@ -1,238 +1,215 @@
 import streamlit as st
-import requests
-from streamlit_oauth import OAuth2Component
-import gspread
 import pandas as pd
-from google.oauth2.service_account import Credentials as ServiceAccountCredentials
-import os
+import gspread
+from gspread_dataframe import set_with_dataframe
+import fun_quydoi as fq
+import ast
 
-# --- CẤU HÌNH TRANG BAN ĐẦU ---
-st.set_page_config(layout="wide", page_title="Hệ thống Kê khai Giờ giảng")
-st.image("image/banner-top-kegio.jpg", use_container_width=True)
+# --- Giao diện và tiêu đề trang ---
+st.title("✍️ Kê khai Giờ dạy")
 
-# --- TẢI CẤU HÌNH TỪ STREAMLIT SECRETS ---
-try:
-    CLIENT_ID = st.secrets["google_oauth"]["clientId"]
-    CLIENT_SECRET = st.secrets["google_oauth"]["clientSecret"]
-    REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
-    ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
-    USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
-    ADMIN_EMAIL = "vshai48kd1@gmail.com"
-except KeyError as e:
-    st.error(f"Lỗi: Không tìm thấy thông tin cấu hình '{e.args[0]}' trong st.secrets.")
-    st.info("Vui lòng kiểm tra lại file cấu hình secrets.toml của bạn.")
+# --- KIỂM TRA ĐIỀU KIỆN TIÊN QUYẾT (TỪ MAIN.PY) ---
+
+# 1. Kiểm tra người dùng đã đăng nhập và khởi tạo chưa
+if 'initialized' not in st.session_state or not st.session_state.initialized:
+    st.error("Vui lòng đăng nhập và đảm bảo thông tin của bạn đã được tải thành công từ trang chủ.")
     st.stop()
 
-# --- CÁC HẰNG SỐ CHO OAUTH2 ---
-AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-TOKEN_URL = "https://oauth2.googleapis.com/token"
-REVOKE_URL = "https://oauth2.googleapis.com/revoke"
-SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/drive"]
+# 2. Kiểm tra xem main.py đã tải các dữ liệu cần thiết vào session_state chưa
+required_data = ['spreadsheet', 'df_lop', 'df_mon', 'df_ngaytuan', 'df_nangnhoc', 'df_hesosiso']
+missing_data = [item for item in required_data if item not in st.session_state]
 
-# --- CÁC HÀM HỖ TRỢ ---
+if missing_data:
+    st.error(f"Lỗi: Không tìm thấy dữ liệu cần thiết sau trong session state: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải các dữ liệu này.")
+    st.stop()
 
-@st.cache_resource
-def connect_as_service_account():
-    """
-    Kết nối tới Google Sheets API bằng tài khoản dịch vụ (Service Account).
-    Kết quả được cache để tránh kết nối lại nhiều lần.
-    """
+# --- LẤY DỮ LIỆU CƠ SỞ TỪ SESSION STATE ---
+spreadsheet = st.session_state.spreadsheet
+df_lop_g = st.session_state.get('df_lop')
+df_mon_g = st.session_state.get('df_mon')
+df_ngaytuan_g = st.session_state.get('df_ngaytuan')
+df_nangnhoc_g = st.session_state.get('df_nangnhoc')
+df_hesosiso_g = st.session_state.get('df_hesosiso')
+
+# --- HIỂN THỊ THÔNG TIN GIÁO VIÊN ---
+ten_gv = st.session_state.get('tengv', 'Không rõ')
+ma_gv = st.session_state.get('magv', 'Không rõ')
+ten_khoa = st.session_state.get('ten_khoa', 'Không rõ')
+
+st.subheader(f"Giáo viên: {ten_gv} - Mã GV: {ma_gv}")
+st.write(f"Khoa/Phòng: {ten_khoa}")
+st.markdown("---")
+
+
+# --- CẤU HÌNH VÀ HẰNG SỐ CỦA TRANG ---
+INPUT_SHEET_NAME = f"input_giangday_{ma_gv}" # Lưu input theo từng mã GV
+OUTPUT_SHEET_NAME = f"ket_qua_giangday_{ma_gv}" # Lưu kết quả theo từng mã GV
+DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
+KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp', 'VHPT']
+
+# --- CÁC HÀM TƯƠNG TÁC DỮ LIỆU ---
+def get_default_input():
+    """Tạo một dictionary chứa dữ liệu input mặc định."""
+    filtered_lops = df_lop_g[df_lop_g['Mã lớp'].str.startswith('48', na=False)]['Lớp']
+    default_lop = filtered_lops.iloc[0] if not filtered_lops.empty else (df_lop_g['Lớp'].iloc[0] if not df_lop_g.empty else '')
+    
+    return {
+        'khoa': KHOA_OPTIONS[0],
+        'lop_hoc': default_lop,
+        'mon_hoc': '',
+        'tuan': (1, 12),
+        'cach_ke': 'Kê theo MĐ, MH',
+        'tiet': DEFAULT_TIET_STRING,
+        'tiet_lt': '0',
+        'tiet_th': '0'
+    }
+
+def load_input_data(spreadsheet_obj, worksheet_name):
+    """Tải dữ liệu input từ Google Sheet của GV, nếu không có thì dùng mặc định."""
     try:
-        creds_dict = st.secrets["gcp_service_account"]
-        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_service_account_info(creds_dict, scopes=scopes)
-        return gspread.authorize(creds)
-    except Exception as e:
-        st.error(f"Lỗi kết nối với tư cách Service Account: {e}")
-        return None
-
-@st.cache_data
-def load_all_parquet_data(base_path='data_base/'):
-    """
-    Tải tất cả các file dữ liệu Parquet cần thiết.
-    Kết quả được cache để tránh đọc file lại nhiều lần.
-    """
-    files_to_load = ['df_giaovien.parquet', 'df_khoa.parquet']
-    loaded_dfs = {}
-    for file_name in files_to_load:
-        try:
-            df = pd.read_parquet(os.path.join(base_path, file_name), engine='pyarrow')
-            loaded_dfs[file_name.replace('.parquet', '')] = df
-        except FileNotFoundError:
-            st.warning(f"Không tìm thấy file '{file_name}' tại đường dẫn '{base_path}'.")
-        except Exception as e:
-            st.warning(f"Không thể tải file '{file_name}': {e}")
-    return loaded_dfs
-
-def get_user_info(_sa_gspread_client, email, all_base_data):
-    """
-    Lấy thông tin chi tiết của người dùng từ email,
-    kết hợp dữ liệu từ Google Sheet và các file Parquet.
-    """
-    try:
-        mapping_sheet = _sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-        df_mapping = pd.DataFrame(mapping_sheet.get_all_records())
-
-        if 'email' not in df_mapping.columns or 'magv' not in df_mapping.columns:
-            st.error("File Google Sheet mapping thiếu cột 'email' hoặc 'magv'.")
-            return None, None
-
-        user_row = df_mapping[df_mapping['email'] == email]
-        if user_row.empty:
-            return None, None
-
-        magv = str(user_row.iloc[0]['magv'])
-        df_giaovien = all_base_data.get('df_giaovien')
-        df_khoa = all_base_data.get('df_khoa')
-
-        if df_giaovien is None or df_khoa is None:
-            st.error("Không tải được dữ liệu cơ sở của giáo viên hoặc khoa.")
-            return magv, None
-
-        teacher_row = df_giaovien[df_giaovien['Magv'].astype(str) == magv]
-        if teacher_row.empty:
-            return magv, None
-
-        info = teacher_row.iloc[0].to_dict()
-        khoa_id = str(magv)[0]
-        khoa_row = df_khoa[df_khoa['Mã'].astype(str) == khoa_id]
-        info['ten_khoa'] = khoa_row.iloc[0]['Khoa/Phòng/Trung tâm'] if not khoa_row.empty else "Không xác định"
-        return magv, info
-
-    except gspread.exceptions.SpreadsheetNotFound:
-        st.error(f"Lỗi: Không tìm thấy Google Sheet với tên '{ADMIN_SHEET_NAME}'.")
+        worksheet = spreadsheet_obj.worksheet(worksheet_name)
+        data = worksheet.get_all_records()
+        if not data:
+            return get_default_input()
+        
+        input_data = data[0]
+        if 'tuan' in input_data and isinstance(input_data['tuan'], str):
+            try:
+                # Chuyển đổi chuỗi tuple '(1, 12)' về lại tuple
+                input_data['tuan'] = ast.literal_eval(input_data['tuan'])
+            except:
+                input_data['tuan'] = (1, 12) # Fallback nếu chuỗi bị lỗi
+        return input_data
     except gspread.exceptions.WorksheetNotFound:
-        st.error(f"Lỗi: Không tìm thấy worksheet '{USER_MAPPING_WORKSHEET}'.")
+        return get_default_input()
     except Exception as e:
-        st.error(f"Đã xảy ra lỗi không mong muốn khi lấy thông tin người dùng: {e}")
-    return None, None
+        st.error(f"Lỗi khi đọc dữ liệu input: {e}")
+        return get_default_input()
 
-# --- KHỞI TẠO ---
-oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
+def save_data(spreadsheet_obj, worksheet_name, data_to_save):
+    """Lưu dictionary input hoặc dataframe kết quả vào Google Sheet."""
+    try:
+        worksheet = spreadsheet_obj.worksheet(worksheet_name)
+    except gspread.exceptions.WorksheetNotFound:
+        worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=2, cols=20)
+    
+    # Chuyển đổi dict thành dataframe nếu cần
+    if isinstance(data_to_save, dict):
+        df_to_save = pd.DataFrame([data_to_save])
+    else:
+        df_to_save = data_to_save.copy()
 
-# --- LUỒNG XỬ LÝ ĐĂNG NHẬP ---
-if 'token' not in st.session_state:
-    st.session_state.token = None
+    # Chuyển đổi tuple thành string trước khi lưu để tránh lỗi
+    if 'tuan' in df_to_save.columns:
+        # Đảm bảo cột 'tuan' là object để có thể chứa tuple
+        df_to_save['tuan'] = df_to_save['tuan'].astype(object)
+        # Áp dụng chuyển đổi cho các giá trị là tuple
+        is_tuple = df_to_save['tuan'].apply(lambda x: isinstance(x, tuple))
+        df_to_save.loc[is_tuple, 'tuan'] = df_to_save.loc[is_tuple, 'tuan'].astype(str)
 
-if st.session_state.token is None:
-    st.info("Vui lòng đăng nhập bằng tài khoản Google để sử dụng hệ thống.")
-    result = oauth2.authorize_button(
-        name="Đăng nhập với Google",
-        icon="https://www.google.com.tw/favicon.ico",
-        redirect_uri=REDIRECT_URI,
-        scope=" ".join(SCOPES),
-        key="google_login",
-        use_container_width=True
-    )
-    if result and 'token' in result:
-        st.session_state.token = result['token']
-        try:
-            user_response = requests.get(
-                "https://www.googleapis.com/oauth2/v1/userinfo",
-                headers={"Authorization": f"Bearer {result['token']['access_token']}"}
-            )
-            user_response.raise_for_status()
-            st.session_state.user_info = user_response.json()
-            st.rerun()
-        except requests.exceptions.RequestException as e:
-            st.error(f"Lỗi khi lấy thông tin người dùng: {e}")
-            st.session_state.token = None
+    set_with_dataframe(worksheet, df_to_save, include_index=False)
+    st.success(f"Đã lưu dữ liệu vào trang tính '{worksheet_name}'!")
+
+# --- CALLBACK ĐỂ CẬP NHẬT TRẠNG THÁI ---
+def update_state(key):
+    """Callback function để cập nhật session_state ngay khi widget thay đổi."""
+    st.session_state.input_data[key] = st.session_state[f"widget_{key}"]
+
+# --- KHỞI TẠO SESSION STATE CHO TRANG NÀY ---
+if 'input_data' not in st.session_state:
+    st.session_state.input_data = load_input_data(spreadsheet, INPUT_SHEET_NAME)
+
+# --- GIAO DIỆN NHẬP LIỆU ---
+st.subheader("I. Cấu hình giảng dạy")
+
+input_data = st.session_state.input_data
+
+# --- Input widgets với on_change callback ---
+khoa_chon = st.selectbox(
+    "Chọn Khóa/Hệ", 
+    options=KHOA_OPTIONS, 
+    index=KHOA_OPTIONS.index(input_data.get('khoa', KHOA_OPTIONS[0])),
+    key="widget_khoa",
+    on_change=update_state,
+    args=('khoa',)
+)
+
+filtered_lop_options = df_lop_g['Lớp'].tolist()
+if khoa_chon.startswith('Khóa'):
+    khoa_prefix = khoa_chon.split(' ')[1]
+    filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_prefix, na=False)]['Lớp'].tolist()
+
+lop_hoc_index = filtered_lop_options.index(input_data.get('lop_hoc')) if input_data.get('lop_hoc') in filtered_lop_options else 0
+lop_hoc_chon = st.selectbox(
+    "Chọn Lớp học", 
+    options=filtered_lop_options, 
+    index=lop_hoc_index,
+    key="widget_lop_hoc",
+    on_change=update_state,
+    args=('lop_hoc',)
+)
+
+malop_info = df_lop_g[df_lop_g['Lớp'] == lop_hoc_chon]
+dsmon_options = []
+if not malop_info.empty:
+    manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
+    if manghe in df_mon_g.columns:
+        dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
+
+mon_hoc_index = dsmon_options.index(input_data.get('mon_hoc')) if input_data.get('mon_hoc') in dsmon_options else 0
+mon_hoc_chon = st.selectbox(
+    "Chọn Môn học", 
+    options=dsmon_options, 
+    index=mon_hoc_index,
+    key="widget_mon_hoc",
+    on_change=update_state,
+    args=('mon_hoc',)
+)
+
+tuan_chon = st.slider(
+    "Chọn Tuần giảng dạy", 1, 50, 
+    value=input_data.get('tuan', (1, 12)),
+    key="widget_tuan",
+    on_change=update_state,
+    args=('tuan',)
+)
+
+cach_ke_chon = st.radio(
+    "Chọn phương pháp kê khai", 
+    ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), 
+    index=0 if input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1,
+    key="widget_cach_ke",
+    on_change=update_state,
+    args=('cach_ke',)
+)
+
+if cach_ke_chon == 'Kê theo MĐ, MH':
+    st.text_input("Nhập số tiết mỗi tuần", value=input_data.get('tiet', DEFAULT_TIET_STRING), 
+                  key="widget_tiet", on_change=update_state, args=('tiet',))
 else:
-    # --- LUỒNG XỬ LÝ SAU KHI ĐĂNG NHẬP THÀNH CÔNG ---
-    user_info = st.session_state.user_info
-    user_email = user_info.get('email')
+    st.text_input("Nhập số tiết Lý thuyết mỗi tuần", value=input_data.get('tiet_lt', '0'), 
+                  key="widget_tiet_lt", on_change=update_state, args=('tiet_lt',))
+    st.text_input("Nhập số tiết Thực hành mỗi tuần", value=input_data.get('tiet_th', '0'), 
+                  key="widget_tiet_th", on_change=update_state, args=('tiet_th',))
 
-    with st.sidebar:
-        st.header(f"Xin chào, {user_info.get('name', '')}!")
-        if st.button("Đăng xuất", use_container_width=True):
-            st.session_state.clear()
-            st.rerun()
+# --- NÚT TÍNH TOÁN VÀ LƯU TRỮ ---
+if st.button("Lưu cấu hình và Tính toán", use_container_width=True):
+    # Lưu cấu hình hiện tại của người dùng
+    save_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
+    
+    with st.spinner("Đang tính toán..."):
+        df_result, summary = fq.process_mon_data(
+            st.session_state.input_data, df_lop_g, df_mon_g, 
+            df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g
+        )
 
-    # SỬA LỖI: Định nghĩa nội dung trang trong một hàm
-    def ke_gio_day_page():
-        """Hàm này render nội dung cho trang 'Kê giờ dạy'."""
-        # Tên giáo viên được lấy từ session_state, nếu không có thì lấy tên từ user_info
-        welcome_name = st.session_state.get('tengv', user_info.get('name', ''))
-        st.header(f"Chào mừng, {welcome_name}!")
-        st.info("Đây là trang chính của hệ thống. Vui lòng chọn chức năng từ menu bên trái.")
-
-    # --- ĐỊNH NGHĨA CÁC TRANG CỦA ỨNG DỤNG ---
-    # SỬA LỖI: Trỏ đến hàm ke_gio_day_page thay vì file "quydoi_gioday.py"
-    kekhai_pages = [
-        st.Page(ke_gio_day_page, title="Kê giờ dạy", icon="✍️"),
-        st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động", icon="🏃")
-    ]
-    tracuu_pages = [
-        st.Page("pages/1_tra_cuu_tkb_gv.py", title="Tra cứu TKB theo GV"),
-        st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu TKB theo Lớp"),
-        st.Page("pages/1_tra_cuu_thongtin_hssv.py", title="Tra cứu thông tin HSSV"),
-        st.Page("pages/2_sodo_phonghoc.py", title="Sơ đồ Phòng học"),
-        st.Page("pages/2_thongtin_monhoc.py", title="Thông tin Môn học")
-    ]
-    baocao_pages = [st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file", icon="📄")]
-
-    pages = {}
-    # --- PHÂN QUYỀN HIỂN THỊ TRANG DỰA TRÊN EMAIL ---
-    if user_email == ADMIN_EMAIL:
-        st.subheader("👨‍💻 Bảng điều khiển của Admin")
-        pages = {
-            "Quản lý": [
-                st.Page("quan_ly_giao_vien.py", title="Quản lý Giáo viên", icon="🧑‍🏫"),
-                st.Page("thoi_khoa_bieu.py", title="Cập nhật TKB", icon="🗓️")
-            ],
-            "Kê khai & Báo cáo": kekhai_pages + baocao_pages,
-            "🔍 Tra cứu TKB": tracuu_pages,
-            "Quản lý HSSV": [
-                st.Page("tao_bangdiem.py", title="Tạo Bảng điểm", icon="📊"),
-                st.Page("capnhat_ds_hssv.py", title="Cập nhật danh sách HSSV", icon="📋")
-            ],
-            "Thi đua": [
-                st.Page("phieu_danh_gia.py", title="Phiếu đánh giá theo tháng", icon="📝")
-            ],
-        }
+    st.subheader("II. Bảng kết quả tính toán")
+    if not df_result.empty:
+        st.dataframe(df_result)
+        # Lưu kết quả tính toán
+        save_data(spreadsheet, OUTPUT_SHEET_NAME, df_result)
+    elif "error" in summary:
+        st.error(f"Không thể tính toán: {summary['error']}")
     else:
-        # --- LUỒNG KHỞI TẠO DỮ LIỆU CHO USER THƯỜNG ---
-        if 'initialized' not in st.session_state:
-            with st.spinner("Đang kiểm tra quyền và tải dữ liệu..."):
-                sa_gspread_client = connect_as_service_account()
-                if sa_gspread_client:
-                    all_base_data = load_all_parquet_data()
-                    magv, teacher_info = get_user_info(sa_gspread_client, user_email, all_base_data)
-                    
-                    if magv and teacher_info:
-                        st.session_state.magv = magv
-                        st.session_state.tengv = teacher_info.get('Tên giảng viên')
-                        st.session_state.ten_khoa = teacher_info.get('ten_khoa')
-                        st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
-                        giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
-                        st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
-                        st.session_state.initialized = True
-                    else:
-                        st.error("Tài khoản của bạn chưa được đăng ký trong hệ thống.")
-                        st.warning(f"Vui lòng liên hệ Admin ({ADMIN_EMAIL}) để được cấp quyền.")
-                        st.stop()
-                else:
-                    st.stop()
-
-        # --- GIAO DIỆN USER THƯỜNG ---
-        with st.sidebar:
-            st.header(":green[THÔNG TIN GIÁO VIÊN]")
-            st.write(f"**Tên GV:** :green[{st.session_state.get('tengv', '')}]")
-            st.write(f"**Mã GV:** :green[{st.session_state.get('magv', '')}]")
-            st.write(f"**Khoa/Phòng:** :green[{st.session_state.get('ten_khoa', '')}]")
-
-        # SỬA LỖI: Xóa dòng st.header bị lặp ở đây, vì nó đã được chuyển vào hàm ke_gio_day_page
-        pages = {
-            "Kê khai": kekhai_pages,
-            "Tra cứu": tracuu_pages,
-            "Báo cáo": baocao_pages,
-            "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")]
-        }
-
-    # --- CHẠY THANH ĐIỀU HƯỚNG ---
-    if pages:
-        pg = st.navigation(pages)
-        pg.run()
-    else:
-        st.warning("Tài khoản của bạn đã được xác thực nhưng không được gán quyền truy cập trang nào.")
+        st.warning("Vui lòng chọn đầy đủ thông tin để tính toán.")
 
