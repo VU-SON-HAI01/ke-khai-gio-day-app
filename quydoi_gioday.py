@@ -8,7 +8,8 @@ import os
 
 # --- CẤU HÌNH TRANG BAN ĐẦU ---
 st.set_page_config(layout="wide", page_title="Hệ thống Kê khai Giờ giảng")
-st.image("image/banner-top-kegio.jpg", use_column_width=True)
+# SỬA LỖI 1: Thay thế 'use_column_width' bằng 'use_container_width' theo cảnh báo của Streamlit
+st.image("image/banner-top-kegio.jpg", use_container_width=True)
 
 # --- TẢI CẤU HÌNH TỪ STREAMLIT SECRETS ---
 # Di chuyển các thông tin nhạy cảm vào secrets để tăng cường bảo mật
@@ -18,7 +19,10 @@ try:
     REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
     ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
-    ADMIN_EMAIL = st.secrets["app_config"]["admin_email"]
+    # SỬA LỖI 2: Đặt ADMIN_EMAIL ở đây để tránh lỗi KeyError nếu chưa cấu hình trong secrets.
+    # Email này được lấy từ phiên bản code ban đầu của bạn.
+    # Bạn có thể chuyển lại vào secrets sau khi đã cập nhật file secrets.toml.
+    ADMIN_EMAIL = "vshai48kd1@gmail.com"
 except KeyError as e:
     st.error(f"Lỗi: Không tìm thấy thông tin cấu hình '{e.args[0]}' trong st.secrets.")
     st.info("Vui lòng kiểm tra lại file cấu hình secrets.toml của bạn.")
@@ -230,3 +234,4 @@ else:
     else:
         # Xử lý trường hợp người dùng đăng nhập nhưng không có quyền nào
         st.warning("Tài khoản của bạn đã được xác thực nhưng không được gán quyền truy cập trang nào.")
+
