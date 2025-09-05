@@ -315,6 +315,7 @@ else:
         if pg.get_page_name() != "Trang chủ":
             pg.run()
         else:
+            main_page() # Hiển thị lời chào mừng trên trang chủ
             # Chỉ hiển thị các công cụ admin trên trang chủ
             with st.expander("Tạo người dùng hàng loạt từ file Excel", expanded=True):
                 uploaded_file = st.file_uploader(
@@ -394,7 +395,7 @@ else:
                         giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
                         st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
                         st.session_state.initialized = True
-                        st.rerun()
+                        # ĐÃ XÓA st.rerun() TẠI ĐÂY
                     else:
                         st.error(f"Đã xác thực nhưng không tìm thấy thông tin chi tiết cho Mã GV: {magv} trong dữ liệu cục bộ.")
                         st.stop()
@@ -424,6 +425,7 @@ else:
                     st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động", icon="🏃")
                 ],
                 "Báo cáo": [st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file", icon="📄")],
+                "Tra cứu": tracuu_pages, # Thêm trang tra cứu cho user
                 "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")]
             }
             pg = st.navigation(pages)
