@@ -95,7 +95,7 @@ def save_data(spreadsheet_obj, worksheet_name, data_to_save):
     try:
         worksheet = spreadsheet_obj.worksheet(worksheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=2, cols=20)
+        worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=100, cols=30)
     
     if isinstance(data_to_save, dict):
         df_to_save = pd.DataFrame([data_to_save])
@@ -117,6 +117,8 @@ def update_state(key):
 # --- KHỞI TẠO SESSION STATE CHO TRANG NÀY ---
 if 'input_data' not in st.session_state:
     st.session_state.input_data = load_input_data(spreadsheet, INPUT_SHEET_NAME)
+if 'last_result' not in st.session_state:
+    st.session_state.last_result = pd.DataFrame()
 
 # --- GIAO DIỆN NHẬP LIỆU ---
 st.subheader("I. Cấu hình giảng dạy")
@@ -195,60 +197,75 @@ else:
 validation_placeholder = st.empty()
 is_input_valid = True
 
-# Lấy các giá trị hiện tại từ session state để kiểm tra
 current_input_data = st.session_state.input_data
 selected_tuan_range = current_input_data.get('tuan', (1, 1))
 so_tuan_chon = selected_tuan_range[1] - selected_tuan_range[0] + 1
 
 if current_input_data.get('cach_ke') == 'Kê theo MĐ, MH':
     so_tiet_nhap_str = str(current_input_data.get('tiet', ''))
-    # Đếm số lượng phần tử được ngăn bởi dấu cách (loại bỏ phần tử rỗng)
     so_tiet_dem_duoc = len([x for x in so_tiet_nhap_str.split() if x])
     if so_tiet_dem_duoc != so_tuan_chon:
         validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với số lượng tiết đã nhập ({so_tiet_dem_duoc}).")
         is_input_valid = False
-else:  # Kê theo LT, TH chi tiết
+else:
     so_tiet_lt_nhap_str = str(current_input_data.get('tiet_lt', ''))
     so_tiet_th_nhap_str = str(current_input_data.get('tiet_th', ''))
-    
     so_tiet_lt_dem_duoc = len([x for x in so_tiet_lt_nhap_str.split() if x])
     so_tiet_th_dem_duoc = len([x for x in so_tiet_th_nhap_str.split() if x])
-
     if so_tiet_lt_dem_duoc != so_tuan_chon or so_tiet_th_dem_duoc != so_tuan_chon:
         error_parts = []
-        if so_tiet_lt_dem_duoc != so_tuan_chon:
-            error_parts.append(f"số tiết LT ({so_tiet_lt_dem_duoc})")
-        if so_tiet_th_dem_duoc != so_tuan_chon:
-            error_parts.append(f"số tiết TH ({so_tiet_th_dem_duoc})")
-        
+        if so_tiet_lt_dem_duoc != so_tuan_chon: error_parts.append(f"số tiết LT ({so_tiet_lt_dem_duoc})")
+        if so_tiet_th_dem_duoc != so_tuan_chon: error_parts.append(f"số tiết TH ({so_tiet_th_dem_duoc})")
         validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với { ' và '.join(error_parts) }.")
         is_input_valid = False
 
-# --- NÚT TÍNH TOÁN VÀ LƯU TRỮ ---
-if st.button("Lưu cấu hình và Tính toán", use_container_width=True, disabled=not is_input_valid):
-    save_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
-    
-    datasets_to_check = {"df_lop": df_lop_g, "df_mon": df_mon_g, "df_ngaytuan": df_ngaytuan_g, "df_nangnhoc": df_nangnhoc_g, "df_hesosiso": df_hesosiso_g}
-    is_data_valid_for_calc = True
-    for name, df in datasets_to_check.items():
-        if not isinstance(df, pd.DataFrame) or df.empty:
-            st.error(f"Lỗi: Dữ liệu '{name}' không hợp lệ hoặc bị trống.")
-            is_data_valid_for_calc = False
-            
-    if is_data_valid_for_calc:
-        with st.spinner("Đang tính toán..."):
-            # CẬP NHẬT: Truyền đúng các tham số vào hàm tính toán
-            df_result, summary = fq.process_mon_data(
-                st.session_state.input_data, chuangv, df_lop_g, df_mon_g, 
-                df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g
-            )
+# --- BẢNG KẾT QUẢ TÍNH TOÁN ---
+st.subheader("II. Bảng kết quả tính toán")
+result_placeholder = st.empty()
+if not st.session_state.last_result.empty:
+    result_placeholder.dataframe(st.session_state.last_result)
+else:
+    result_placeholder.info("Chưa có dữ liệu để hiển thị. Vui lòng nhấn nút 'Tính và Lưu' bên dưới.")
 
-        st.subheader("II. Bảng kết quả tính toán")
-        if df_result is not None and not df_result.empty:
-            st.dataframe(df_result)
-            save_data(spreadsheet, OUTPUT_SHEET_NAME, df_result)
-        elif summary and "error" in summary:
-            st.error(f"Không thể tính toán: {summary['error']}")
-        else:
-            st.warning("Vui lòng chọn đầy đủ thông tin để tính toán.")
+# --- NÚT TÍNH TOÁN VÀ LƯU TRỮ ---
+col1, col2 = st.columns([1,1])
+
+with col1:
+    if st.button("Tính và Lưu dữ liệu môn", use_container_width=True, disabled=not is_input_valid):
+        with st.spinner("Đang tính toán và lưu..."):
+            # Luôn lưu cấu hình input trước
+            save_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
+            
+            datasets_to_check = {"df_lop": df_lop_g, "df_mon": df_mon_g, "df_ngaytuan": df_ngaytuan_g, "df_nangnhoc": df_nangnhoc_g, "df_hesosiso": df_hesosiso_g}
+            is_data_valid_for_calc = all(isinstance(df, pd.DataFrame) and not df.empty for df in datasets_to_check.values())
+            
+            if is_data_valid_for_calc:
+                df_result, summary = fq.process_mon_data(
+                    st.session_state.input_data, chuangv, df_lop_g, df_mon_g, 
+                    df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g
+                )
+                
+                if df_result is not None and not df_result.empty:
+                    result_placeholder.dataframe(df_result)
+                    save_data(spreadsheet, OUTPUT_SHEET_NAME, df_result)
+                    st.session_state.last_result = df_result # Cập nhật session state
+                elif summary and "error" in summary:
+                    st.error(f"Không thể tính toán: {summary['error']}")
+                    st.session_state.last_result = pd.DataFrame() # Xóa kết quả cũ nếu lỗi
+                    result_placeholder.info("Tính toán thất bại, vui lòng kiểm tra lại cấu hình.")
+            else:
+                st.error("Lỗi dữ liệu nền, không thể tính toán.")
+
+with col2:
+    if st.button("Xóa dữ liệu môn này", use_container_width=True):
+        try:
+            worksheet_to_delete = spreadsheet.worksheet(OUTPUT_SHEET_NAME)
+            spreadsheet.del_worksheet(worksheet_to_delete)
+            st.session_state.last_result = pd.DataFrame()
+            result_placeholder.info(f"Đã xóa thành công trang tính '{OUTPUT_SHEET_NAME}'.")
+            st.success("Xóa thành công!")
+        except gspread.exceptions.WorksheetNotFound:
+            st.warning(f"Không tìm thấy trang tính '{OUTPUT_SHEET_NAME}' để xóa.")
+        except Exception as e:
+            st.error(f"Lỗi khi xóa trang tính: {e}")
 
