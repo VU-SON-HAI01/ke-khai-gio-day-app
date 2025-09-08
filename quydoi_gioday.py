@@ -5,6 +5,7 @@ from gspread_dataframe import set_with_dataframe
 import fun_quydoi as fq
 import ast
 import re
+from itertools import zip_longest
 
 # --- Giao diện và tiêu đề trang ---
 st.title("✍️ Kê khai Giờ dạy (Nhiều môn)")
@@ -116,15 +117,42 @@ def remove_mon_hoc():
         st.session_state.results_data.pop()
 
 def save_all_data():
+    """Lưu tất cả dữ liệu với logic tùy chỉnh cho cột 'tiet'."""
     with st.spinner("Đang lưu tất cả dữ liệu..."):
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
+            
+            # Tạo bản sao để xử lý dữ liệu trước khi lưu
+            data_to_save = input_data.copy()
+
+            # Áp dụng logic lưu trữ mới
+            if data_to_save.get('cach_ke') == 'Kê theo LT, TH chi tiết':
+                try:
+                    tiet_lt_list = [int(x) for x in str(data_to_save.get('tiet_lt', '0')).split()]
+                    tiet_th_list = [int(x) for x in str(data_to_save.get('tiet_th', '0')).split()]
+                    
+                    # Cộng tương ứng các phần tử và tạo chuỗi tổng cho cột 'tiet'
+                    tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
+                    data_to_save['tiet'] = ' '.join(map(str, tiet_sum_list))
+                except ValueError:
+                    data_to_save['tiet'] = '' # Nếu có lỗi, để trống cột tổng
+                    st.warning(f"Môn {mon_index}: Định dạng số tiết LT/TH không hợp lệ, cột 'tiet' tổng hợp sẽ bị bỏ trống.")
+
+            elif data_to_save.get('cach_ke') == 'Kê theo MĐ, MH':
+                # Đảm bảo các cột LT, TH trống hoặc là '0'
+                data_to_save['tiet_lt'] = '0'
+                data_to_save['tiet_th'] = '0'
+
             input_ws_name = f'input_giangday_{mon_index}'
             result_ws_name = f'output_giangday_{mon_index}'
-            save_data_to_sheet(input_ws_name, input_data)
+            
+            save_data_to_sheet(input_ws_name, data_to_save)
+            
             if not result_data.empty:
                 save_data_to_sheet(result_ws_name, result_data)
+                
     st.success("Đã lưu thành công tất cả dữ liệu!")
+
 
 # --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
 if 'mon_hoc_data' not in st.session_state:
