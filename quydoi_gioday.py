@@ -239,7 +239,6 @@ with tabs[-1]:
     if st.session_state.mon_hoc_data:
         summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
         
-        # Tính toán tổng QĐ thừa và QĐ thiếu cho mỗi môn
         qd_thua_totals = []
         qd_thieu_totals = []
         for res_df in st.session_state.results_data:
@@ -262,8 +261,16 @@ with tabs[-1]:
                     return ' '.join(map(str, tiet_sum_list))
                 except ValueError: return ''
             else: return row['tiet']
+            
+        def calculate_total_tiet(tiet_string):
+            try:
+                return sum(int(t) for t in str(tiet_string).split())
+            except (ValueError, TypeError):
+                return 0
+
         if not summary_df.empty:
-            summary_df['tiet'] = summary_df.apply(calculate_display_tiet, axis=1)
+            summary_df['Tiết theo tuần'] = summary_df.apply(calculate_display_tiet, axis=1)
+            summary_df['Tiết'] = summary_df['Tiết theo tuần'].apply(calculate_total_tiet)
 
         summary_df.insert(0, "Thứ tự", mon_tab_names)
         if 'tuan' in summary_df.columns:
@@ -271,18 +278,31 @@ with tabs[-1]:
         
         rename_map = {
             'lop_hoc': 'Lớp học', 'mon_hoc': 'Môn học', 'tuan': 'Tuần đến Tuần',
-            'tiet': 'Tiết theo tuần', 'tiet_lt': 'Tiết LT theo tuần', 'tiet_th': 'Tiết TH theo tuần',
-            'QĐ thừa': 'Tổng QĐ thừa', 'QĐ thiếu': 'Tổng QĐ thiếu'
+            'tiet_lt': 'Tiết LT theo tuần', 'tiet_th': 'Tiết TH theo tuần',
+            'QĐ thừa': 'QĐ thừa', 'QĐ thiếu': 'QĐ thiếu'
         }
         summary_df.rename(columns=rename_map, inplace=True)
         
         display_columns = [
-            'Thứ tự', 'Lớp học', 'Môn học', 'Tuần đến Tuần', 
+            'Thứ tự', 'Lớp học', 'Môn học', 'Tuần đến Tuần', 'Tiết',
             'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần',
-            'Tổng QĐ thừa', 'Tổng QĐ thiếu'
+            'QĐ thừa', 'QĐ thiếu'
         ]
         final_columns_to_display = [col for col in display_columns if col in summary_df.columns]
         st.dataframe(summary_df[final_columns_to_display])
+        
+        st.markdown("---")
+        st.subheader("Tổng hợp")
+        
+        total_tiet_day = summary_df['Tiết'].sum()
+        total_qd_thua = summary_df['QĐ thừa'].sum()
+        total_qd_thieu = summary_df['QĐ thiếu'].sum()
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Tổng Tiết dạy", f"{total_tiet_day:,.0f}")
+        col2.metric("Tổng Quy đổi (khi dư giờ)", f"{total_qd_thua:,.1f}")
+        col3.metric("Tổng quy đổi (khi thiếu giờ)", f"{total_qd_thieu:,.1f}")
+
     else:
         st.info("Chưa có dữ liệu môn học nào để tổng hợp.")
 
