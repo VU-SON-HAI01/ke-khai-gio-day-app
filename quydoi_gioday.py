@@ -251,6 +251,22 @@ with tabs[-1]:
         # Tạo DataFrame từ list các dictionary input
         summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
         
+        # Áp dụng logic tính toán cho cột 'tiet' để hiển thị
+        def calculate_display_tiet(row):
+            if row['cach_ke'] == 'Kê theo LT, TH chi tiết':
+                try:
+                    tiet_lt_list = [int(x) for x in str(row.get('tiet_lt', '0')).split()]
+                    tiet_th_list = [int(x) for x in str(row.get('tiet_th', '0')).split()]
+                    tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
+                    return ' '.join(map(str, tiet_sum_list))
+                except ValueError:
+                    return '' # Trả về rỗng nếu có lỗi chuyển đổi
+            else: # 'Kê theo MĐ, MH'
+                return row['tiet']
+
+        if not summary_df.empty:
+            summary_df['tiet'] = summary_df.apply(calculate_display_tiet, axis=1)
+
         # Thêm cột "Thứ tự" với tên các tab
         summary_df.insert(0, "Thứ tự", mon_tab_names)
         
@@ -284,4 +300,3 @@ with tabs[-1]:
         st.dataframe(summary_df[final_columns_to_display])
     else:
         st.info("Chưa có dữ liệu môn học nào để tổng hợp.")
-
