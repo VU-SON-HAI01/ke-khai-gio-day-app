@@ -85,8 +85,7 @@ def load_all_mon_data():
     st.session_state.results_data = []
     all_worksheets = [ws.title for ws in spreadsheet.worksheets()]
     
-    # Tìm tất cả các sheet input đã lưu
-    input_sheet_indices = sorted([int(re.search(r'_(\d+)$', ws).group(1)) for ws in all_worksheets if re.match(fr'input_giangday_{ma_gv}_\d+', ws)], key=int)
+    input_sheet_indices = sorted([int(re.search(r'_(\d+)$', ws).group(1)) for ws in all_worksheets if re.match(r'input_giangday_\d+', ws)], key=int)
     
     if not input_sheet_indices:
         st.session_state.mon_hoc_data.append(get_default_input_dict())
@@ -94,8 +93,8 @@ def load_all_mon_data():
         return
 
     for i in input_sheet_indices:
-        input_ws_name = f'input_giangday_{ma_gv}_{i}'
-        result_ws_name = f'ket_qua_giangday_{ma_gv}_{i}'
+        input_ws_name = f'input_giangday_{i}'
+        result_ws_name = f'output_giangday_{i}'
         
         input_data = load_data_from_sheet(input_ws_name)
         st.session_state.mon_hoc_data.append(input_data if input_data else get_default_input_dict())
@@ -120,8 +119,8 @@ def save_all_data():
     with st.spinner("Đang lưu tất cả dữ liệu..."):
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
-            input_ws_name = f'input_giangday_{ma_gv}_{mon_index}'
-            result_ws_name = f'ket_qua_giangday_{ma_gv}_{mon_index}'
+            input_ws_name = f'input_giangday_{mon_index}'
+            result_ws_name = f'output_giangday_{mon_index}'
             save_data_to_sheet(input_ws_name, input_data)
             if not result_data.empty:
                 save_data_to_sheet(result_ws_name, result_data)
@@ -146,32 +145,32 @@ with cols[3]:
 st.markdown("---")
 
 # --- GIAO DIỆN TAB ---
-tab_names = [f"Môn {i+1}" for i in range(len(st.session_state.mon_hoc_data))]
-tabs = st.tabs(tab_names)
+mon_tab_names = [f"Môn {i+1}" for i in range(len(st.session_state.mon_hoc_data))]
+all_tab_names = mon_tab_names + ["📊 Tổng hợp"]
+tabs = st.tabs(all_tab_names)
 
-for i, tab in enumerate(tabs):
+# Vòng lặp cho các tab Môn học
+for i, tab in enumerate(tabs[:-1]):
     with tab:
         st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
         
-        # Hàm callback riêng cho từng tab
         def update_tab_state(key, index):
             st.session_state.mon_hoc_data[index][key] = st.session_state[f"widget_{key}_{index}"]
 
         current_input = st.session_state.mon_hoc_data[i]
         
-        # --- WIDGETS ---
         st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, index=KHOA_OPTIONS.index(current_input.get('khoa', KHOA_OPTIONS[0])), key=f"widget_khoa_{i}", on_change=update_tab_state, args=('khoa', i))
         
         khoa_prefix = current_input.get('khoa', 'Khóa 48').split(' ')[1] if current_input.get('khoa', '').startswith('Khóa') else ''
-        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_prefix, na=False)]['Lớp'].tolist() if khoa_prefix else df_lop_g['Lớp'].tolist()
+        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_prefix, na=False)]['Lớp'].tolist() if khoa_prefix and df_lop_g is not None else (df_lop_g['Lớp'].tolist() if df_lop_g is not None else [])
         lop_hoc_index = filtered_lop_options.index(current_input.get('lop_hoc')) if current_input.get('lop_hoc') in filtered_lop_options else 0
         st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key=f"widget_lop_hoc_{i}", on_change=update_tab_state, args=('lop_hoc', i))
 
-        malop_info = df_lop_g[df_lop_g['Lớp'] == current_input.get('lop_hoc')]
+        malop_info = df_lop_g[df_lop_g['Lớp'] == current_input.get('lop_hoc')] if df_lop_g is not None else pd.DataFrame()
         dsmon_options = []
         if not malop_info.empty:
             manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
-            if manghe in df_mon_g.columns:
+            if df_mon_g is not None and manghe in df_mon_g.columns:
                 dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
         mon_hoc_index = dsmon_options.index(current_input.get('mon_hoc')) if current_input.get('mon_hoc') in dsmon_options else 0
         st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key=f"widget_mon_hoc_{i}", on_change=update_tab_state, args=('mon_hoc', i))
@@ -186,7 +185,6 @@ for i, tab in enumerate(tabs):
             with c1: st.text_input("Nhập số tiết Lý thuyết mỗi tuần", value=current_input.get('tiet_lt', '0'), key=f"widget_tiet_lt_{i}", on_change=update_tab_state, args=('tiet_lt', i))
             with c2: st.text_input("Nhập số tiết Thực hành mỗi tuần", value=current_input.get('tiet_th', '0'), key=f"widget_tiet_th_{i}", on_change=update_tab_state, args=('tiet_th', i))
         
-        # --- VALIDATION VÀ TÍNH TOÁN TỰ ĐỘNG ---
         validation_placeholder = st.empty()
         is_input_valid = True
         selected_tuan_range = current_input.get('tuan', (1, 1)); so_tuan_chon = selected_tuan_range[1] - selected_tuan_range[0] + 1
@@ -201,7 +199,8 @@ for i, tab in enumerate(tabs):
             so_tiet_th_dem_duoc = len([x for x in str(current_input.get('tiet_th', '')).split() if x])
             if so_tiet_lt_dem_duoc != so_tuan_chon or so_tiet_th_dem_duoc != so_tuan_chon:
                 is_input_valid = False
-                # ... (error message logic from previous version) ...
+                validation_placeholder.error(f"Lỗi: Số tuần ({so_tuan_chon}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
+
 
         if is_input_valid:
             df_result, summary = fq.process_mon_data(current_input, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g)
@@ -211,10 +210,24 @@ for i, tab in enumerate(tabs):
             elif df_result is not None and not df_result.empty:
                 st.session_state.results_data[i] = df_result
 
-        # --- HIỂN THỊ KẾT QUẢ ---
         st.subheader(f"II. Bảng kết quả tính toán - Môn {i+1}")
         if not st.session_state.results_data[i].empty:
             st.dataframe(st.session_state.results_data[i])
         else:
             st.info("Chưa có dữ liệu tính toán hợp lệ.")
+
+# Xử lý tab "Tổng hợp"
+with tabs[-1]:
+    st.subheader("Bảng tổng hợp dữ liệu đầu vào của các môn")
+    if st.session_state.mon_hoc_data:
+        # Tạo DataFrame từ list các dictionary input
+        summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
+        
+        # Chuyển đổi cột tuple 'tuan' thành string để hiển thị đẹp hơn
+        if 'tuan' in summary_df.columns:
+            summary_df['tuan'] = summary_df['tuan'].astype(str)
+            
+        st.dataframe(summary_df)
+    else:
+        st.info("Chưa có dữ liệu môn học nào để tổng hợp.")
 
