@@ -223,11 +223,37 @@ with tabs[-1]:
         # Tạo DataFrame từ list các dictionary input
         summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
         
+        # Thêm cột "Thứ tự" với tên các tab
+        summary_df.insert(0, "Thứ tự", mon_tab_names)
+        
         # Chuyển đổi cột tuple 'tuan' thành string để hiển thị đẹp hơn
         if 'tuan' in summary_df.columns:
             summary_df['tuan'] = summary_df['tuan'].astype(str)
-            
-        st.dataframe(summary_df)
+        
+        # Định nghĩa tên cột mới
+        rename_map = {
+            'khoa': 'Khóa học',
+            'lop_hoc': 'Lớp học',
+            'mon_hoc': 'Môn học',
+            'tuan': 'Tuần đến Tuần',
+            'tiet': 'Tiết theo tuần',
+            'tiet_lt': 'Tiết LT theo tuần',
+            'tiet_th': 'Tiết TH theo tuần'
+        }
+        
+        # Đổi tên các cột
+        summary_df.rename(columns=rename_map, inplace=True)
+        
+        # Chọn các cột cần hiển thị theo đúng thứ tự và ẩn các cột khác
+        display_columns = [
+            'Thứ tự', 'Khóa học', 'Lớp học', 'Môn học', 
+            'Tuần đến Tuần', 'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần'
+        ]
+        
+        # Lọc ra các cột thực sự có trong dataframe để tránh lỗi
+        final_columns_to_display = [col for col in display_columns if col in summary_df.columns]
+        
+        st.dataframe(summary_df[final_columns_to_display])
     else:
         st.info("Chưa có dữ liệu môn học nào để tổng hợp.")
 
