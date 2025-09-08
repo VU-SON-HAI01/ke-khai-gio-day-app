@@ -7,9 +7,6 @@ import ast
 import re
 from itertools import zip_longest
 
-# --- Giao diện và tiêu đề trang ---
-st.title("✍️ Kê khai Giờ dạy (Nhiều môn)")
-
 # --- KIỂM TRA ĐIỀU KIỆN TIÊN QUYẾT (TỪ MAIN.PY) ---
 if 'initialized' not in st.session_state or not st.session_state.initialized:
     st.error("Vui lòng đăng nhập và đảm bảo thông tin của bạn đã được tải thành công từ trang chủ.")
@@ -30,11 +27,6 @@ df_nangnhoc_g = st.session_state.get('df_nangnhoc')
 df_hesosiso_g = st.session_state.get('df_hesosiso')
 chuangv = st.session_state.get('chuangv')
 ma_gv = st.session_state.get('magv', 'khong_ro')
-
-# --- HIỂN THỊ THÔNG TIN GIÁO VIÊN ---
-st.subheader(f"Giáo viên: {st.session_state.get('tengv', 'Không rõ')} - Mã GV: {ma_gv}")
-st.write(f"Khoa/Phòng: {st.session_state.get('ten_khoa', 'Không rõ')}")
-st.markdown("---")
 
 # --- HẰNG SỐ ---
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
@@ -121,45 +113,31 @@ def save_all_data():
     with st.spinner("Đang lưu tất cả dữ liệu..."):
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
-            
-            # Tạo bản sao để xử lý dữ liệu trước khi lưu
             data_to_save = input_data.copy()
-
-            # Áp dụng logic lưu trữ mới
             if data_to_save.get('cach_ke') == 'Kê theo LT, TH chi tiết':
                 try:
                     tiet_lt_list = [int(x) for x in str(data_to_save.get('tiet_lt', '0')).split()]
                     tiet_th_list = [int(x) for x in str(data_to_save.get('tiet_th', '0')).split()]
-                    
-                    # Cộng tương ứng các phần tử và tạo chuỗi tổng cho cột 'tiet'
                     tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
                     data_to_save['tiet'] = ' '.join(map(str, tiet_sum_list))
                 except ValueError:
-                    data_to_save['tiet'] = '' # Nếu có lỗi, để trống cột tổng
+                    data_to_save['tiet'] = ''
                     st.warning(f"Môn {mon_index}: Định dạng số tiết LT/TH không hợp lệ, cột 'tiet' tổng hợp sẽ bị bỏ trống.")
-
             elif data_to_save.get('cach_ke') == 'Kê theo MĐ, MH':
-                # Đảm bảo các cột LT, TH trống hoặc là '0'
                 data_to_save['tiet_lt'] = '0'
                 data_to_save['tiet_th'] = '0'
-
             input_ws_name = f'input_giangday_{mon_index}'
             result_ws_name = f'output_giangday_{mon_index}'
-            
             save_data_to_sheet(input_ws_name, data_to_save)
-            
             if not result_data.empty:
                 save_data_to_sheet(result_ws_name, result_data)
-                
     st.success("Đã lưu thành công tất cả dữ liệu!")
-
 
 # --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
 if 'mon_hoc_data' not in st.session_state:
     load_all_mon_data()
 
 # --- THANH CÔNG CỤ ---
-st.subheader("Thanh công cụ")
 cols = st.columns(4)
 with cols[0]:
     st.button("➕ Thêm môn", on_click=add_mon_hoc, use_container_width=True)
@@ -229,7 +207,6 @@ for i, tab in enumerate(tabs[:-1]):
                 is_input_valid = False
                 validation_placeholder.error(f"Lỗi: Số tuần ({so_tuan_chon}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
 
-
         if is_input_valid:
             df_result, summary = fq.process_mon_data(current_input, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g)
             if summary and "error" in summary:
@@ -239,8 +216,20 @@ for i, tab in enumerate(tabs[:-1]):
                 st.session_state.results_data[i] = df_result
 
         st.subheader(f"II. Bảng kết quả tính toán - Môn {i+1}")
-        if not st.session_state.results_data[i].empty:
-            st.dataframe(st.session_state.results_data[i])
+        result_df = st.session_state.results_data[i]
+        if not result_df.empty:
+            df_display = result_df.copy()
+            cols_to_sum = ['Tiết', 'Tiết_LT', 'Tiết_TH', 'QĐ thừa', 'QĐ thiếu']
+            for col in cols_to_sum:
+                if col in df_display.columns:
+                    df_display[col] = pd.to_numeric(df_display[col], errors='coerce').fillna(0)
+            
+            total_row_data = {col: df_display[col].sum() for col in cols_to_sum}
+            total_row_data['Tuần'] = '**Tổng cộng**'
+            total_row_df = pd.DataFrame([total_row_data])
+
+            df_with_total = pd.concat([df_display, total_row_df], ignore_index=True)
+            st.dataframe(df_with_total.fillna(''))
         else:
             st.info("Chưa có dữ liệu tính toán hợp lệ.")
 
@@ -248,10 +237,22 @@ for i, tab in enumerate(tabs[:-1]):
 with tabs[-1]:
     st.subheader("Bảng tổng hợp dữ liệu đầu vào của các môn")
     if st.session_state.mon_hoc_data:
-        # Tạo DataFrame từ list các dictionary input
         summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
         
-        # Áp dụng logic tính toán cho cột 'tiet' để hiển thị
+        # Tính toán tổng QĐ thừa và QĐ thiếu cho mỗi môn
+        qd_thua_totals = []
+        qd_thieu_totals = []
+        for res_df in st.session_state.results_data:
+            if not res_df.empty:
+                qd_thua_totals.append(pd.to_numeric(res_df['QĐ thừa'], errors='coerce').sum())
+                qd_thieu_totals.append(pd.to_numeric(res_df['QĐ thiếu'], errors='coerce').sum())
+            else:
+                qd_thua_totals.append(0)
+                qd_thieu_totals.append(0)
+        
+        summary_df['QĐ thừa'] = qd_thua_totals
+        summary_df['QĐ thiếu'] = qd_thieu_totals
+
         def calculate_display_tiet(row):
             if row['cach_ke'] == 'Kê theo LT, TH chi tiết':
                 try:
@@ -259,44 +260,29 @@ with tabs[-1]:
                     tiet_th_list = [int(x) for x in str(row.get('tiet_th', '0')).split()]
                     tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
                     return ' '.join(map(str, tiet_sum_list))
-                except ValueError:
-                    return '' # Trả về rỗng nếu có lỗi chuyển đổi
-            else: # 'Kê theo MĐ, MH'
-                return row['tiet']
-
+                except ValueError: return ''
+            else: return row['tiet']
         if not summary_df.empty:
             summary_df['tiet'] = summary_df.apply(calculate_display_tiet, axis=1)
 
-        # Thêm cột "Thứ tự" với tên các tab
         summary_df.insert(0, "Thứ tự", mon_tab_names)
-        
-        # Chuyển đổi cột tuple 'tuan' thành string để hiển thị đẹp hơn
         if 'tuan' in summary_df.columns:
             summary_df['tuan'] = summary_df['tuan'].astype(str)
         
-        # Định nghĩa tên cột mới
         rename_map = {
-            'khoa': 'Khóa học',
-            'lop_hoc': 'Lớp học',
-            'mon_hoc': 'Môn học',
-            'tuan': 'Tuần đến Tuần',
-            'tiet': 'Tiết theo tuần',
-            'tiet_lt': 'Tiết LT theo tuần',
-            'tiet_th': 'Tiết TH theo tuần'
+            'lop_hoc': 'Lớp học', 'mon_hoc': 'Môn học', 'tuan': 'Tuần đến Tuần',
+            'tiet': 'Tiết theo tuần', 'tiet_lt': 'Tiết LT theo tuần', 'tiet_th': 'Tiết TH theo tuần',
+            'QĐ thừa': 'Tổng QĐ thừa', 'QĐ thiếu': 'Tổng QĐ thiếu'
         }
-        
-        # Đổi tên các cột
         summary_df.rename(columns=rename_map, inplace=True)
         
-        # Chọn các cột cần hiển thị theo đúng thứ tự và ẩn các cột khác
         display_columns = [
-            'Thứ tự', 'Khóa học', 'Lớp học', 'Môn học', 
-            'Tuần đến Tuần', 'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần'
+            'Thứ tự', 'Lớp học', 'Môn học', 'Tuần đến Tuần', 
+            'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần',
+            'Tổng QĐ thừa', 'Tổng QĐ thiếu'
         ]
-        
-        # Lọc ra các cột thực sự có trong dataframe để tránh lỗi
         final_columns_to_display = [col for col in display_columns if col in summary_df.columns]
-        
         st.dataframe(summary_df[final_columns_to_display])
     else:
         st.info("Chưa có dữ liệu môn học nào để tổng hợp.")
+
