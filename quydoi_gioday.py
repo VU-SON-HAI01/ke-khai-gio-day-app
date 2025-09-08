@@ -51,7 +51,6 @@ KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách'
 # --- CÁC HÀM TƯƠNG TÁC DỮ LIỆU ---
 def get_default_input():
     """Tạo một dictionary chứa dữ liệu input mặc định."""
-    # Thêm kiểm tra df_lop_g không rỗng
     if df_lop_g is None or df_lop_g.empty:
         return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': '', 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': DEFAULT_TIET_STRING, 'tiet_lt': '0', 'tiet_th': '0'}
 
@@ -193,7 +192,7 @@ else:
     st.text_input("Nhập số tiết Thực hành mỗi tuần", value=input_data.get('tiet_th', '0'), 
                   key="widget_tiet_th", on_change=update_state, args=('tiet_th',))
 
-# --- KIỂM TRA TÍNH HỢP LỆ CỦA SỐ TIẾT NHẬP VÀO (REAL-TIME)---
+# --- KIỂM TRA TÍNH HỢP LỆ VÀ TÍNH TOÁN TỰ ĐỘNG ---
 validation_placeholder = st.empty()
 is_input_valid = True
 
@@ -219,42 +218,39 @@ else:
         validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với { ' và '.join(error_parts) }.")
         is_input_valid = False
 
+# Tự động tính toán nếu input hợp lệ
+if is_input_valid:
+    datasets_to_check = {"df_lop": df_lop_g, "df_mon": df_mon_g, "df_ngaytuan": df_ngaytuan_g, "df_nangnhoc": df_nangnhoc_g, "df_hesosiso": df_hesosiso_g}
+    is_data_valid_for_calc = all(isinstance(df, pd.DataFrame) and not df.empty for df in datasets_to_check.values())
+    
+    if is_data_valid_for_calc:
+        df_result, summary = fq.process_mon_data(
+            st.session_state.input_data, chuangv, df_lop_g, df_mon_g, 
+            df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g
+        )
+        if summary and "error" in summary:
+            st.session_state.last_result = pd.DataFrame()
+            validation_placeholder.error(f"Lỗi tính toán: {summary['error']}")
+        elif df_result is not None and not df_result.empty:
+            st.session_state.last_result = df_result
+
 # --- BẢNG KẾT QUẢ TÍNH TOÁN ---
 st.subheader("II. Bảng kết quả tính toán")
 result_placeholder = st.empty()
 if not st.session_state.last_result.empty:
     result_placeholder.dataframe(st.session_state.last_result)
 else:
-    result_placeholder.info("Chưa có dữ liệu để hiển thị. Vui lòng nhấn nút 'Tính và Lưu' bên dưới.")
+    result_placeholder.info("Chưa có dữ liệu để hiển thị. Vui lòng điền đầy đủ thông tin hợp lệ ở trên.")
 
-# --- NÚT TÍNH TOÁN VÀ LƯU TRỮ ---
+# --- NÚT LƯU TRỮ ---
 col1, col2 = st.columns([1,1])
 
 with col1:
-    if st.button("Tính và Lưu dữ liệu môn", use_container_width=True, disabled=not is_input_valid):
-        with st.spinner("Đang tính toán và lưu..."):
-            # Luôn lưu cấu hình input trước
+    can_save = not st.session_state.last_result.empty
+    if st.button("Lưu dữ liệu môn", use_container_width=True, disabled=not can_save):
+        with st.spinner("Đang lưu dữ liệu..."):
             save_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
-            
-            datasets_to_check = {"df_lop": df_lop_g, "df_mon": df_mon_g, "df_ngaytuan": df_ngaytuan_g, "df_nangnhoc": df_nangnhoc_g, "df_hesosiso": df_hesosiso_g}
-            is_data_valid_for_calc = all(isinstance(df, pd.DataFrame) and not df.empty for df in datasets_to_check.values())
-            
-            if is_data_valid_for_calc:
-                df_result, summary = fq.process_mon_data(
-                    st.session_state.input_data, chuangv, df_lop_g, df_mon_g, 
-                    df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g
-                )
-                
-                if df_result is not None and not df_result.empty:
-                    result_placeholder.dataframe(df_result)
-                    save_data(spreadsheet, OUTPUT_SHEET_NAME, df_result)
-                    st.session_state.last_result = df_result # Cập nhật session state
-                elif summary and "error" in summary:
-                    st.error(f"Không thể tính toán: {summary['error']}")
-                    st.session_state.last_result = pd.DataFrame() # Xóa kết quả cũ nếu lỗi
-                    result_placeholder.info("Tính toán thất bại, vui lòng kiểm tra lại cấu hình.")
-            else:
-                st.error("Lỗi dữ liệu nền, không thể tính toán.")
+            save_data(spreadsheet, OUTPUT_SHEET_NAME, st.session_state.last_result)
 
 with col2:
     if st.button("Xóa dữ liệu môn này", use_container_width=True):
