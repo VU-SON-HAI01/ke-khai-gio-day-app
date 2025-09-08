@@ -4,23 +4,20 @@ import gspread
 from gspread_dataframe import set_with_dataframe
 import fun_quydoi as fq
 import ast
+import re
 
 # --- Giao diện và tiêu đề trang ---
-st.title("✍️ Kê khai Giờ dạy")
+st.title("✍️ Kê khai Giờ dạy (Nhiều môn)")
 
 # --- KIỂM TRA ĐIỀU KIỆN TIÊN QUYẾT (TỪ MAIN.PY) ---
-
-# 1. Kiểm tra người dùng đã đăng nhập và khởi tạo chưa
 if 'initialized' not in st.session_state or not st.session_state.initialized:
     st.error("Vui lòng đăng nhập và đảm bảo thông tin của bạn đã được tải thành công từ trang chủ.")
     st.stop()
 
-# 2. Kiểm tra xem main.py đã tải các dữ liệu cần thiết vào session_state chưa
 required_data = ['spreadsheet', 'df_lop', 'df_mon', 'df_ngaytuan', 'df_nangnhoc', 'df_hesosiso', 'chuangv']
 missing_data = [item for item in required_data if item not in st.session_state]
-
 if missing_data:
-    st.error(f"Lỗi: Không tìm thấy dữ liệu cần thiết sau trong session state: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải các dữ liệu này.")
+    st.error(f"Lỗi: Không tìm thấy dữ liệu cần thiết: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ.")
     st.stop()
 
 # --- LẤY DỮ LIỆU CƠ SỞ TỪ SESSION STATE ---
@@ -30,238 +27,194 @@ df_mon_g = st.session_state.get('df_mon')
 df_ngaytuan_g = st.session_state.get('df_ngaytuan')
 df_nangnhoc_g = st.session_state.get('df_nangnhoc')
 df_hesosiso_g = st.session_state.get('df_hesosiso')
-chuangv = st.session_state.get('chuangv') # Lấy chuẩn GV
+chuangv = st.session_state.get('chuangv')
+ma_gv = st.session_state.get('magv', 'khong_ro')
 
 # --- HIỂN THỊ THÔNG TIN GIÁO VIÊN ---
-ten_gv = st.session_state.get('tengv', 'Không rõ')
-ma_gv = st.session_state.get('magv', 'Không rõ')
-ten_khoa = st.session_state.get('ten_khoa', 'Không rõ')
-
-st.subheader(f"Giáo viên: {ten_gv} - Mã GV: {ma_gv}")
-st.write(f"Khoa/Phòng: {ten_khoa}")
+st.subheader(f"Giáo viên: {st.session_state.get('tengv', 'Không rõ')} - Mã GV: {ma_gv}")
+st.write(f"Khoa/Phòng: {st.session_state.get('ten_khoa', 'Không rõ')}")
 st.markdown("---")
 
-
-# --- CẤU HÌNH VÀ HẰNG SỐ CỦA TRANG ---
-INPUT_SHEET_NAME = f"input_giangday_{ma_gv}" 
-OUTPUT_SHEET_NAME = f"ket_qua_giangday_{ma_gv}" 
+# --- HẰNG SỐ ---
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
 KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp', 'VHPT']
 
-# --- CÁC HÀM TƯƠNG TÁC DỮ LIỆU ---
-def get_default_input():
-    """Tạo một dictionary chứa dữ liệu input mặc định."""
-    if df_lop_g is None or df_lop_g.empty:
-        return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': '', 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': DEFAULT_TIET_STRING, 'tiet_lt': '0', 'tiet_th': '0'}
+# --- CÁC HÀM HỖ TRỢ ---
+def get_default_input_dict():
+    """Tạo một dictionary chứa dữ liệu input mặc định cho một môn."""
+    default_lop = ''
+    if df_lop_g is not None and not df_lop_g.empty:
+        filtered_lops = df_lop_g[df_lop_g['Mã lớp'].str.startswith('48', na=False)]['Lớp']
+        default_lop = filtered_lops.iloc[0] if not filtered_lops.empty else df_lop_g['Lớp'].iloc[0]
+    return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': DEFAULT_TIET_STRING, 'tiet_lt': '0', 'tiet_th': '0'}
 
-    filtered_lops = df_lop_g[df_lop_g['Mã lớp'].str.startswith('48', na=False)]['Lớp']
-    default_lop = filtered_lops.iloc[0] if not filtered_lops.empty else df_lop_g['Lớp'].iloc[0]
-    
-    return {
-        'khoa': KHOA_OPTIONS[0],
-        'lop_hoc': default_lop,
-        'mon_hoc': '',
-        'tuan': (1, 12),
-        'cach_ke': 'Kê theo MĐ, MH',
-        'tiet': DEFAULT_TIET_STRING,
-        'tiet_lt': '0',
-        'tiet_th': '0'
-    }
-
-def load_input_data(spreadsheet_obj, worksheet_name):
-    """Tải dữ liệu input từ Google Sheet của GV, nếu không có thì dùng mặc định."""
+def load_data_from_sheet(worksheet_name):
+    """Tải dữ liệu từ một worksheet cụ thể."""
     try:
-        worksheet = spreadsheet_obj.worksheet(worksheet_name)
+        worksheet = spreadsheet.worksheet(worksheet_name)
         data = worksheet.get_all_records()
-        if not data:
-            return get_default_input()
-        
+        if not data: return None
         input_data = data[0]
         if 'tuan' in input_data and isinstance(input_data['tuan'], str):
             try:
                 input_data['tuan'] = ast.literal_eval(input_data['tuan'])
             except:
-                input_data['tuan'] = (1, 12) 
+                input_data['tuan'] = (1, 12)
         return input_data
     except gspread.exceptions.WorksheetNotFound:
-        return get_default_input()
-    except Exception as e:
-        st.error(f"Lỗi khi đọc dữ liệu input: {e}")
-        return get_default_input()
+        return None
+    except Exception:
+        return get_default_input_dict()
 
-def save_data(spreadsheet_obj, worksheet_name, data_to_save):
-    """Lưu dictionary input hoặc dataframe kết quả vào Google Sheet."""
+def save_data_to_sheet(worksheet_name, data_to_save):
+    """Lưu dữ liệu vào một worksheet cụ thể."""
     try:
-        worksheet = spreadsheet_obj.worksheet(worksheet_name)
+        worksheet = spreadsheet.worksheet(worksheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        worksheet = spreadsheet_obj.add_worksheet(title=worksheet_name, rows=100, cols=30)
+        worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=100, cols=30)
     
-    if isinstance(data_to_save, dict):
-        df_to_save = pd.DataFrame([data_to_save])
-    else:
-        df_to_save = data_to_save.copy()
-
+    df_to_save = pd.DataFrame([data_to_save]) if isinstance(data_to_save, dict) else data_to_save.copy()
     if 'tuan' in df_to_save.columns:
-        df_to_save['tuan'] = df_to_save['tuan'].astype(object)
-        is_tuple = df_to_save['tuan'].apply(lambda x: isinstance(x, tuple))
-        df_to_save.loc[is_tuple, 'tuan'] = df_to_save.loc[is_tuple, 'tuan'].astype(str)
+        df_to_save['tuan'] = df_to_save['tuan'].astype(object).apply(lambda x: str(x) if isinstance(x, tuple) else x)
+    set_with_dataframe(worksheet, df_to_save, include_index=False, resize=True)
 
-    set_with_dataframe(worksheet, df_to_save, include_index=False)
-    st.success(f"Đã lưu dữ liệu vào trang tính '{worksheet_name}'!")
 
-# --- CALLBACK ĐỂ CẬP NHẬT TRẠNG THÁI ---
-def update_state(key):
-    st.session_state.input_data[key] = st.session_state[f"widget_{key}"]
-
-# --- KHỞI TẠO SESSION STATE CHO TRANG NÀY ---
-if 'input_data' not in st.session_state:
-    st.session_state.input_data = load_input_data(spreadsheet, INPUT_SHEET_NAME)
-if 'last_result' not in st.session_state:
-    st.session_state.last_result = pd.DataFrame()
-
-# --- GIAO DIỆN NHẬP LIỆU ---
-st.subheader("I. Cấu hình giảng dạy")
-
-input_data = st.session_state.input_data
-
-khoa_chon = st.selectbox(
-    "Chọn Khóa/Hệ", 
-    options=KHOA_OPTIONS, 
-    index=KHOA_OPTIONS.index(input_data.get('khoa', KHOA_OPTIONS[0])),
-    key="widget_khoa",
-    on_change=update_state,
-    args=('khoa',)
-)
-
-filtered_lop_options = df_lop_g['Lớp'].tolist() if df_lop_g is not None else []
-if khoa_chon.startswith('Khóa'):
-    khoa_prefix = khoa_chon.split(' ')[1]
-    if df_lop_g is not None and not df_lop_g.empty:
-        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_prefix, na=False)]['Lớp'].tolist()
-
-lop_hoc_index = filtered_lop_options.index(input_data.get('lop_hoc')) if input_data.get('lop_hoc') in filtered_lop_options else 0
-lop_hoc_chon = st.selectbox(
-    "Chọn Lớp học", 
-    options=filtered_lop_options, 
-    index=lop_hoc_index,
-    key="widget_lop_hoc",
-    on_change=update_state,
-    args=('lop_hoc',)
-)
-
-malop_info = df_lop_g[df_lop_g['Lớp'] == lop_hoc_chon] if df_lop_g is not None else pd.DataFrame()
-dsmon_options = []
-if not malop_info.empty:
-    manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
-    if df_mon_g is not None and manghe in df_mon_g.columns:
-        dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
-
-mon_hoc_index = dsmon_options.index(input_data.get('mon_hoc')) if input_data.get('mon_hoc') in dsmon_options else 0
-mon_hoc_chon = st.selectbox(
-    "Chọn Môn học", 
-    options=dsmon_options, 
-    index=mon_hoc_index,
-    key="widget_mon_hoc",
-    on_change=update_state,
-    args=('mon_hoc',)
-)
-
-tuan_chon = st.slider(
-    "Chọn Tuần giảng dạy", 1, 50, 
-    value=input_data.get('tuan', (1, 12)),
-    key="widget_tuan",
-    on_change=update_state,
-    args=('tuan',)
-)
-
-cach_ke_chon = st.radio(
-    "Chọn phương pháp kê khai", 
-    ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), 
-    index=0 if input_data.get('cach_ke') == 'Kê theo MĐ, MH' else 1,
-    key="widget_cach_ke",
-    on_change=update_state,
-    args=('cach_ke',)
-)
-
-if cach_ke_chon == 'Kê theo MĐ, MH':
-    st.text_input("Nhập số tiết mỗi tuần", value=input_data.get('tiet', DEFAULT_TIET_STRING), 
-                  key="widget_tiet", on_change=update_state, args=('tiet',))
-else:
-    st.text_input("Nhập số tiết Lý thuyết mỗi tuần", value=input_data.get('tiet_lt', '0'), 
-                  key="widget_tiet_lt", on_change=update_state, args=('tiet_lt',))
-    st.text_input("Nhập số tiết Thực hành mỗi tuần", value=input_data.get('tiet_th', '0'), 
-                  key="widget_tiet_th", on_change=update_state, args=('tiet_th',))
-
-# --- KIỂM TRA TÍNH HỢP LỆ VÀ TÍNH TOÁN TỰ ĐỘNG ---
-validation_placeholder = st.empty()
-is_input_valid = True
-
-current_input_data = st.session_state.input_data
-selected_tuan_range = current_input_data.get('tuan', (1, 1))
-so_tuan_chon = selected_tuan_range[1] - selected_tuan_range[0] + 1
-
-if current_input_data.get('cach_ke') == 'Kê theo MĐ, MH':
-    so_tiet_nhap_str = str(current_input_data.get('tiet', ''))
-    so_tiet_dem_duoc = len([x for x in so_tiet_nhap_str.split() if x])
-    if so_tiet_dem_duoc != so_tuan_chon:
-        validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với số lượng tiết đã nhập ({so_tiet_dem_duoc}).")
-        is_input_valid = False
-else:
-    so_tiet_lt_nhap_str = str(current_input_data.get('tiet_lt', ''))
-    so_tiet_th_nhap_str = str(current_input_data.get('tiet_th', ''))
-    so_tiet_lt_dem_duoc = len([x for x in so_tiet_lt_nhap_str.split() if x])
-    so_tiet_th_dem_duoc = len([x for x in so_tiet_th_nhap_str.split() if x])
-    if so_tiet_lt_dem_duoc != so_tuan_chon or so_tiet_th_dem_duoc != so_tuan_chon:
-        error_parts = []
-        if so_tiet_lt_dem_duoc != so_tuan_chon: error_parts.append(f"số tiết LT ({so_tiet_lt_dem_duoc})")
-        if so_tiet_th_dem_duoc != so_tuan_chon: error_parts.append(f"số tiết TH ({so_tiet_th_dem_duoc})")
-        validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với { ' và '.join(error_parts) }.")
-        is_input_valid = False
-
-# Tự động tính toán nếu input hợp lệ
-if is_input_valid:
-    datasets_to_check = {"df_lop": df_lop_g, "df_mon": df_mon_g, "df_ngaytuan": df_ngaytuan_g, "df_nangnhoc": df_nangnhoc_g, "df_hesosiso": df_hesosiso_g}
-    is_data_valid_for_calc = all(isinstance(df, pd.DataFrame) and not df.empty for df in datasets_to_check.values())
+def load_all_mon_data():
+    """Tải tất cả dữ liệu môn học đã lưu của GV từ Google Sheet."""
+    st.session_state.mon_hoc_data = []
+    st.session_state.results_data = []
+    all_worksheets = [ws.title for ws in spreadsheet.worksheets()]
     
-    if is_data_valid_for_calc:
-        df_result, summary = fq.process_mon_data(
-            st.session_state.input_data, chuangv, df_lop_g, df_mon_g, 
-            df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g
-        )
-        if summary and "error" in summary:
-            st.session_state.last_result = pd.DataFrame()
-            validation_placeholder.error(f"Lỗi tính toán: {summary['error']}")
-        elif df_result is not None and not df_result.empty:
-            st.session_state.last_result = df_result
+    # Tìm tất cả các sheet input đã lưu
+    input_sheet_indices = sorted([int(re.search(r'_(\d+)$', ws).group(1)) for ws in all_worksheets if re.match(fr'input_giangday_{ma_gv}_\d+', ws)], key=int)
+    
+    if not input_sheet_indices:
+        st.session_state.mon_hoc_data.append(get_default_input_dict())
+        st.session_state.results_data.append(pd.DataFrame())
+        return
 
-# --- BẢNG KẾT QUẢ TÍNH TOÁN ---
-st.subheader("II. Bảng kết quả tính toán")
-result_placeholder = st.empty()
-if not st.session_state.last_result.empty:
-    result_placeholder.dataframe(st.session_state.last_result)
-else:
-    result_placeholder.info("Chưa có dữ liệu để hiển thị. Vui lòng điền đầy đủ thông tin hợp lệ ở trên.")
-
-# --- NÚT LƯU TRỮ ---
-col1, col2 = st.columns([1,1])
-
-with col1:
-    can_save = not st.session_state.last_result.empty
-    if st.button("Lưu dữ liệu môn", use_container_width=True, disabled=not can_save):
-        with st.spinner("Đang lưu dữ liệu..."):
-            save_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
-            save_data(spreadsheet, OUTPUT_SHEET_NAME, st.session_state.last_result)
-
-with col2:
-    if st.button("Xóa dữ liệu môn này", use_container_width=True):
+    for i in input_sheet_indices:
+        input_ws_name = f'input_giangday_{ma_gv}_{i}'
+        result_ws_name = f'ket_qua_giangday_{ma_gv}_{i}'
+        
+        input_data = load_data_from_sheet(input_ws_name)
+        st.session_state.mon_hoc_data.append(input_data if input_data else get_default_input_dict())
+        
         try:
-            worksheet_to_delete = spreadsheet.worksheet(OUTPUT_SHEET_NAME)
-            spreadsheet.del_worksheet(worksheet_to_delete)
-            st.session_state.last_result = pd.DataFrame()
-            result_placeholder.info(f"Đã xóa thành công trang tính '{OUTPUT_SHEET_NAME}'.")
-            st.success("Xóa thành công!")
-        except gspread.exceptions.WorksheetNotFound:
-            st.warning(f"Không tìm thấy trang tính '{OUTPUT_SHEET_NAME}' để xóa.")
-        except Exception as e:
-            st.error(f"Lỗi khi xóa trang tính: {e}")
+            result_df = pd.DataFrame(spreadsheet.worksheet(result_ws_name).get_all_records())
+            st.session_state.results_data.append(result_df)
+        except (gspread.exceptions.WorksheetNotFound, Exception):
+            st.session_state.results_data.append(pd.DataFrame())
+
+# --- CALLBACKS CHO CÁC NÚT ---
+def add_mon_hoc():
+    st.session_state.mon_hoc_data.append(get_default_input_dict())
+    st.session_state.results_data.append(pd.DataFrame())
+
+def remove_mon_hoc():
+    if len(st.session_state.mon_hoc_data) > 1:
+        st.session_state.mon_hoc_data.pop()
+        st.session_state.results_data.pop()
+
+def save_all_data():
+    with st.spinner("Đang lưu tất cả dữ liệu..."):
+        for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
+            mon_index = i + 1
+            input_ws_name = f'input_giangday_{ma_gv}_{mon_index}'
+            result_ws_name = f'ket_qua_giangday_{ma_gv}_{mon_index}'
+            save_data_to_sheet(input_ws_name, input_data)
+            if not result_data.empty:
+                save_data_to_sheet(result_ws_name, result_data)
+    st.success("Đã lưu thành công tất cả dữ liệu!")
+
+# --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
+if 'mon_hoc_data' not in st.session_state:
+    load_all_mon_data()
+
+# --- THANH CÔNG CỤ ---
+st.subheader("Thanh công cụ")
+cols = st.columns(4)
+with cols[0]:
+    st.button("➕ Thêm môn", on_click=add_mon_hoc, use_container_width=True)
+with cols[1]:
+    st.button("➖ Xóa môn", on_click=remove_mon_hoc, use_container_width=True, disabled=len(st.session_state.mon_hoc_data) <= 1)
+with cols[2]:
+    st.button("🔄 Reset dữ liệu", on_click=load_all_mon_data, use_container_width=True, help="Tải lại toàn bộ dữ liệu từ Google Sheet")
+with cols[3]:
+    st.button("💾 Lưu tất cả", on_click=save_all_data, use_container_width=True, type="primary")
+
+st.markdown("---")
+
+# --- GIAO DIỆN TAB ---
+tab_names = [f"Môn {i+1}" for i in range(len(st.session_state.mon_hoc_data))]
+tabs = st.tabs(tab_names)
+
+for i, tab in enumerate(tabs):
+    with tab:
+        st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
+        
+        # Hàm callback riêng cho từng tab
+        def update_tab_state(key, index):
+            st.session_state.mon_hoc_data[index][key] = st.session_state[f"widget_{key}_{index}"]
+
+        current_input = st.session_state.mon_hoc_data[i]
+        
+        # --- WIDGETS ---
+        st.selectbox("Chọn Khóa/Hệ", options=KHOA_OPTIONS, index=KHOA_OPTIONS.index(current_input.get('khoa', KHOA_OPTIONS[0])), key=f"widget_khoa_{i}", on_change=update_tab_state, args=('khoa', i))
+        
+        khoa_prefix = current_input.get('khoa', 'Khóa 48').split(' ')[1] if current_input.get('khoa', '').startswith('Khóa') else ''
+        filtered_lop_options = df_lop_g[df_lop_g['Mã lớp'].str.startswith(khoa_prefix, na=False)]['Lớp'].tolist() if khoa_prefix else df_lop_g['Lớp'].tolist()
+        lop_hoc_index = filtered_lop_options.index(current_input.get('lop_hoc')) if current_input.get('lop_hoc') in filtered_lop_options else 0
+        st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key=f"widget_lop_hoc_{i}", on_change=update_tab_state, args=('lop_hoc', i))
+
+        malop_info = df_lop_g[df_lop_g['Lớp'] == current_input.get('lop_hoc')]
+        dsmon_options = []
+        if not malop_info.empty:
+            manghe = fq.timmanghe(malop_info['Mã lớp'].iloc[0])
+            if manghe in df_mon_g.columns:
+                dsmon_options = df_mon_g[manghe].dropna().astype(str).tolist()
+        mon_hoc_index = dsmon_options.index(current_input.get('mon_hoc')) if current_input.get('mon_hoc') in dsmon_options else 0
+        st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key=f"widget_mon_hoc_{i}", on_change=update_tab_state, args=('mon_hoc', i))
+
+        st.slider("Chọn Tuần giảng dạy", 1, 50, value=current_input.get('tuan', (1, 12)), key=f"widget_tuan_{i}", on_change=update_tab_state, args=('tuan', i))
+        st.radio("Chọn phương pháp kê khai", ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), index=0 if current_input.get('cach_ke') == 'Kê theo MĐ, MH' else 1, key=f"widget_cach_ke_{i}", on_change=update_tab_state, args=('cach_ke', i), horizontal=True)
+
+        if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
+            st.text_input("Nhập số tiết mỗi tuần", value=current_input.get('tiet', DEFAULT_TIET_STRING), key=f"widget_tiet_{i}", on_change=update_tab_state, args=('tiet', i))
+        else:
+            c1, c2 = st.columns(2)
+            with c1: st.text_input("Nhập số tiết Lý thuyết mỗi tuần", value=current_input.get('tiet_lt', '0'), key=f"widget_tiet_lt_{i}", on_change=update_tab_state, args=('tiet_lt', i))
+            with c2: st.text_input("Nhập số tiết Thực hành mỗi tuần", value=current_input.get('tiet_th', '0'), key=f"widget_tiet_th_{i}", on_change=update_tab_state, args=('tiet_th', i))
+        
+        # --- VALIDATION VÀ TÍNH TOÁN TỰ ĐỘNG ---
+        validation_placeholder = st.empty()
+        is_input_valid = True
+        selected_tuan_range = current_input.get('tuan', (1, 1)); so_tuan_chon = selected_tuan_range[1] - selected_tuan_range[0] + 1
+        
+        if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
+            so_tiet_dem_duoc = len([x for x in str(current_input.get('tiet', '')).split() if x])
+            if so_tiet_dem_duoc != so_tuan_chon:
+                validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
+                is_input_valid = False
+        else:
+            so_tiet_lt_dem_duoc = len([x for x in str(current_input.get('tiet_lt', '')).split() if x])
+            so_tiet_th_dem_duoc = len([x for x in str(current_input.get('tiet_th', '')).split() if x])
+            if so_tiet_lt_dem_duoc != so_tuan_chon or so_tiet_th_dem_duoc != so_tuan_chon:
+                is_input_valid = False
+                # ... (error message logic from previous version) ...
+
+        if is_input_valid:
+            df_result, summary = fq.process_mon_data(current_input, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g)
+            if summary and "error" in summary:
+                validation_placeholder.error(f"Lỗi tính toán: {summary['error']}")
+                st.session_state.results_data[i] = pd.DataFrame()
+            elif df_result is not None and not df_result.empty:
+                st.session_state.results_data[i] = df_result
+
+        # --- HIỂN THỊ KẾT QUẢ ---
+        st.subheader(f"II. Bảng kết quả tính toán - Môn {i+1}")
+        if not st.session_state.results_data[i].empty:
+            st.dataframe(st.session_state.results_data[i])
+        else:
+            st.info("Chưa có dữ liệu tính toán hợp lệ.")
 
