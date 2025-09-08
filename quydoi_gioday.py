@@ -309,6 +309,12 @@ with tabs[-1]:
         }
         summary_df.rename(columns=rename_map, inplace=True)
         
+        # Chuyển đổi các cột tiết sang dạng list để hiển thị kiểu "pill"
+        cols_to_convert_to_list = ['Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần']
+        for col in cols_to_convert_to_list:
+            if col in summary_df.columns:
+                summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
+
         display_columns = [
             'Thứ tự', 'Lớp học', 'Môn học', 'Tuần đến Tuần', 'Tiết',
             'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần',
