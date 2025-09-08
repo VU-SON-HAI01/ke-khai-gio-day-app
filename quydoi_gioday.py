@@ -18,6 +18,25 @@ if missing_data:
     st.error(f"Lỗi: Không tìm thấy dữ liệu cần thiết: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ.")
     st.stop()
 
+# --- CSS TÙY CHỈNH GIAO DIỆN ---
+st.markdown("""
+<style>
+    /* Cho phép các ô trong bảng dữ liệu tự động xuống dòng */
+    .stDataFrame [data-testid="stTable"] div[data-testid="stVerticalBlock"] {
+        white-space: normal;
+        word-wrap: break-word;
+    }
+    /* Thêm đường viền và kiểu dáng cho các ô số liệu (metric) */
+    [data-testid="stMetric"] {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 5px 0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
 # --- LẤY DỮ LIỆU CƠ SỞ TỪ SESSION STATE ---
 spreadsheet = st.session_state.spreadsheet
 df_lop_g = st.session_state.get('df_lop')
