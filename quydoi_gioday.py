@@ -191,18 +191,51 @@ else:
     st.text_input("Nhập số tiết Thực hành mỗi tuần", value=input_data.get('tiet_th', '0'), 
                   key="widget_tiet_th", on_change=update_state, args=('tiet_th',))
 
+# --- KIỂM TRA TÍNH HỢP LỆ CỦA SỐ TIẾT NHẬP VÀO (REAL-TIME)---
+validation_placeholder = st.empty()
+is_input_valid = True
+
+# Lấy các giá trị hiện tại từ session state để kiểm tra
+current_input_data = st.session_state.input_data
+selected_tuan_range = current_input_data.get('tuan', (1, 1))
+so_tuan_chon = selected_tuan_range[1] - selected_tuan_range[0] + 1
+
+if current_input_data.get('cach_ke') == 'Kê theo MĐ, MH':
+    so_tiet_nhap_str = str(current_input_data.get('tiet', ''))
+    # Đếm số lượng phần tử được ngăn bởi dấu cách (loại bỏ phần tử rỗng)
+    so_tiet_dem_duoc = len([x for x in so_tiet_nhap_str.split() if x])
+    if so_tiet_dem_duoc != so_tuan_chon:
+        validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với số lượng tiết đã nhập ({so_tiet_dem_duoc}).")
+        is_input_valid = False
+else:  # Kê theo LT, TH chi tiết
+    so_tiet_lt_nhap_str = str(current_input_data.get('tiet_lt', ''))
+    so_tiet_th_nhap_str = str(current_input_data.get('tiet_th', ''))
+    
+    so_tiet_lt_dem_duoc = len([x for x in so_tiet_lt_nhap_str.split() if x])
+    so_tiet_th_dem_duoc = len([x for x in so_tiet_th_nhap_str.split() if x])
+
+    if so_tiet_lt_dem_duoc != so_tuan_chon or so_tiet_th_dem_duoc != so_tuan_chon:
+        error_parts = []
+        if so_tiet_lt_dem_duoc != so_tuan_chon:
+            error_parts.append(f"số tiết LT ({so_tiet_lt_dem_duoc})")
+        if so_tiet_th_dem_duoc != so_tuan_chon:
+            error_parts.append(f"số tiết TH ({so_tiet_th_dem_duoc})")
+        
+        validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với { ' và '.join(error_parts) }.")
+        is_input_valid = False
+
 # --- NÚT TÍNH TOÁN VÀ LƯU TRỮ ---
-if st.button("Lưu cấu hình và Tính toán", use_container_width=True):
+if st.button("Lưu cấu hình và Tính toán", use_container_width=True, disabled=not is_input_valid):
     save_data(spreadsheet, INPUT_SHEET_NAME, st.session_state.input_data)
     
     datasets_to_check = {"df_lop": df_lop_g, "df_mon": df_mon_g, "df_ngaytuan": df_ngaytuan_g, "df_nangnhoc": df_nangnhoc_g, "df_hesosiso": df_hesosiso_g}
-    is_data_valid = True
+    is_data_valid_for_calc = True
     for name, df in datasets_to_check.items():
         if not isinstance(df, pd.DataFrame) or df.empty:
             st.error(f"Lỗi: Dữ liệu '{name}' không hợp lệ hoặc bị trống.")
-            is_data_valid = False
+            is_data_valid_for_calc = False
             
-    if is_data_valid:
+    if is_data_valid_for_calc:
         with st.spinner("Đang tính toán..."):
             # CẬP NHẬT: Truyền đúng các tham số vào hàm tính toán
             df_result, summary = fq.process_mon_data(
