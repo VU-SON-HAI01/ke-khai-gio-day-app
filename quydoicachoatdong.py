@@ -30,22 +30,28 @@ def update_worksheet(spreadsheet, sheet_name, df):
     # Ghi dữ liệu vào sheet
     worksheet.update(data_to_write, 'A1')
 
+def clear_worksheet(spreadsheet, sheet_name):
+    """Xóa nội dung của một worksheet nếu nó tồn tại."""
+    try:
+        worksheet = spreadsheet.worksheet(sheet_name)
+        worksheet.clear()
+    except gspread.WorksheetNotFound:
+        pass # Không làm gì nếu sheet không tồn tại
+
 
 # --- LẤY DỮ LIỆU TỪ SESSION STATE ---
-# Sử dụng cache_data để tối ưu hóa việc tải data_base .parquet
 df_giaovien_g = st.session_state.get('df_giaovien', pd.DataFrame())
 df_khoa_g = st.session_state.get('df_khoa', pd.DataFrame())
 df_quydoi_hd_them_g = st.session_state.get('df_quydoi_hd_them', pd.DataFrame())
 df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
 df_quydoi_hd_g = st.session_state.get('df_quydoi_hd', pd.DataFrame())
 
-# Kiểm tra các thông tin cần thiết từ session_state
 if 'magv' in st.session_state and 'chuangv' in st.session_state and 'giochuan' in st.session_state and 'spreadsheet' in st.session_state:
     magv = st.session_state['magv']
     chuangv = st.session_state['chuangv']
     giochuan = st.session_state['giochuan']
     tengv = st.session_state['tengv']
-    spreadsheet = st.session_state['spreadsheet'] # Lấy đối tượng spreadsheet
+    spreadsheet = st.session_state['spreadsheet']
 else:
     st.warning("Vui lòng đăng nhập và đảm bảo thông tin giáo viên đã được tải đầy đủ.")
     st.stop()
@@ -53,14 +59,12 @@ else:
 
 # --- TẠO TÊN TAB ---
 arr_tab = ["THI KẾT THÚC", "QUY ĐỔI HOẠT ĐỘNG"]
-tab_titles = arr_tab
-tabs = st.tabs(tabs=tab_titles)
+tabs = st.tabs(tabs=arr_tab)
 
 # ==============================================================================
 # --- TAB 1: THI KẾT THÚC ---
 # ==============================================================================
 with (tabs[0]):
-    # --- CÁC HÀM TÍNH TOÁN VÀ HỆ SỐ ---
     he_so_quy_doi = {
         ('Soạn đề', 'Tự luận'): 1.00, ('Soạn đề', 'Trắc nghiệm'): 1.50, ('Soạn đề', 'Vấn đáp'): 0.25,
         ('Soạn đề', 'Thực hành'): 0.50, ('Soạn đề', 'Trắc nghiệm + TH'): 1.00, ('Soạn đề', 'Vấn đáp + TH'): 0.75,
@@ -70,7 +74,6 @@ with (tabs[0]):
     }
 
     def lay_he_so(row):
-        """Hàm lấy hệ số quy đổi dựa trên Hoạt động và Loại đề."""
         hoat_dong = row['Hoạt động']
         if hoat_dong == 'Coi thi':
             return he_so_quy_doi.get('Coi thi', 0.0)
@@ -78,73 +81,48 @@ with (tabs[0]):
         return he_so_quy_doi.get(key, 0.0)
 
     def create_input_dataframe():
-        """Tạo DataFrame rỗng với cấu trúc chuẩn để nhập liệu."""
         return pd.DataFrame(
-            [
-                {"Lớp": "---", "Môn": "---", "Soạn - Số đề": 0.0, "Soạn - Loại đề": "Tự luận",
-                 "Coi - Thời gian (phút)": 0.0, "Chấm - Số bài": 0.0, "Chấm - Loại đề": "Tự luận, Trắc nghiệm",
-                 "Coi+Chấm - Số bài": 0.0, "Coi+Chấm - Loại đề": "Thực hành"}
-            ]
+            [{"Lớp": "---", "Môn": "---", "Soạn - Số đề": 0.0, "Soạn - Loại đề": "Tự luận",
+              "Coi - Thời gian (phút)": 0.0, "Chấm - Số bài": 0.0, "Chấm - Loại đề": "Tự luận, Trắc nghiệm",
+              "Coi+Chấm - Số bài": 0.0, "Coi+Chấm - Loại đề": "Thực hành"}]
         )
 
-    # --- CÁC HÀM LƯU/TẢI DỮ LIỆU VỚI GOOGLE SHEETS ---
     def save_thiketthuc_to_gsheet(spreadsheet, input_method, df_hk1=None, df_hk2=None, summary_df=None):
-        """Lưu dữ liệu thi kết thúc vào các sheet tương ứng trong Google Sheet."""
         try:
             with st.spinner(f"Đang lưu dữ liệu vào Google Sheet '{spreadsheet.title}'..."):
-                # Xử lý và lưu sheet 'output_thiketthuc' trước
                 if summary_df is not None and not summary_df.empty:
                     update_worksheet(spreadsheet, "output_thiketthuc", summary_df)
                 else:
-                    try:
-                        worksheet = spreadsheet.worksheet("output_thiketthuc")
-                        worksheet.clear()
-                    except gspread.WorksheetNotFound:
-                        pass # Không có sheet thì không cần xóa
+                    clear_worksheet(spreadsheet, "output_thiketthuc")
 
-                # Xử lý và lưu sheet 'input_thiketthuc'
                 if input_method == 'Kê khai chi tiết':
                     df_hk1_filtered = df_hk1[(df_hk1['Lớp'] != '---') & (df_hk1['Môn'] != '---')].copy()
                     df_hk2_filtered = df_hk2[(df_hk2['Lớp'] != '---') & (df_hk2['Môn'] != '---')].copy()
-                    
                     df_hk1_filtered['HocKy'] = 'HK1'
                     df_hk2_filtered['HocKy'] = 'HK2'
-
                     combined_input_df = pd.concat([df_hk1_filtered, df_hk2_filtered], ignore_index=True)
 
                     if not combined_input_df.empty:
                         update_worksheet(spreadsheet, "input_thiketthuc", combined_input_df)
                     else:
-                        try:
-                            worksheet = spreadsheet.worksheet("input_thiketthuc")
-                            worksheet.clear()
-                        except gspread.WorksheetNotFound:
-                            pass
-                else: # Nếu là kê khai trực tiếp, xóa sheet input đi
-                    try:
-                        worksheet = spreadsheet.worksheet("input_thiketthuc")
-                        worksheet.clear()
-                    except gspread.WorksheetNotFound:
-                        pass
+                        clear_worksheet(spreadsheet, "input_thiketthuc")
+                else:
+                    clear_worksheet(spreadsheet, "input_thiketthuc")
             st.success("Đã cập nhật dữ liệu lên Google Sheet thành công!")
         except Exception as e:
             st.error(f"Lỗi khi lưu vào Google Sheet: {e}")
 
-
     def load_thiketthuc_from_gsheet(spreadsheet):
-        """Tải dữ liệu thi kết thúc từ Google Sheet vào session_state."""
         try:
-            # Ưu tiên tải từ sheet output để xác định chế độ nhập liệu
             try:
                 output_ws = spreadsheet.worksheet("output_thiketthuc")
                 output_data = output_ws.get_all_records()
                 if output_data:
                     df_output = pd.DataFrame(output_data)
-                    # Kiểm tra xem có dữ liệu input chi tiết không
                     try:
                         input_ws = spreadsheet.worksheet("input_thiketthuc")
                         input_data = input_ws.get_all_records()
-                        if not input_data: # Có output nhưng không có input -> Chế độ trực tiếp
+                        if not input_data:
                              st.session_state.input_method = 'Kê khai trực tiếp'
                              st.session_state.direct_hk1 = float(df_output['Học kỳ 1 (Tiết)'].iloc[0])
                              st.session_state.direct_hk2 = float(df_output['Học kỳ 2 (Tiết)'].iloc[0])
@@ -160,49 +138,40 @@ with (tabs[0]):
                         st.session_state.data_hk2 = create_input_dataframe()
                         st.success("Đã tải lại dữ liệu từ chế độ 'Kê khai trực tiếp'.")
                         return
-
             except gspread.WorksheetNotFound:
-                # Nếu không có sheet output, coi như dữ liệu mới
                 st.info("Không tìm thấy dữ liệu đã lưu. Bắt đầu phiên làm việc mới.")
                 st.session_state.data_hk1 = create_input_dataframe()
                 st.session_state.data_hk2 = create_input_dataframe()
                 st.session_state.input_method = 'Kê khai chi tiết'
                 return
 
-            # Nếu có cả input và output, tải chế độ chi tiết
             try:
                 input_ws = spreadsheet.worksheet("input_thiketthuc")
                 input_data = input_ws.get_all_records(numericise_ignore=['all'])
                 if input_data:
                     df_all_input = pd.DataFrame(input_data)
                     template_cols = create_input_dataframe().columns
-                    
-                    df_all_input = df_all_input.astype({'Soạn - Số đề': 'float', 'Coi - Thời gian (phút)': 'float', 'Chấm - Số bài': 'float', 'Coi+Chấm - Số bài': 'float' })
-
+                    df_all_input = df_all_input.astype({'Soạn - Số đề': 'float', 'Coi - Thời gian (phút)': 'float', 'Chấm - Số bài': 'float', 'Coi+Chấm - Số bài': 'float'})
                     df_loaded_hk1 = df_all_input[df_all_input['HocKy'] == 'HK1'].drop(columns=['HocKy'])
                     df_loaded_hk2 = df_all_input[df_all_input['HocKy'] == 'HK2'].drop(columns=['HocKy'])
-                    
                     st.session_state.data_hk1 = df_loaded_hk1[template_cols] if not df_loaded_hk1.empty else create_input_dataframe()
                     st.session_state.data_hk2 = df_loaded_hk2[template_cols] if not df_loaded_hk2.empty else create_input_dataframe()
                     st.session_state.input_method = 'Kê khai chi tiết'
                     st.success("Đã tải lại dữ liệu từ chế độ 'Kê khai chi tiết'.")
-                else: # Có sheet input nhưng rỗng
+                else:
                     st.session_state.data_hk1 = create_input_dataframe()
                     st.session_state.data_hk2 = create_input_dataframe()
             except gspread.WorksheetNotFound:
                  st.info("Không tìm thấy dữ liệu chi tiết. Bắt đầu phiên làm việc mới.")
                  st.session_state.data_hk1 = create_input_dataframe()
                  st.session_state.data_hk2 = create_input_dataframe()
-
         except Exception as e:
             st.error(f"Lỗi khi tải dữ liệu từ Google Sheet: {e}")
-            # Reset về trạng thái mặc định an toàn
             st.session_state.data_hk1 = create_input_dataframe()
             st.session_state.data_hk2 = create_input_dataframe()
             st.session_state.input_method = 'Kê khai chi tiết'
 
     def clear_thiketthuc_inputs():
-        """Xóa trắng dữ liệu nhập trong session state."""
         current_method = st.session_state.get('input_method', 'Kê khai chi tiết')
         if 'tong_hop_df' in st.session_state: del st.session_state['tong_hop_df']
         if 'summary_total_df' in st.session_state: del st.session_state['summary_total_df']
@@ -213,10 +182,8 @@ with (tabs[0]):
         st.session_state.input_method = current_method
         st.success(f"Đã xóa trắng dữ liệu cho chế độ '{current_method}'. Bấm 'Cập nhật' để lưu thay đổi này.")
 
-    # --- GIAO DIỆN CHÍNH ---
     st.markdown("<h1 style='text-align: center; color: orange;'>QUY ĐỔI THI KẾT THÚC</h1>", unsafe_allow_html=True)
 
-    # --- KHỞI TẠO DỮ LIỆU LẦN ĐẦU ---
     if 'thiketthuc_loaded' not in st.session_state:
         with st.spinner("Đang kiểm tra dữ liệu từ Google Sheet..."):
             load_thiketthuc_from_gsheet(spreadsheet)
@@ -234,13 +201,7 @@ with (tabs[0]):
             st.rerun()
     st.divider()
 
-    input_method = st.radio(
-        "Chọn phương thức kê khai:",
-        ('Kê khai chi tiết', 'Kê khai trực tiếp'),
-        key='input_method',
-        horizontal=True,
-        label_visibility="collapsed"
-    )
+    input_method = st.radio("Chọn phương thức kê khai:", ('Kê khai chi tiết', 'Kê khai trực tiếp'), key='input_method', horizontal=True, label_visibility="collapsed")
 
     if input_method == 'Kê khai chi tiết':
         st.subheader(":blue[Học kỳ 1]")
@@ -296,13 +257,11 @@ with (tabs[0]):
             st.session_state['summary_total_df'] = pd.DataFrame()
             st.info("Chưa có dữ liệu nào được nhập để tổng hợp.")
     
-    else:  # Kê khai trực tiếp
+    else:
         st.subheader(":blue[Nhập trực tiếp tổng giờ quy đổi]")
         col_input1, col_input2 = st.columns(2)
-        with col_input1:
-            total_hk1_direct = st.number_input("Tổng quy đổi HK1 (Tiết)", min_value=0.0, step=1.0, format="%.1f", key="direct_hk1")
-        with col_input2:
-            total_hk2_direct = st.number_input("Tổng quy đổi HK2 (Tiết)", min_value=0.0, step=1.0, format="%.1f", key="direct_hk2")
+        with col_input1: total_hk1_direct = st.number_input("Tổng quy đổi HK1 (Tiết)", min_value=0.0, step=1.0, format="%.1f", key="direct_hk1")
+        with col_input2: total_hk2_direct = st.number_input("Tổng quy đổi HK2 (Tiết)", min_value=0.0, step=1.0, format="%.1f", key="direct_hk2")
         st.divider()
         grand_total_direct = total_hk1_direct + total_hk2_direct
         summary_total_data_direct = {'Mã HĐ': ['HD00'], 'Mã NCKH': ['BT'], 'Hoạt động quy đổi': ['Soạn, Coi, Chấm thi kết thúc'], 'Học kỳ 1 (Tiết)': [f"{total_hk1_direct:.2f}"], 'Học kỳ 2 (Tiết)': [f"{total_hk2_direct:.2f}"], 'Cả năm (Tiết)': [f"{grand_total_direct:.2f}"]}
@@ -314,7 +273,6 @@ with (tabs[0]):
         col2.metric("Tổng quy đổi HK2 (Tiết)", f"{total_hk2_direct:.2f}")
         col3.metric("TỔNG CỘNG CẢ NĂM (TIẾT)", f"{grand_total_direct:.2f}")
     
-    # --- NÚT LƯU ---
     with col_btn1:
         if st.button("Cập nhật (Lưu)", key="save_thiketthuc", use_container_width=True, type="primary"):
             summary_df_to_save = st.session_state.get('summary_total_df', pd.DataFrame())
@@ -323,129 +281,134 @@ with (tabs[0]):
             else:
                 save_thiketthuc_to_gsheet(spreadsheet, input_method, summary_df=summary_df_to_save)
 
-
 # ==============================================================================
 # --- TAB 2: QUY ĐỔI HOẠT ĐỘNG ---
 # ==============================================================================
 with (tabs[1]):
-    # --- CÁC HÀM LƯU/TẢI HOẠT ĐỘNG VỚI GOOGLE SHEETS ---
     def save_activities_to_gsheet(spreadsheet):
-        """Lưu tất cả các DataFrame hoạt động vào các sheet trong Google Sheet."""
+        """Tách và lưu các hoạt động vào các sheet tương ứng trong Google Sheet."""
         try:
             with st.spinner("Đang lưu dữ liệu hoạt động vào Google Sheet..."):
-                all_results = []
-                all_inputs = []
+                giam_results, giam_inputs = [], []
+                hoatdong_results, hoatdong_inputs = [], []
+                
+                # Xác định hoạt động đặc biệt
+                giam_activity_name = df_quydoi_hd_them_g.iloc[0, 1]
 
                 if 'selectbox_count' in st.session_state and st.session_state.selectbox_count > 0:
                     for i in range(st.session_state.selectbox_count):
-                        # Lấy và xử lý DataFrame kết quả
+                        activity_name = st.session_state.get(f"select_{i}", "")
+                        is_giam_activity = (activity_name == giam_activity_name)
+
+                        # Phân loại DataFrame kết quả
                         result_key = f'df_hoatdong_{i}'
                         if result_key in st.session_state:
                             df_result = st.session_state[result_key]
                             if isinstance(df_result, pd.DataFrame) and not df_result.empty:
                                 df_copy = df_result.copy()
                                 df_copy['activity_index'] = i
-                                all_results.append(df_copy)
+                                if is_giam_activity:
+                                    giam_results.append(df_copy)
+                                else:
+                                    hoatdong_results.append(df_copy)
                         
-                        # Lấy và xử lý DataFrame input
+                        # Phân loại DataFrame input
                         input_key = f'input_df_hoatdong_{i}'
                         if input_key in st.session_state:
                              df_input = st.session_state[input_key]
                              if isinstance(df_input, pd.DataFrame) and not df_input.empty:
-                                 activity_name = st.session_state.get(f"select_{i}", "")
-                                 input_dict = {
-                                     'activity_index': i,
-                                     'activity_name': activity_name,
-                                     'input_json': df_input.to_json(orient='records', date_format='iso')
-                                 }
-                                 all_inputs.append(input_dict)
+                                 input_dict = {'activity_index': i, 'activity_name': activity_name, 'input_json': df_input.to_json(orient='records', date_format='iso')}
+                                 if is_giam_activity:
+                                     giam_inputs.append(input_dict)
+                                 else:
+                                     hoatdong_inputs.append(input_dict)
 
-                # Lưu DataFrame kết quả tổng hợp
-                if all_results:
-                    combined_results_df = pd.concat(all_results, ignore_index=True)
-                    update_worksheet(spreadsheet, "hoatdong_results", combined_results_df)
+                # Lưu các hoạt động thông thường
+                if hoatdong_results:
+                    update_worksheet(spreadsheet, "output_hoatdong", pd.concat(hoatdong_results, ignore_index=True))
                 else: 
-                    try:
-                        worksheet = spreadsheet.worksheet("hoatdong_results")
-                        worksheet.clear()
-                    except gspread.WorksheetNotFound:
-                        pass
-                
-                # Lưu DataFrame input tổng hợp
-                if all_inputs:
-                    inputs_df = pd.DataFrame(all_inputs)
-                    update_worksheet(spreadsheet, "hoatdong_inputs", inputs_df)
+                    clear_worksheet(spreadsheet, "output_hoatdong")
+                if hoatdong_inputs:
+                    update_worksheet(spreadsheet, "input_hoatdong", pd.DataFrame(hoatdong_inputs))
                 else:
-                    try:
-                        worksheet = spreadsheet.worksheet("hoatdong_inputs")
-                        worksheet.clear()
-                    except gspread.WorksheetNotFound:
-                        pass
+                    clear_worksheet(spreadsheet, "input_hoatdong")
+
+                # Lưu hoạt động kiêm nhiệm/giảm trừ
+                if giam_results:
+                    update_worksheet(spreadsheet, "output_quydoigiam", pd.concat(giam_results, ignore_index=True))
+                else: 
+                    clear_worksheet(spreadsheet, "output_quydoigiam")
+                if giam_inputs:
+                    update_worksheet(spreadsheet, "input_quydoigiam", pd.DataFrame(giam_inputs))
+                else:
+                    clear_worksheet(spreadsheet, "input_quydoigiam")
             
             st.success("Đã lưu dữ liệu hoạt động vào Google Sheet thành công!")
-
         except Exception as e:
             st.error(f"Có lỗi xảy ra khi lưu hoạt động vào Google Sheet: {e}")
 
     def load_activities_from_gsheet(spreadsheet):
-        """Tải lại session state cho các hoạt động từ Google Sheet."""
+        """Tải lại session state cho các hoạt động từ tất cả các sheet liên quan."""
         for key in list(st.session_state.keys()):
             if key.startswith('df_hoatdong_') or key.startswith('input_df_hoatdong_') or key.startswith('select_'):
                 del st.session_state[key]
         st.session_state.selectbox_count = 0
 
         try:
-            # Tải dữ liệu input trước để dựng lại giao diện
-            try:
-                inputs_ws = spreadsheet.worksheet("hoatdong_inputs")
-                inputs_data = inputs_ws.get_all_records()
-                
-                if not inputs_data:
-                    st.info("Không tìm thấy dữ liệu hoạt động đã lưu.")
-                    return
-
-                inputs_df = pd.DataFrame(inputs_data)
-                inputs_df = inputs_df.sort_values(by='activity_index').reset_index(drop=True)
-                st.session_state.selectbox_count = len(inputs_df)
-
-                for index, row in inputs_df.iterrows():
-                    i = row['activity_index']
-                    st.session_state[f'select_{i}'] = row['activity_name']
-                    df_input = pd.read_json(row['input_json'], orient='records')
-                    
-                    # Chuyển đổi lại các cột ngày tháng nếu có
-                    for col in ['Từ ngày', 'Đến ngày', 'ngay_bat_dau', 'ngay_ket_thuc']:
-                         if col in df_input.columns:
-                            df_input[col] = pd.to_datetime(df_input[col], errors='coerce').dt.date
-                    st.session_state[f'input_df_hoatdong_{i}'] = df_input
-
-            except gspread.WorksheetNotFound:
+            all_inputs, all_results = [], []
+            
+            # Tải tất cả các sheet input
+            for sheet_name in ["input_hoatdong", "input_quydoigiam"]:
+                try:
+                    ws = spreadsheet.worksheet(sheet_name)
+                    data = ws.get_all_records()
+                    if data:
+                        all_inputs.extend(data)
+                except gspread.WorksheetNotFound:
+                    pass
+            
+            if not all_inputs:
                 st.info("Không tìm thấy dữ liệu hoạt động đã lưu.")
                 return
 
-            # Tải dữ liệu kết quả
-            try:
-                results_ws = spreadsheet.worksheet("hoatdong_results")
-                results_data = results_ws.get_all_records(numericise_ignore=['all'])
-                if results_data:
-                    results_df = pd.DataFrame(results_data)
-                    # Ép kiểu dữ liệu để tính toán
-                    for col in results_df.columns:
-                        if 'tiết' in col.lower() or 'quy đổi' in col.lower() or 'số lượng' in col.lower() or 'hệ số' in col.lower() or 'tuần' in col.lower() or '%' in col.lower():
-                            results_df[col] = pd.to_numeric(results_df[col], errors='coerce')
-                    
-                    for i in range(st.session_state.selectbox_count):
-                        df_activity_result = results_df[results_df['activity_index'].astype(int) == i].drop(columns=['activity_index'])
-                        st.session_state[f'df_hoatdong_{i}'] = df_activity_result.reset_index(drop=True)
-            except gspread.WorksheetNotFound:
-                pass 
+            # Xử lý input tổng hợp
+            inputs_df = pd.DataFrame(all_inputs).sort_values(by='activity_index').reset_index(drop=True)
+            st.session_state.selectbox_count = len(inputs_df)
+
+            for index, row in inputs_df.iterrows():
+                i = row['activity_index']
+                st.session_state[f'select_{i}'] = row['activity_name']
+                df_input = pd.read_json(row['input_json'], orient='records')
+                for col in ['Từ ngày', 'Đến ngày', 'ngay_bat_dau', 'ngay_ket_thuc']:
+                     if col in df_input.columns:
+                        df_input[col] = pd.to_datetime(df_input[col], errors='coerce').dt.date
+                st.session_state[f'input_df_hoatdong_{i}'] = df_input
+
+            # Tải tất cả các sheet output
+            for sheet_name in ["output_hoatdong", "output_quydoigiam"]:
+                try:
+                    ws = spreadsheet.worksheet(sheet_name)
+                    data = ws.get_all_records(numericise_ignore=['all'])
+                    if data:
+                        all_results.extend(data)
+                except gspread.WorksheetNotFound:
+                    pass
+            
+            # Xử lý output tổng hợp
+            if all_results:
+                results_df = pd.DataFrame(all_results)
+                for col in results_df.columns:
+                    if 'tiết' in col.lower() or 'quy đổi' in col.lower() or 'số lượng' in col.lower() or 'hệ số' in col.lower() or 'tuần' in col.lower() or '%' in col.lower():
+                        results_df[col] = pd.to_numeric(results_df[col], errors='coerce')
+                
+                for i in range(st.session_state.selectbox_count):
+                    df_activity_result = results_df[results_df['activity_index'].astype(int) == i].drop(columns=['activity_index'])
+                    st.session_state[f'df_hoatdong_{i}'] = df_activity_result.reset_index(drop=True)
 
             st.success(f"Đã tải thành công {st.session_state.selectbox_count} hoạt động từ Google Sheet.")
-
         except Exception as e:
             st.error(f"Lỗi khi tải hoạt động từ Google Sheet: {e}")
             st.session_state.selectbox_count = 0
-
 
     # --- CÁC HÀM HOẠT ĐỘNG (GIỮ NGUYÊN) ---
     TET_WEEKS = [24, 25]
@@ -858,7 +821,6 @@ with (tabs[1]):
         container = st.container(border=True)
         with container:
             options = df_quydoi_hd_them_g.iloc[:, 1].tolist()
-            # Lấy giá trị mặc định từ session state đã được load
             default_activity = st.session_state.get(f"select_{i}", options[0])
             default_index = options.index(default_activity) if default_activity in options else 0
 
@@ -887,3 +849,4 @@ with (tabs[1]):
                     df_display = st.session_state[key_can_goi]
                     cols_to_show = [col for col in df_display.columns if col not in ['Mã HĐ', 'MÃ NCKH']]
                     st.dataframe(df_display[cols_to_show], hide_index=True)
+
