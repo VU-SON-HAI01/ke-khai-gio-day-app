@@ -23,6 +23,8 @@ try:
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
     TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"]
     TEMPLATE_FILE_ID = st.secrets["google_sheet"]["template_file_id"]
+    # Thêm secret cho file dữ liệu quản trị
+    ADMIN_DATA_SHEET_NAME = st.secrets["google_sheet"]["admin_data_sheet_name"] 
 
     ADMIN_EMAIL = "vshai48kd1@gmail.com"
     CLIENT_EMAIL = st.secrets["gcp_service_account"]["client_email"]
@@ -183,23 +185,56 @@ def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, ol
     except Exception as e:
         return False, f"Đã xảy ra lỗi trong quá trình cập nhật: {e}"
 
-
-@st.cache_data
-def load_all_parquet_data(base_path='data_base/'):
-    """Tải tất cả các file dữ liệu nền Parquet."""
-    files_to_load = ['df_giaovien.parquet', 'df_hesosiso.parquet', 'df_khoa.parquet', 'df_lop.parquet',
-                     'df_lopgheptach.parquet', 'df_manghe.parquet', 'df_mon.parquet', 'df_nangnhoc.parquet',
-                     'df_ngaytuan.parquet', 'df_quydoi_hd.parquet', 'df_quydoi_hd_them.parquet', 'mau_kelop.parquet',
-                     'mau_quydoi.parquet']
+@st.cache_data(ttl=600)
+def load_all_base_data(_sa_gspread_client, base_path='data_base/'):
+    """Tải tất cả các file dữ liệu nền Parquet và từ Google Sheet quản trị."""
     loaded_dfs = {}
+    
+    # --- Phần tải Parquet (không đổi) ---
+    files_to_load_parquet = ['df_giaovien.parquet', 'df_hesosiso.parquet', 'df_khoa.parquet', 'df_lop.parquet',
+                             'df_lopgheptach.parquet', 'df_manghe.parquet', 'df_mon.parquet', 'df_nangnhoc.parquet',
+                             'df_ngaytuan.parquet', 'mau_kelop.parquet', 'mau_quydoi.parquet']
+    
+    total_files = len(files_to_load_parquet) + 2 # +2 cho sheet từ Google
     progress_bar = st.progress(0, text="Đang tải dữ liệu cơ sở...")
-    for i, file_name in enumerate(files_to_load):
+    
+    for i, file_name in enumerate(files_to_load_parquet):
         try:
             df = pd.read_parquet(os.path.join(base_path, file_name), engine='pyarrow')
             loaded_dfs[file_name.replace('.parquet', '')] = df
         except Exception as e:
             st.warning(f"Không thể tải file '{file_name}': {e}")
-        progress_bar.progress((i + 1) / len(files_to_load), text=f"Đang tải {file_name}...")
+        progress_bar.progress((i + 1) / total_files, text=f"Đang tải {file_name}...")
+
+    # --- Phần tải từ Google Sheet ---
+    try:
+        admin_data_sheet = _sa_gspread_client.open(ADMIN_DATA_SHEET_NAME)
+        
+        # Tải sheet QUYDOI_HD
+        worksheet_hd = admin_data_sheet.worksheet("QUYDOI_HD")
+        df_quydoi_hd = pd.DataFrame(worksheet_hd.get_all_records())
+        loaded_dfs['df_quydoi_hd'] = df_quydoi_hd
+        progress_bar.progress((len(files_to_load_parquet) + 1) / total_files, text="Đang tải sheet QUYDOI_HD...")
+
+        # Tải sheet QUYDOIKHAC
+        worksheet_khac = admin_data_sheet.worksheet("QUYDOIKHAC")
+        df_quydoi_hd_them = pd.DataFrame(worksheet_khac.get_all_records())
+        loaded_dfs['df_quydoi_hd_them'] = df_quydoi_hd_them
+        progress_bar.progress((len(files_to_load_parquet) + 2) / total_files, text="Đang tải sheet QUYDOIKHAC...")
+        
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error(f"Lỗi: Không tìm thấy file Google Sheet quản trị có tên '{ADMIN_DATA_SHEET_NAME}'.")
+        loaded_dfs['df_quydoi_hd'] = pd.DataFrame() # Trả về DF rỗng để tránh lỗi
+        loaded_dfs['df_quydoi_hd_them'] = pd.DataFrame()
+    except gspread.exceptions.WorksheetNotFound as e:
+        st.error(f"Lỗi: Không tìm thấy sheet '{e.args[0]}' trong file '{ADMIN_DATA_SHEET_NAME}'.")
+        loaded_dfs['df_quydoi_hd'] = pd.DataFrame() 
+        loaded_dfs['df_quydoi_hd_them'] = pd.DataFrame()
+    except Exception as e:
+        st.error(f"Lỗi khi tải dữ liệu từ Google Sheet: {e}")
+        loaded_dfs['df_quydoi_hd'] = pd.DataFrame() 
+        loaded_dfs['df_quydoi_hd_them'] = pd.DataFrame()
+
     progress_bar.empty()
     return loaded_dfs
 
@@ -263,22 +298,14 @@ else:
     user_info = st.session_state.user_info
     user_email = user_info.get('email')
     
-    # --- ĐỊNH NGHĨA CHUNG CÁC TRANG VÀ HÀM ---
     def main_page():
         welcome_name = st.session_state.get('tengv', user_info.get('name', ''))
         st.header(f"Chào mừng, {welcome_name}!")
         st.info("Đây là trang chính của hệ thống. Vui lòng chọn chức năng từ menu bên trái.")
-
-    tracuu_pages = [
-        st.Page("pages/1_tra_cuu_tkb_gv.py", title="Tra cứu TKB theo GV"),
-        st.Page("pages/1_tra_cuu_tkb_lop.py", title="Tra cứu TKB theo Lớp"),
-        st.Page("pages/1_tra_cuu_thongtin_hssv.py", title="Tra cứu thông tin HSSV"),
-        st.Page("pages/2_sodo_phonghoc.py", title="Sơ đồ Phòng học"),
-        st.Page("pages/2_thongtin_monhoc.py", title="Thông tin Môn học")
-    ]
     
     # --- PHÂN QUYỀN VÀ HIỂN THỊ GIAO DIỆN ---
     if user_email == ADMIN_EMAIL:
+        # Giao diện của Admin (giữ nguyên, không thay đổi)
         with st.sidebar:
             st.header(f"Xin chào, {user_info.get('name', '')}!")
             if st.button("Đăng xuất", use_container_width=True):
@@ -292,81 +319,60 @@ else:
             st.error("Lỗi kết nối tới Google API. Vui lòng thử lại.")
             st.stop()
             
-        # --- BỔ SUNG MENU CHO ADMIN ---
         st.subheader("👨‍💻 Bảng điều khiển của Admin")
-        pages = {
-            "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
-            "Quản lý": [
-                st.Page("quan_ly_giao_vien.py", title="Quản lý Giáo viên", icon="🧑‍🏫"),
-                st.Page("thoi_khoa_bieu.py", title="Cập nhật TKB", icon="🗓️")
-            ],
-            "🔍 Tra cứu TKB": tracuu_pages,
-            "Quản lý HSSV": [
-                st.Page("tao_bangdiem.py", title="Tạo Bảng điểm", icon="📊"),
-                st.Page("capnhat_ds_hssv.py", title="Cập nhật danh sách HSSV", icon="📋")
-            ],
-            "Thi đua": [
-                st.Page("phieu_danh_gia.py", title="Phiếu đánh giá theo tháng", icon="📝")
-            ],
-        }
-        pg = st.navigation(pages)
-        
-        if pg.get_page_name() != "Trang chủ":
-            pg.run()
-        else:
-            main_page()
-            with st.expander("Tạo người dùng hàng loạt từ file Excel", expanded=True):
-                uploaded_file = st.file_uploader(
-                    "Chọn file Excel của bạn",
-                    type=['xlsx', 'xls'],
-                    help="File Excel phải có 2 cột tên là 'email' và 'magv'."
-                )
-                if uploaded_file is not None:
-                    if st.button("🚀 Bắt đầu xử lý hàng loạt"):
-                        query = f"mimeType='application/vnd.google-apps.folder' and name='{TARGET_FOLDER_NAME}' and 'me' in owners"
-                        response = admin_drive_service.files().list(q=query, fields='files(id)').execute()
-                        folders = response.get('files', [])
-                        if not folders:
-                            st.error(f"Lỗi: Admin ({ADMIN_EMAIL}) không sở hữu thư mục nào có tên '{TARGET_FOLDER_NAME}'.")
-                        else:
-                            folder_id = folders[0].get('id')
-                            bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file)
-            
-            st.divider()
-
-            with st.expander("Cập nhật Email cho Giáo viên"):
-                try:
-                    mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-                    records = mapping_sheet.get_all_records()
-                    df_map = pd.DataFrame(records)
-
-                    if not df_map.empty:
-                        magv_list = df_map['magv'].astype(str).tolist()
-                        selected_magv = st.selectbox("Chọn Mã giáo viên để cập nhật", options=[""] + magv_list)
-
-                        if selected_magv:
-                            user_data = df_map[df_map['magv'].astype(str) == selected_magv]
-                            old_email = user_data.iloc[0]['email']
-                            
-                            st.text_input("Email cũ", value=old_email, disabled=True)
-                            new_email = st.text_input("Nhập Email mới", key=f"new_email_{selected_magv}")
-
-                            if st.button("Cập nhật Email"):
-                                if new_email and new_email != old_email:
-                                    with st.spinner("Đang cập nhật..."):
-                                        success, message = update_user_email(admin_drive_service, sa_gspread_client,
-                                                                             selected_magv, old_email, new_email)
-                                    if success:
-                                        st.success(message)
-                                        st.rerun()
-                                    else:
-                                        st.error(message)
-                                else:
-                                    st.warning("Vui lòng nhập một email mới và khác với email cũ.")
+        main_page()
+        with st.expander("Tạo người dùng hàng loạt từ file Excel", expanded=True):
+            uploaded_file = st.file_uploader(
+                "Chọn file Excel của bạn",
+                type=['xlsx', 'xls'],
+                help="File Excel phải có 2 cột tên là 'email' và 'magv'."
+            )
+            if uploaded_file is not None:
+                if st.button("🚀 Bắt đầu xử lý hàng loạt"):
+                    query = f"mimeType='application/vnd.google-apps.folder' and name='{TARGET_FOLDER_NAME}' and 'me' in owners"
+                    response = admin_drive_service.files().list(q=query, fields='files(id)').execute()
+                    folders = response.get('files', [])
+                    if not folders:
+                        st.error(f"Lỗi: Admin ({ADMIN_EMAIL}) không sở hữu thư mục nào có tên '{TARGET_FOLDER_NAME}'.")
                     else:
-                        st.info("Bảng phân quyền đang trống.")
-                except Exception as e:
-                    st.error(f"Không thể tải danh sách giáo viên: {e}")
+                        folder_id = folders[0].get('id')
+                        bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file)
+        
+        st.divider()
+
+        with st.expander("Cập nhật Email cho Giáo viên"):
+            try:
+                mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+                records = mapping_sheet.get_all_records()
+                df_map = pd.DataFrame(records)
+
+                if not df_map.empty:
+                    magv_list = df_map['magv'].astype(str).tolist()
+                    selected_magv = st.selectbox("Chọn Mã giáo viên để cập nhật", options=[""] + magv_list)
+
+                    if selected_magv:
+                        user_data = df_map[df_map['magv'].astype(str) == selected_magv]
+                        old_email = user_data.iloc[0]['email']
+                        
+                        st.text_input("Email cũ", value=old_email, disabled=True)
+                        new_email = st.text_input("Nhập Email mới", key=f"new_email_{selected_magv}")
+
+                        if st.button("Cập nhật Email"):
+                            if new_email and new_email != old_email:
+                                with st.spinner("Đang cập nhật..."):
+                                    success, message = update_user_email(admin_drive_service, sa_gspread_client,
+                                                                         selected_magv, old_email, new_email)
+                                if success:
+                                    st.success(message)
+                                    st.rerun()
+                                else:
+                                    st.error(message)
+                            else:
+                                st.warning("Vui lòng nhập một email mới và khác với email cũ.")
+                else:
+                    st.info("Bảng phân quyền đang trống.")
+            except Exception as e:
+                st.error(f"Không thể tải danh sách giáo viên: {e}")
 
     else:
         # --- GIAO DIỆN CỦA USER THƯỜNG ---
@@ -378,7 +384,14 @@ else:
                 magv, spreadsheet = get_user_spreadsheet(sa_gspread_client, user_email)
 
                 if magv and spreadsheet:
-                    all_base_data = load_all_parquet_data()
+                    # Thay đổi hàm tải dữ liệu tại đây
+                    all_base_data = load_all_base_data(sa_gspread_client) 
+                    
+                    # Kiểm tra dữ liệu quy đổi đã được tải thành công chưa
+                    if all_base_data.get('df_quydoi_hd').empty or all_base_data.get('df_quydoi_hd_them').empty:
+                        st.error("Không thể tải dữ liệu quy đổi cần thiết từ Google Sheet. Vui lòng liên hệ Admin.")
+                        st.stop()
+                    
                     teacher_info = get_teacher_info_from_local(magv, all_base_data.get('df_giaovien'), all_base_data.get('df_khoa'))
 
                     if teacher_info:
