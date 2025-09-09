@@ -28,7 +28,8 @@ def clear_worksheet(spreadsheet, sheet_name):
 
 # --- LẤY DỮ LIỆU TỪ SESSION STATE ---
 df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
-df_quydoi_hd_g = st.session_state.get('df_quydoi_hd', pd.DataFrame())
+# SỬA LẠI: Dùng đúng dataframe df_quydoi_hd_them cho trang này
+df_quydoi_hd_g = st.session_state.get('df_quydoi_hd_them', pd.DataFrame())
 
 if 'magv' in st.session_state and 'chuangv' in st.session_state and 'giochuan' in st.session_state and 'spreadsheet' in st.session_state:
     magv = st.session_state['magv']
@@ -87,7 +88,7 @@ def tinh_toan_kiem_nhiem():
     CHUC_VU_HIEN_TAI = 'NV'
 
     if df_quydoi_hd_g.empty:
-        st.error("Dữ liệu quy đổi giảm trừ (df_quydoi_hd) chưa được tải. Vui lòng kiểm tra lại file Google Sheet và quyền truy cập.")
+        st.error("Dữ liệu quy đổi giảm trừ (df_quydoi_hd_them) chưa được tải. Vui lòng kiểm tra lại file Google Sheet và quyền truy cập.")
         st.stop()
 
     # Xử lý df_ngaytuan_g một lần
