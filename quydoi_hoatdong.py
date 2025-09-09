@@ -153,7 +153,7 @@ def calculate_kiemtraTN(i):
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_ngay': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Ngày', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Quy đổi': [heso * quydoi_x]}
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Ngày', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_kiemtraTN(i, ten_hoatdong):
@@ -168,7 +168,7 @@ def calculate_huongDanChuyenDeTN(i):
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_chuyen_de': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Chuyên đề', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Quy đổi': [heso * quydoi_x]}
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Chuyên đề', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_huongDanChuyenDeTN(i, ten_hoatdong):
@@ -183,7 +183,7 @@ def calculate_chamChuyenDeTN(i):
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_bai': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Bài', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Quy đổi': [heso * quydoi_x]}
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Bài', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_chamChuyenDeTN(i, ten_hoatdong):
@@ -198,7 +198,7 @@ def calculate_huongDanChamBaoCaoTN(i):
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_bai': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Bài', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Quy đổi': [heso * quydoi_x]}
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Bài', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_huongDanChamBaoCaoTN(i, ten_hoatdong):
@@ -214,7 +214,7 @@ def calculate_diThucTapDN(i):
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
     heso = giochuan / 44
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Tuần', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Quy đổi': [heso * quydoi_x]}
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Tuần', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_diThucTapDN(i, ten_hoatdong):
@@ -229,7 +229,7 @@ def calculate_boiDuongNhaGiao(i):
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_gio': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Giờ', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Quy đổi': [heso * quydoi_x]}
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Giờ', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_boiDuongNhaGiao(i, ten_hoatdong):
@@ -244,7 +244,7 @@ def calculate_phongTraoTDTT(i):
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_ngay': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Ngày', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Quy đổi': [heso * quydoi_x]}
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Ngày', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_phongTraoTDTT(i, ten_hoatdong):
@@ -261,7 +261,7 @@ def calculate_traiNghiemGiaoVienCN(i):
     quydoi_ketqua = round(quydoi_x, 1)
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Tiết': [quydoi_ketqua], 'Ghi chú': [ghi_chu]}
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Giờ quy đổi': [quydoi_ketqua], 'Ghi chú': [ghi_chu]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_traiNghiemGiaoVienCN(i, ten_hoatdong):
@@ -282,7 +282,7 @@ def calculate_nhaGiaoHoiGiang(i):
     heso = giochuan / 44
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Cấp(Tuần)', 'Số lượng': [so_tuan], 'Hệ số': [heso], 'Quy đổi': [heso * so_tuan]}
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Cấp(Tuần)', 'Số lượng': [so_tuan], 'Hệ số': [heso], 'Giờ quy đổi': [heso * so_tuan]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_nhaGiaoHoiGiang(i, ten_hoatdong):
@@ -311,7 +311,7 @@ def calculate_deTaiNCKH(i):
     except KeyError: quydoi_ketqua = 0
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Cấp đề tài': [cap_de_tai], 'Số lượng TV': [so_luong_tv], 'Tác giả': [vai_tro], 'Quy đổi': [quydoi_ketqua], 'Ghi chú': [ghi_chu]}
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Cấp đề tài': [cap_de_tai], 'Số lượng TV': [so_luong_tv], 'Tác giả': [vai_tro], 'Giờ quy đổi': [quydoi_ketqua], 'Ghi chú': [ghi_chu]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_deTaiNCKH(i, ten_hoatdong):
@@ -351,8 +351,8 @@ def ui_hoatdongkhac(i1, ten_hoatdong):
         ma_hoatdong = df_quydoi_hd_them_g.loc[dieu_kien, 'MÃ'].values[0]
         result_df['Mã HĐ'] = ma_hoatdong
         result_df['MÃ NCKH'] = np.where(result_df['Thuộc NCKH'] == 'Có', 'NCKH', 'BT')
-        result_df.rename(columns={'Tiết': 'Quy đổi', 'Tên hoạt động khác': 'Hoạt động quy đổi'}, inplace=True)
-        final_columns = ['Mã HĐ', 'MÃ NCKH', 'Hoạt động quy đổi', 'Quy đổi', 'Ghi chú']
+        result_df.rename(columns={'Tiết': 'Giờ quy đổi', 'Tên hoạt động khác': 'Hoạt động quy đổi'}, inplace=True)
+        final_columns = ['Mã HĐ', 'MÃ NCKH', 'Hoạt động quy đổi', 'Giờ quy đổi', 'Ghi chú']
         existing_columns = [col for col in final_columns if col in result_df.columns]
         st.session_state[f'df_hoatdong_{i1}'] = result_df[existing_columns]
     else:
@@ -452,7 +452,9 @@ with activity_tabs[-1]:
     
     if hoatdong_results:
         final_hoatdong_df = pd.concat(hoatdong_results, ignore_index=True)
-        st.dataframe(final_hoatdong_df, use_container_width=True)
+        # Ẩn các cột không cần thiết trước khi hiển thị
+        cols_to_display_summary = [col for col in final_hoatdong_df.columns if col not in ['Mã HĐ', 'MÃ NCKH']]
+        st.dataframe(final_hoatdong_df[cols_to_display_summary], use_container_width=True)
     else:
         st.info("Chưa có hoạt động nào được kê khai.")
 
