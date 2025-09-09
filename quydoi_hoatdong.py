@@ -148,8 +148,10 @@ def run_initial_calculation(i, activity_name):
 
 # --- 1. Kiểm tra Thực tập Tốt nghiệp ---
 def calculate_kiemtraTN(i):
-    ten_hoatdong = st.session_state[f'select_{i}']
-    quydoi_x = st.session_state[f'num_input_{i}']
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_ngay': [1]}))['so_ngay'].iloc[0]
+    quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_ngay': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
@@ -163,8 +165,10 @@ def ui_kiemtraTN(i, ten_hoatdong):
 
 # --- 2. Hướng dẫn Chuyên đề Tốt nghiệp ---
 def calculate_huongDanChuyenDeTN(i):
-    ten_hoatdong = st.session_state[f'select_{i}']
-    quydoi_x = st.session_state[f'num_input_{i}']
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_chuyen_de': [1]}))['so_chuyen_de'].iloc[0]
+    quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_chuyen_de': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
@@ -178,8 +182,10 @@ def ui_huongDanChuyenDeTN(i, ten_hoatdong):
 
 # --- 3. Chấm Chuyên đề Tốt nghiệp ---
 def calculate_chamChuyenDeTN(i):
-    ten_hoatdong = st.session_state[f'select_{i}']
-    quydoi_x = st.session_state[f'num_input_{i}']
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_bai': [1]}))['so_bai'].iloc[0]
+    quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_bai': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
@@ -193,8 +199,10 @@ def ui_chamChuyenDeTN(i, ten_hoatdong):
 
 # --- 4. Hướng dẫn & Chấm Báo cáo TN ---
 def calculate_huongDanChamBaoCaoTN(i):
-    ten_hoatdong = st.session_state[f'select_{i}']
-    quydoi_x = st.session_state[f'num_input_{i}']
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_bai': [1]}))['so_bai'].iloc[0]
+    quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_bai': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
@@ -208,8 +216,10 @@ def ui_huongDanChamBaoCaoTN(i, ten_hoatdong):
 
 # --- 5. Đi thực tập Doanh nghiệp ---
 def calculate_diThucTapDN(i):
-    ten_hoatdong = st.session_state[f'select_{i}']
-    quydoi_x = st.session_state[f'num_input_{i}']
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_tuan': [1]}))['so_tuan'].iloc[0]
+    quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_tuan': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
@@ -224,8 +234,10 @@ def ui_diThucTapDN(i, ten_hoatdong):
 
 # --- 6. Bồi dưỡng Nhà giáo ---
 def calculate_boiDuongNhaGiao(i):
-    ten_hoatdong = st.session_state[f'select_{i}']
-    quydoi_x = st.session_state[f'num_input_{i}']
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_gio': [1]}))['so_gio'].iloc[0]
+    quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_gio': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
@@ -239,8 +251,10 @@ def ui_boiDuongNhaGiao(i, ten_hoatdong):
 
 # --- 7. Phong trào TDTT ---
 def calculate_phongTraoTDTT(i):
-    ten_hoatdong = st.session_state[f'select_{i}']
-    quydoi_x = st.session_state[f'num_input_{i}']
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_ngay': [1]}))['so_ngay'].iloc[0]
+    quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_ngay': quydoi_x}])
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
@@ -254,11 +268,15 @@ def ui_phongTraoTDTT(i, ten_hoatdong):
 
 # --- 8. Hoạt động trải nghiệm, GVCN ---
 def calculate_traiNghiemGiaoVienCN(i):
-    ten_hoatdong = st.session_state[f'select_{i}']
-    quydoi_x = st.session_state[f'num_{i}']
-    ghi_chu = st.session_state[f'note_{i}']
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'so_tiet': 1.0, 'ghi_chu': ''}]))
+    default_tiet = input_df['so_tiet'].iloc[0]
+    default_ghi_chu = input_df['ghi_chu'].iloc[0]
+    quydoi_x = st.session_state.get(f'num_{i}', default_tiet)
+    ghi_chu = st.session_state.get(f'note_{i}', default_ghi_chu)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_tiet': quydoi_x, 'ghi_chu': ghi_chu}])
-    quydoi_ketqua = round(quydoi_x, 1)
+    quydoi_ketqua = round(float(quydoi_x), 1)
     dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Giờ quy đổi': [quydoi_ketqua], 'Ghi chú': [ghi_chu]}
@@ -274,8 +292,10 @@ def ui_traiNghiemGiaoVienCN(i, ten_hoatdong):
 
 # --- 9. Nhà giáo Hội giảng ---
 def calculate_nhaGiaoHoiGiang(i):
-    ten_hoatdong = st.session_state[f'select_{i}']
-    cap_dat_giai = st.session_state[f'capgiai_{i}']
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    default_level = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'cap_dat_giai': ['Cấp Trường']}))['cap_dat_giai'].iloc[0]
+    cap_dat_giai = st.session_state.get(f'capgiai_{i}', default_level)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'cap_dat_giai': cap_dat_giai}])
     mapping_tuan = {'Toàn quốc': 4, 'Cấp Tỉnh': 2, 'Cấp Trường': 1}
     so_tuan = mapping_tuan[cap_dat_giai]
@@ -297,13 +317,14 @@ def ui_nhaGiaoHoiGiang(i, ten_hoatdong):
 
 # --- 10. Đề tài NCKH ---
 def calculate_deTaiNCKH(i):
-    ten_hoatdong = st.session_state[f'select_{i}']
-    cap_de_tai = st.session_state[f'capdetai_{i}']
-    so_luong_tv = st.session_state[f'soluongtv_{i}']
-    vai_tro = st.session_state[f'vaitro_{i}']
-    ghi_chu = st.session_state[f'ghichu_{i}']
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'cap_de_tai': 'Cấp Khoa', 'so_luong_tv': 1, 'vai_tro': 'Chủ nhiệm', 'ghi_chu': ''}]))
+    cap_de_tai = st.session_state.get(f'capdetai_{i}', input_df['cap_de_tai'].iloc[0])
+    so_luong_tv = st.session_state.get(f'soluongtv_{i}', input_df['so_luong_tv'].iloc[0])
+    vai_tro = st.session_state.get(f'vaitro_{i}', input_df['vai_tro'].iloc[0])
+    ghi_chu = st.session_state.get(f'ghichu_{i}', input_df['ghi_chu'].iloc[0])
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'cap_de_tai': cap_de_tai, 'so_luong_tv': so_luong_tv, 'vai_tro': vai_tro, 'ghi_chu': ghi_chu}])
-    
     tiet_tuan_chuan = giochuan / 44
     lookup_table = {"Cấp Khoa": {"1": {"Chủ nhiệm": tiet_tuan_chuan * 3, "Thành viên": 0},"2": {"Chủ nhiệm": tiet_tuan_chuan * 3 * 2 / 3, "Thành viên": tiet_tuan_chuan * 3 * 1 / 3},"3": {"Chủ nhiệm": tiet_tuan_chuan * 3 * 1 / 2, "Thành viên": tiet_tuan_chuan * 3 - tiet_tuan_chuan * 3 * 1 / 2},">3": {"Chủ nhiệm": tiet_tuan_chuan * 3 * 1 / 3, "Thành viên": tiet_tuan_chuan * 3 - tiet_tuan_chuan * 3 * 1 / 3}},"Cấp Trường": {"1": {"Chủ nhiệm": tiet_tuan_chuan * 8, "Thành viên": 0},"2": {"Chủ nhiệm": tiet_tuan_chuan * 8 * 2 / 3, "Thành viên": tiet_tuan_chuan * 8 * 1 / 3},"3": {"Chủ nhiệm": tiet_tuan_chuan * 8 * 1 / 2, "Thành viên": tiet_tuan_chuan * 8 - tiet_tuan_chuan * 8 * 1 / 2},">3": {"Chủ nhiệm": tiet_tuan_chuan * 8 * 1 / 3, "Thành viên": tiet_tuan_chuan * 8 - tiet_tuan_chuan * 8 * 1 / 3}}, "Cấp Tỉnh/TQ": {"1": {"Chủ nhiệm": tiet_tuan_chuan * 12, "Thành viên": 0},"2": {"Chủ nhiệm": tiet_tuan_chuan * 12 * 2 / 3, "Thành viên": tiet_tuan_chuan * 12 * 1 / 3},"3": {"Chủ nhiệm": tiet_tuan_chuan * 12 * 1 / 2, "Thành viên": tiet_tuan_chuan * 12 - tiet_tuan_chuan * 12 * 1 / 2},">3": {"Chủ nhiệm": tiet_tuan_chuan * 12 * 1 / 3, "Thành viên": tiet_tuan_chuan * 12 - tiet_tuan_chuan * 12 * 1 / 3}},}
     nhom_tac_gia = "1" if so_luong_tv == 1 else "2" if so_luong_tv == 2 else "3" if so_luong_tv == 3 else ">3"
