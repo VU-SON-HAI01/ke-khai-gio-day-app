@@ -251,7 +251,9 @@ def tinh_toan_kiem_nhiem():
             so_tuan_active = (weekly_tiet_grid_adjusted[activity_name] > 0).sum()
             tiet_tuan_avg = round((tong_tiet / so_tuan_active), 2) if so_tuan_active > 0 else 0
             heso_vp = CHUC_VU_VP_MAP.get(CHUC_VU_HIEN_TAI, 0) if activity_name == 'VỀ KHỐI VĂN PHÒNG' else 0
-            final_results.append({"Nội dung hoạt động": activity_name, "Từ Tuần - Đến Tuần": row['Từ Tuần - Đến Tuần'], "Số tuần": so_tuan_active, "% Giảm (gốc)": (safe_percent_to_float(row['% Giảm (gốc)']) - heso_vp), "Tiết/Tuần (TB)": tiet_tuan_avg, "Tổng tiết": tong_tiet, "Mã hoạt động": row['Mã hoạt động'], "Ghi chú": row['Ghi chú']})
+            # SỬA LỖI HIỂN THỊ PHẦN TRĂM
+            percent_goc_val = (safe_percent_to_float(row['% Giảm (gốc)']) - heso_vp) * 100
+            final_results.append({"Nội dung hoạt động": activity_name, "Từ Tuần - Đến Tuần": row['Từ Tuần - Đến Tuần'], "Số tuần": so_tuan_active, "% Giảm (gốc)": percent_goc_val, "Tiết/Tuần (TB)": tiet_tuan_avg, "Tổng tiết": tong_tiet, "Mã hoạt động": row['Mã hoạt động'], "Ghi chú": row['Ghi chú']})
         
         results_df = pd.DataFrame(final_results)
         
