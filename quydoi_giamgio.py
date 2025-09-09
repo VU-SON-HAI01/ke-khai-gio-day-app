@@ -200,32 +200,43 @@ def tinh_toan_kiem_nhiem():
         weekly_tiet_grid_adjusted.index.name = "Tuần"
         max_tiet_per_week = giochuan / 44
         
+        # Hàm an toàn để chuyển đổi phần trăm
+        def safe_percent_to_float(p):
+            try:
+                # Thay thế dấu phẩy bằng dấu chấm và loại bỏ ký tự %
+                return float(str(p).replace('%', '').replace(',', '.')) / 100
+            except (ValueError, TypeError):
+                return 0.0 # Trả về 0 nếu không thể chuyển đổi
+
         for week_num in [w for w in all_weeks_numeric if w not in TET_WEEKS]:
             active_this_week = initial_df[initial_df['Từ Tuần - Đến Tuần'].apply(lambda x: week_num in parse_week_range_for_chart(x))].copy()
             if active_this_week.empty: continue
             heso_vp = CHUC_VU_VP_MAP.get(CHUC_VU_HIEN_TAI, 0) if 'VỀ KHỐI VĂN PHÒNG' in active_this_week["Nội dung hoạt động"].values else 0
             for _, row in active_this_week.iterrows(): 
-                weekly_tiet_grid_original.loc[week_num, row['Nội dung hoạt động']] = float(str(row['% Giảm (gốc)']).replace('%','')) / 100 * (giochuan / 44)
+                weekly_tiet_grid_original.loc[week_num, row['Nội dung hoạt động']] = safe_percent_to_float(row['% Giảm (gốc)']) * (giochuan / 44)
             b_activities = active_this_week[active_this_week['Mã hoạt động'].str.startswith('B', na=False)]
             if len(b_activities) > 1:
-                max_b_percent = b_activities['% Giảm (gốc)'].max()
-                active_this_week.loc[b_activities.index, '% Giảm (tuần)'] = np.where(active_this_week.loc[b_activities.index, '% Giảm (gốc)'] == max_b_percent, max_b_percent, 0)
+                max_b_percent_val = b_activities['% Giảm (gốc)'].max()
+                active_this_week.loc[b_activities.index, '% Giảm (tuần)'] = np.where(active_this_week.loc[b_activities.index, '% Giảm (gốc)'] == max_b_percent_val, max_b_percent_val, "0%")
             else: 
                 active_this_week.loc[b_activities.index, '% Giảm (tuần)'] = b_activities['% Giảm (gốc)']
             a_activities = active_this_week[active_this_week['Mã hoạt động'].str.startswith('A', na=False)]
             running_total_a = 0.0
             for idx, row_a in a_activities.iterrows():
-                percent_goc = float(str(row_a['% Giảm (gốc)']).replace('%','')) / 100
+                percent_goc = safe_percent_to_float(row_a['% Giảm (gốc)'])
                 if running_total_a + percent_goc <= 0.5:
-                    active_this_week.loc[idx, '% Giảm (tuần)'] = percent_goc
+                    active_this_week.loc[idx, '% Giảm (tuần)'] = row_a['% Giảm (gốc)']
                     running_total_a += percent_goc
                 else:
                     adjusted_percent = 0.5 - running_total_a
-                    active_this_week.loc[idx, '% Giảm (tuần)'] = max(0, adjusted_percent)
+                    active_this_week.loc[idx, '% Giảm (tuần)'] = f"{max(0, adjusted_percent)*100}%"
                     running_total_a = 0.5
             other_activities = active_this_week[~active_this_week['Mã hoạt động'].str.startswith(('A', 'B'), na=False)]
-            active_this_week.loc[other_activities.index, '% Giảm (tuần)'] = [float(str(p).replace('%',''))/100 for p in other_activities['% Giảm (gốc)']] - heso_vp
-            active_this_week['Tiết/Tuần'] = [float(p) * (giochuan / 44) for p in active_this_week['% Giảm (tuần)']]
+            
+            # SỬA LỖI TypeError
+            active_this_week.loc[other_activities.index, '% Giảm (tuần)'] = [(safe_percent_to_float(p) - heso_vp) for p in other_activities['% Giảm (gốc)']]
+            
+            active_this_week['Tiết/Tuần'] = [safe_percent_to_float(p) * (giochuan / 44) for p in active_this_week['% Giảm (tuần)']]
             weekly_sum = active_this_week['Tiết/Tuần'].sum()
             if weekly_sum > max_tiet_per_week:
                 scaling_factor = max_tiet_per_week / weekly_sum
@@ -240,7 +251,7 @@ def tinh_toan_kiem_nhiem():
             so_tuan_active = (weekly_tiet_grid_adjusted[activity_name] > 0).sum()
             tiet_tuan_avg = round((tong_tiet / so_tuan_active), 2) if so_tuan_active > 0 else 0
             heso_vp = CHUC_VU_VP_MAP.get(CHUC_VU_HIEN_TAI, 0) if activity_name == 'VỀ KHỐI VĂN PHÒNG' else 0
-            final_results.append({"Nội dung hoạt động": activity_name, "Từ Tuần - Đến Tuần": row['Từ Tuần - Đến Tuần'], "Số tuần": so_tuan_active, "% Giảm (gốc)": (float(str(row['% Giảm (gốc)']).replace('%',''))/100 - heso_vp), "Tiết/Tuần (TB)": tiet_tuan_avg, "Tổng tiết": tong_tiet, "Mã hoạt động": row['Mã hoạt động'], "Ghi chú": row['Ghi chú']})
+            final_results.append({"Nội dung hoạt động": activity_name, "Từ Tuần - Đến Tuần": row['Từ Tuần - Đến Tuần'], "Số tuần": so_tuan_active, "% Giảm (gốc)": (safe_percent_to_float(row['% Giảm (gốc)']) - heso_vp), "Tiết/Tuần (TB)": tiet_tuan_avg, "Tổng tiết": tong_tiet, "Mã hoạt động": row['Mã hoạt động'], "Ghi chú": row['Ghi chú']})
         
         results_df = pd.DataFrame(final_results)
         
