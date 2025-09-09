@@ -311,12 +311,10 @@ else:
         }
         pg = st.navigation(pages)
         
-        # Hiển thị nội dung trang được chọn HOẶC các công cụ của admin
         if pg.get_page_name() != "Trang chủ":
             pg.run()
         else:
-            main_page() # Hiển thị lời chào mừng trên trang chủ
-            # Chỉ hiển thị các công cụ admin trên trang chủ
+            main_page()
             with st.expander("Tạo người dùng hàng loạt từ file Excel", expanded=True):
                 uploaded_file = st.file_uploader(
                     "Chọn file Excel của bạn",
@@ -349,7 +347,6 @@ else:
                         if selected_magv:
                             user_data = df_map[df_map['magv'].astype(str) == selected_magv]
                             old_email = user_data.iloc[0]['email']
-                            tengv = get_teacher_info_from_local(selected_magv, df_map, None) # Cần df_giaovien và df_khoa để lấy tên
                             
                             st.text_input("Email cũ", value=old_email, disabled=True)
                             new_email = st.text_input("Nhập Email mới", key=f"new_email_{selected_magv}")
@@ -395,7 +392,7 @@ else:
                         giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
                         st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
                         st.session_state.initialized = True
-                        # ĐÃ XÓA st.rerun() TẠI ĐÂY
+                        st.rerun() 
                     else:
                         st.error(f"Đã xác thực nhưng không tìm thấy thông tin chi tiết cho Mã GV: {magv} trong dữ liệu cục bộ.")
                         st.stop()
@@ -417,15 +414,15 @@ else:
                     st.session_state.clear()
                     st.rerun()
             
-            # --- CẬP NHẬT MENU CHO USER THƯỜNG ---
             pages = {
                 "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
                 "Kê khai": [
                     st.Page("quydoi_gioday.py", title="Kê giờ dạy", icon="✍️"),
-                    st.Page("quydoicachoatdong.py", title="Kê giờ hoạt động", icon="🏃")
+                    st.Page("quydoi_thiketthuc.py", title="Kê Thi kết thúc", icon="📝"),
+                    st.Page("quydoi_giamgio.py", title="Kê Giảm trừ/Kiêm nhiệm", icon="⚖️"),
+                    st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃")
                 ],
                 "Báo cáo": [st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file", icon="📄")],
-                "Tra cứu": tracuu_pages, # Thêm trang tra cứu cho user
                 "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")]
             }
             pg = st.navigation(pages)
