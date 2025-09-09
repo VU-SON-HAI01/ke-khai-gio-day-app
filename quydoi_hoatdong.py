@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import gspread
 import json
+import datetime
 
 # --- HÀM HELPER CHO GOOGLE SHEETS ---
 def update_worksheet(spreadsheet, sheet_name, df):
@@ -138,6 +139,7 @@ def run_initial_calculation(i, activity_name):
             df_quydoi_hd_them_g.iloc[9, 1]: calculate_phongTraoTDTT,
             df_quydoi_hd_them_g.iloc[5, 1]: calculate_nhaGiaoHoiGiang,
             df_quydoi_hd_them_g.iloc[14, 1]: calculate_deTaiNCKH,
+            df_quydoi_hd_them_g.iloc[6, 1]: calculate_danQuanTuVe,
         }
         # Các hoạt động dùng chung 1 callback
         for idx in [10, 11, 12, 13]:
@@ -309,11 +311,7 @@ def ui_nhaGiaoHoiGiang(i, ten_hoatdong):
     options = ['Toàn quốc', 'Cấp Tỉnh', 'Cấp Trường']
     default_level = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'cap_dat_giai': ['Cấp Trường']}))['cap_dat_giai'].iloc[0]
     default_index = options.index(default_level) if default_level in options else 2
-    cap_dat_giai = st.selectbox("Chọn cấp đạt giải cao nhất", options, index=default_index, key=f'capgiai_{i}', on_change=calculate_nhaGiaoHoiGiang, args=(i,))
-    mapping_tuan = {'Toàn quốc': 4, 'Cấp Tỉnh': 2, 'Cấp Trường': 1}
-    so_tuan = mapping_tuan[cap_dat_giai]
-    quydoi_ketqua = round(so_tuan * (giochuan / 44), 1)
-    st.metric(label="Tiết quy đổi", value=f'{quydoi_ketqua} (tiết)', delta=f'{round((quydoi_ketqua / giochuan) * 100, 1)}%', delta_color="normal")
+    st.selectbox("Chọn cấp đạt giải cao nhất", options, index=default_index, key=f'capgiai_{i}', on_change=calculate_nhaGiaoHoiGiang, args=(i,))
 
 # --- 10. Đề tài NCKH ---
 def calculate_deTaiNCKH(i):
@@ -352,7 +350,60 @@ def ui_deTaiNCKH(i, ten_hoatdong):
         st.selectbox("Vai trò trong đề tài", options=vai_tro_options, index=vaitro_index, key=f'vaitro_{i}', on_change=calculate_deTaiNCKH, args=(i,))
         st.text_input("Ghi chú", value=input_df['ghi_chu'].iloc[0], key=f'ghichu_{i}', on_change=calculate_deTaiNCKH, args=(i,))
 
-# --- 11. Hoạt động khác (Sử dụng st.data_editor) ---
+# --- 11. Dân quân tự vệ & ANQP ---
+def calculate_danQuanTuVe(i):
+    ten_hoatdong = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong: return
+    
+    today = datetime.date.today()
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'ngay_bat_dau': today.isoformat(), 'ngay_ket_thuc': today.isoformat()}]))
+    
+    start_date_val = st.session_state.get(f'dqtv_start_{i}', pd.to_datetime(input_df['ngay_bat_dau'].iloc[0]).date())
+    end_date_val = st.session_state.get(f'dqtv_end_{i}', pd.to_datetime(input_df['ngay_ket_thuc'].iloc[0]).date())
+
+    ngay_bat_dau = start_date_val
+    ngay_ket_thuc = end_date_val
+
+    st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'ngay_bat_dau': ngay_bat_dau.isoformat(), 'ngay_ket_thuc': ngay_ket_thuc.isoformat()}])
+    
+    so_ngay_tham_gia = 0
+    if ngay_ket_thuc >= ngay_bat_dau:
+        so_ngay_tham_gia = (ngay_ket_thuc - ngay_bat_dau).days + 1
+        
+    he_so = (giochuan / 44) / 6
+    gio_quy_doi = so_ngay_tham_gia * he_so
+    
+    dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    ma_hoatdong, ma_nckh = df_quydoi_hd_them_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
+    
+    data = {
+        'Mã HĐ': [ma_hoatdong], 
+        'MÃ NCKH': [ma_nckh], 
+        'Hoạt động quy đổi': [ten_hoatdong], 
+        'Đơn vị tính': 'Ngày', 
+        'Số lượng': [so_ngay_tham_gia], 
+        'Hệ số': [he_so], 
+        'Giờ quy đổi': [gio_quy_doi]
+    }
+    st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
+
+def ui_danQuanTuVe(i, ten_hoatdong):
+    col1, col2 = st.columns(2)
+    today = datetime.date.today()
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'ngay_bat_dau': today.isoformat(), 'ngay_ket_thuc': today.isoformat()}]))
+
+    default_start_date = pd.to_datetime(input_df['ngay_bat_dau'].iloc[0]).date()
+    default_end_date = pd.to_datetime(input_df['ngay_ket_thuc'].iloc[0]).date()
+    
+    with col1:
+        st.date_input("Ngày bắt đầu", value=default_start_date, key=f"dqtv_start_{i}", on_change=calculate_danQuanTuVe, args=(i,), format="DD/MM/YYYY")
+    with col2:
+        st.date_input("Ngày kết thúc", value=default_end_date, key=f"dqtv_end_{i}", on_change=calculate_danQuanTuVe, args=(i,), format="DD/MM/YYYY")
+
+    if st.session_state.get(f'dqtv_end_{i}', default_end_date) < st.session_state.get(f'dqtv_start_{i}', default_start_date):
+        st.error("Ngày kết thúc không được nhỏ hơn ngày bắt đầu.")
+
+# --- 12. Hoạt động khác (Sử dụng st.data_editor) ---
 def ui_hoatdongkhac(i1, ten_hoatdong):
     st.subheader(f"Nhập các hoạt động khác")
     input_df = st.session_state.get(f'input_df_hoatdong_{i1}')
@@ -425,15 +476,12 @@ for i in range(st.session_state.selectbox_count_hd):
         default_activity = st.session_state.get(f"select_{i}", options_filtered[0])
         default_index = options_filtered.index(default_activity) if default_activity in options_filtered else 0
         
-        # Selectbox chọn hoạt động, cũng dùng callback để reset input khi thay đổi
         def on_activity_change(idx):
-             # Xóa các giá trị input cũ để tránh lỗi
             st.session_state.pop(f'df_hoatdong_{idx}', None)
             st.session_state.pop(f'input_df_hoatdong_{idx}', None)
 
         hoatdong_x = st.selectbox(f"CHỌN HOẠT ĐỘNG QUY ĐỔI:", options_filtered, index=default_index, key=f"select_{i}", on_change=on_activity_change, args=(i,))
         
-        # Chạy tính toán ban đầu khi tải hoặc khi thay đổi loại hoạt động
         run_initial_calculation(i, hoatdong_x)
         
         # Gọi hàm UI tương ứng
@@ -444,12 +492,12 @@ for i in range(st.session_state.selectbox_count_hd):
         elif hoatdong_x == df_quydoi_hd_them_g.iloc[4, 1]: ui_huongDanChamBaoCaoTN(i, hoatdong_x)
         elif hoatdong_x == df_quydoi_hd_them_g.iloc[8, 1]: ui_boiDuongNhaGiao(i, hoatdong_x)
         elif hoatdong_x == df_quydoi_hd_them_g.iloc[9, 1]: ui_phongTraoTDTT(i, hoatdong_x)
+        elif hoatdong_x == df_quydoi_hd_them_g.iloc[6, 1]: ui_danQuanTuVe(i, hoatdong_x)
         elif hoatdong_x in [df_quydoi_hd_them_g.iloc[j, 1] for j in [10, 11, 12, 13]]: ui_traiNghiemGiaoVienCN(i, hoatdong_x)
         elif hoatdong_x == df_quydoi_hd_them_g.iloc[5, 1]: ui_nhaGiaoHoiGiang(i, hoatdong_x)
         elif hoatdong_x == df_quydoi_hd_them_g.iloc[14, 1]: ui_deTaiNCKH(i, hoatdong_x)
         elif hoatdong_x == df_quydoi_hd_them_g.iloc[15, 1]: ui_hoatdongkhac(i, hoatdong_x)
 
-        # Hiển thị kết quả (luôn đọc từ state đã được callback cập nhật)
         if f'df_hoatdong_{i}' in st.session_state:
             st.write("---")
             st.write("Kết quả quy đổi:")
@@ -467,7 +515,6 @@ with activity_tabs[-1]:
             df_copy = result_df.copy()
             activity_name = df_copy['Hoạt động quy đổi'].iloc[0]
 
-            # Áp dụng các phép biến đổi cụ thể cho hoạt động NCKH cho bảng tóm tắt
             if activity_name == de_tai_nckh_name:
                 df_copy = df_copy.rename(columns={
                     'Cấp đề tài': 'Đơn vị tính',
@@ -480,7 +527,6 @@ with activity_tabs[-1]:
     if hoatdong_results:
         final_hoatdong_df = pd.concat(hoatdong_results, ignore_index=True)
         
-        # Xác định thứ tự và các cột mong muốn cho màn hình tóm tắt cuối cùng
         cols_to_display_summary = [
             'Hoạt động quy đổi', 
             'Đơn vị tính', 
@@ -490,10 +536,8 @@ with activity_tabs[-1]:
             'Ghi chú'
         ]
         
-        # Lọc danh sách để chỉ bao gồm các cột thực sự tồn tại trong DataFrame cuối cùng
         existing_cols_to_display = [col for col in cols_to_display_summary if col in final_hoatdong_df.columns]
         
-        # Hiển thị dataframe với các cột và thứ tự đã chỉ định, ẩn các cột khác
         st.dataframe(final_hoatdong_df[existing_cols_to_display], use_container_width=True)
     else:
         st.info("Chưa có hoạt động nào được kê khai.")
