@@ -321,6 +321,20 @@ else:
         welcome_name = st.session_state.get('tengv', user_info.get('name', ''))
         st.header(f"Chào mừng, {welcome_name}!")
         st.info("Đây là trang chính của hệ thống. Vui lòng chọn chức năng từ menu bên trái.")
+        
+        # --- THÊM PHẦN HIỂN THỊ DỮ LIỆU ĐỂ KIỂM TRA ---
+        if st.session_state.get('initialized'):
+            with st.expander("Kiểm tra dữ liệu đã tải: df_quydoi_hd (từ sheet QUYDOI_HD)"):
+                if 'df_quydoi_hd' in st.session_state and not st.session_state.df_quydoi_hd.empty:
+                    st.dataframe(st.session_state.df_quydoi_hd)
+                else:
+                    st.warning("Không có dữ liệu 'df_quydoi_hd' để hiển thị. Vui lòng kiểm tra lại quyền truy cập và tên file/sheet.")
+            
+            with st.expander("Kiểm tra dữ liệu đã tải: df_quydoi_hd_them (từ sheet QUYDOIKHAC)"):
+                if 'df_quydoi_hd_them' in st.session_state and not st.session_state.df_quydoi_hd_them.empty:
+                    st.dataframe(st.session_state.df_quydoi_hd_them)
+                else:
+                    st.warning("Không có dữ liệu 'df_quydoi_hd_them' để hiển thị. Vui lòng kiểm tra lại quyền truy cập và tên file/sheet.")
     
     # --- PHÂN QUYỀN VÀ HIỂN THỊ GIAO DIỆN ---
     if user_email == ADMIN_EMAIL:
