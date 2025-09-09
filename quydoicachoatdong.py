@@ -292,7 +292,6 @@ with (tabs[1]):
                 giam_results, giam_inputs = [], []
                 hoatdong_results, hoatdong_inputs = [], []
                 
-                # Xác định hoạt động đặc biệt
                 giam_activity_name = df_quydoi_hd_them_g.iloc[0, 1]
 
                 if 'selectbox_count' in st.session_state and st.session_state.selectbox_count > 0:
@@ -300,19 +299,16 @@ with (tabs[1]):
                         activity_name = st.session_state.get(f"select_{i}", "")
                         is_giam_activity = (activity_name == giam_activity_name)
 
-                        # Phân loại DataFrame kết quả
                         result_key = f'df_hoatdong_{i}'
                         if result_key in st.session_state:
                             df_result = st.session_state[result_key]
                             if isinstance(df_result, pd.DataFrame) and not df_result.empty:
                                 df_copy = df_result.copy()
-                                df_copy['activity_index'] = i
                                 if is_giam_activity:
                                     giam_results.append(df_copy)
                                 else:
                                     hoatdong_results.append(df_copy)
                         
-                        # Phân loại DataFrame input
                         input_key = f'input_df_hoatdong_{i}'
                         if input_key in st.session_state:
                              df_input = st.session_state[input_key]
@@ -322,7 +318,6 @@ with (tabs[1]):
                                      giam_inputs.append(input_dict)
                                  else:
                                      hoatdong_inputs.append(input_dict)
-
                 # Lưu các hoạt động thông thường
                 if hoatdong_results:
                     update_worksheet(spreadsheet, "output_hoatdong", pd.concat(hoatdong_results, ignore_index=True))
@@ -357,7 +352,6 @@ with (tabs[1]):
         try:
             all_inputs, all_results = [], []
             
-            # Tải tất cả các sheet input
             for sheet_name in ["input_hoatdong", "input_quydoigiam"]:
                 try:
                     ws = spreadsheet.worksheet(sheet_name)
@@ -371,8 +365,11 @@ with (tabs[1]):
                 st.info("Không tìm thấy dữ liệu hoạt động đã lưu.")
                 return
 
-            # Xử lý input tổng hợp
-            inputs_df = pd.DataFrame(all_inputs).sort_values(by='activity_index').reset_index(drop=True)
+            inputs_df = pd.DataFrame(all_inputs)
+            # Sửa lỗi: Cần xử lý trường hợp cột activity_index là string
+            inputs_df['activity_index'] = pd.to_numeric(inputs_df['activity_index'])
+            inputs_df = inputs_df.sort_values(by='activity_index').reset_index(drop=True)
+
             st.session_state.selectbox_count = len(inputs_df)
 
             for index, row in inputs_df.iterrows():
@@ -384,7 +381,6 @@ with (tabs[1]):
                         df_input[col] = pd.to_datetime(df_input[col], errors='coerce').dt.date
                 st.session_state[f'input_df_hoatdong_{i}'] = df_input
 
-            # Tải tất cả các sheet output
             for sheet_name in ["output_hoatdong", "output_quydoigiam"]:
                 try:
                     ws = spreadsheet.worksheet(sheet_name)
@@ -394,15 +390,18 @@ with (tabs[1]):
                 except gspread.WorksheetNotFound:
                     pass
             
-            # Xử lý output tổng hợp
             if all_results:
                 results_df = pd.DataFrame(all_results)
                 for col in results_df.columns:
-                    if 'tiết' in col.lower() or 'quy đổi' in col.lower() or 'số lượng' in col.lower() or 'hệ số' in col.lower() or 'tuần' in col.lower() or '%' in col.lower():
+                    # Bổ sung các cột có thể là số
+                    if any(c in col.lower() for c in ['tiết', 'quy đổi', 'số lượng', 'hệ số', 'tuần', '%', 'tv']):
                         results_df[col] = pd.to_numeric(results_df[col], errors='coerce')
                 
                 for i in range(st.session_state.selectbox_count):
-                    df_activity_result = results_df[results_df['activity_index'].astype(int) == i].drop(columns=['activity_index'])
+                    # activity_index có thể là string từ gsheet
+                    df_activity_result = results_df[results_df['activity_index'].astype(str) == str(i)]
+                    if 'activity_index' in df_activity_result.columns:
+                        df_activity_result = df_activity_result.drop(columns=['activity_index'])
                     st.session_state[f'df_hoatdong_{i}'] = df_activity_result.reset_index(drop=True)
 
             st.success(f"Đã tải thành công {st.session_state.selectbox_count} hoạt động từ Google Sheet.")
@@ -798,12 +797,18 @@ with (tabs[1]):
         with st.spinner("Đang tải dữ liệu hoạt động từ Google Sheet..."):
             load_activities_from_gsheet(spreadsheet)
         st.session_state.hoatdong_loaded_for_magv = magv
+        st.rerun()
 
     if 'selectbox_count' not in st.session_state:
         st.session_state.selectbox_count = 0
     def add_callback(): st.session_state.selectbox_count += 1
     def delete_callback():
-        if st.session_state.selectbox_count > 0: st.session_state.selectbox_count -= 1
+        if st.session_state.selectbox_count > 0:
+            # Xóa các state liên quan đến hoạt động cuối cùng
+            last_index = st.session_state.selectbox_count - 1
+            for key_prefix in ['df_hoatdong_', 'input_df_hoatdong_', 'select_']:
+                st.session_state.pop(f'{key_prefix}{last_index}', None)
+            st.session_state.selectbox_count -= 1
     
     col_buttons = st.columns(4)
     with col_buttons[0]: st.button("➕ Thêm hoạt động", on_click=add_callback, use_container_width=True)
@@ -815,16 +820,24 @@ with (tabs[1]):
         if st.button("Tải lại dữ liệu đã lưu", key="load_activities", use_container_width=True):
             load_activities_from_gsheet(spreadsheet)
             st.rerun()
+    
+    st.divider()
+    
+    # --- TẠO CÁC TAB ĐỘNG ---
+    activity_tab_titles = [f"Hoạt động {i + 1}" for i in range(st.session_state.selectbox_count)]
+    activity_tab_titles.append("📊 Tổng hợp")
 
+    activity_tabs = st.tabs(activity_tab_titles)
+
+    # Vòng lặp cho các tab hoạt động riêng lẻ
     for i in range(st.session_state.selectbox_count):
-        key_can_goi = f'df_hoatdong_{i}'
-        container = st.container(border=True)
-        with container:
+        with activity_tabs[i]:
+            key_can_goi = f'df_hoatdong_{i}'
             options = df_quydoi_hd_them_g.iloc[:, 1].tolist()
             default_activity = st.session_state.get(f"select_{i}", options[0])
             default_index = options.index(default_activity) if default_activity in options else 0
 
-            hoatdong_x = st.selectbox(f"**:green[{i + 1}. CHỌN HOẠT ĐỘNG QUY ĐỔI:]**", options, index=default_index, key=f"select_{i}")
+            hoatdong_x = st.selectbox(f"**:green[CHỌN HOẠT ĐỘNG QUY ĐỔI:]**", options, index=default_index, key=f"select_{i}")
             
             if hoatdong_x:
                 if hoatdong_x == df_quydoi_hd_them_g.iloc[7, 1]: diThucTapDN(i, hoatdong_x)
@@ -849,4 +862,42 @@ with (tabs[1]):
                     df_display = st.session_state[key_can_goi]
                     cols_to_show = [col for col in df_display.columns if col not in ['Mã HĐ', 'MÃ NCKH']]
                     st.dataframe(df_display[cols_to_show], hide_index=True)
+    
+    # Tab cuối cùng: Tổng hợp
+    with activity_tabs[-1]:
+        st.header("Bảng tổng hợp kết quả quy đổi hoạt động")
+
+        giam_results = []
+        hoatdong_results = []
+        giam_activity_name = df_quydoi_hd_them_g.iloc[0, 1]
+
+        for i in range(st.session_state.selectbox_count):
+            activity_name = st.session_state.get(f"select_{i}")
+            result_df = st.session_state.get(f'df_hoatdong_{i}')
+            
+            if result_df is not None and not result_df.empty:
+                # Bỏ các cột không cần thiết cho bảng tổng hợp
+                cols_to_drop = [col for col in ['Mã HĐ', 'MÃ NCKH', 'activity_index'] if col in result_df.columns]
+                display_df = result_df.drop(columns=cols_to_drop)
+
+                if activity_name == giam_activity_name:
+                    giam_results.append(display_df)
+                else:
+                    hoatdong_results.append(display_df)
+
+        st.subheader("Bảng quy đổi kiêm nhiệm, nghỉ, đi học, GVCN (output_quydoigiam)")
+        if giam_results:
+            final_giam_df = pd.concat(giam_results, ignore_index=True)
+            st.dataframe(final_giam_df, use_container_width=True)
+        else:
+            st.info("Chưa có hoạt động nào thuộc nhóm này được kê khai.")
+
+        st.divider()
+
+        st.subheader("Bảng quy đổi các hoạt động khác (output_hoatdong)")
+        if hoatdong_results:
+            final_hoatdong_df = pd.concat(hoatdong_results, ignore_index=True)
+            st.dataframe(final_hoatdong_df, use_container_width=True)
+        else:
+            st.info("Chưa có hoạt động nào khác được kê khai.")
 
