@@ -125,12 +125,14 @@ def tinh_toan_kiem_nhiem():
         return []
 
     # --- SỬA LỖI TÊN CỘT ---
-    # Lấy tên cột hoạt động một cách linh hoạt bằng cách giả định nó là cột thứ hai
-    if len(df_quydoi_hd_g.columns) < 2:
-        st.error("Lỗi nghiêm trọng: File dữ liệu quy đổi giảm trừ phải có ít nhất 2 cột.")
+    # Lấy tên cột hoạt động, phần trăm và mã giảm một cách linh hoạt theo vị trí
+    if len(df_quydoi_hd_g.columns) < 4:
+        st.error("Lỗi nghiêm trọng: File dữ liệu quy đổi giảm trừ phải có ít nhất 4 cột.")
         st.stop()
     
     activity_col_name = df_quydoi_hd_g.columns[1]
+    percent_col_name = df_quydoi_hd_g.columns[2]
+    ma_giam_col_name = df_quydoi_hd_g.columns[3]
     
     try:
         hoat_dong_list = df_quydoi_hd_g[activity_col_name].dropna().unique().tolist()
@@ -170,8 +172,8 @@ def tinh_toan_kiem_nhiem():
         for index, row in valid_df.iterrows():
             activity_row = df_quydoi_hd_g[df_quydoi_hd_g[activity_col_name] == row["Nội dung hoạt động"]]
             if not activity_row.empty: 
-                heso_quydoi = activity_row['PHẦN TRĂM'].iloc[0]
-                ma_hoatdong = activity_row['MÃ GIẢM'].iloc[0]
+                heso_quydoi = activity_row[percent_col_name].iloc[0]
+                ma_hoatdong = activity_row[ma_giam_col_name].iloc[0]
             else: 
                 heso_quydoi = 0
                 ma_hoatdong = ""
