@@ -23,7 +23,9 @@ try:
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
     TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"]
     TEMPLATE_FILE_ID = st.secrets["google_sheet"]["template_file_id"]
-    # Thêm secret cho file dữ liệu quản trị
+    
+    # Cập nhật secrets cho folder và file dữ liệu quản trị
+    ADMIN_DATA_FOLDER_NAME = st.secrets["google_sheet"]["admin_data_folder_name"]
     ADMIN_DATA_SHEET_NAME = st.secrets["google_sheet"]["admin_data_sheet_name"] 
 
     ADMIN_EMAIL = "vshai48kd1@gmail.com"
@@ -44,15 +46,17 @@ SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
 def connect_as_service_account():
-    """Kết nối bằng Service Account, chỉ dùng để đọc/ghi sheet admin."""
+    """Kết nối bằng Service Account, trả về cả gspread client và drive service."""
     try:
         creds_dict = st.secrets["gcp_service_account"]
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = ServiceAccountCredentials.from_service_account_info(creds_dict, scopes=scopes)
-        return gspread.authorize(creds)
+        gspread_client = gspread.authorize(creds)
+        drive_service = build('drive', 'v3', credentials=creds)
+        return gspread_client, drive_service
     except Exception as e:
         st.error(f"Lỗi kết nối với tư cách Service Account: {e}")
-        return None
+        return None, None
 
 
 @st.cache_resource
@@ -74,9 +78,7 @@ def connect_as_user(_token):
 
 
 def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file):
-    """
-    Hàm dành cho Admin: Xử lý hàng loạt, dừng ở dòng cuối cùng có email.
-    """
+    # (Giữ nguyên hàm này, không thay đổi)
     try:
         df_upload = pd.read_excel(uploaded_file)
         if 'email' not in df_upload.columns or 'magv' not in df_upload.columns:
@@ -149,9 +151,7 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
 
 
 def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, old_email, new_email):
-    """
-    Hàm dành cho Admin: Cập nhật email cho một giáo viên đã có.
-    """
+    # (Giữ nguyên hàm này, không thay đổi)
     try:
         spreadsheet = sa_gspread_client.open(magv_to_update)
         file_id = spreadsheet.id
@@ -186,7 +186,7 @@ def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, ol
         return False, f"Đã xảy ra lỗi trong quá trình cập nhật: {e}"
 
 @st.cache_data(ttl=600)
-def load_all_base_data(_sa_gspread_client, base_path='data_base/'):
+def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_base/'):
     """Tải tất cả các file dữ liệu nền Parquet và từ Google Sheet quản trị."""
     loaded_dfs = {}
     
@@ -206,25 +206,44 @@ def load_all_base_data(_sa_gspread_client, base_path='data_base/'):
             st.warning(f"Không thể tải file '{file_name}': {e}")
         progress_bar.progress((i + 1) / total_files, text=f"Đang tải {file_name}...")
 
-    # --- Phần tải từ Google Sheet ---
+    # --- Phần tải từ Google Sheet (Đã cập nhật) ---
     try:
-        admin_data_sheet = _sa_gspread_client.open(ADMIN_DATA_SHEET_NAME)
+        # 1. Tìm ID của folder "DỮ_LIỆU_QUẢN_TRỊ"
+        folder_query = f"mimeType='application/vnd.google-apps.folder' and name='{ADMIN_DATA_FOLDER_NAME}' and trashed=false"
+        folder_response = _sa_drive_service.files().list(q=folder_query, fields='files(id)').execute()
+        folders = folder_response.get('files', [])
         
-        # Tải sheet QUYDOI_HD
+        if not folders:
+            raise FileNotFoundError(f"Không tìm thấy thư mục quản trị có tên '{ADMIN_DATA_FOLDER_NAME}'.")
+        
+        folder_id = folders[0].get('id')
+
+        # 2. Tìm ID của file "DATA_KEGIO" bên trong folder đó
+        file_query = f"name='{ADMIN_DATA_SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
+        file_response = _sa_drive_service.files().list(q=file_query, fields='files(id)').execute()
+        files = file_response.get('files', [])
+
+        if not files:
+            raise FileNotFoundError(f"Không tìm thấy file '{ADMIN_DATA_SHEET_NAME}' trong thư mục '{ADMIN_DATA_FOLDER_NAME}'.")
+            
+        file_id = files[0].get('id')
+
+        # 3. Mở file bằng ID và tải dữ liệu
+        admin_data_sheet = _sa_gspread_client.open_by_key(file_id)
+        
         worksheet_hd = admin_data_sheet.worksheet("QUYDOI_HD")
         df_quydoi_hd = pd.DataFrame(worksheet_hd.get_all_records())
         loaded_dfs['df_quydoi_hd'] = df_quydoi_hd
         progress_bar.progress((len(files_to_load_parquet) + 1) / total_files, text="Đang tải sheet QUYDOI_HD...")
 
-        # Tải sheet QUYDOIKHAC
         worksheet_khac = admin_data_sheet.worksheet("QUYDOIKHAC")
         df_quydoi_hd_them = pd.DataFrame(worksheet_khac.get_all_records())
         loaded_dfs['df_quydoi_hd_them'] = df_quydoi_hd_them
         progress_bar.progress((len(files_to_load_parquet) + 2) / total_files, text="Đang tải sheet QUYDOIKHAC...")
         
-    except gspread.exceptions.SpreadsheetNotFound:
-        st.error(f"Lỗi: Không tìm thấy file Google Sheet quản trị có tên '{ADMIN_DATA_SHEET_NAME}'.")
-        loaded_dfs['df_quydoi_hd'] = pd.DataFrame() # Trả về DF rỗng để tránh lỗi
+    except (gspread.exceptions.SpreadsheetNotFound, FileNotFoundError) as e:
+        st.error(f"Lỗi truy cập file dữ liệu quản trị: {e}")
+        loaded_dfs['df_quydoi_hd'] = pd.DataFrame()
         loaded_dfs['df_quydoi_hd_them'] = pd.DataFrame()
     except gspread.exceptions.WorksheetNotFound as e:
         st.error(f"Lỗi: Không tìm thấy sheet '{e.args[0]}' trong file '{ADMIN_DATA_SHEET_NAME}'.")
@@ -240,7 +259,7 @@ def load_all_base_data(_sa_gspread_client, base_path='data_base/'):
 
 
 def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
-    """Lấy thông tin giáo viên từ các dataframe đã tải."""
+    # (Giữ nguyên hàm này, không thay đổi)
     if magv is None or df_giaovien is None or df_khoa is None or df_giaovien.empty or df_khoa.empty:
         return None
     teacher_row = df_giaovien[df_giaovien['Magv'].astype(str) == str(magv)]
@@ -253,7 +272,7 @@ def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
 
 
 def get_user_spreadsheet(sa_gspread_client, email):
-    """Tìm magv và mở file sheet tương ứng cho người dùng."""
+    # (Giữ nguyên hàm này, không thay đổi)
     try:
         mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
         df = pd.DataFrame(mapping_sheet.get_all_records())
@@ -312,7 +331,7 @@ else:
                 st.session_state.clear()
                 st.rerun()
 
-        sa_gspread_client = connect_as_service_account()
+        sa_gspread_client, sa_drive_service = connect_as_service_account()
         admin_gspread_client, admin_drive_service = connect_as_user(st.session_state.token)
 
         if not sa_gspread_client or not admin_drive_service:
@@ -378,16 +397,14 @@ else:
         # --- GIAO DIỆN CỦA USER THƯỜNG ---
         if 'initialized' not in st.session_state:
             with st.spinner("Đang kiểm tra quyền và tải dữ liệu..."):
-                sa_gspread_client = connect_as_service_account()
-                if not sa_gspread_client: st.stop()
+                sa_gspread_client, sa_drive_service = connect_as_service_account()
+                if not sa_gspread_client or not sa_drive_service: st.stop()
 
                 magv, spreadsheet = get_user_spreadsheet(sa_gspread_client, user_email)
 
                 if magv and spreadsheet:
-                    # Thay đổi hàm tải dữ liệu tại đây
-                    all_base_data = load_all_base_data(sa_gspread_client) 
+                    all_base_data = load_all_base_data(sa_gspread_client, sa_drive_service) 
                     
-                    # Kiểm tra dữ liệu quy đổi đã được tải thành công chưa
                     if all_base_data.get('df_quydoi_hd').empty or all_base_data.get('df_quydoi_hd_them').empty:
                         st.error("Không thể tải dữ liệu quy đổi cần thiết từ Google Sheet. Vui lòng liên hệ Admin.")
                         st.stop()
