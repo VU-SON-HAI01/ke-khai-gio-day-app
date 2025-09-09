@@ -460,22 +460,41 @@ for i in range(st.session_state.selectbox_count_hd):
 with activity_tabs[-1]:
     st.header("Bảng tổng hợp các hoạt động khác")
     hoatdong_results = []
+    de_tai_nckh_name = df_quydoi_hd_them_g.iloc[14, 1]
     for i in range(st.session_state.selectbox_count_hd):
         result_df = st.session_state.get(f'df_hoatdong_{i}')
         if result_df is not None and not result_df.empty:
             df_copy = result_df.copy()
-            # Thêm cột Mã HĐ và Mã NCKH vào bảng tổng hợp
-            dieu_kien = (df_quydoi_hd_them_g['Nội dung hoạt động quy đổi'] == df_copy['Hoạt động quy đổi'].iloc[0])
-            if not df_quydoi_hd_them_g[dieu_kien].empty:
-                 df_copy['Mã HĐ'] = df_quydoi_hd_them_g.loc[dieu_kien, 'MÃ'].values[0]
-                 df_copy['MÃ NCKH'] = df_quydoi_hd_them_g.loc[dieu_kien, 'MÃ NCKH'].values[0]
+            activity_name = df_copy['Hoạt động quy đổi'].iloc[0]
+
+            # Áp dụng các phép biến đổi cụ thể cho hoạt động NCKH cho bảng tóm tắt
+            if activity_name == de_tai_nckh_name:
+                df_copy = df_copy.rename(columns={
+                    'Cấp đề tài': 'Đơn vị tính',
+                    'Số lượng TV': 'Số lượng',
+                    'Tác giả': 'Hệ số'
+                })
+            
             hoatdong_results.append(df_copy)
     
     if hoatdong_results:
         final_hoatdong_df = pd.concat(hoatdong_results, ignore_index=True)
-        # Ẩn các cột không cần thiết trước khi hiển thị
-        cols_to_display_summary = [col for col in final_hoatdong_df.columns if col not in ['Mã HĐ', 'MÃ NCKH']]
-        st.dataframe(final_hoatdong_df[cols_to_display_summary], use_container_width=True)
+        
+        # Xác định thứ tự và các cột mong muốn cho màn hình tóm tắt cuối cùng
+        cols_to_display_summary = [
+            'Hoạt động quy đổi', 
+            'Đơn vị tính', 
+            'Số lượng', 
+            'Hệ số', 
+            'Giờ quy đổi', 
+            'Ghi chú'
+        ]
+        
+        # Lọc danh sách để chỉ bao gồm các cột thực sự tồn tại trong DataFrame cuối cùng
+        existing_cols_to_display = [col for col in cols_to_display_summary if col in final_hoatdong_df.columns]
+        
+        # Hiển thị dataframe với các cột và thứ tự đã chỉ định, ẩn các cột khác
+        st.dataframe(final_hoatdong_df[existing_cols_to_display], use_container_width=True)
     else:
         st.info("Chưa có hoạt động nào được kê khai.")
 
