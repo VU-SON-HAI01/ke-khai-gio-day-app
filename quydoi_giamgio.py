@@ -28,7 +28,6 @@ def clear_worksheet(spreadsheet, sheet_name):
 
 # --- LẤY DỮ LIỆU TỪ SESSION STATE ---
 df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
-# SỬA LỖI: Sử dụng df_quydoi_hd thay vì df_quydoi_hd_them
 df_quydoi_hd_g = st.session_state.get('df_quydoi_hd', pd.DataFrame())
 
 if 'magv' in st.session_state and 'chuangv' in st.session_state and 'giochuan' in st.session_state and 'spreadsheet' in st.session_state:
@@ -65,7 +64,6 @@ def load_giamgio_from_gsheet(spreadsheet):
         data = ws.get_all_records()
         if data:
             df = pd.DataFrame(data)
-            # Chuyển đổi an toàn sang ngày tháng
             df['Từ ngày'] = pd.to_datetime(df['Từ ngày'], errors='coerce').dt.date
             df['Đến ngày'] = pd.to_datetime(df['Đến ngày'], errors='coerce').dt.date
             st.session_state.giamgio_input_df = df
@@ -87,6 +85,10 @@ def tinh_toan_kiem_nhiem():
     TET_WEEKS = [24, 25]
     CHUC_VU_VP_MAP = {'NV': 0.2 * 8 / 11, 'PTP': 0.18 * 8 / 11, 'TP': 0.14 * 8 / 11, 'PHT': 0.1 * 8 / 11, 'HT': 0.08 * 8 / 11, }
     CHUC_VU_HIEN_TAI = 'NV'
+
+    if df_quydoi_hd_g.empty:
+        st.error("Dữ liệu quy đổi giảm trừ (df_quydoi_hd) chưa được tải. Vui lòng kiểm tra lại file Google Sheet và quyền truy cập.")
+        st.stop()
 
     # Xử lý df_ngaytuan_g một lần
     if 'start_date' not in df_ngaytuan_g.columns:
@@ -123,21 +125,17 @@ def tinh_toan_kiem_nhiem():
         return []
 
     # --- SỬA LỖI TÊN CỘT ---
-    # Tìm tên cột hoạt động một cách linh hoạt
-    activity_col_name = None
-    for col in df_quydoi_hd_g.columns:
-        if 'CHỨC VỤ' in col and 'GVCN' in col:
-            activity_col_name = col
-            break
-    
-    if not activity_col_name:
-        st.error("Lỗi nghiêm trọng: Không tìm thấy cột chứa nội dung hoạt động quy đổi giảm trừ trong file dữ liệu nền.")
+    # Lấy tên cột hoạt động một cách linh hoạt bằng cách giả định nó là cột thứ hai
+    if len(df_quydoi_hd_g.columns) < 2:
+        st.error("Lỗi nghiêm trọng: File dữ liệu quy đổi giảm trừ phải có ít nhất 2 cột.")
         st.stop()
-
+    
+    activity_col_name = df_quydoi_hd_g.columns[1]
+    
     try:
         hoat_dong_list = df_quydoi_hd_g[activity_col_name].dropna().unique().tolist()
     except Exception as e:
-        st.error(f"Lỗi khi lấy danh sách hoạt động: {e}")
+        st.error(f"Lỗi khi lấy danh sách hoạt động từ cột '{activity_col_name}': {e}")
         st.stop()
     
     # Giao diện nhập liệu
