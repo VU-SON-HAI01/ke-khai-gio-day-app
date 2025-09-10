@@ -143,7 +143,6 @@ def save_hoatdong_to_gsheet(spreadsheet):
     except Exception as e:
         st.error(f"Lỗi khi lưu hoạt động: {e}")
 
-# Bỏ @st.cache_data để đảm bảo dữ liệu luôn được tải mới
 def load_hoatdong_from_gsheet(_spreadsheet):
     """Chỉ tải dữ liệu INPUT từ Google Sheet."""
     inputs_df = pd.DataFrame()
@@ -162,6 +161,7 @@ def load_hoatdong_from_gsheet(_spreadsheet):
 
 def sync_inputs_and_recalculate(inputs_df):
     """Đồng bộ dữ liệu INPUT và tính toán lại kết quả."""
+    # Xóa toàn bộ trạng thái cũ trước khi đồng bộ
     for key in list(st.session_state.keys()):
         if any(key.startswith(p) for p in ['df_hoatdong_', 'select_', 'num_', 'cap', 'soluong', 'vaitro', 'ghichu', 'dqtv_', 'hd_khac_', 'note_']):
             del st.session_state[key]
@@ -467,12 +467,24 @@ if ('hoatdong_page_loaded_for_user' not in st.session_state or
 # --- KHỞI TẠO VÀ QUẢN LÝ CÁC NÚT BẤM ---
 if 'selectbox_count_hd' not in st.session_state:
     st.session_state.selectbox_count_hd = 0
-def add_callback(): st.session_state.selectbox_count_hd += 1
+
+def add_callback(): 
+    st.session_state.selectbox_count_hd += 1
+
 def delete_callback():
     if st.session_state.selectbox_count_hd > 0:
         last_index = st.session_state.selectbox_count_hd - 1
-        # Xóa các state liên quan đến hoạt động cuối cùng
-        # (Không cần xóa key cụ thể vì sync sẽ làm điều đó, chỉ cần giảm count)
+        
+        # Tạo danh sách các key cần xóa một cách an toàn
+        keys_to_delete = []
+        for key in st.session_state.keys():
+            if key.endswith(f'_{last_index}'):
+                 if any(key.startswith(p) for p in ['df_hoatdong_', 'select_', 'num_', 'cap', 'soluong', 'vaitro', 'ghichu', 'dqtv_', 'hd_khac_', 'note_']):
+                      keys_to_delete.append(key)
+        
+        for key in keys_to_delete:
+            del st.session_state[key]
+            
         st.session_state.selectbox_count_hd -= 1
 
 col_buttons = st.columns(4)
@@ -507,10 +519,19 @@ for i in range(st.session_state.selectbox_count_hd):
             default_index = 0
         
         def on_activity_change(idx):
-            # Khi thay đổi loại hoạt động, chỉ cần gọi lại hàm tính toán chính
-            # để nó tạo ra dataframe kết quả mới (rỗng hoặc với giá trị mặc định)
-            selected_activity = st.session_state[f'select_{idx}']
-            run_initial_calculation(idx, selected_activity)
+            # Khi loại hoạt động thay đổi, xóa các giá trị input cũ để reset về mặc định
+            keys_to_clear_patterns = [
+                f'num_input_{idx}', f'num_{idx}', f'note_{idx}', f'capgiai_{idx}', f'capdetai_{idx}',
+                f'soluongtv_{idx}', f'vaitro_{idx}', f'ghichu_{idx}', f'dqtv_start_{idx}',
+                f'dqtv_end_{idx}', f'hd_khac_noidung_{idx}', f'hd_khac_sotiet_{idx}', f'hd_khac_ghichu_{idx}'
+            ]
+            for key in keys_to_clear_patterns:
+                if key in st.session_state:
+                    del st.session_state[key]
+            
+            # Xóa cả dataframe kết quả cũ
+            if f'df_hoatdong_{idx}' in st.session_state:
+                del st.session_state[f'df_hoatdong_{idx}']
 
         hoatdong_x = st.selectbox(f"CHỌN HOẠT ĐỘNG QUY ĐỔI:", options_filtered, index=default_index, key=f"select_{i}", on_change=on_activity_change, args=(i,))
 
