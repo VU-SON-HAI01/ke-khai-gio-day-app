@@ -144,6 +144,11 @@ def run_initial_calculation(i, activity_name):
         # Các hoạt động dùng chung 1 callback
         for idx in [10, 11, 12, 13]:
             callback_map[df_quydoi_hd_g.iloc[idx, 1]] = calculate_traiNghiemGiaoVienCN
+        
+        # Gán callback cho các hoạt động "Quy đổi khác"
+        for hoat_dong in df_quydoi_hd_g.iloc[:, 1].dropna().unique():
+            if "Quy đổi khác" in hoat_dong:
+                callback_map[hoat_dong] = calculate_hoatdongkhac
 
         if activity_name in callback_map:
             callback_map[activity_name](i)
@@ -155,7 +160,7 @@ def calculate_kiemtraTN(i):
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_ngay': [1]}))['so_ngay'].iloc[0]
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_ngay': quydoi_x}])
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Ngày', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
@@ -172,7 +177,7 @@ def calculate_huongDanChuyenDeTN(i):
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_chuyen_de': [1]}))['so_chuyen_de'].iloc[0]
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_chuyen_de': quydoi_x}])
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Chuyên đề', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
@@ -189,7 +194,7 @@ def calculate_chamChuyenDeTN(i):
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_bai': [1]}))['so_bai'].iloc[0]
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_bai': quydoi_x}])
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Bài', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
@@ -206,7 +211,7 @@ def calculate_huongDanChamBaoCaoTN(i):
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_bai': [1]}))['so_bai'].iloc[0]
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_bai': quydoi_x}])
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Bài', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
@@ -223,7 +228,7 @@ def calculate_diThucTapDN(i):
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_tuan': [1]}))['so_tuan'].iloc[0]
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_tuan': quydoi_x}])
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
     heso = giochuan / 44
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Tuần', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
@@ -241,7 +246,7 @@ def calculate_boiDuongNhaGiao(i):
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_gio': [1]}))['so_gio'].iloc[0]
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_gio': quydoi_x}])
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Giờ', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
@@ -258,7 +263,7 @@ def calculate_phongTraoTDTT(i):
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_ngay': [1]}))['so_ngay'].iloc[0]
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_ngay': quydoi_x}])
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh, heso = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH', 'Hệ số']].values[0]
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Ngày', 'Số lượng': [quydoi_x], 'Hệ số': [heso], 'Giờ quy đổi': [heso * quydoi_x]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
@@ -279,7 +284,7 @@ def calculate_traiNghiemGiaoVienCN(i):
     ghi_chu = st.session_state.get(f'note_{i}', default_ghi_chu)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_tiet': quydoi_x, 'ghi_chu': ghi_chu}])
     quydoi_ketqua = round(float(quydoi_x), 1)
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Giờ quy đổi': [quydoi_ketqua], 'Ghi chú': [ghi_chu]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
@@ -302,7 +307,7 @@ def calculate_nhaGiaoHoiGiang(i):
     mapping_tuan = {'Toàn quốc': 4, 'Cấp Tỉnh': 2, 'Cấp Trường': 1}
     so_tuan = mapping_tuan[cap_dat_giai]
     heso = giochuan / 44
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Cấp(Tuần)', 'Số lượng': [so_tuan], 'Hệ số': [heso], 'Giờ quy đổi': [heso * so_tuan]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
@@ -328,7 +333,7 @@ def calculate_deTaiNCKH(i):
     nhom_tac_gia = "1" if so_luong_tv == 1 else "2" if so_luong_tv == 2 else "3" if so_luong_tv == 3 else ">3"
     try: quydoi_ketqua = lookup_table[cap_de_tai][nhom_tac_gia][vai_tro]
     except KeyError: quydoi_ketqua = 0
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Cấp đề tài': [cap_de_tai], 'Số lượng TV': [so_luong_tv], 'Tác giả': [vai_tro], 'Giờ quy đổi': [quydoi_ketqua], 'Ghi chú': [ghi_chu]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
@@ -373,7 +378,7 @@ def calculate_danQuanTuVe(i):
     he_so = (giochuan / 44) / 6
     gio_quy_doi = so_ngay_tham_gia * he_so
     
-    dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
+    dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
     
     data = {
@@ -403,32 +408,55 @@ def ui_danQuanTuVe(i, ten_hoatdong):
     if st.session_state.get(f'dqtv_end_{i}', default_end_date) < st.session_state.get(f'dqtv_start_{i}', default_start_date):
         st.error("Ngày kết thúc không được nhỏ hơn ngày bắt đầu.")
 
-# --- 12. Hoạt động khác (Sử dụng st.data_editor) ---
-def ui_hoatdongkhac(i1, ten_hoatdong):
-    st.subheader(f"Nhập các hoạt động khác")
-    input_df = st.session_state.get(f'input_df_hoatdong_{i1}')
-    if input_df is None or input_df.empty:
-        df_for_editing = pd.DataFrame([{"Tên hoạt động khác": "Điền nội dung hoạt động khác", "Tiết": 0.0, "Thuộc NCKH": "Không", "Ghi chú": ""}])
+# --- 12. Hoạt động khác ---
+def calculate_hoatdongkhac(i):
+    """Tính toán cho hoạt động khác dựa trên input của người dùng."""
+    ten_hoatdong_selectbox = st.session_state.get(f'select_{i}')
+    if not ten_hoatdong_selectbox: return
+
+    # Lấy giá trị mặc định từ input_df đã lưu nếu có
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'noi_dung': '', 'so_tiet': 0.0, 'ghi_chu': ''}]))
+    default_noi_dung = input_df['noi_dung'].iloc[0]
+    default_so_tiet = input_df['so_tiet'].iloc[0]
+    default_ghi_chu = input_df['ghi_chu'].iloc[0]
+    
+    # Lấy giá trị hiện tại từ các widget, nếu chưa có thì dùng giá trị mặc định
+    noi_dung = st.session_state.get(f'hd_khac_noidung_{i}', default_noi_dung)
+    so_tiet = st.session_state.get(f'hd_khac_sotiet_{i}', default_so_tiet)
+    ghi_chu = st.session_state.get(f'hd_khac_ghichu_{i}', default_ghi_chu)
+
+    # Lưu lại các giá trị input hiện tại
+    st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'noi_dung': noi_dung, 'so_tiet': so_tiet, 'ghi_chu': ghi_chu}])
+
+    # Tạo DataFrame kết quả chỉ khi có nội dung hoạt động
+    if noi_dung and noi_dung.strip() != '':
+        # Xác định Mã HĐ và Mã NCKH dựa trên lựa chọn trong selectbox
+        dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong_selectbox)
+        ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
+        
+        data = {
+            'Mã HĐ': [ma_hoatdong], 
+            'MÃ NCKH': [ma_nckh], 
+            'Hoạt động quy đổi': [noi_dung.strip()], # Sử dụng nội dung người dùng nhập
+            'Giờ quy đổi': [float(so_tiet)], 
+            'Ghi chú': [ghi_chu]
+        }
+        st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
     else:
-        df_for_editing = input_df
-    st.markdown("<i style='color: orange;'>*Thêm, sửa hoặc xóa các hoạt động trong bảng dưới đây.*</i>", unsafe_allow_html=True)
-    edited_df = st.data_editor(df_for_editing, num_rows="dynamic", column_config={"Tên hoạt động khác": st.column_config.TextColumn("Tên hoạt động", width="large", required=True), "Tiết": st.column_config.NumberColumn("Số tiết quy đổi", min_value=0.0, format="%.1f"), "Thuộc NCKH": st.column_config.SelectboxColumn("Thuộc NCKH", options=["Không", "Có"]), "Ghi chú": st.column_config.TextColumn("Ghi chú", width="medium")}, use_container_width=True, key=f"editor_{i1}")
-    st.session_state[f'input_df_hoatdong_{i1}'] = edited_df.copy()
-    valid_rows = edited_df.dropna(subset=['Tên hoạt động khác'])
-    valid_rows = valid_rows[valid_rows['Tên hoạt động khác'].str.strip() != '']
-    valid_rows = valid_rows[valid_rows['Tên hoạt động khác'] != 'Điền nội dung hoạt động khác']
-    if not valid_rows.empty:
-        result_df = valid_rows.copy()
-        dieu_kien = (df_quydoi_hd_g['Nội dung hoạt động quy đổi'] == ten_hoatdong)
-        ma_hoatdong = df_quydoi_hd_g.loc[dieu_kien, 'MÃ'].values[0]
-        result_df['Mã HĐ'] = ma_hoatdong
-        result_df['MÃ NCKH'] = np.where(result_df['Thuộc NCKH'] == 'Có', 'NCKH', 'BT')
-        result_df.rename(columns={'Tiết': 'Giờ quy đổi', 'Tên hoạt động khác': 'Hoạt động quy đổi'}, inplace=True)
-        final_columns = ['Mã HĐ', 'MÃ NCKH', 'Hoạt động quy đổi', 'Giờ quy đổi', 'Ghi chú']
-        existing_columns = [col for col in final_columns if col in result_df.columns]
-        st.session_state[f'df_hoatdong_{i1}'] = result_df[existing_columns]
-    else:
-        st.session_state[f'df_hoatdong_{i1}'] = pd.DataFrame()
+        # Nếu không có nội dung, tạo DataFrame kết quả rỗng
+        st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame()
+
+def ui_hoatdongkhac(i, ten_hoatdong):
+    """Hiển thị giao diện nhập liệu cho các hoạt động khác."""
+    # Tải giá trị mặc định từ input_df đã lưu
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'noi_dung': '', 'so_tiet': 0.0, 'ghi_chu': ''}]))
+    default_noi_dung = input_df['noi_dung'].iloc[0]
+    default_so_tiet = input_df['so_tiet'].iloc[0]
+    default_ghi_chu = input_df['ghi_chu'].iloc[0]
+    
+    st.text_input("1. Nội dung hoạt động", value=default_noi_dung, key=f"hd_khac_noidung_{i}", on_change=calculate_hoatdongkhac, args=(i,), help="Nhập nội dung cụ thể của hoạt động.")
+    st.number_input("2. Nhập số tiết đã quy đổi", value=float(default_so_tiet), min_value=0.0, format="%.1f", key=f"hd_khac_sotiet_{i}", on_change=calculate_hoatdongkhac, args=(i,))
+    st.text_input("3. Ghi chú", value=default_ghi_chu, key=f"hd_khac_ghichu_{i}", on_change=calculate_hoatdongkhac, args=(i,), help="Thêm các giải thích liên quan (ví dụ: số quyết định).")
 
 
 # --- GIAO DIỆN CHÍNH ---
@@ -496,7 +524,8 @@ for i in range(st.session_state.selectbox_count_hd):
         elif hoatdong_x in [df_quydoi_hd_g.iloc[j, 1] for j in [10, 11, 12, 13]]: ui_traiNghiemGiaoVienCN(i, hoatdong_x)
         elif hoatdong_x == df_quydoi_hd_g.iloc[5, 1]: ui_nhaGiaoHoiGiang(i, hoatdong_x)
         elif hoatdong_x == df_quydoi_hd_g.iloc[14, 1]: ui_deTaiNCKH(i, hoatdong_x)
-        elif hoatdong_x == df_quydoi_hd_g.iloc[15, 1]: ui_hoatdongkhac(i, hoatdong_x)
+        # Sửa lại điều kiện cho các hoạt động khác
+        elif "Quy đổi khác" in hoatdong_x: ui_hoatdongkhac(i, hoatdong_x)
 
         if f'df_hoatdong_{i}' in st.session_state:
             st.write("---")
