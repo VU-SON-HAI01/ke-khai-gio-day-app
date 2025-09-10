@@ -143,7 +143,7 @@ def save_hoatdong_to_gsheet(spreadsheet):
     except Exception as e:
         st.error(f"Lỗi khi lưu hoạt động: {e}")
 
-@st.cache_data(show_spinner=False)
+# Bỏ @st.cache_data để đảm bảo dữ liệu luôn được tải mới
 def load_hoatdong_from_gsheet(_spreadsheet):
     """Chỉ tải dữ liệu INPUT từ Google Sheet."""
     inputs_df = pd.DataFrame()
@@ -200,8 +200,6 @@ def sync_inputs_and_recalculate(inputs_df):
 def run_initial_calculation(i, activity_name):
     """Chạy tính toán ban đầu nếu kết quả chưa có trong session state."""
     if f'df_hoatdong_{i}' not in st.session_state:
-        # (Nội dung hàm này được tích hợp vào sync_inputs_and_recalculate nên có thể để trống hoặc gọi calculate)
-        # Để đảm bảo, ta vẫn gọi calculate tương ứng
         callback_map = {
             df_quydoi_hd_g.iloc[3, 1]: calculate_kiemtraTN, df_quydoi_hd_g.iloc[1, 1]: calculate_huongDanChuyenDeTN,
             df_quydoi_hd_g.iloc[2, 1]: calculate_chamChuyenDeTN, df_quydoi_hd_g.iloc[4, 1]: calculate_huongDanChamBaoCaoTN,
