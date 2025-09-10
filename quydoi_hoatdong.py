@@ -462,7 +462,7 @@ if ('hoatdong_page_loaded_for_user' not in st.session_state or
     st.session_state.hoatdong_page_loaded_for_user = magv
     if 'force_page_reload' in st.session_state:
         del st.session_state['force_page_reload']
-    st.rerun()
+    
 
 # --- KHỞI TẠO VÀ QUẢN LÝ CÁC NÚT BẤM ---
 if 'selectbox_count_hd' not in st.session_state:
