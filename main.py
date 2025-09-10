@@ -453,24 +453,14 @@ else:
                     st.session_state.clear()
                     st.rerun()
             
-            # <<<--- PHẦN CODE ĐƯỢC CẬP NHẬT --- >>>
-            def on_page_change():
-                """
-                Callback được gọi mỗi khi có sự thay đổi trang trong st.navigation.
-                Hàm này sẽ so sánh trang hiện tại và trang trước đó để quyết định
-                có cần đặt cờ yêu cầu tải lại dữ liệu hay không.
-                """
-                # `st.navigation` tự động lưu trang được chọn vào session_state với key đã cung cấp ("pg")
-                current_page = st.session_state.pg 
-                previous_page = st.session_state.get('previous_page', None)
+            # <<<--- PHẦN CODE ĐƯỢC SỬA LỖI --- >>>
+            # Khởi tạo `pg` trong session_state nếu chưa có
+            if "pg" not in st.session_state:
+                st.session_state.pg = "Trang chủ"
 
-                # Nếu trang đã thay đổi, đặt cờ
-                if previous_page != current_page:
-                    st.session_state['force_page_reload'] = True
-                
-                # Luôn cập nhật trang trước đó cho lần so sánh tiếp theo
-                st.session_state['previous_page'] = current_page
-
+            # Lưu lại trang của lần chạy trước
+            previous_page = st.session_state.pg
+            
             pages = {
                 "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
                 "Kê khai": [
@@ -483,11 +473,17 @@ else:
                 "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")]
             }
             
-            # Sử dụng `key` và `on_change` để theo dõi và xử lý việc chuyển trang một cách đáng tin cậy
-            pg = st.navigation(pages, key="pg", on_change=on_page_change)
+            # Tạo widget điều hướng. KHÔNG SỬ DỤNG on_change.
+            pg = st.navigation(pages, key="pg")
+
+            # Lấy trang hiện tại (có thể đã được cập nhật bởi widget ở trên)
+            current_page = st.session_state.pg
             
-            # Khởi tạo giá trị ban đầu cho `previous_page` nếu nó chưa tồn tại
-            if 'previous_page' not in st.session_state:
-                st.session_state['previous_page'] = st.session_state.pg
+            # So sánh và đặt cờ nếu trang đã thay đổi
+            if previous_page != current_page:
+                st.session_state['force_page_reload'] = True
             
+            # Chạy trang đã chọn
             pg.run()
+            # <<<--- KẾT THÚC PHẦN SỬA LỖI --- >>>
+
