@@ -80,11 +80,14 @@ def load_hoatdong_from_gsheet(_spreadsheet):
     results_df = pd.DataFrame()
     try:
         ws = _spreadsheet.worksheet("input_hoatdong")
-        inputs_data = ws.get_all_records()
-        if inputs_data:
-            inputs_df = pd.DataFrame(inputs_data)
+        # Sửa lỗi: Dùng get_all_values để tránh lỗi type inference của gspread
+        all_values = ws.get_all_values()
+        if len(all_values) > 1:
+            headers = all_values[0]
+            data = all_values[1:]
+            inputs_df = pd.DataFrame(data, columns=headers)
     except gspread.WorksheetNotFound:
-        pass # Không phải lỗi nếu sheet chưa tồn tại
+        pass 
     except Exception as e:
         st.error(f"Lỗi khi tải dữ liệu input hoạt động: {e}")
 
@@ -94,7 +97,7 @@ def load_hoatdong_from_gsheet(_spreadsheet):
         if results_data:
             results_df = pd.DataFrame(results_data)
     except gspread.WorksheetNotFound:
-        pass # Không sao nếu không có sheet output
+        pass 
     except Exception as e:
         st.error(f"Lỗi khi tải dữ liệu output hoạt động: {e}")
         
