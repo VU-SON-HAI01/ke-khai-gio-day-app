@@ -191,12 +191,11 @@ def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_ba
     # (Hàm này được giữ nguyên, không thay đổi)
     loaded_dfs = {}
     
-    # --- Phần tải Parquet (không đổi) ---
     files_to_load_parquet = ['df_giaovien.parquet', 'df_hesosiso.parquet', 'df_khoa.parquet', 'df_lop.parquet',
                              'df_lopgheptach.parquet', 'df_manghe.parquet', 'df_mon.parquet', 'df_nangnhoc.parquet',
                              'df_ngaytuan.parquet', 'mau_kelop.parquet', 'mau_quydoi.parquet']
     
-    total_files = len(files_to_load_parquet) + 2 # +2 cho sheet từ Google
+    total_files = len(files_to_load_parquet) + 2
     progress_bar = st.progress(0, text="Đang tải dữ liệu cơ sở...")
     
     for i, file_name in enumerate(files_to_load_parquet):
@@ -207,9 +206,7 @@ def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_ba
             st.warning(f"Không thể tải file '{file_name}': {e}")
         progress_bar.progress((i + 1) / total_files, text=f"Đang tải {file_name}...")
 
-    # --- Phần tải từ Google Sheet (Đã cập nhật) ---
     try:
-        # 1. Tìm ID của folder "DỮ_LIỆU_QUẢN_TRỊ"
         folder_query = f"mimeType='application/vnd.google-apps.folder' and name='{ADMIN_DATA_FOLDER_NAME}' and trashed=false"
         folder_response = _sa_drive_service.files().list(q=folder_query, fields='files(id)').execute()
         folders = folder_response.get('files', [])
@@ -219,7 +216,6 @@ def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_ba
         
         folder_id = folders[0].get('id')
 
-        # 2. Tìm ID của file "DATA_KEGIO" bên trong folder đó
         file_query = f"name='{ADMIN_DATA_SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
         file_response = _sa_drive_service.files().list(q=file_query, fields='files(id)').execute()
         files = file_response.get('files', [])
@@ -229,7 +225,6 @@ def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_ba
             
         file_id = files[0].get('id')
 
-        # 3. Mở file bằng ID và tải dữ liệu
         admin_data_sheet = _sa_gspread_client.open_by_key(file_id)
         
         worksheet_hd = admin_data_sheet.worksheet("QUYDOI_HD")
@@ -458,21 +453,23 @@ else:
                     st.session_state.clear()
                     st.rerun()
             
-            # <<<--- BẮT ĐẦU PHẦN CODE MỚI --- >>>
-            # LOGIC ĐỂ TỰ ĐỘNG TẢI LẠI DỮ LIỆU KHI CHUYỂN TRANG
-            # Lấy tên trang hiện tại từ URL query params. 'st.navigation' tự động cập nhật param 'page'.
-            # Nếu không có param 'page' (lần chạy đầu tiên), mặc định là 'Trang chủ'.
-            current_page_title = st.query_params.get("page", "Trang chủ")
+            # <<<--- PHẦN CODE ĐƯỢC CẬP NHẬT --- >>>
+            def on_page_change():
+                """
+                Callback được gọi mỗi khi có sự thay đổi trang trong st.navigation.
+                Hàm này sẽ so sánh trang hiện tại và trang trước đó để quyết định
+                có cần đặt cờ yêu cầu tải lại dữ liệu hay không.
+                """
+                # `st.navigation` tự động lưu trang được chọn vào session_state với key đã cung cấp ("pg")
+                current_page = st.session_state.pg 
+                previous_page = st.session_state.get('previous_page', None)
 
-            # Lấy tên trang đã lưu từ lần chạy trước
-            previous_page_title = st.session_state.get('current_page_title', None)
-
-            # Nếu trang đã thay đổi so với lần trước, đặt cờ yêu cầu tải lại dữ liệu
-            if previous_page_title != current_page_title:
-                st.session_state['force_page_reload'] = True
-                # Cập nhật trang hiện tại vào session state để so sánh cho lần sau
-                st.session_state['current_page_title'] = current_page_title
-            # <<<--- KẾT THÚC PHẦN CODE MỚI --- >>>
+                # Nếu trang đã thay đổi, đặt cờ
+                if previous_page != current_page:
+                    st.session_state['force_page_reload'] = True
+                
+                # Luôn cập nhật trang trước đó cho lần so sánh tiếp theo
+                st.session_state['previous_page'] = current_page
 
             pages = {
                 "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
@@ -485,5 +482,36 @@ else:
                 "Báo cáo": [st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file", icon="📄")],
                 "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")]
             }
-            pg = st.navigation(pages)
+            
+            # Sử dụng `key` và `on_change` để theo dõi và xử lý việc chuyển trang một cách đáng tin cậy
+            pg = st.navigation(pages, key="pg", on_change=on_page_change)
+            
+            # Khởi tạo giá trị ban đầu cho `previous_page` nếu nó chưa tồn tại
+            if 'previous_page' not in st.session_state:
+                st.session_state['previous_page'] = st.session_state.pg
+            
             pg.run()
+            # <<<--- KẾT THÚC PHẦN CODE CẬP NHẬT --- >>>
+```
+
+### Hướng dẫn tiếp theo (Quan trọng)
+
+File `main.py` ở trên đã được sửa để đặt cờ `force_page_reload` một cách chính xác. Bây giờ, bạn cần đảm bảo file `quydoi_hoatdong.py` sử dụng cờ này và **thực hiện `st.rerun()`** để hoàn tất quá trình.
+
+Hãy đảm bảo rằng khối code tải dữ liệu trong `quydoi_hoatdong.py` của bạn trông giống hệt như sau:
+
+```python
+# <<<--- Khối code cần kiểm tra trong quydoi_hoatdong.py --- >>>
+if ('hoatdong_page_loaded_for_user' not in st.session_state or
+    st.session_state.hoatdong_page_loaded_for_user != magv or
+    st.session_state.get('force_page_reload', False)):
+    with st.spinner("Đang tải và tính toán lại dữ liệu..."):
+        inputs_df = load_hoatdong_from_gsheet(spreadsheet)
+        sync_inputs_and_recalculate(inputs_df)
+    st.session_state.hoatdong_page_loaded_for_user = magv
+    if 'force_page_reload' in st.session_state:
+        del st.session_state['force_page_reload']
+    
+    # Dòng này rất quan trọng để đồng bộ giao diện sau khi tải dữ liệu
+    st.rerun() 
+
