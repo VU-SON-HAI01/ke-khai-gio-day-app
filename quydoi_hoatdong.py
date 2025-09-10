@@ -84,7 +84,7 @@ def load_hoatdong_from_gsheet(_spreadsheet):
         if inputs_data:
             inputs_df = pd.DataFrame(inputs_data)
     except gspread.WorksheetNotFound:
-        st.info("Chưa có dữ liệu hoạt động nào được lưu (không tìm thấy sheet 'input_hoatdong').")
+        pass # Không phải lỗi nếu sheet chưa tồn tại
     except Exception as e:
         st.error(f"Lỗi khi tải dữ liệu input hoạt động: {e}")
 
@@ -469,9 +469,13 @@ def ui_hoatdongkhac(i, ten_hoatdong):
 # --- GIAO DIỆN CHÍNH ---
 st.markdown("<h1 style='text-align: center; color: orange;'>QUY ĐỔI CÁC HOẠT ĐỘNG KHÁC</h1>", unsafe_allow_html=True)
 
-# Luôn tải lại dữ liệu từ Google Sheet mỗi khi truy cập trang
-inputs_df, results_df = load_hoatdong_from_gsheet(spreadsheet)
-sync_data_to_session(inputs_df, results_df)
+# Sửa lại: chỉ tải dữ liệu một lần khi vào trang hoặc khi người dùng thay đổi
+if 'hoatdong_page_loaded_for_user' not in st.session_state or st.session_state.hoatdong_page_loaded_for_user != magv:
+    with st.spinner("Đang tải dữ liệu hoạt động..."):
+        inputs_df, results_df = load_hoatdong_from_gsheet(spreadsheet)
+        sync_data_to_session(inputs_df, results_df)
+    st.session_state.hoatdong_page_loaded_for_user = magv
+    st.rerun()
 
 if 'selectbox_count_hd' not in st.session_state:
     st.session_state.selectbox_count_hd = 0
@@ -491,9 +495,9 @@ with col_buttons[2]:
         save_hoatdong_to_gsheet(spreadsheet)
 with col_buttons[3]:
     if st.button("Tải lại dữ liệu", key="load_activities_manual", use_container_width=True):
-        # Tải lại và đồng bộ hóa một cách tường minh khi người dùng nhấp vào
-        reloaded_inputs, reloaded_results = load_hoatdong_from_gsheet(spreadsheet)
-        sync_data_to_session(reloaded_inputs, reloaded_results)
+        with st.spinner("Đang tải lại dữ liệu..."):
+            reloaded_inputs, reloaded_results = load_hoatdong_from_gsheet(spreadsheet)
+            sync_data_to_session(reloaded_inputs, reloaded_results)
         st.rerun()
 st.divider()
 
