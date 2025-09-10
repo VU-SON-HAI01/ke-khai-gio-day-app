@@ -75,62 +75,71 @@ def save_hoatdong_to_gsheet(spreadsheet):
 
 @st.cache_data(show_spinner=False)
 def load_hoatdong_from_gsheet(_spreadsheet):
-    """Tải các hoạt động (trừ giảm giờ) từ Google Sheet."""
+    """Chỉ tải dữ liệu INPUT của các hoạt động từ Google Sheet."""
     inputs_df = pd.DataFrame()
-    results_df = pd.DataFrame()
     try:
         ws = _spreadsheet.worksheet("input_hoatdong")
-        # Sửa lỗi: Dùng get_all_values để tránh lỗi type inference của gspread
         all_values = ws.get_all_values()
         if len(all_values) > 1:
             headers = all_values[0]
             data = all_values[1:]
             inputs_df = pd.DataFrame(data, columns=headers)
     except gspread.WorksheetNotFound:
-        pass
+        pass # Trả về DataFrame rỗng nếu không tìm thấy sheet
     except Exception as e:
         st.error(f"Lỗi khi tải dữ liệu input hoạt động: {e}")
+    return inputs_df
 
-    try:
-        results_ws = _spreadsheet.worksheet("output_hoatdong")
-        results_data = results_ws.get_all_records(numericise_ignore=['all'])
-        if results_data:
-            results_df = pd.DataFrame(results_data)
-    except gspread.WorksheetNotFound:
-        pass
-    except Exception as e:
-        st.error(f"Lỗi khi tải dữ liệu output hoạt động: {e}")
-
-    return inputs_df, results_df
-
-def sync_data_to_session(inputs_df, results_df):
-    """Đồng bộ dữ liệu từ DataFrame vào session_state."""
+def sync_inputs_and_recalculate(inputs_df):
+    """Đồng bộ dữ liệu INPUT vào session_state và TÍNH TOÁN LẠI kết quả."""
+    # 1. Xóa các state cũ liên quan đến hoạt động
     for key in list(st.session_state.keys()):
         if key.startswith('df_hoatdong_') or key.startswith('input_df_hoatdong_') or key.startswith('select_'):
             del st.session_state[key]
     st.session_state.selectbox_count_hd = 0
 
-    if not inputs_df.empty:
-        inputs_df['activity_index'] = pd.to_numeric(inputs_df['activity_index'])
+    if inputs_df is not None and not inputs_df.empty:
+        # Đảm bảo cột activity_index là số để sắp xếp
+        inputs_df['activity_index'] = pd.to_numeric(inputs_df['activity_index'], errors='coerce')
         inputs_df = inputs_df.sort_values(by='activity_index').reset_index(drop=True)
         st.session_state.selectbox_count_hd = len(inputs_df)
 
+        # 2. Vòng lặp để thiết lập state cho input và tính toán lại
         for index, row in inputs_df.iterrows():
             i = row['activity_index']
-            st.session_state[f'select_{i}'] = row['activity_name']
-            df_input = pd.read_json(row['input_json'], orient='records')
-            st.session_state[f'input_df_hoatdong_{i}'] = df_input
+            activity_name = row['activity_name']
+            
+            # Thiết lập state cho selectbox và input dataframe
+            st.session_state[f'select_{i}'] = activity_name
+            try:
+                df_input = pd.read_json(row['input_json'], orient='records')
+                st.session_state[f'input_df_hoatdong_{i}'] = df_input
+            except (ValueError, TypeError):
+                # Xử lý trường hợp JSON không hợp lệ, tạo dataframe mặc định
+                st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame()
 
-        if not results_df.empty:
-            for col in results_df.columns:
-                if any(c in col.lower() for c in ['tiết', 'quy đổi', 'số lượng', 'hệ số', 'tuần', '%', 'tv']):
-                    results_df[col] = pd.to_numeric(results_df[col], errors='coerce')
 
-            for i in range(st.session_state.selectbox_count_hd):
-                df_activity_result = results_df[results_df['activity_index'].astype(str) == str(i)]
-                if 'activity_index' in df_activity_result.columns:
-                    df_activity_result = df_activity_result.drop(columns=['activity_index'])
-                st.session_state[f'df_hoatdong_{i}'] = df_activity_result.reset_index(drop=True)
+            # 3. TÍNH TOÁN LẠI KẾT QUẢ DỰA TRÊN INPUT VỪA TẢI
+            callback_map = {
+                df_quydoi_hd_g.iloc[3, 1]: calculate_kiemtraTN,
+                df_quydoi_hd_g.iloc[1, 1]: calculate_huongDanChuyenDeTN,
+                df_quydoi_hd_g.iloc[2, 1]: calculate_chamChuyenDeTN,
+                df_quydoi_hd_g.iloc[4, 1]: calculate_huongDanChamBaoCaoTN,
+                df_quydoi_hd_g.iloc[7, 1]: calculate_diThucTapDN,
+                df_quydoi_hd_g.iloc[8, 1]: calculate_boiDuongNhaGiao,
+                df_quydoi_hd_g.iloc[9, 1]: calculate_phongTraoTDTT,
+                df_quydoi_hd_g.iloc[5, 1]: calculate_nhaGiaoHoiGiang,
+                df_quydoi_hd_g.iloc[14, 1]: calculate_deTaiNCKH,
+                df_quydoi_hd_g.iloc[6, 1]: calculate_danQuanTuVe,
+            }
+            for idx in [10, 11, 12, 13]:
+                callback_map[df_quydoi_hd_g.iloc[idx, 1]] = calculate_traiNghiemGiaoVienCN
+            for hoat_dong in df_quydoi_hd_g.iloc[:, 1].dropna().unique():
+                if "Quy đổi khác" in hoat_dong:
+                    callback_map[hoat_dong] = calculate_hoatdongkhac
+            
+            if activity_name in callback_map:
+                callback_map[activity_name](i) # Gọi hàm tính toán
 
 
 # --- CÁC HÀM TÍNH TOÁN (CALLBACKS) VÀ HIỂN THỊ (UI) (Giữ nguyên không thay đổi) ---
@@ -493,9 +502,9 @@ if ('hoatdong_page_loaded_for_user' not in st.session_state or
     st.session_state.hoatdong_page_loaded_for_user != magv or
     st.session_state.get('force_page_reload', False)):
 
-    with st.spinner("Đang tải dữ liệu hoạt động..."):
-        inputs_df, results_df = load_hoatdong_from_gsheet(spreadsheet)
-        sync_data_to_session(inputs_df, results_df)
+    with st.spinner("Đang tải và tính toán lại dữ liệu..."):
+        inputs_df = load_hoatdong_from_gsheet(spreadsheet)
+        sync_inputs_and_recalculate(inputs_df)
 
     # Đánh dấu người dùng hiện tại đã tải dữ liệu xong cho trang này
     st.session_state.hoatdong_page_loaded_for_user = magv
@@ -524,9 +533,9 @@ with col_buttons[2]:
         save_hoatdong_to_gsheet(spreadsheet)
 with col_buttons[3]:
     if st.button("Tải lại dữ liệu", key="load_activities_manual", use_container_width=True):
-        with st.spinner("Đang tải lại dữ liệu..."):
-            reloaded_inputs, reloaded_results = load_hoatdong_from_gsheet(spreadsheet)
-            sync_data_to_session(reloaded_inputs, reloaded_results)
+        with st.spinner("Đang tải và tính toán lại dữ liệu..."):
+            reloaded_inputs = load_hoatdong_from_gsheet(spreadsheet)
+            sync_inputs_and_recalculate(reloaded_inputs)
         st.rerun()
 st.divider()
 
@@ -609,3 +618,4 @@ with activity_tabs[-1]:
         st.dataframe(final_hoatdong_df[existing_cols_to_display], use_container_width=True)
     else:
         st.info("Chưa có hoạt động nào được kê khai.")
+
