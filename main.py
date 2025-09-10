@@ -23,10 +23,10 @@ try:
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
     TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"]
     TEMPLATE_FILE_ID = st.secrets["google_sheet"]["template_file_id"]
-    
+
     # Cập nhật secrets cho folder và file dữ liệu quản trị
     ADMIN_DATA_FOLDER_NAME = st.secrets["google_sheet"]["admin_data_folder_name"]
-    ADMIN_DATA_SHEET_NAME = st.secrets["google_sheet"]["admin_data_sheet_name"] 
+    ADMIN_DATA_SHEET_NAME = st.secrets["google_sheet"]["admin_data_sheet_name"]
 
     ADMIN_EMAIL = "vshai48kd1@gmail.com"
     CLIENT_EMAIL = st.secrets["gcp_service_account"]["client_email"]
@@ -78,7 +78,7 @@ def connect_as_user(_token):
 
 
 def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file):
-    # (Giữ nguyên hàm này, không thay đổi)
+    # (Hàm này được giữ nguyên, không thay đổi)
     try:
         df_upload = pd.read_excel(uploaded_file)
         if 'email' not in df_upload.columns or 'magv' not in df_upload.columns:
@@ -151,7 +151,7 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
 
 
 def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, old_email, new_email):
-    # (Giữ nguyên hàm này, không thay đổi)
+    # (Hàm này được giữ nguyên, không thay đổi)
     try:
         spreadsheet = sa_gspread_client.open(magv_to_update)
         file_id = spreadsheet.id
@@ -188,6 +188,7 @@ def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, ol
 @st.cache_data(ttl=600)
 def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_base/'):
     """Tải tất cả các file dữ liệu nền Parquet và từ Google Sheet quản trị."""
+    # (Hàm này được giữ nguyên, không thay đổi)
     loaded_dfs = {}
     
     # --- Phần tải Parquet (không đổi) ---
@@ -259,7 +260,7 @@ def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_ba
 
 
 def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
-    # (Giữ nguyên hàm này, không thay đổi)
+    # (Hàm này được giữ nguyên, không thay đổi)
     if magv is None or df_giaovien is None or df_khoa is None or df_giaovien.empty or df_khoa.empty:
         return None
     teacher_row = df_giaovien[df_giaovien['Magv'].astype(str) == str(magv)]
@@ -272,7 +273,7 @@ def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
 
 
 def get_user_spreadsheet(sa_gspread_client, email):
-    # (Giữ nguyên hàm này, không thay đổi)
+    # (Hàm này được giữ nguyên, không thay đổi)
     try:
         mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
         df = pd.DataFrame(mapping_sheet.get_all_records())
@@ -322,7 +323,6 @@ else:
         st.header(f"Chào mừng, {welcome_name}!")
         st.info("Đây là trang chính của hệ thống. Vui lòng chọn chức năng từ menu bên trái.")
         
-        # --- THÊM PHẦN HIỂN THỊ DỮ LIỆU ĐỂ KIỂM TRA ---
         if st.session_state.get('initialized'):
             with st.expander("Kiểm tra dữ liệu đã tải: df_quydoi_hd (từ sheet QUYDOI_HD)"):
                 if 'df_quydoi_hd' in st.session_state and not st.session_state.df_quydoi_hd.empty:
@@ -458,6 +458,22 @@ else:
                     st.session_state.clear()
                     st.rerun()
             
+            # <<<--- BẮT ĐẦU PHẦN CODE MỚI --- >>>
+            # LOGIC ĐỂ TỰ ĐỘNG TẢI LẠI DỮ LIỆU KHI CHUYỂN TRANG
+            # Lấy tên trang hiện tại từ URL query params. 'st.navigation' tự động cập nhật param 'page'.
+            # Nếu không có param 'page' (lần chạy đầu tiên), mặc định là 'Trang chủ'.
+            current_page_title = st.query_params.get("page", "Trang chủ")
+
+            # Lấy tên trang đã lưu từ lần chạy trước
+            previous_page_title = st.session_state.get('current_page_title', None)
+
+            # Nếu trang đã thay đổi so với lần trước, đặt cờ yêu cầu tải lại dữ liệu
+            if previous_page_title != current_page_title:
+                st.session_state['force_page_reload'] = True
+                # Cập nhật trang hiện tại vào session state để so sánh cho lần sau
+                st.session_state['current_page_title'] = current_page_title
+            # <<<--- KẾT THÚC PHẦN CODE MỚI --- >>>
+
             pages = {
                 "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
                 "Kê khai": [
@@ -471,4 +487,3 @@ else:
             }
             pg = st.navigation(pages)
             pg.run()
-
