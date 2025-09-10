@@ -491,27 +491,3 @@ else:
                 st.session_state['previous_page'] = st.session_state.pg
             
             pg.run()
-            # <<<--- KẾT THÚC PHẦN CODE CẬP NHẬT --- >>>
- 
-
-### Hướng dẫn tiếp theo (Quan trọng)
-
-File `main.py` ở trên đã được sửa để đặt cờ `force_page_reload` một cách chính xác. Bây giờ, bạn cần đảm bảo file `quydoi_hoatdong.py` sử dụng cờ này và **thực hiện `st.rerun()`** để hoàn tất quá trình.
-
-Hãy đảm bảo rằng khối code tải dữ liệu trong `quydoi_hoatdong.py` của bạn trông giống hệt như sau:
-
-```python
-# <<<--- Khối code cần kiểm tra trong quydoi_hoatdong.py --- >>>
-if ('hoatdong_page_loaded_for_user' not in st.session_state or
-    st.session_state.hoatdong_page_loaded_for_user != magv or
-    st.session_state.get('force_page_reload', False)):
-    with st.spinner("Đang tải và tính toán lại dữ liệu..."):
-        inputs_df = load_hoatdong_from_gsheet(spreadsheet)
-        sync_inputs_and_recalculate(inputs_df)
-    st.session_state.hoatdong_page_loaded_for_user = magv
-    if 'force_page_reload' in st.session_state:
-        del st.session_state['force_page_reload']
-    
-    # Dòng này rất quan trọng để đồng bộ giao diện sau khi tải dữ liệu
-    st.rerun() 
-
