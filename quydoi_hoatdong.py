@@ -73,20 +73,41 @@ def save_hoatdong_to_gsheet(spreadsheet):
     except Exception as e:
         st.error(f"Lỗi khi lưu hoạt động: {e}")
 
-def load_hoatdong_from_gsheet(spreadsheet):
+@st.cache_data(show_spinner=False)
+def load_hoatdong_from_gsheet(_spreadsheet):
     """Tải các hoạt động (trừ giảm giờ) từ Google Sheet."""
+    inputs_df = pd.DataFrame()
+    results_df = pd.DataFrame()
+    try:
+        ws = _spreadsheet.worksheet("input_hoatdong")
+        inputs_data = ws.get_all_records()
+        if inputs_data:
+            inputs_df = pd.DataFrame(inputs_data)
+    except gspread.WorksheetNotFound:
+        st.info("Chưa có dữ liệu hoạt động nào được lưu (không tìm thấy sheet 'input_hoatdong').")
+    except Exception as e:
+        st.error(f"Lỗi khi tải dữ liệu input hoạt động: {e}")
+
+    try:
+        results_ws = _spreadsheet.worksheet("output_hoatdong")
+        results_data = results_ws.get_all_records(numericise_ignore=['all'])
+        if results_data:
+            results_df = pd.DataFrame(results_data)
+    except gspread.WorksheetNotFound:
+        pass # Không sao nếu không có sheet output
+    except Exception as e:
+        st.error(f"Lỗi khi tải dữ liệu output hoạt động: {e}")
+        
+    return inputs_df, results_df
+
+def sync_data_to_session(inputs_df, results_df):
+    """Đồng bộ dữ liệu từ DataFrame vào session_state."""
     for key in list(st.session_state.keys()):
         if key.startswith('df_hoatdong_') or key.startswith('input_df_hoatdong_') or key.startswith('select_'):
             del st.session_state[key]
     st.session_state.selectbox_count_hd = 0
-    try:
-        ws = spreadsheet.worksheet("input_hoatdong")
-        inputs_data = ws.get_all_records()
-        if not inputs_data:
-            st.info("Không tìm thấy dữ liệu hoạt động khác đã lưu.")
-            return
-        
-        inputs_df = pd.DataFrame(inputs_data)
+    
+    if not inputs_df.empty:
         inputs_df['activity_index'] = pd.to_numeric(inputs_df['activity_index'])
         inputs_df = inputs_df.sort_values(by='activity_index').reset_index(drop=True)
         st.session_state.selectbox_count_hd = len(inputs_df)
@@ -94,33 +115,19 @@ def load_hoatdong_from_gsheet(spreadsheet):
         for index, row in inputs_df.iterrows():
             i = row['activity_index']
             st.session_state[f'select_{i}'] = row['activity_name']
-            # Sử dụng json.loads để đọc lại input dataframe
             df_input = pd.read_json(row['input_json'], orient='records')
             st.session_state[f'input_df_hoatdong_{i}'] = df_input
-        
-        try:
-            results_ws = spreadsheet.worksheet("output_hoatdong")
-            results_data = results_ws.get_all_records(numericise_ignore=['all'])
-            if results_data:
-                results_df = pd.DataFrame(results_data)
-                # Chuyển đổi các cột số một cách an toàn
-                for col in results_df.columns:
-                    if any(c in col.lower() for c in ['tiết', 'quy đổi', 'số lượng', 'hệ số', 'tuần', '%', 'tv']):
-                        results_df[col] = pd.to_numeric(results_df[col], errors='coerce')
-                
-                for i in range(st.session_state.selectbox_count_hd):
-                    df_activity_result = results_df[results_df['activity_index'].astype(str) == str(i)]
-                    if 'activity_index' in df_activity_result.columns:
-                        df_activity_result = df_activity_result.drop(columns=['activity_index'])
-                    st.session_state[f'df_hoatdong_{i}'] = df_activity_result.reset_index(drop=True)
-        except gspread.WorksheetNotFound:
-            pass # Không sao nếu không có sheet output
-        
-        st.success(f"Đã tải thành công {st.session_state.selectbox_count_hd} hoạt động.")
-    except gspread.WorksheetNotFound:
-        st.info("Không tìm thấy dữ liệu hoạt động khác đã lưu.")
-    except Exception as e:
-        st.error(f"Lỗi khi tải hoạt động: {e}")
+
+        if not results_df.empty:
+            for col in results_df.columns:
+                if any(c in col.lower() for c in ['tiết', 'quy đổi', 'số lượng', 'hệ số', 'tuần', '%', 'tv']):
+                    results_df[col] = pd.to_numeric(results_df[col], errors='coerce')
+            
+            for i in range(st.session_state.selectbox_count_hd):
+                df_activity_result = results_df[results_df['activity_index'].astype(str) == str(i)]
+                if 'activity_index' in df_activity_result.columns:
+                    df_activity_result = df_activity_result.drop(columns=['activity_index'])
+                st.session_state[f'df_hoatdong_{i}'] = df_activity_result.reset_index(drop=True)
 
 
 # --- CÁC HÀM TÍNH TOÁN (CALLBACKS) VÀ HIỂN THỊ (UI) ĐÃ ĐƯỢC TÁI CẤU TRÚC ---
@@ -462,11 +469,9 @@ def ui_hoatdongkhac(i, ten_hoatdong):
 # --- GIAO DIỆN CHÍNH ---
 st.markdown("<h1 style='text-align: center; color: orange;'>QUY ĐỔI CÁC HOẠT ĐỘNG KHÁC</h1>", unsafe_allow_html=True)
 
-if 'hoatdongkhac_loaded' not in st.session_state:
-    with st.spinner("Đang tải dữ liệu hoạt động..."):
-        load_hoatdong_from_gsheet(spreadsheet)
-    st.session_state.hoatdongkhac_loaded = True
-    st.rerun()
+# Luôn tải lại dữ liệu từ Google Sheet mỗi khi truy cập trang
+inputs_df, results_df = load_hoatdong_from_gsheet(spreadsheet)
+sync_data_to_session(inputs_df, results_df)
 
 if 'selectbox_count_hd' not in st.session_state:
     st.session_state.selectbox_count_hd = 0
@@ -485,8 +490,10 @@ with col_buttons[2]:
     if st.button("Cập nhật (Lưu)", key="save_activities", use_container_width=True, type="primary"):
         save_hoatdong_to_gsheet(spreadsheet)
 with col_buttons[3]:
-    if st.button("Tải lại dữ liệu đã lưu", key="load_activities", use_container_width=True):
-        load_hoatdong_from_gsheet(spreadsheet)
+    if st.button("Tải lại dữ liệu", key="load_activities_manual", use_container_width=True):
+        # Tải lại và đồng bộ hóa một cách tường minh khi người dùng nhấp vào
+        reloaded_inputs, reloaded_results = load_hoatdong_from_gsheet(spreadsheet)
+        sync_data_to_session(reloaded_inputs, reloaded_results)
         st.rerun()
 st.divider()
 
