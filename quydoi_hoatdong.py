@@ -174,7 +174,7 @@ def calculate_kiemtraTN(i):
 
 def ui_kiemtraTN(i, ten_hoatdong):
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    default_value = input_df['so_ngay'].iloc[0] if input_df is not None and 'so_ngay' in input_df.columns else 1
+    default_value = input_df['so_ngay'].iloc[0] if isinstance(input_df, pd.DataFrame) and 'so_ngay' in input_df.columns else 1
     st.number_input("Nhập số ngày đi kiểm tra thực tập TN.(ĐVT: Ngày)", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_kiemtraTN, args=(i,))
     st.write("1 ngày đi 8h được tính = 3 tiết")
 
@@ -192,7 +192,7 @@ def calculate_huongDanChuyenDeTN(i):
 
 def ui_huongDanChuyenDeTN(i, ten_hoatdong):
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    default_value = input_df['so_chuyen_de'].iloc[0] if input_df is not None and 'so_chuyen_de' in input_df.columns else 1
+    default_value = input_df['so_chuyen_de'].iloc[0] if isinstance(input_df, pd.DataFrame) and 'so_chuyen_de' in input_df.columns else 1
     st.number_input("Nhập số chuyên đề hướng dẫn.(ĐVT: Chuyên đề)", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_huongDanChuyenDeTN, args=(i,))
     st.write("1 chuyên đề được tính = 15 tiết")
 
@@ -210,7 +210,7 @@ def calculate_chamChuyenDeTN(i):
 
 def ui_chamChuyenDeTN(i, ten_hoatdong):
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    default_value = input_df['so_bai'].iloc[0] if input_df is not None and 'so_bai' in input_df.columns else 1
+    default_value = input_df['so_bai'].iloc[0] if isinstance(input_df, pd.DataFrame) and 'so_bai' in input_df.columns else 1
     st.number_input("Nhập số bài chấm.(ĐVT: Bài)", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_chamChuyenDeTN, args=(i,))
     st.write("1 bài chấm được tính = 5 tiết")
 
@@ -228,7 +228,7 @@ def calculate_huongDanChamBaoCaoTN(i):
 
 def ui_huongDanChamBaoCaoTN(i, ten_hoatdong):
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    default_value = input_df['so_bai'].iloc[0] if input_df is not None and 'so_bai' in input_df.columns else 1
+    default_value = input_df['so_bai'].iloc[0] if isinstance(input_df, pd.DataFrame) and 'so_bai' in input_df.columns else 1
     st.number_input("Nhập số bài hướng dẫn + chấm báo cáo TN.(ĐVT: Bài)", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_huongDanChamBaoCaoTN, args=(i,))
     st.write("1 bài được tính = 0.5 tiết")
 
@@ -247,7 +247,7 @@ def calculate_diThucTapDN(i):
 
 def ui_diThucTapDN(i, ten_hoatdong):
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    default_value = input_df['so_tuan'].iloc[0] if input_df is not None and 'so_tuan' in input_df.columns else 1
+    default_value = input_df['so_tuan'].iloc[0] if isinstance(input_df, pd.DataFrame) and 'so_tuan' in input_df.columns else 1
     st.number_input("Nhập số tuần đi học.(ĐVT: Tuần)", value=int(default_value), min_value=0, max_value=4, key=f"num_input_{i}", on_change=calculate_diThucTapDN, args=(i,))
     st.write("1 tuần được tính = giờ chuẩn / 44")
 
@@ -265,7 +265,7 @@ def calculate_boiDuongNhaGiao(i):
 
 def ui_boiDuongNhaGiao(i, ten_hoatdong):
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    default_value = input_df['so_gio'].iloc[0] if input_df is not None and 'so_gio' in input_df.columns else 1
+    default_value = input_df['so_gio'].iloc[0] if isinstance(input_df, pd.DataFrame) and 'so_gio' in input_df.columns else 1
     st.number_input("Nhập số giờ tham gia bồi dưỡng.(ĐVT: Giờ)", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_boiDuongNhaGiao, args=(i,))
     st.write("1 giờ hướng dẫn được tính = 1.5 tiết")
 
@@ -283,7 +283,7 @@ def calculate_phongTraoTDTT(i):
 
 def ui_phongTraoTDTT(i, ten_hoatdong):
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    default_value = input_df['so_ngay'].iloc[0] if input_df is not None and 'so_ngay' in input_df.columns else 1
+    default_value = input_df['so_ngay'].iloc[0] if isinstance(input_df, pd.DataFrame) and 'so_ngay' in input_df.columns else 1
     st.number_input("Số ngày làm việc (8 giờ).(ĐVT: Ngày)", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_phongTraoTDTT, args=(i,))
     st.write("1 ngày hướng dẫn = 2.5 tiết")
 
@@ -305,7 +305,7 @@ def calculate_traiNghiemGiaoVienCN(i):
 
 def ui_traiNghiemGiaoVienCN(i, ten_hoatdong):
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    if input_df is not None and 'so_tiet' in input_df.columns:
+    if isinstance(input_df, pd.DataFrame) and 'so_tiet' in input_df.columns:
         default_tiet = input_df['so_tiet'].iloc[0]
         default_ghi_chu = input_df['ghi_chu'].iloc[0]
     else:
@@ -333,7 +333,7 @@ def calculate_nhaGiaoHoiGiang(i):
 def ui_nhaGiaoHoiGiang(i, ten_hoatdong):
     options = ['Toàn quốc', 'Cấp Tỉnh', 'Cấp Trường']
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    default_level = input_df['cap_dat_giai'].iloc[0] if input_df is not None and 'cap_dat_giai' in input_df.columns else 'Cấp Trường'
+    default_level = input_df['cap_dat_giai'].iloc[0] if isinstance(input_df, pd.DataFrame) and 'cap_dat_giai' in input_df.columns else 'Cấp Trường'
     default_index = options.index(default_level) if default_level in options else 2
     st.selectbox("Chọn cấp đạt giải cao nhất", options, index=default_index, key=f'capgiai_{i}', on_change=calculate_nhaGiaoHoiGiang, args=(i,))
 
@@ -360,7 +360,7 @@ def calculate_deTaiNCKH(i):
 def ui_deTaiNCKH(i, ten_hoatdong):
     col1, col2 = st.columns(2, vertical_alignment="top")
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    if input_df is None or input_df.empty or not all(k in input_df.columns for k in ['cap_de_tai', 'so_luong_tv', 'vai_tro', 'ghi_chu']):
+    if not (isinstance(input_df, pd.DataFrame) and all(k in input_df.columns for k in ['cap_de_tai', 'so_luong_tv', 'vai_tro', 'ghi_chu'])):
         input_df = pd.DataFrame([{'cap_de_tai': 'Cấp Khoa', 'so_luong_tv': 1, 'vai_tro': 'Chủ nhiệm', 'ghi_chu': ''}])
 
     with col1:
@@ -371,7 +371,8 @@ def ui_deTaiNCKH(i, ten_hoatdong):
         st.number_input("Số lượng thành viên", min_value=1, value=int(input_df['so_luong_tv'].iloc[0]), step=1, key=f'soluongtv_{i}', on_change=calculate_deTaiNCKH, args=(i,))
     with col2:
         vai_tro_options = ['Chủ nhiệm', 'Thành viên']
-        if st.session_state.get(f'soluongtv_{i}',1) == 1: vai_tro_options = ['Chủ nhiệm']
+        if st.session_state.get(f'soluongtv_{i}', 1) == 1: 
+            vai_tro_options = ['Chủ nhiệm']
         default_vaitro = input_df['vai_tro'].iloc[0]
         vaitro_index = vai_tro_options.index(default_vaitro) if default_vaitro in vai_tro_options else 0
         st.selectbox("Vai trò trong đề tài", options=vai_tro_options, index=vaitro_index, key=f'vaitro_{i}', on_change=calculate_deTaiNCKH, args=(i,))
@@ -418,7 +419,7 @@ def ui_danQuanTuVe(i, ten_hoatdong):
     col1, col2 = st.columns(2)
     today = datetime.date.today()
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    if input_df is not None and 'ngay_bat_dau' in input_df.columns:
+    if isinstance(input_df, pd.DataFrame) and 'ngay_bat_dau' in input_df.columns:
         default_start_date = pd.to_datetime(input_df['ngay_bat_dau'].iloc[0]).date()
         default_end_date = pd.to_datetime(input_df['ngay_ket_thuc'].iloc[0]).date()
     else:
@@ -476,7 +477,7 @@ def ui_hoatdongkhac(i, ten_hoatdong):
     """Hiển thị giao diện nhập liệu cho các hoạt động khác."""
     # Tải giá trị mặc định từ input_df đã lưu
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
-    if input_df is not None and 'noi_dung' in input_df.columns:
+    if isinstance(input_df, pd.DataFrame) and 'noi_dung' in input_df.columns:
         default_noi_dung = input_df['noi_dung'].iloc[0]
         default_so_tiet = input_df['so_tiet'].iloc[0]
         default_ghi_chu = input_df['ghi_chu'].iloc[0]
