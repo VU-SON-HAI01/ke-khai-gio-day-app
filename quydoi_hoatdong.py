@@ -171,7 +171,12 @@ def run_initial_calculation(i, activity_name):
 def calculate_kiemtraTN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_ngay': [1]}))['so_ngay'].iloc[0]
+    
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    default_value = 1
+    if isinstance(input_df, pd.DataFrame) and 'so_ngay' in input_df.columns and not input_df.empty:
+        default_value = input_df['so_ngay'].iloc[0]
+
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_ngay': quydoi_x}])
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
@@ -189,7 +194,12 @@ def ui_kiemtraTN(i, ten_hoatdong):
 def calculate_huongDanChuyenDeTN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_chuyen_de': [1]}))['so_chuyen_de'].iloc[0]
+
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    default_value = 1
+    if isinstance(input_df, pd.DataFrame) and 'so_chuyen_de' in input_df.columns and not input_df.empty:
+        default_value = input_df['so_chuyen_de'].iloc[0]
+
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_chuyen_de': quydoi_x}])
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
@@ -207,7 +217,12 @@ def ui_huongDanChuyenDeTN(i, ten_hoatdong):
 def calculate_chamChuyenDeTN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_bai': [1]}))['so_bai'].iloc[0]
+
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    default_value = 1
+    if isinstance(input_df, pd.DataFrame) and 'so_bai' in input_df.columns and not input_df.empty:
+        default_value = input_df['so_bai'].iloc[0]
+    
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_bai': quydoi_x}])
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
@@ -225,7 +240,12 @@ def ui_chamChuyenDeTN(i, ten_hoatdong):
 def calculate_huongDanChamBaoCaoTN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_bai': [1]}))['so_bai'].iloc[0]
+
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    default_value = 1
+    if isinstance(input_df, pd.DataFrame) and 'so_bai' in input_df.columns and not input_df.empty:
+        default_value = input_df['so_bai'].iloc[0]
+
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_bai': quydoi_x}])
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
@@ -243,7 +263,12 @@ def ui_huongDanChamBaoCaoTN(i, ten_hoatdong):
 def calculate_diThucTapDN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_tuan': [1]}))['so_tuan'].iloc[0]
+
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    default_value = 1
+    if isinstance(input_df, pd.DataFrame) and 'so_tuan' in input_df.columns and not input_df.empty:
+        default_value = input_df['so_tuan'].iloc[0]
+
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_tuan': quydoi_x}])
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
@@ -262,7 +287,12 @@ def ui_diThucTapDN(i, ten_hoatdong):
 def calculate_boiDuongNhaGiao(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_gio': [1]}))['so_gio'].iloc[0]
+
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    default_value = 1
+    if isinstance(input_df, pd.DataFrame) and 'so_gio' in input_df.columns and not input_df.empty:
+        default_value = input_df['so_gio'].iloc[0]
+
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_gio': quydoi_x}])
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
@@ -280,7 +310,12 @@ def ui_boiDuongNhaGiao(i, ten_hoatdong):
 def calculate_phongTraoTDTT(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_ngay': [1]}))['so_ngay'].iloc[0]
+
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    default_value = 1
+    if isinstance(input_df, pd.DataFrame) and 'so_ngay' in input_df.columns and not input_df.empty:
+        default_value = input_df['so_ngay'].iloc[0]
+
     quydoi_x = st.session_state.get(f'num_input_{i}', default_value)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_ngay': quydoi_x}])
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
@@ -298,9 +333,14 @@ def ui_phongTraoTDTT(i, ten_hoatdong):
 def calculate_traiNghiemGiaoVienCN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'so_tiet': 1.0, 'ghi_chu': ''}]))
-    default_tiet = input_df['so_tiet'].iloc[0]
-    default_ghi_chu = input_df['ghi_chu'].iloc[0]
+    
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    default_tiet = 1.0
+    default_ghi_chu = ""
+    if isinstance(input_df, pd.DataFrame) and 'so_tiet' in input_df.columns and not input_df.empty:
+        default_tiet = input_df['so_tiet'].iloc[0]
+        default_ghi_chu = input_df['ghi_chu'].iloc[0]
+
     quydoi_x = st.session_state.get(f'num_{i}', default_tiet)
     ghi_chu = st.session_state.get(f'note_{i}', default_ghi_chu)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_tiet': quydoi_x, 'ghi_chu': ghi_chu}])
@@ -326,11 +366,16 @@ def ui_traiNghiemGiaoVienCN(i, ten_hoatdong):
 def calculate_nhaGiaoHoiGiang(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    default_level = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'cap_dat_giai': ['Cấp Trường']}))['cap_dat_giai'].iloc[0]
+
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    default_level = 'Cấp Trường'
+    if isinstance(input_df, pd.DataFrame) and 'cap_dat_giai' in input_df.columns and not input_df.empty:
+        default_level = input_df['cap_dat_giai'].iloc[0]
+
     cap_dat_giai = st.session_state.get(f'capgiai_{i}', default_level)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'cap_dat_giai': cap_dat_giai}])
     mapping_tuan = {'Toàn quốc': 4, 'Cấp Tỉnh': 2, 'Cấp Trường': 1}
-    so_tuan = mapping_tuan[cap_dat_giai]
+    so_tuan = mapping_tuan.get(cap_dat_giai, 1)
     heso = giochuan / 44
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
@@ -348,11 +393,19 @@ def ui_nhaGiaoHoiGiang(i, ten_hoatdong):
 def calculate_deTaiNCKH(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'cap_de_tai': 'Cấp Khoa', 'so_luong_tv': 1, 'vai_tro': 'Chủ nhiệm', 'ghi_chu': ''}]))
-    cap_de_tai = st.session_state.get(f'capdetai_{i}', input_df['cap_de_tai'].iloc[0])
-    so_luong_tv = st.session_state.get(f'soluongtv_{i}', input_df['so_luong_tv'].iloc[0])
-    vai_tro = st.session_state.get(f'vaitro_{i}', input_df['vai_tro'].iloc[0])
-    ghi_chu = st.session_state.get(f'ghichu_{i}', input_df['ghi_chu'].iloc[0])
+
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    defaults = {'cap_de_tai': 'Cấp Khoa', 'so_luong_tv': 1, 'vai_tro': 'Chủ nhiệm', 'ghi_chu': ''}
+    if isinstance(input_df, pd.DataFrame) and not input_df.empty:
+        for key in defaults:
+            if key in input_df.columns:
+                defaults[key] = input_df[key].iloc[0]
+
+    cap_de_tai = st.session_state.get(f'capdetai_{i}', defaults['cap_de_tai'])
+    so_luong_tv = st.session_state.get(f'soluongtv_{i}', defaults['so_luong_tv'])
+    vai_tro = st.session_state.get(f'vaitro_{i}', defaults['vai_tro'])
+    ghi_chu = st.session_state.get(f'ghichu_{i}', defaults['ghi_chu'])
+
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'cap_de_tai': cap_de_tai, 'so_luong_tv': so_luong_tv, 'vai_tro': vai_tro, 'ghi_chu': ghi_chu}])
     tiet_tuan_chuan = giochuan / 44
     lookup_table = {"Cấp Khoa": {"1": {"Chủ nhiệm": tiet_tuan_chuan * 3, "Thành viên": 0},"2": {"Chủ nhiệm": tiet_tuan_chuan * 3 * 2 / 3, "Thành viên": tiet_tuan_chuan * 3 * 1 / 3},"3": {"Chủ nhiệm": tiet_tuan_chuan * 3 * 1 / 2, "Thành viên": tiet_tuan_chuan * 3 - tiet_tuan_chuan * 3 * 1 / 2},">3": {"Chủ nhiệm": tiet_tuan_chuan * 3 * 1 / 3, "Thành viên": tiet_tuan_chuan * 3 - tiet_tuan_chuan * 3 * 1 / 3}},"Cấp Trường": {"1": {"Chủ nhiệm": tiet_tuan_chuan * 8, "Thành viên": 0},"2": {"Chủ nhiệm": tiet_tuan_chuan * 8 * 2 / 3, "Thành viên": tiet_tuan_chuan * 8 * 1 / 3},"3": {"Chủ nhiệm": tiet_tuan_chuan * 8 * 1 / 2, "Thành viên": tiet_tuan_chuan * 8 - tiet_tuan_chuan * 8 * 1 / 2},">3": {"Chủ nhiệm": tiet_tuan_chuan * 8 * 1 / 3, "Thành viên": tiet_tuan_chuan * 8 - tiet_tuan_chuan * 8 * 1 / 3}}, "Cấp Tỉnh/TQ": {"1": {"Chủ nhiệm": tiet_tuan_chuan * 12, "Thành viên": 0},"2": {"Chủ nhiệm": tiet_tuan_chuan * 12 * 2 / 3, "Thành viên": tiet_tuan_chuan * 12 * 1 / 3},"3": {"Chủ nhiệm": tiet_tuan_chuan * 12 * 1 / 2, "Thành viên": tiet_tuan_chuan * 12 - tiet_tuan_chuan * 12 * 1 / 2},">3": {"Chủ nhiệm": tiet_tuan_chuan * 12 * 1 / 3, "Thành viên": tiet_tuan_chuan * 12 - tiet_tuan_chuan * 12 * 1 / 3}},}
@@ -391,10 +444,14 @@ def calculate_danQuanTuVe(i):
     if not ten_hoatdong: return
 
     today = datetime.date.today()
-    input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'ngay_bat_dau': today.isoformat(), 'ngay_ket_thuc': today.isoformat()}]))
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    defaults = {'ngay_bat_dau': today.isoformat(), 'ngay_ket_thuc': today.isoformat()}
+    if isinstance(input_df, pd.DataFrame) and not input_df.empty:
+        if 'ngay_bat_dau' in input_df.columns: defaults['ngay_bat_dau'] = input_df['ngay_bat_dau'].iloc[0]
+        if 'ngay_ket_thuc' in input_df.columns: defaults['ngay_ket_thuc'] = input_df['ngay_ket_thuc'].iloc[0]
 
-    start_date_val = st.session_state.get(f'dqtv_start_{i}', pd.to_datetime(input_df['ngay_bat_dau'].iloc[0]).date())
-    end_date_val = st.session_state.get(f'dqtv_end_{i}', pd.to_datetime(input_df['ngay_ket_thuc'].iloc[0]).date())
+    start_date_val = st.session_state.get(f'dqtv_start_{i}', pd.to_datetime(defaults['ngay_bat_dau']).date())
+    end_date_val = st.session_state.get(f'dqtv_end_{i}', pd.to_datetime(defaults['ngay_ket_thuc']).date())
 
     ngay_bat_dau = start_date_val
     ngay_ket_thuc = end_date_val
@@ -412,13 +469,8 @@ def calculate_danQuanTuVe(i):
     ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
 
     data = {
-        'Mã HĐ': [ma_hoatdong],
-        'MÃ NCKH': [ma_nckh],
-        'Hoạt động quy đổi': [ten_hoatdong],
-        'Đơn vị tính': 'Ngày',
-        'Số lượng': [so_ngay_tham_gia],
-        'Hệ số': [he_so],
-        'Giờ quy đổi': [gio_quy_doi]
+        'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong],
+        'Đơn vị tính': 'Ngày', 'Số lượng': [so_ngay_tham_gia], 'Hệ số': [he_so], 'Giờ quy đổi': [gio_quy_doi]
     }
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
@@ -447,14 +499,16 @@ def calculate_hoatdongkhac(i):
     ten_hoatdong_selectbox = st.session_state.get(f'select_{i}')
     if not ten_hoatdong_selectbox: return
 
-    input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'noi_dung': '', 'so_tiet': 0.0, 'ghi_chu': ''}]))
-    default_noi_dung = input_df['noi_dung'].iloc[0]
-    default_so_tiet = input_df['so_tiet'].iloc[0]
-    default_ghi_chu = input_df['ghi_chu'].iloc[0]
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    defaults = {'noi_dung': '', 'so_tiet': 0.0, 'ghi_chu': ''}
+    if isinstance(input_df, pd.DataFrame) and not input_df.empty:
+        for key in defaults:
+            if key in input_df.columns:
+                defaults[key] = input_df[key].iloc[0]
     
-    noi_dung = st.session_state.get(f'hd_khac_noidung_{i}', default_noi_dung)
-    so_tiet = st.session_state.get(f'hd_khac_sotiet_{i}', default_so_tiet)
-    ghi_chu = st.session_state.get(f'hd_khac_ghichu_{i}', default_ghi_chu)
+    noi_dung = st.session_state.get(f'hd_khac_noidung_{i}', defaults['noi_dung'])
+    so_tiet = st.session_state.get(f'hd_khac_sotiet_{i}', defaults['so_tiet'])
+    ghi_chu = st.session_state.get(f'hd_khac_ghichu_{i}', defaults['ghi_chu'])
 
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'noi_dung': noi_dung, 'so_tiet': so_tiet, 'ghi_chu': ghi_chu}])
 
@@ -463,11 +517,8 @@ def calculate_hoatdongkhac(i):
         ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
         
         data = {
-            'Mã HĐ': [ma_hoatdong],
-            'MÃ NCKH': [ma_nckh],
-            'Hoạt động quy đổi': [noi_dung.strip()],
-            'Giờ quy đổi': [float(so_tiet)],
-            'Ghi chú': [ghi_chu]
+            'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [noi_dung.strip()],
+            'Giờ quy đổi': [float(so_tiet)], 'Ghi chú': [ghi_chu]
         }
         st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
     else:
