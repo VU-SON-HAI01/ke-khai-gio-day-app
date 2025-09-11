@@ -73,14 +73,12 @@ def save_hoatdong_to_gsheet(spreadsheet):
     except Exception as e:
         st.error(f"Lỗi khi lưu hoạt động: {e}")
 
-# Bỏ @st.cache_data để đảm bảo hàm luôn chạy và lấy dữ liệu mới
 def load_hoatdong_from_gsheet(_spreadsheet):
     """Tải các hoạt động (trừ giảm giờ) từ Google Sheet."""
     inputs_df = pd.DataFrame()
     results_df = pd.DataFrame()
     try:
         ws = _spreadsheet.worksheet("input_hoatdong")
-        # Sửa lỗi: Dùng get_all_values để tránh lỗi type inference của gspread
         all_values = ws.get_all_values()
         if len(all_values) > 1:
             headers = all_values[0]
@@ -105,7 +103,6 @@ def load_hoatdong_from_gsheet(_spreadsheet):
 
 def sync_data_to_session(inputs_df, results_df):
     """Đồng bộ dữ liệu từ DataFrame vào session_state."""
-    # Xóa tất cả các key liên quan đến hoạt động cũ để đảm bảo không còn state cũ
     prefixes_to_clear = [
         'df_hoatdong_', 'input_df_hoatdong_', 'select_', 'num_input_', 'num_', 
         'note_', 'capgiai_', 'capdetai_', 'soluongtv_', 'vaitro_', 'ghichu_', 
@@ -116,42 +113,33 @@ def sync_data_to_session(inputs_df, results_df):
         for prefix in prefixes_to_clear:
             if key.startswith(prefix):
                 del st.session_state[key]
-                break # Chuyển sang key tiếp theo khi đã tìm thấy và xóa
+                break
 
     st.session_state.selectbox_count_hd = 0
     
     if not inputs_df.empty:
-        # Đảm bảo activity_index là số để sắp xếp
         inputs_df['activity_index'] = pd.to_numeric(inputs_df['activity_index'], errors='coerce').fillna(-1).astype(int)
         inputs_df = inputs_df[inputs_df['activity_index'] != -1].sort_values(by='activity_index').reset_index(drop=True)
-        
         st.session_state.selectbox_count_hd = len(inputs_df)
 
         for index, row in inputs_df.iterrows():
             i = row['activity_index']
             st.session_state[f'select_{i}'] = row['activity_name']
-            # Đọc JSON an toàn
             try:
-                 # Thêm kiểm tra để đảm bảo JSON hợp lệ
                 if pd.isna(row['input_json']) or not str(row['input_json']).strip().startswith('['):
                     raise ValueError("Invalid or empty JSON string")
                 df_input = pd.read_json(row['input_json'], orient='records')
                 st.session_state[f'input_df_hoatdong_{i}'] = df_input
             except (json.JSONDecodeError, TypeError, ValueError):
-                # Nếu JSON không hợp lệ hoặc rỗng, tạo một dataframe trống
                 st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame()
 
-
         if not results_df.empty:
-            # Chuyển đổi kiểu dữ liệu an toàn
             for col in results_df.columns:
                 if any(c in col.lower() for c in ['tiết', 'quy đổi', 'số lượng', 'hệ số', 'tuần', '%', 'tv', 'activity_index']):
                     results_df[col] = pd.to_numeric(results_df[col], errors='coerce')
             
-            # Gán kết quả vào session state
             for i in range(st.session_state.selectbox_count_hd):
                 results_df_filtered = results_df.dropna(subset=['activity_index'])
-                # So sánh kiểu dữ liệu nhất quán
                 df_activity_result = results_df_filtered[results_df_filtered['activity_index'].astype(float) == float(i)]
                 if 'activity_index' in df_activity_result.columns:
                     df_activity_result = df_activity_result.drop(columns=['activity_index'])
@@ -163,7 +151,6 @@ def sync_data_to_session(inputs_df, results_df):
 def run_initial_calculation(i, activity_name):
     """Chạy tính toán ban đầu nếu kết quả chưa có trong session state."""
     if f'df_hoatdong_{i}' not in st.session_state:
-        # Tìm và gọi hàm callback tương ứng với tên hoạt động
         callback_map = {
             df_quydoi_hd_g.iloc[3, 1]: calculate_kiemtraTN,
             df_quydoi_hd_g.iloc[1, 1]: calculate_huongDanChuyenDeTN,
@@ -176,11 +163,9 @@ def run_initial_calculation(i, activity_name):
             df_quydoi_hd_g.iloc[14, 1]: calculate_deTaiNCKH,
             df_quydoi_hd_g.iloc[6, 1]: calculate_danQuanTuVe,
         }
-        # Các hoạt động dùng chung 1 callback
         for idx in [10, 11, 12, 13]:
             callback_map[df_quydoi_hd_g.iloc[idx, 1]] = calculate_traiNghiemGiaoVienCN
         
-        # Gán callback cho các hoạt động "Quy đổi khác"
         for hoat_dong in df_quydoi_hd_g.iloc[:, 1].dropna().unique():
             if "Quy đổi khác" in hoat_dong:
                 callback_map[hoat_dong] = calculate_hoatdongkhac
@@ -188,7 +173,16 @@ def run_initial_calculation(i, activity_name):
         if activity_name in callback_map:
             callback_map[activity_name](i)
 
-# --- 1. Kiểm tra Thực tập Tốt nghiệp ---
+def show_warning_if_data_invalid(i):
+    """Hiển thị cảnh báo nếu input_df không hợp lệ."""
+    input_df = st.session_state.get(f'input_df_hoatdong_{i}')
+    if not isinstance(input_df, pd.DataFrame) or input_df.empty:
+        st.warning(f"Không thể tải dữ liệu đã lưu cho hoạt động này. Đang hiển thị giá trị mặc định. Vui lòng kiểm tra file Google Sheet.")
+        return True
+    return False
+
+# --- UI Functions Updated with Warnings ---
+
 def calculate_kiemtraTN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
@@ -201,6 +195,7 @@ def calculate_kiemtraTN(i):
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_kiemtraTN(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     default_value = 1
     if isinstance(input_df, pd.DataFrame) and not input_df.empty and 'so_ngay' in input_df.columns:
@@ -211,7 +206,6 @@ def ui_kiemtraTN(i, ten_hoatdong):
     st.number_input("Nhập số ngày đi kiểm tra thực tập TN.(ĐVT: Ngày)", value=default_value, min_value=0, key=f"num_input_{i}", on_change=calculate_kiemtraTN, args=(i,))
     st.write("1 ngày đi 8h được tính = 3 tiết")
 
-# --- 2. Hướng dẫn Chuyên đề Tốt nghiệp ---
 def calculate_huongDanChuyenDeTN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
@@ -224,6 +218,7 @@ def calculate_huongDanChuyenDeTN(i):
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_huongDanChuyenDeTN(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     default_value = 1
     if isinstance(input_df, pd.DataFrame) and not input_df.empty and 'so_chuyen_de' in input_df.columns:
@@ -234,7 +229,6 @@ def ui_huongDanChuyenDeTN(i, ten_hoatdong):
     st.number_input("Nhập số chuyên đề hướng dẫn.(ĐVT: Chuyên đề)", value=default_value, min_value=0, key=f"num_input_{i}", on_change=calculate_huongDanChuyenDeTN, args=(i,))
     st.write("1 chuyên đề được tính = 15 tiết")
 
-# --- 3. Chấm Chuyên đề Tốt nghiệp ---
 def calculate_chamChuyenDeTN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
@@ -247,6 +241,7 @@ def calculate_chamChuyenDeTN(i):
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_chamChuyenDeTN(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     default_value = 1
     if isinstance(input_df, pd.DataFrame) and not input_df.empty and 'so_bai' in input_df.columns:
@@ -257,7 +252,6 @@ def ui_chamChuyenDeTN(i, ten_hoatdong):
     st.number_input("Nhập số bài chấm.(ĐVT: Bài)", value=default_value, min_value=0, key=f"num_input_{i}", on_change=calculate_chamChuyenDeTN, args=(i,))
     st.write("1 bài chấm được tính = 5 tiết")
 
-# --- 4. Hướng dẫn & Chấm Báo cáo TN ---
 def calculate_huongDanChamBaoCaoTN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
@@ -270,6 +264,7 @@ def calculate_huongDanChamBaoCaoTN(i):
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_huongDanChamBaoCaoTN(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     default_value = 1
     if isinstance(input_df, pd.DataFrame) and not input_df.empty and 'so_bai' in input_df.columns:
@@ -280,7 +275,6 @@ def ui_huongDanChamBaoCaoTN(i, ten_hoatdong):
     st.number_input("Nhập số bài hướng dẫn + chấm báo cáo TN.(ĐVT: Bài)", value=default_value, min_value=0, key=f"num_input_{i}", on_change=calculate_huongDanChamBaoCaoTN, args=(i,))
     st.write("1 bài được tính = 0.5 tiết")
 
-# --- 5. Đi thực tập Doanh nghiệp ---
 def calculate_diThucTapDN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
@@ -294,6 +288,7 @@ def calculate_diThucTapDN(i):
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_diThucTapDN(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     default_value = 1
     if isinstance(input_df, pd.DataFrame) and not input_df.empty and 'so_tuan' in input_df.columns:
@@ -304,7 +299,6 @@ def ui_diThucTapDN(i, ten_hoatdong):
     st.number_input("Nhập số tuần đi học.(ĐVT: Tuần)", value=default_value, min_value=0, max_value=4, key=f"num_input_{i}", on_change=calculate_diThucTapDN, args=(i,))
     st.write("1 tuần được tính = giờ chuẩn / 44")
 
-# --- 6. Bồi dưỡng Nhà giáo ---
 def calculate_boiDuongNhaGiao(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
@@ -317,6 +311,7 @@ def calculate_boiDuongNhaGiao(i):
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_boiDuongNhaGiao(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     default_value = 1
     if isinstance(input_df, pd.DataFrame) and not input_df.empty and 'so_gio' in input_df.columns:
@@ -327,7 +322,6 @@ def ui_boiDuongNhaGiao(i, ten_hoatdong):
     st.number_input("Nhập số giờ tham gia bồi dưỡng.(ĐVT: Giờ)", value=default_value, min_value=0, key=f"num_input_{i}", on_change=calculate_boiDuongNhaGiao, args=(i,))
     st.write("1 giờ hướng dẫn được tính = 1.5 tiết")
 
-# --- 7. Phong trào TDTT ---
 def calculate_phongTraoTDTT(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
@@ -340,6 +334,7 @@ def calculate_phongTraoTDTT(i):
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_phongTraoTDTT(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     default_value = 1
     if isinstance(input_df, pd.DataFrame) and not input_df.empty and 'so_ngay' in input_df.columns:
@@ -350,13 +345,12 @@ def ui_phongTraoTDTT(i, ten_hoatdong):
     st.number_input("Số ngày làm việc (8 giờ).(ĐVT: Ngày)", value=default_value, min_value=0, key=f"num_input_{i}", on_change=calculate_phongTraoTDTT, args=(i,))
     st.write("1 ngày hướng dẫn = 2.5 tiết")
 
-# --- 8. Hoạt động trải nghiệm, GVCN ---
 def calculate_traiNghiemGiaoVienCN(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'so_tiet': 1.0, 'ghi_chu': ''}]))
-    default_tiet = input_df['so_tiet'].iloc[0]
-    default_ghi_chu = input_df['ghi_chu'].iloc[0]
+    default_tiet = input_df['so_tiet'].iloc[0] if 'so_tiet' in input_df.columns and not input_df.empty else 1.0
+    default_ghi_chu = input_df['ghi_chu'].iloc[0] if 'ghi_chu' in input_df.columns and not input_df.empty else ""
     quydoi_x = st.session_state.get(f'num_{i}', default_tiet)
     ghi_chu = st.session_state.get(f'note_{i}', default_ghi_chu)
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_tiet': quydoi_x, 'ghi_chu': ghi_chu}])
@@ -367,6 +361,7 @@ def calculate_traiNghiemGiaoVienCN(i):
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_traiNghiemGiaoVienCN(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     default_tiet = 1.0
     default_ghi_chu = ""
@@ -375,12 +370,11 @@ def ui_traiNghiemGiaoVienCN(i, ten_hoatdong):
             default_tiet = float(input_df['so_tiet'].iloc[0])
             default_ghi_chu = str(input_df['ghi_chu'].iloc[0])
         except (ValueError, TypeError):
-            pass # Giữ giá trị mặc định nếu có lỗi
+            pass
     st.number_input(f"Nhập số tiết '{ten_hoatdong}'", value=default_tiet, min_value=0.0, step=0.1, format="%.1f", key=f"num_{i}", on_change=calculate_traiNghiemGiaoVienCN, args=(i,))
     st.text_input("Thêm ghi chú (nếu có)", value=default_ghi_chu, key=f"note_{i}", on_change=calculate_traiNghiemGiaoVienCN, args=(i,))
     st.markdown("<i style='color: orange;'>*Điền số quyết định liên quan đến hoạt động này</i>", unsafe_allow_html=True)
 
-# --- 9. Nhà giáo Hội giảng ---
 def calculate_nhaGiaoHoiGiang(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
@@ -396,6 +390,7 @@ def calculate_nhaGiaoHoiGiang(i):
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_nhaGiaoHoiGiang(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     options = ['Toàn quốc', 'Cấp Tỉnh', 'Cấp Trường']
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     default_level = 'Cấp Trường'
@@ -404,15 +399,20 @@ def ui_nhaGiaoHoiGiang(i, ten_hoatdong):
     default_index = options.index(default_level) if default_level in options else 2
     st.selectbox("Chọn cấp đạt giải cao nhất", options, index=default_index, key=f'capgiai_{i}', on_change=calculate_nhaGiaoHoiGiang, args=(i,))
 
-# --- 10. Đề tài NCKH ---
 def calculate_deTaiNCKH(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'cap_de_tai': 'Cấp Khoa', 'so_luong_tv': 1, 'vai_tro': 'Chủ nhiệm', 'ghi_chu': ''}]))
-    cap_de_tai = st.session_state.get(f'capdetai_{i}', input_df['cap_de_tai'].iloc[0])
-    so_luong_tv = st.session_state.get(f'soluongtv_{i}', input_df['so_luong_tv'].iloc[0])
-    vai_tro = st.session_state.get(f'vaitro_{i}', input_df['vai_tro'].iloc[0])
-    ghi_chu = st.session_state.get(f'ghichu_{i}', input_df['ghi_chu'].iloc[0])
+    defaults = {
+        'cap_de_tai': input_df['cap_de_tai'].iloc[0] if 'cap_de_tai' in input_df.columns and not input_df.empty else 'Cấp Khoa',
+        'so_luong_tv': input_df['so_luong_tv'].iloc[0] if 'so_luong_tv' in input_df.columns and not input_df.empty else 1,
+        'vai_tro': input_df['vai_tro'].iloc[0] if 'vai_tro' in input_df.columns and not input_df.empty else 'Chủ nhiệm',
+        'ghi_chu': input_df['ghi_chu'].iloc[0] if 'ghi_chu' in input_df.columns and not input_df.empty else ''
+    }
+    cap_de_tai = st.session_state.get(f'capdetai_{i}', defaults['cap_de_tai'])
+    so_luong_tv = st.session_state.get(f'soluongtv_{i}', defaults['so_luong_tv'])
+    vai_tro = st.session_state.get(f'vaitro_{i}', defaults['vai_tro'])
+    ghi_chu = st.session_state.get(f'ghichu_{i}', defaults['ghi_chu'])
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'cap_de_tai': cap_de_tai, 'so_luong_tv': so_luong_tv, 'vai_tro': vai_tro, 'ghi_chu': ghi_chu}])
     tiet_tuan_chuan = giochuan / 44
     lookup_table = {"Cấp Khoa": {"1": {"Chủ nhiệm": tiet_tuan_chuan * 3, "Thành viên": 0},"2": {"Chủ nhiệm": tiet_tuan_chuan * 3 * 2 / 3, "Thành viên": tiet_tuan_chuan * 3 * 1 / 3},"3": {"Chủ nhiệm": tiet_tuan_chuan * 3 * 1 / 2, "Thành viên": tiet_tuan_chuan * 3 - tiet_tuan_chuan * 3 * 1 / 2},">3": {"Chủ nhiệm": tiet_tuan_chuan * 3 * 1 / 3, "Thành viên": tiet_tuan_chuan * 3 - tiet_tuan_chuan * 3 * 1 / 3}},"Cấp Trường": {"1": {"Chủ nhiệm": tiet_tuan_chuan * 8, "Thành viên": 0},"2": {"Chủ nhiệm": tiet_tuan_chuan * 8 * 2 / 3, "Thành viên": tiet_tuan_chuan * 8 * 1 / 3},"3": {"Chủ nhiệm": tiet_tuan_chuan * 8 * 1 / 2, "Thành viên": tiet_tuan_chuan * 8 - tiet_tuan_chuan * 8 * 1 / 2},">3": {"Chủ nhiệm": tiet_tuan_chuan * 8 * 1 / 3, "Thành viên": tiet_tuan_chuan * 8 - tiet_tuan_chuan * 8 * 1 / 3}}, "Cấp Tỉnh/TQ": {"1": {"Chủ nhiệm": tiet_tuan_chuan * 12, "Thành viên": 0},"2": {"Chủ nhiệm": tiet_tuan_chuan * 12 * 2 / 3, "Thành viên": tiet_tuan_chuan * 12 * 1 / 3},"3": {"Chủ nhiệm": tiet_tuan_chuan * 12 * 1 / 2, "Thành viên": tiet_tuan_chuan * 12 - tiet_tuan_chuan * 12 * 1 / 2},">3": {"Chủ nhiệm": tiet_tuan_chuan * 12 * 1 / 3, "Thành viên": tiet_tuan_chuan * 12 - tiet_tuan_chuan * 12 * 1 / 3}},}
@@ -425,6 +425,7 @@ def calculate_deTaiNCKH(i):
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_deTaiNCKH(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     col1, col2 = st.columns(2, vertical_alignment="top")
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     defaults = {'cap_de_tai': 'Cấp Khoa', 'so_luong_tv': 1, 'vai_tro': 'Chủ nhiệm', 'ghi_chu': ''}
@@ -446,39 +447,30 @@ def ui_deTaiNCKH(i, ten_hoatdong):
         st.selectbox("Vai trò trong đề tài", options=vai_tro_options, index=vaitro_index, key=f'vaitro_{i}', on_change=calculate_deTaiNCKH, args=(i,))
         st.text_input("Ghi chú", value=str(defaults['ghi_chu']), key=f'ghichu_{i}', on_change=calculate_deTaiNCKH, args=(i,))
 
-# --- 11. Dân quân tự vệ & ANQP ---
 def calculate_danQuanTuVe(i):
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    
     today = datetime.date.today()
     input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'ngay_bat_dau': today.isoformat(), 'ngay_ket_thuc': today.isoformat()}]))
-    
-    start_date_val = st.session_state.get(f'dqtv_start_{i}', pd.to_datetime(input_df['ngay_bat_dau'].iloc[0]).date())
-    end_date_val = st.session_state.get(f'dqtv_end_{i}', pd.to_datetime(input_df['ngay_ket_thuc'].iloc[0]).date())
-
-    ngay_bat_dau = start_date_val
-    ngay_ket_thuc = end_date_val
-
-    st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'ngay_bat_dau': ngay_bat_dau.isoformat(), 'ngay_ket_thuc': ngay_ket_thuc.isoformat()}])
-    
+    defaults = {
+        'ngay_bat_dau': input_df['ngay_bat_dau'].iloc[0] if 'ngay_bat_dau' in input_df.columns and not input_df.empty else today.isoformat(),
+        'ngay_ket_thuc': input_df['ngay_ket_thuc'].iloc[0] if 'ngay_ket_thuc' in input_df.columns and not input_df.empty else today.isoformat()
+    }
+    start_date_val = st.session_state.get(f'dqtv_start_{i}', pd.to_datetime(defaults['ngay_bat_dau']).date())
+    end_date_val = st.session_state.get(f'dqtv_end_{i}', pd.to_datetime(defaults['ngay_ket_thuc']).date())
+    st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'ngay_bat_dau': start_date_val.isoformat(), 'ngay_ket_thuc': end_date_val.isoformat()}])
     so_ngay_tham_gia = 0
-    if ngay_ket_thuc >= ngay_bat_dau:
-        so_ngay_tham_gia = (ngay_ket_thuc - ngay_bat_dau).days + 1
-        
+    if end_date_val >= start_date_val:
+        so_ngay_tham_gia = (end_date_val - start_date_val).days + 1
     he_so = (giochuan / 44) / 6
     gio_quy_doi = so_ngay_tham_gia * he_so
-    
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
-    
-    data = {
-        'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 
-        'Đơn vị tính': 'Ngày', 'Số lượng': [so_ngay_tham_gia], 'Hệ số': [he_so], 'Giờ quy đổi': [gio_quy_doi]
-    }
+    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Ngày', 'Số lượng': [so_ngay_tham_gia], 'Hệ số': [he_so], 'Giờ quy đổi': [gio_quy_doi]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_danQuanTuVe(i, ten_hoatdong):
+    show_warning_if_data_invalid(i)
     col1, col2 = st.columns(2)
     today = datetime.date.today()
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
@@ -498,36 +490,32 @@ def ui_danQuanTuVe(i, ten_hoatdong):
     if st.session_state.get(f'dqtv_end_{i}', default_end_date) < st.session_state.get(f'dqtv_start_{i}', default_start_date):
         st.error("Ngày kết thúc không được nhỏ hơn ngày bắt đầu.")
 
-# --- 12. Hoạt động khác ---
 def calculate_hoatdongkhac(i):
     """Tính toán cho hoạt động khác dựa trên input của người dùng."""
     ten_hoatdong_selectbox = st.session_state.get(f'select_{i}')
     if not ten_hoatdong_selectbox: return
-
     input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'noi_dung': '', 'so_tiet': 0.0, 'ghi_chu': ''}]))
-    default_noi_dung = input_df['noi_dung'].iloc[0]
-    default_so_tiet = input_df['so_tiet'].iloc[0]
-    default_ghi_chu = input_df['ghi_chu'].iloc[0]
-    
-    noi_dung = st.session_state.get(f'hd_khac_noidung_{i}', default_noi_dung)
-    so_tiet = st.session_state.get(f'hd_khac_sotiet_{i}', default_so_tiet)
-    ghi_chu = st.session_state.get(f'hd_khac_ghichu_{i}', default_ghi_chu)
-
+    defaults = {
+        'noi_dung': input_df['noi_dung'].iloc[0] if 'noi_dung' in input_df.columns and not input_df.empty else '',
+        'so_tiet': input_df['so_tiet'].iloc[0] if 'so_tiet' in input_df.columns and not input_df.empty else 0.0,
+        'ghi_chu': input_df['ghi_chu'].iloc[0] if 'ghi_chu' in input_df.columns and not input_df.empty else ''
+    }
+    noi_dung = st.session_state.get(f'hd_khac_noidung_{i}', defaults['noi_dung'])
+    so_tiet = st.session_state.get(f'hd_khac_sotiet_{i}', defaults['so_tiet'])
+    ghi_chu = st.session_state.get(f'hd_khac_ghichu_{i}', defaults['ghi_chu'])
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'noi_dung': noi_dung, 'so_tiet': so_tiet, 'ghi_chu': ghi_chu}])
 
     if noi_dung and noi_dung.strip() != '':
         dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong_selectbox)
         ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
-        data = {
-            'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [noi_dung.strip()], 
-            'Giờ quy đổi': [float(so_tiet)], 'Ghi chú': [ghi_chu]
-        }
+        data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [noi_dung.strip()], 'Giờ quy đổi': [float(so_tiet)], 'Ghi chú': [ghi_chu]}
         st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
     else:
         st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame()
 
 def ui_hoatdongkhac(i, ten_hoatdong):
     """Hiển thị giao diện nhập liệu cho các hoạt động khác."""
+    show_warning_if_data_invalid(i)
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     defaults = {'noi_dung': "", 'so_tiet': 0.0, 'ghi_chu': ""}
     if isinstance(input_df, pd.DataFrame) and not input_df.empty:
@@ -540,11 +528,9 @@ def ui_hoatdongkhac(i, ten_hoatdong):
     st.text_input("3. Ghi chú", value=str(defaults['ghi_chu']), key=f"hd_khac_ghichu_{i}", on_change=calculate_hoatdongkhac, args=(i,), help="Thêm các giải thích liên quan (ví dụ: số quyết định).")
 
 
-# --- GIAO DIỆN CHÍNH ---
+# --- MAIN UI ---
 st.markdown("<h1 style='text-align: center; color: orange;'>QUY ĐỔI CÁC HOẠT ĐỘNG KHÁC</h1>", unsafe_allow_html=True)
 
-# Sửa lại: chỉ tải dữ liệu một lần khi vào trang hoặc khi người dùng thay đổi trang
-# Logic này sẽ kiểm tra cờ 'force_page_reload' từ main.py
 if 'hoatdong_page_loaded_for_user' not in st.session_state \
     or st.session_state.hoatdong_page_loaded_for_user != magv \
     or st.session_state.get('force_page_reload', False):
@@ -554,10 +540,7 @@ if 'hoatdong_page_loaded_for_user' not in st.session_state \
         sync_data_to_session(inputs_df, results_df)
     
     st.session_state.hoatdong_page_loaded_for_user = magv
-    st.session_state.force_page_reload = False # Reset cờ để không tải lại liên tục
-    # Bỏ st.rerun() tại đây để toàn bộ trang được vẽ lại trong một luồng duy nhất,
-    # đảm bảo state được đồng bộ trước khi các widget được tạo.
-
+    st.session_state.force_page_reload = False
 
 if 'selectbox_count_hd' not in st.session_state:
     st.session_state.selectbox_count_hd = 0
@@ -577,7 +560,6 @@ with col_buttons[2]:
         save_hoatdong_to_gsheet(spreadsheet)
 st.divider()
 
-# --- Giao diện Tab động ---
 activity_tab_titles = [f"Hoạt động {i + 1}" for i in range(st.session_state.selectbox_count_hd)]
 activity_tab_titles.append("📊 Tổng hợp")
 activity_tabs = st.tabs(activity_tab_titles)
@@ -592,16 +574,13 @@ for i in range(st.session_state.selectbox_count_hd):
         default_index = options_filtered.index(default_activity) if default_activity in options_filtered else 0
         
         def on_activity_change(idx):
-            # Khi thay đổi loại hoạt động, xóa dữ liệu cũ để tính toán lại
             st.session_state.pop(f'df_hoatdong_{idx}', None)
             st.session_state.pop(f'input_df_hoatdong_{idx}', None)
 
         hoatdong_x = st.selectbox(f"CHỌN HOẠT ĐỘNG QUY ĐỔI:", options_filtered, index=default_index, key=f"select_{i}", on_change=on_activity_change, args=(i,))
         
-        # Chạy tính toán ban đầu nếu tab mới được thêm hoặc loại hoạt động được thay đổi
         run_initial_calculation(i, hoatdong_x)
         
-        # Gọi hàm UI tương ứng
         if hoatdong_x == df_quydoi_hd_g.iloc[7, 1]: ui_diThucTapDN(i, hoatdong_x)
         elif hoatdong_x == df_quydoi_hd_g.iloc[1, 1]: ui_huongDanChuyenDeTN(i, hoatdong_x)
         elif hoatdong_x == df_quydoi_hd_g.iloc[2, 1]: ui_chamChuyenDeTN(i, hoatdong_x)
@@ -630,21 +609,15 @@ with activity_tabs[-1]:
         result_df = st.session_state.get(f'df_hoatdong_{i}')
         if result_df is not None and not result_df.empty:
             df_copy = result_df.copy()
-            
             if 'Hoạt động quy đổi' in df_copy.columns:
                  activity_name = df_copy['Hoạt động quy đổi'].iloc[0]
                  if activity_name == de_tai_nckh_name:
-                    df_copy = df_copy.rename(columns={
-                        'Cấp đề tài': 'Đơn vị tính', 'Số lượng TV': 'Số lượng', 'Tác giả': 'Hệ số'
-                    })
-            
+                    df_copy = df_copy.rename(columns={'Cấp đề tài': 'Đơn vị tính', 'Số lượng TV': 'Số lượng', 'Tác giả': 'Hệ số'})
             hoatdong_results.append(df_copy)
     
     if hoatdong_results:
         final_hoatdong_df = pd.concat(hoatdong_results, ignore_index=True)
-        cols_to_display_summary = [
-            'Hoạt động quy đổi', 'Đơn vị tính', 'Số lượng', 'Hệ số', 'Giờ quy đổi', 'Ghi chú'
-        ]
+        cols_to_display_summary = ['Hoạt động quy đổi', 'Đơn vị tính', 'Số lượng', 'Hệ số', 'Giờ quy đổi', 'Ghi chú']
         existing_cols_to_display = [col for col in cols_to_display_summary if col in final_hoatdong_df.columns]
         st.dataframe(final_hoatdong_df[existing_cols_to_display], use_container_width=True)
     else:
