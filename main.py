@@ -78,7 +78,6 @@ def connect_as_user(_token):
 
 
 def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file):
-    # (Hàm này được giữ nguyên, không thay đổi)
     try:
         df_upload = pd.read_excel(uploaded_file)
         if 'email' not in df_upload.columns or 'magv' not in df_upload.columns:
@@ -151,7 +150,6 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
 
 
 def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, old_email, new_email):
-    # (Hàm này được giữ nguyên, không thay đổi)
     try:
         spreadsheet = sa_gspread_client.open(magv_to_update)
         file_id = spreadsheet.id
@@ -188,7 +186,6 @@ def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, ol
 @st.cache_data(ttl=600)
 def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_base/'):
     """Tải tất cả các file dữ liệu nền Parquet và từ Google Sheet quản trị."""
-    # (Hàm này được giữ nguyên, không thay đổi)
     loaded_dfs = {}
     
     # --- Phần tải Parquet (không đổi) ---
@@ -260,7 +257,6 @@ def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_ba
 
 
 def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
-    # (Hàm này được giữ nguyên, không thay đổi)
     if magv is None or df_giaovien is None or df_khoa is None or df_giaovien.empty or df_khoa.empty:
         return None
     teacher_row = df_giaovien[df_giaovien['Magv'].astype(str) == str(magv)]
@@ -273,7 +269,6 @@ def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
 
 
 def get_user_spreadsheet(sa_gspread_client, email):
-    # (Hàm này được giữ nguyên, không thay đổi)
     try:
         mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
         df = pd.DataFrame(mapping_sheet.get_all_records())
@@ -338,7 +333,7 @@ else:
     
     # --- PHÂN QUYỀN VÀ HIỂN THỊ GIAO DIỆN ---
     if user_email == ADMIN_EMAIL:
-        # Giao diện của Admin (giữ nguyên, không thay đổi)
+        # Giao diện của Admin
         with st.sidebar:
             st.header(f"Xin chào, {user_info.get('name', '')}!")
             if st.button("Đăng xuất", use_container_width=True):
@@ -457,27 +452,10 @@ else:
                 if st.button("Đăng xuất", use_container_width=True, key="user_logout"):
                     st.session_state.clear()
                     st.rerun()
-            
-            # <<<--- BẮT ĐẦU PHẦN CODE ĐÃ SỬA --- >>>
-            # LOGIC ĐỂ TỰ ĐỘNG TẢI LẠI DỮ LIỆU KHI CHUYỂN TRANG
-            
-            # Lấy trang hiện tại từ st.Page (cách mới và tốt hơn)
-            # Hàm `st.navigation` sẽ tự động quản lý query param 'page'
-            # Chúng ta chỉ cần đọc nó.
-            page_param = st.query_params.get("page", ["Trang chủ"])
-            current_page_title = page_param[0] if isinstance(page_param, list) else page_param
 
-
-            # Lấy tên trang đã lưu từ lần chạy trước
-            previous_page_title = st.session_state.get('current_page_title', None)
-
-            # Nếu trang đã thay đổi so với lần trước, đặt cờ yêu cầu tải lại dữ liệu
-            # và cập nhật trang hiện tại vào session state để so sánh cho lần sau.
-            if previous_page_title != current_page_title:
-                st.session_state['force_page_reload'] = True
-                st.session_state['current_page_title'] = current_page_title
-            # <<<--- KẾT THÚC PHẦN CODE ĐÃ SỬA --- >>>
-
+            # Thiết lập cấu trúc các trang của ứng dụng
+            # Mỗi trang con (ví dụ: quydoi_hoatdong.py) sẽ tự quản lý việc
+            # làm mới dữ liệu nếu cần, giúp logic ở trang chính đơn giản hơn.
             pages = {
                 "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
                 "Kê khai": [
