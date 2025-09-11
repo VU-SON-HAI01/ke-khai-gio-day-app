@@ -63,10 +63,27 @@ if 'magv' in st.session_state and 'chuangv' in st.session_state and 'giochuan' i
     giochuan = st.session_state['giochuan']
     spreadsheet = st.session_state['spreadsheet']
     
-    # Lấy client đã được xác thực từ spreadsheet object có sẵn trong session
-    sa_client = spreadsheet.client
+    # <<<--- SỬA LỖI --- >>>
+    # Do cơ chế lưu trữ của Streamlit, `spreadsheet.client` có thể không phải là đối tượng client đầy đủ.
+    # Chúng ta sẽ lấy thông tin xác thực (credentials) từ đó để tạo lại một client mới, đảm bảo hoạt động chính xác.
+    try:
+        # Lấy credentials từ đối tượng client bên trong spreadsheet object
+        service_account_creds = spreadsheet.client.auth
+        # Sử dụng credentials để ủy quyền một gspread client mới
+        sa_client = gspread.authorize(service_account_creds)
+    except Exception as e:
+        st.error(f"Lỗi nghiêm trọng khi khởi tạo lại kết nối Google Sheets: {e}")
+        st.info("Điều này có thể xảy ra nếu thông tin đăng nhập bị thay đổi. Vui lòng thử đăng xuất và đăng nhập lại.")
+        st.stop()
+    # <<<--- KẾT THÚC SỬA LỖI --- >>>
+    
     # Tải lại dữ liệu quy đổi mỗi khi chạy trang này
     df_quydoi_hd_g = reload_quydoi_hd_data(sa_client)
+
+    # Kiểm tra nếu dữ liệu quy đổi không được tải, dừng trang để tránh lỗi
+    if df_quydoi_hd_g.empty:
+        st.error("Không thể tiếp tục do không tải được dữ liệu quy đổi cần thiết. Vui lòng kiểm tra lại file Google Sheet quản trị và làm mới trang.")
+        st.stop()
 
 else:
     st.warning("Vui lòng đăng nhập và đảm bảo thông tin giáo viên đã được tải đầy đủ từ trang chính.")
