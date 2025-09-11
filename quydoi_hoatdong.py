@@ -107,7 +107,7 @@ def sync_data_to_session(inputs_df, results_df):
         'df_hoatdong_', 'input_df_hoatdong_', 'select_', 'num_input_', 'num_', 
         'note_', 'capgiai_', 'capdetai_', 'soluongtv_', 'vaitro_', 'ghichu_', 
         'dqtv_start_', 'dqtv_end_', 'hd_khac_noidung_', 'hd_khac_sotiet_', 
-        'hd_khac_ghichu_'
+        'hd_khac_ghichu_', 'previous_select_' # Thêm prefix mới để xóa
     ]
     for key in list(st.session_state.keys()):
         for prefix in prefixes_to_clear:
@@ -570,15 +570,36 @@ options_filtered = [opt for opt in options_full if opt != giam_activity_name]
 
 for i in range(st.session_state.selectbox_count_hd):
     with activity_tabs[i]:
+        # <<<--- START OF EDITED LOGIC --- >>>
+        # Manual change detection to avoid faulty on_change triggers
+        # Get the activity name that was selected on the *previous* script run
+        previous_activity = st.session_state.get(f'previous_select_{i}')
+
+        # Get the default activity name for the selectbox from the current state
         default_activity = st.session_state.get(f"select_{i}", options_filtered[0])
         default_index = options_filtered.index(default_activity) if default_activity in options_filtered else 0
         
-        def on_activity_change(idx):
-            st.session_state.pop(f'df_hoatdong_{idx}', None)
-            st.session_state.pop(f'input_df_hoatdong_{idx}', None)
+        # Create the selectbox WITHOUT the on_change callback
+        hoatdong_x = st.selectbox(
+            f"CHỌN HOẠT ĐỘNG QUY ĐỔI:", 
+            options_filtered, 
+            index=default_index, 
+            key=f"select_{i}"
+        )
 
-        hoatdong_x = st.selectbox(f"CHỌN HOẠT ĐỘNG QUY ĐỔI:", options_filtered, index=default_index, key=f"select_{i}", on_change=on_activity_change, args=(i,))
-        
+        # Now, compare the current value with the previous one
+        if previous_activity and previous_activity != hoatdong_x:
+            # If they are different, it means the USER just changed it.
+            # So, we clear the data for this tab to force a recalculation.
+            st.session_state.pop(f'df_hoatdong_{i}', None)
+            st.session_state.pop(f'input_df_hoatdong_{i}', None)
+            # Rerun to apply the change immediately and show the correct new UI
+            st.rerun()
+
+        # Store the current selection to compare against in the next script run
+        st.session_state[f'previous_select_{i}'] = hoatdong_x
+        # <<<--- END OF EDITED LOGIC --- >>>
+
         run_initial_calculation(i, hoatdong_x)
         
         if hoatdong_x == df_quydoi_hd_g.iloc[7, 1]: ui_diThucTapDN(i, hoatdong_x)
