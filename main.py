@@ -458,21 +458,25 @@ else:
                     st.session_state.clear()
                     st.rerun()
             
-            # <<<--- BẮT ĐẦU PHẦN CODE MỚI --- >>>
+            # <<<--- BẮT ĐẦU PHẦN CODE ĐÃ SỬA --- >>>
             # LOGIC ĐỂ TỰ ĐỘNG TẢI LẠI DỮ LIỆU KHI CHUYỂN TRANG
-            # Lấy tên trang hiện tại từ URL query params. 'st.navigation' tự động cập nhật param 'page'.
-            # Nếu không có param 'page' (lần chạy đầu tiên), mặc định là 'Trang chủ'.
-            current_page_title = st.query_params.get("page", "Trang chủ")
+            
+            # Lấy trang hiện tại từ st.Page (cách mới và tốt hơn)
+            # Hàm `st.navigation` sẽ tự động quản lý query param 'page'
+            # Chúng ta chỉ cần đọc nó.
+            page_param = st.query_params.get("page", ["Trang chủ"])
+            current_page_title = page_param[0] if isinstance(page_param, list) else page_param
+
 
             # Lấy tên trang đã lưu từ lần chạy trước
             previous_page_title = st.session_state.get('current_page_title', None)
 
             # Nếu trang đã thay đổi so với lần trước, đặt cờ yêu cầu tải lại dữ liệu
+            # và cập nhật trang hiện tại vào session state để so sánh cho lần sau.
             if previous_page_title != current_page_title:
                 st.session_state['force_page_reload'] = True
-                # Cập nhật trang hiện tại vào session state để so sánh cho lần sau
                 st.session_state['current_page_title'] = current_page_title
-            # <<<--- KẾT THÚC PHẦN CODE MỚI --- >>>
+            # <<<--- KẾT THÚC PHẦN CODE ĐÃ SỬA --- >>>
 
             pages = {
                 "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
