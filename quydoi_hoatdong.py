@@ -295,7 +295,6 @@ def ui_phongTraoTDTT(i, ten_hoatdong):
     st.number_input("Số ngày làm việc (8 giờ) (ĐVT: Ngày):", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_phongTraoTDTT, args=(i,))
     st.info("1 ngày hướng dẫn = 2.5 tiết")
 
-# <<<--- NÂNG CẤP CẤU TRÚC BẢNG KẾT QUẢ --- >>>
 def calculate_traiNghiemGiaoVienCN(i):
     """
     Tính toán cho các hoạt động quy đổi theo Tiết, với cấu trúc bảng kết quả chi tiết.
@@ -344,7 +343,6 @@ def ui_traiNghiemGiaoVienCN(i, ten_hoatdong):
     else:
         default_tiet = 1.0
         default_ghi_chu = ""
-    # <<<--- NÂNG CẤP WIDGET INPUT --- >>>
     st.number_input(
         f"Nhập số tiết '{ten_hoatdong}':", 
         value=float(default_tiet), 
@@ -455,22 +453,63 @@ def ui_danQuanTuVe(i, ten_hoatdong):
     if st.session_state.get(f'dqtv_end_{i}', default_end_date) < st.session_state.get(f'dqtv_start_{i}', default_start_date):
         st.error("Ngày kết thúc không được nhỏ hơn ngày bắt đầu.")
 
+# <<<--- NÂNG CẤP HÀM QUY ĐỔI KHÁC --- >>>
 def calculate_hoatdongkhac(i):
+    """
+    Tính toán cho các hoạt động "Quy đổi khác", với cấu trúc bảng kết quả chi tiết
+    và tên hoạt động được rút gọn.
+    """
     set_interaction_flag()
     ten_hoatdong_selectbox = st.session_state.get(f'select_{i}')
     if not ten_hoatdong_selectbox: return
+
+    # Lấy giá trị input từ widget hoặc giá trị mặc định
     input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'noi_dung': '', 'so_tiet': 0.0, 'ghi_chu': ''}]))
     default_noi_dung, default_so_tiet, default_ghi_chu = input_df.iloc[0]
-    noi_dung = st.session_state.get(f'hd_khac_noidung_{i}', default_noi_dung)
-    so_tiet = st.session_state.get(f'hd_khac_sotiet_{i}', default_so_tiet)
+    ten_hoat_dong_khac = st.session_state.get(f'hd_khac_noidung_{i}', default_noi_dung)
+    so_luong_tiet = st.session_state.get(f'hd_khac_sotiet_{i}', default_so_tiet)
     ghi_chu = st.session_state.get(f'hd_khac_ghichu_{i}', default_ghi_chu)
-    st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'noi_dung': noi_dung, 'so_tiet': so_tiet, 'ghi_chu': ghi_chu}])
-    if noi_dung and noi_dung.strip() != '':
+
+    # Lưu lại giá trị input hiện tại vào session state
+    st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'noi_dung': ten_hoat_dong_khac, 'so_tiet': so_luong_tiet, 'ghi_chu': ghi_chu}])
+
+    if ten_hoat_dong_khac and ten_hoat_dong_khac.strip() != '':
+        # Rút gọn tên hoạt động để hiển thị
+        words = ten_hoat_dong_khac.strip().split()
+        if len(words) > 4:
+            display_name = " ".join(words[:4]) + " ..."
+        else:
+            display_name = ten_hoat_dong_khac.strip()
+
+        # Thêm ghi chú phân loại NCKH
+        if "NCKH" in ten_hoatdong_selectbox:
+            display_name += " (Thuộc NCKH)"
+        else:
+            display_name += " (Không thuộc NCKH)"
+
+        # Định nghĩa các thông số cho bảng kết quả
+        don_vi_tinh = "Tiết"
+        he_so = 1
+        gio_quy_doi = round(float(so_luong_tiet) * he_so, 1)
+
+        # Lấy mã hoạt động
         dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong_selectbox)
         ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
-        data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [noi_dung.strip()], 'Giờ quy đổi': [float(so_tiet)], 'Ghi chú': [ghi_chu]}
+
+        # Tạo DataFrame kết quả với cấu trúc mới
+        data = {
+            'Mã HĐ': [ma_hoatdong],
+            'MÃ NCKH': [ma_nckh],
+            'Hoạt động quy đổi': [display_name],
+            'Đơn vị tính': [don_vi_tinh],
+            'Số lượng': [so_luong_tiet],
+            'Hệ số': [he_so],
+            'Giờ quy đổi': [gio_quy_doi],
+            'Ghi chú': [ghi_chu]
+        }
         st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
     else:
+        # Nếu không có nội dung, tạo DataFrame rỗng
         st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame()
 
 def ui_hoatdongkhac(i, ten_hoatdong):
@@ -479,8 +518,10 @@ def ui_hoatdongkhac(i, ten_hoatdong):
         default_noi_dung, default_so_tiet, default_ghi_chu = input_df.iloc[0]
     else:
         default_noi_dung, default_so_tiet, default_ghi_chu = "", 0.0, ""
-    st.text_input("1. Nội dung hoạt động:", value=default_noi_dung, key=f"hd_khac_noidung_{i}", on_change=calculate_hoatdongkhac, args=(i,), help="Nhập nội dung cụ thể của hoạt động.")
-    st.number_input("2. Nhập số tiết đã quy đổi:", value=float(default_so_tiet), min_value=0.0, format="%.1f", key=f"hd_khac_sotiet_{i}", on_change=calculate_hoatdongkhac, args=(i,))
+    
+    # Đổi tên nhãn của widget
+    st.text_input("1. Tên hoạt động khác:", value=default_noi_dung, key=f"hd_khac_noidung_{i}", on_change=calculate_hoatdongkhac, args=(i,), help="Nhập nội dung cụ thể của hoạt động.")
+    st.number_input("2. Nhập số tiết:", value=float(default_so_tiet), min_value=0.0, format="%.1f", key=f"hd_khac_sotiet_{i}", on_change=calculate_hoatdongkhac, args=(i,))
     st.text_input("3. Ghi chú:", value=default_ghi_chu, key=f"hd_khac_ghichu_{i}", on_change=calculate_hoatdongkhac, args=(i,), help="Thêm các giải thích liên quan (ví dụ: số quyết định).")
 
 # --- MAIN UI ---
@@ -614,9 +655,11 @@ if st.session_state.selectbox_count_hd > 0:
             result_df = st.session_state.get(f'df_hoatdong_{i}')
             if result_df is not None and not result_df.empty:
                 df_copy = result_df.copy()
-                activity_name = df_copy['Hoạt động quy đổi'].iloc[0]
-                if activity_name == de_tai_nckh_name:
-                    df_copy = df_copy.rename(columns={'Cấp đề tài': 'Đơn vị tính', 'Số lượng TV': 'Số lượng', 'Tác giả': 'Hệ số'})
+                # Kiểm tra sự tồn tại của cột trước khi truy cập
+                if 'Hoạt động quy đổi' in df_copy.columns and not df_copy.empty:
+                    activity_name = df_copy['Hoạt động quy đổi'].iloc[0]
+                    if activity_name == de_tai_nckh_name:
+                        df_copy = df_copy.rename(columns={'Cấp đề tài': 'Đơn vị tính', 'Số lượng TV': 'Số lượng', 'Tác giả': 'Hệ số'})
                 hoatdong_results.append(df_copy)
         
         if hoatdong_results:
