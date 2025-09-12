@@ -344,7 +344,17 @@ def ui_traiNghiemGiaoVienCN(i, ten_hoatdong):
     else:
         default_tiet = 1.0
         default_ghi_chu = ""
-    st.number_input(f"Nhập số tiết '{ten_hoatdong}':", value=float(default_tiet), min_value=0.0, step=0.1, format="%.1f", key=f"num_{i}", on_change=calculate_traiNghiemGiaoVienCN, args=(i,))
+    # <<<--- NÂNG CẤP WIDGET INPUT --- >>>
+    st.number_input(
+        f"Nhập số tiết '{ten_hoatdong}':", 
+        value=float(default_tiet), 
+        min_value=0.0, 
+        step=1.0,  # Bước nhảy là 1.0 theo yêu cầu
+        format="%.1f", # Định dạng hiển thị một chữ số thập phân
+        key=f"num_{i}", 
+        on_change=calculate_traiNghiemGiaoVienCN, 
+        args=(i,)
+    )
     st.text_input("Thêm ghi chú (nếu có):", value=default_ghi_chu, key=f"note_{i}", on_change=calculate_traiNghiemGiaoVienCN, args=(i,))
     st.info("Điền số quyết định liên quan đến hoạt động này vào ô ghi chú.")
 
