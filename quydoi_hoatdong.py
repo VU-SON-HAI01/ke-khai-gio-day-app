@@ -125,7 +125,8 @@ def save_hoatdong_to_gsheet(spreadsheet):
     except Exception as e:
         st.error(f"Lỗi khi lưu hoạt động: {e}")
 
-@st.cache_data(show_spinner=False)
+# <<<--- SỬA LỖI: Loại bỏ cache khỏi hàm này --- >>>
+# Hàm này cần lấy dữ liệu mới mỗi lần tải trang, vì vậy cache sẽ gây ra lỗi dữ liệu cũ.
 def load_hoatdong_from_gsheet(_spreadsheet):
     """Tải các hoạt động đã lưu của người dùng từ Google Sheet."""
     inputs_df = pd.DataFrame()
