@@ -15,6 +15,8 @@ def update_worksheet(spreadsheet, sheet_name, df):
     except gspread.WorksheetNotFound:
         worksheet = spreadsheet.add_worksheet(title=sheet_name, rows=1, cols=1)
     df_str = df.astype(str)
+    # Đảm bảo NaN được chuyển thành chuỗi rỗng thay vì 'nan'
+    df_str.replace('nan', '', inplace=True)
     data_to_write = [df_str.columns.values.tolist()] + df_str.values.tolist()
     worksheet.update(data_to_write, 'A1')
 
@@ -26,21 +28,59 @@ def clear_worksheet(spreadsheet, sheet_name):
     except gspread.WorksheetNotFound:
         pass
 
-# --- LẤY DỮ LIỆU TỪ SESSION STATE ---
-df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
-# SỬA LẠI: Dùng đúng dataframe df_quydoi_hd_them cho trang này
-df_quydoi_hd_g = st.session_state.get('df_quydoi_hd_them', pd.DataFrame())
+# --- HÀM TẢI LẠI DỮ LIỆU NỀN (TỪ ADMIN SHEET) ---
+@st.cache_data(ttl=300) # Cache trong 5 phút để tránh gọi API liên tục
+def reload_quydoi_hd_them_data(_spreadsheet_client):
+    """
+    Tải lại dữ liệu quy đổi giảm trừ/kiêm nhiệm trực tiếp từ Google Sheet quản trị.
+    Hàm này đảm bảo các quy tắc tính toán trên trang này luôn được cập nhật.
+    """
+    try:
+        admin_data_sheet_name = st.secrets["google_sheet"]["admin_data_sheet_name"]
+        admin_data_sheet = _spreadsheet_client.open(admin_data_sheet_name)
+        worksheet_khac = admin_data_sheet.worksheet("QUYDOIKHAC")
+        df_quydoi_hd_them = pd.DataFrame(worksheet_khac.get_all_records())
+        return df_quydoi_hd_them
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error(f"Lỗi: Không tìm thấy file dữ liệu quản trị '{admin_data_sheet_name}'. Vui lòng liên hệ Admin.")
+        return pd.DataFrame()
+    except gspread.exceptions.WorksheetNotFound:
+        st.error("Lỗi: Không tìm thấy sheet 'QUYDOIKHAC' trong file dữ liệu quản trị. Vui lòng liên hệ Admin.")
+        return pd.DataFrame()
+    except Exception as e:
+        st.error(f"Lỗi không xác định khi tải lại dữ liệu quy đổi giảm trừ: {e}")
+        return pd.DataFrame()
 
-if 'magv' in st.session_state and 'chuangv' in st.session_state and 'giochuan' in st.session_state and 'spreadsheet' in st.session_state:
+# --- KIỂM TRA VÀ LẤY DỮ LIỆU TỪ SESSION STATE ---
+# Đảm bảo các thông tin cần thiết đã được tải từ trang chính
+if 'magv' in st.session_state and 'chuangv' in st.session_state and 'giochuan' in st.session_state and 'spreadsheet' in st.session_state and 'df_ngaytuan' in st.session_state:
     magv = st.session_state['magv']
     chuangv = st.session_state['chuangv']
     giochuan = st.session_state['giochuan']
     spreadsheet = st.session_state['spreadsheet']
+    df_ngaytuan_g = st.session_state['df_ngaytuan']
+
+    # Tạo lại gspread client từ credentials để đảm bảo kết nối ổn định
+    try:
+        service_account_creds = spreadsheet.client.auth
+        sa_client = gspread.authorize(service_account_creds)
+    except Exception as e:
+        st.error(f"Lỗi nghiêm trọng khi khởi tạo lại kết nối Google Sheets: {e}")
+        st.info("Vui lòng thử đăng xuất và đăng nhập lại.")
+        st.stop()
+    
+    # Tải lại dữ liệu quy đổi mỗi khi chạy trang này
+    df_quydoi_hd_g = reload_quydoi_hd_them_data(sa_client)
+
+    if df_quydoi_hd_g.empty:
+        st.error("Không thể tiếp tục do không tải được dữ liệu quy đổi giảm trừ cần thiết.")
+        st.stop()
 else:
     st.warning("Vui lòng đăng nhập và đảm bảo thông tin giáo viên đã được tải đầy đủ từ trang chính.")
     st.stop()
 
-# --- CÁC HÀM LƯU/TẢI DỮ LIỆU ---
+
+# --- CÁC HÀM LƯU/TẢI DỮ LIỆU CỦA NGƯỜI DÙNG ---
 def save_giamgio_to_gsheet(spreadsheet, input_df, result_df):
     """Lưu dữ liệu giảm giờ vào các sheet cụ thể."""
     try:
@@ -59,25 +99,40 @@ def save_giamgio_to_gsheet(spreadsheet, input_df, result_df):
         st.error(f"Lỗi khi lưu dữ liệu: {e}")
 
 def load_giamgio_from_gsheet(spreadsheet):
-    """Tải dữ liệu giảm giờ từ Google Sheet."""
+    """Tải dữ liệu giảm giờ đã lưu của người dùng từ Google Sheet và trả về DataFrame."""
     try:
         ws = spreadsheet.worksheet("input_quydoigiam")
         data = ws.get_all_records()
-        if data:
-            df = pd.DataFrame(data)
-            df['Từ ngày'] = pd.to_datetime(df['Từ ngày'], errors='coerce').dt.date
-            df['Đến ngày'] = pd.to_datetime(df['Đến ngày'], errors='coerce').dt.date
-            st.session_state.giamgio_input_df = df
-        else:
-            st.session_state.giamgio_input_df = pd.DataFrame()
-        st.success("Tải dữ liệu giảm trừ/kiêm nhiệm thành công.")
+        if not data:
+            return pd.DataFrame()
+            
+        df = pd.DataFrame(data)
+        # Chuyển đổi kiểu dữ liệu một cách an toàn
+        df['Từ ngày'] = pd.to_datetime(df['Từ ngày'], errors='coerce').dt.date
+        df['Đến ngày'] = pd.to_datetime(df['Đến ngày'], errors='coerce').dt.date
+        return df
+        
     except gspread.WorksheetNotFound:
-        st.info("Chưa có dữ liệu giảm trừ/kiêm nhiệm nào được lưu.")
-        st.session_state.giamgio_input_df = pd.DataFrame()
+        # Nếu không tìm thấy sheet, trả về DataFrame rỗng, đây là trường hợp bình thường
+        return pd.DataFrame()
     except Exception as e:
-        st.error(f"Lỗi khi tải dữ liệu: {e}")
+        st.error(f"Lỗi khi tải dữ liệu giảm trừ đã lưu: {e}")
+        return pd.DataFrame()
 
-# --- HÀM TÍNH TOÁN CHÍNH ---
+# --- LOGIC TẢI DỮ LIỆU KHI CHUYỂN TRANG ---
+# Dựa trên cơ chế của main.py để phát hiện việc chuyển trang
+THIS_PAGE_TITLE = "Kê Giảm trừ/Kiêm nhiệm"
+previous_page_title = st.session_state.get('current_page_title', None)
+
+# Nếu người dùng vừa chuyển đến trang này, hoặc dữ liệu chưa được tải lần nào
+if previous_page_title != THIS_PAGE_TITLE or 'giamgio_input_df' not in st.session_state:
+    with st.spinner("Đang tải dữ liệu giảm trừ/kiêm nhiệm đã lưu..."):
+        st.session_state.giamgio_input_df = load_giamgio_from_gsheet(spreadsheet)
+
+# Cập nhật lại tên trang hiện tại vào session state
+st.session_state['current_page_title'] = THIS_PAGE_TITLE
+
+# --- HÀM TÍNH TOÁN VÀ GIAO DIỆN CHÍNH ---
 def tinh_toan_kiem_nhiem():
     st.markdown("<h1 style='text-align: center; color: orange;'>QUY ĐỔI GIẢM TRỪ/KIÊM NHIỆM</h1>", unsafe_allow_html=True)
     st.caption("Trang này dùng để kê khai các nhiệm vụ quản lý, đoàn thể, đi học, nghỉ chế độ hoặc công tác chủ nhiệm.")
@@ -86,10 +141,6 @@ def tinh_toan_kiem_nhiem():
     TET_WEEKS = [24, 25]
     CHUC_VU_VP_MAP = {'NV': 0.2 * 8 / 11, 'PTP': 0.18 * 8 / 11, 'TP': 0.14 * 8 / 11, 'PHT': 0.1 * 8 / 11, 'HT': 0.08 * 8 / 11, }
     CHUC_VU_HIEN_TAI = 'NV'
-
-    if df_quydoi_hd_g.empty:
-        st.error("Dữ liệu quy đổi giảm trừ (df_quydoi_hd_them) chưa được tải. Vui lòng kiểm tra lại file Google Sheet và quyền truy cập.")
-        st.stop()
 
     # Xử lý df_ngaytuan_g một lần
     if 'start_date' not in df_ngaytuan_g.columns:
@@ -125,21 +176,15 @@ def tinh_toan_kiem_nhiem():
             return [w for w in range(start, end + 1) if w not in TET_WEEKS]
         return []
 
-    # --- SỬA LỖI TÊN CỘT ---
-    # Lấy tên cột hoạt động, phần trăm và mã giảm một cách linh hoạt theo vị trí
+    # Lấy tên cột một cách linh hoạt
     if len(df_quydoi_hd_g.columns) < 4:
-        st.error("Lỗi nghiêm trọng: File dữ liệu quy đổi giảm trừ phải có ít nhất 4 cột.")
+        st.error("Lỗi: File dữ liệu quy đổi giảm trừ (QUYDOIKHAC) phải có ít nhất 4 cột.")
         st.stop()
     
     activity_col_name = df_quydoi_hd_g.columns[1]
     percent_col_name = df_quydoi_hd_g.columns[2]
     ma_giam_col_name = df_quydoi_hd_g.columns[3]
-    
-    try:
-        hoat_dong_list = df_quydoi_hd_g[activity_col_name].dropna().unique().tolist()
-    except Exception as e:
-        st.error(f"Lỗi khi lấy danh sách hoạt động từ cột '{activity_col_name}': {e}")
-        st.stop()
+    hoat_dong_list = df_quydoi_hd_g[activity_col_name].dropna().unique().tolist()
     
     # Giao diện nhập liệu
     input_df = st.session_state.get('giamgio_input_df')
@@ -155,20 +200,23 @@ def tinh_toan_kiem_nhiem():
         column_config={
             "Nội dung hoạt động": st.column_config.SelectboxColumn("Nội dung hoạt động", help="Chọn hoạt động cần quy đổi", width="large", options=hoat_dong_list, required=True),
             "Cách tính": st.column_config.SelectboxColumn("Cách tính", options=["Học kỳ", "Ngày"], required=True),
-            "Kỳ học": st.column_config.SelectboxColumn("Học kỳ", options=['Năm học', 'Học kỳ 1', 'Học kỳ 2']),
+            "Kỳ học": st.column_config.SelectboxColumn("Kỳ học", options=['Năm học', 'Học kỳ 1', 'Học kỳ 2']),
             "Từ ngày": st.column_config.DateColumn("Từ ngày", format="DD/MM/YYYY"),
             "Đến ngày": st.column_config.DateColumn("Đến ngày", format="DD/MM/YYYY"),
             "Ghi chú": st.column_config.TextColumn("Ghi chú"),
         },
         hide_index=True, use_container_width=True
     )
+    # Cập nhật lại session state với dữ liệu đã chỉnh sửa để giữ trạng thái
+    st.session_state.giamgio_input_df = edited_df.copy()
+
 
     st.header("Kết quả tính toán")
     valid_df = edited_df.dropna(subset=["Nội dung hoạt động"]).copy()
     results_df = pd.DataFrame() 
 
     if not valid_df.empty:
-        # TÍNH TOÁN
+        # --- PHẦN TÍNH TOÁN (GIỮ NGUYÊN) ---
         initial_results = []
         for index, row in valid_df.iterrows():
             activity_row = df_quydoi_hd_g[df_quydoi_hd_g[activity_col_name] == row["Nội dung hoạt động"]]
@@ -200,13 +248,11 @@ def tinh_toan_kiem_nhiem():
         weekly_tiet_grid_adjusted.index.name = "Tuần"
         max_tiet_per_week = giochuan / 44
         
-        # Hàm an toàn để chuyển đổi phần trăm
         def safe_percent_to_float(p):
             try:
-                # Thay thế dấu phẩy bằng dấu chấm và loại bỏ ký tự %
                 return float(str(p).replace('%', '').replace(',', '.')) / 100
             except (ValueError, TypeError):
-                return 0.0 # Trả về 0 nếu không thể chuyển đổi
+                return 0.0
 
         for week_num in [w for w in all_weeks_numeric if w not in TET_WEEKS]:
             active_this_week = initial_df[initial_df['Từ Tuần - Đến Tuần'].apply(lambda x: week_num in parse_week_range_for_chart(x))].copy()
@@ -232,10 +278,7 @@ def tinh_toan_kiem_nhiem():
                     active_this_week.loc[idx, '% Giảm (tuần)'] = f"{max(0, adjusted_percent)*100}%"
                     running_total_a = 0.5
             other_activities = active_this_week[~active_this_week['Mã hoạt động'].str.startswith(('A', 'B'), na=False)]
-            
-            # SỬA LỖI TypeError
             active_this_week.loc[other_activities.index, '% Giảm (tuần)'] = [(safe_percent_to_float(p) - heso_vp) for p in other_activities['% Giảm (gốc)']]
-            
             active_this_week['Tiết/Tuần'] = [safe_percent_to_float(p) * (giochuan / 44) for p in active_this_week['% Giảm (tuần)']]
             weekly_sum = active_this_week['Tiết/Tuần'].sum()
             if weekly_sum > max_tiet_per_week:
@@ -251,13 +294,12 @@ def tinh_toan_kiem_nhiem():
             so_tuan_active = (weekly_tiet_grid_adjusted[activity_name] > 0).sum()
             tiet_tuan_avg = round((tong_tiet / so_tuan_active), 2) if so_tuan_active > 0 else 0
             heso_vp = CHUC_VU_VP_MAP.get(CHUC_VU_HIEN_TAI, 0) if activity_name == 'VỀ KHỐI VĂN PHÒNG' else 0
-            # SỬA LỖI HIỂN THỊ PHẦN TRĂM
             percent_goc_val = (safe_percent_to_float(row['% Giảm (gốc)']) - heso_vp) * 100
             final_results.append({"Nội dung hoạt động": activity_name, "Từ Tuần - Đến Tuần": row['Từ Tuần - Đến Tuần'], "Số tuần": so_tuan_active, "% Giảm (gốc)": percent_goc_val, "Tiết/Tuần (TB)": tiet_tuan_avg, "Tổng tiết": tong_tiet, "Mã hoạt động": row['Mã hoạt động'], "Ghi chú": row['Ghi chú']})
         
         results_df = pd.DataFrame(final_results)
         
-        # HIỂN THỊ KẾT QUẢ
+        # --- PHẦN HIỂN THỊ KẾT QUẢ (GIỮ NGUYÊN) ---
         display_columns = ["Nội dung hoạt động", "Từ Tuần - Đến Tuần", "Số tuần", "% Giảm (gốc)", "Tiết/Tuần (TB)", "Tổng tiết", "Ghi chú"]
         st.dataframe(results_df[display_columns], column_config={"% Giảm (gốc)": st.column_config.NumberColumn(format="%.2f%%"), "Tiết/Tuần (TB)": st.column_config.NumberColumn(format="%.2f"), "Tổng tiết": st.column_config.NumberColumn(format="%.1f")}, hide_index=True, use_container_width=True)
         st.header("Tổng hợp kết quả")
@@ -301,22 +343,19 @@ def tinh_toan_kiem_nhiem():
     return edited_df, results_df
 
 # --- GIAO DIỆN CHÍNH ---
-if 'giamgio_loaded' not in st.session_state:
-    with st.spinner("Đang tải dữ liệu..."):
-        load_giamgio_from_gsheet(spreadsheet)
-        st.session_state.giamgio_loaded = True
-        st.rerun()
-
 # Gọi hàm chính để hiển thị và tính toán
 input_df_final, result_df_final = tinh_toan_kiem_nhiem()
 
+# Các nút điều khiển
 st.divider()
 col1, col2, _ = st.columns(3)
 with col1:
     if st.button("Cập nhật (Lưu)", use_container_width=True, type="primary"):
+        # Lưu trạng thái cuối cùng từ data editor
         save_giamgio_to_gsheet(spreadsheet, input_df_final, result_df_final)
 with col2:
     if st.button("Tải lại dữ liệu", use_container_width=True):
-        load_giamgio_from_gsheet(spreadsheet)
+        # Xóa session state cũ và tải lại từ Google Sheet
+        if 'giamgio_input_df' in st.session_state:
+            del st.session_state['giamgio_input_df']
         st.rerun()
-
