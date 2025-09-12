@@ -166,33 +166,7 @@ def set_interaction_flag():
     """Hàm helper để đánh dấu một tương tác của người dùng đang diễn ra."""
     st.session_state['interaction_in_progress'] = True
 
-def run_initial_calculation(i, activity_name):
-    """
-    Chạy tính toán ban đầu nếu kết quả chưa có trong session state.
-    Đây là hàm quan trọng để tạo ra bảng kết quả sau khi tải dữ liệu input.
-    """
-    if f'df_hoatdong_{i}' not in st.session_state:
-        callback_map = {
-            df_quydoi_hd_g.iloc[3, 1]: calculate_kiemtraTN,
-            df_quydoi_hd_g.iloc[1, 1]: calculate_huongDanChuyenDeTN,
-            df_quydoi_hd_g.iloc[2, 1]: calculate_chamChuyenDeTN,
-            df_quydoi_hd_g.iloc[4, 1]: calculate_huongDanChamBaoCaoTN,
-            df_quydoi_hd_g.iloc[7, 1]: calculate_diThucTapDN,
-            df_quydoi_hd_g.iloc[8, 1]: calculate_boiDuongNhaGiao,
-            df_quydoi_hd_g.iloc[9, 1]: calculate_phongTraoTDTT,
-            df_quydoi_hd_g.iloc[5, 1]: calculate_nhaGiaoHoiGiang,
-            df_quydoi_hd_g.iloc[14, 1]: calculate_deTaiNCKH,
-            df_quydoi_hd_g.iloc[6, 1]: calculate_danQuanTuVe,
-        }
-        for idx in [10, 11, 12, 13]:
-            callback_map[df_quydoi_hd_g.iloc[idx, 1]] = calculate_traiNghiemGiaoVienCN
-        for hoat_dong in df_quydoi_hd_g.iloc[:, 1].dropna().unique():
-            if "Quy đổi khác" in hoat_dong:
-                callback_map[hoat_dong] = calculate_hoatdongkhac
-        if activity_name in callback_map:
-            callback_map[activity_name](i)
-
-# --- Các hàm calculate và ui được cập nhật để gọi set_interaction_flag ---
+# --- Các hàm calculate và ui ---
 
 def calculate_kiemtraTN(i):
     set_interaction_flag()
@@ -321,20 +295,45 @@ def ui_phongTraoTDTT(i, ten_hoatdong):
     st.number_input("Số ngày làm việc (8 giờ) (ĐVT: Ngày):", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_phongTraoTDTT, args=(i,))
     st.info("1 ngày hướng dẫn = 2.5 tiết")
 
+# <<<--- NÂNG CẤP CẤU TRÚC BẢNG KẾT QUẢ --- >>>
 def calculate_traiNghiemGiaoVienCN(i):
+    """
+    Tính toán cho các hoạt động quy đổi theo Tiết, với cấu trúc bảng kết quả chi tiết.
+    """
     set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
+    
+    # Lấy giá trị input từ widget hoặc giá trị mặc định
     input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'so_tiet': 1.0, 'ghi_chu': ''}]))
     default_tiet = input_df['so_tiet'].iloc[0]
     default_ghi_chu = input_df['ghi_chu'].iloc[0]
-    quydoi_x = st.session_state.get(f'num_{i}', default_tiet)
+    so_luong_tiet = st.session_state.get(f'num_{i}', default_tiet)
     ghi_chu = st.session_state.get(f'note_{i}', default_ghi_chu)
-    st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_tiet': quydoi_x, 'ghi_chu': ghi_chu}])
-    quydoi_ketqua = round(float(quydoi_x), 1)
+    
+    # Lưu lại giá trị input hiện tại
+    st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'so_tiet': so_luong_tiet, 'ghi_chu': ghi_chu}])
+    
+    # Định nghĩa các hằng số và tính toán kết quả
+    don_vi_tinh = "Tiết"
+    he_so = 1
+    gio_quy_doi = round(float(so_luong_tiet) * he_so, 1)
+    
+    # Lấy mã hoạt động
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
-    data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Giờ quy đổi': [quydoi_ketqua], 'Ghi chú': [ghi_chu]}
+    
+    # Tạo DataFrame kết quả với cấu trúc mới
+    data = {
+        'Mã HĐ': [ma_hoatdong], 
+        'MÃ NCKH': [ma_nckh], 
+        'Hoạt động quy đổi': [ten_hoatdong], 
+        'Đơn vị tính': [don_vi_tinh],
+        'Số lượng': [so_luong_tiet],
+        'Hệ số': [he_so],
+        'Giờ quy đổi': [gio_quy_doi], 
+        'Ghi chú': [ghi_chu]
+    }
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
 def ui_traiNghiemGiaoVienCN(i, ten_hoatdong):
