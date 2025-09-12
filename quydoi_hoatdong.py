@@ -63,7 +63,6 @@ if 'magv' in st.session_state and 'chuangv' in st.session_state and 'giochuan' i
     giochuan = st.session_state['giochuan']
     spreadsheet = st.session_state['spreadsheet']
     
-    # <<<--- SỬA LỖI --- >>>
     # Do cơ chế lưu trữ của Streamlit, `spreadsheet.client` có thể không phải là đối tượng client đầy đủ.
     # Chúng ta sẽ lấy thông tin xác thực (credentials) từ đó để tạo lại một client mới, đảm bảo hoạt động chính xác.
     try:
@@ -75,7 +74,6 @@ if 'magv' in st.session_state and 'chuangv' in st.session_state and 'giochuan' i
         st.error(f"Lỗi nghiêm trọng khi khởi tạo lại kết nối Google Sheets: {e}")
         st.info("Điều này có thể xảy ra nếu thông tin đăng nhập bị thay đổi. Vui lòng thử đăng xuất và đăng nhập lại.")
         st.stop()
-    # <<<--- KẾT THÚC SỬA LỖI --- >>>
     
     # Tải lại dữ liệu quy đổi mỗi khi chạy trang này
     df_quydoi_hd_g = reload_quydoi_hd_data(sa_client)
@@ -93,6 +91,7 @@ else:
 # --- CÁC HÀM LƯU/TẢI DỮ LIỆU VỚI GOOGLE SHEETS ---
 def save_hoatdong_to_gsheet(spreadsheet):
     """Lưu các hoạt động (trừ giảm giờ) vào Google Sheet."""
+    st.session_state['interaction_in_progress'] = True
     try:
         with st.spinner("Đang lưu dữ liệu hoạt động..."):
             hoatdong_results, hoatdong_inputs = [], []
@@ -111,11 +110,9 @@ def save_hoatdong_to_gsheet(spreadsheet):
                          df_input = st.session_state[input_key]
                          if isinstance(df_input, pd.DataFrame) and not df_input.empty:
                              activity_name = st.session_state.get(f"select_{i}", "")
-                             # Sử dụng json.dumps để lưu trữ an toàn DataFrame input
                              input_dict = {'activity_index': i, 'activity_name': activity_name, 'input_json': df_input.to_json(orient='records', date_format='iso')}
                              hoatdong_inputs.append(input_dict)
             
-            # Cập nhật hoặc xóa worksheet dựa trên việc có dữ liệu hay không
             if hoatdong_results:
                 update_worksheet(spreadsheet, "output_hoatdong", pd.concat(hoatdong_results, ignore_index=True))
             else: 
@@ -130,10 +127,7 @@ def save_hoatdong_to_gsheet(spreadsheet):
 
 @st.cache_data(show_spinner=False)
 def load_hoatdong_from_gsheet(_spreadsheet):
-    """
-    Tải các hoạt động (trừ giảm giờ) từ Google Sheet.
-    Sử dụng cache để tăng tốc độ, chỉ tải lại khi spreadsheet thay đổi.
-    """
+    """Tải các hoạt động đã lưu của người dùng từ Google Sheet."""
     inputs_df = pd.DataFrame()
     results_df = pd.DataFrame()
     try:
@@ -161,11 +155,7 @@ def load_hoatdong_from_gsheet(_spreadsheet):
     return inputs_df, results_df
 
 def sync_data_to_session(inputs_df, results_df):
-    """
-    Đồng bộ dữ liệu từ DataFrame đã tải vào session_state.
-    Đây là bước trung tâm để nạp trạng thái cho ứng dụng.
-    """
-    # Xóa trạng thái cũ trước khi nạp trạng thái mới
+    """Xóa state cũ và đồng bộ dữ liệu mới từ DataFrame vào session_state."""
     for key in list(st.session_state.keys()):
         if key.startswith('df_hoatdong_') or key.startswith('input_df_hoatdong_') or key.startswith('select_'):
             del st.session_state[key]
@@ -179,17 +169,14 @@ def sync_data_to_session(inputs_df, results_df):
         for index, row in inputs_df.iterrows():
             i = row['activity_index']
             st.session_state[f'select_{i}'] = row['activity_name']
-            # Đọc lại DataFrame từ chuỗi JSON đã lưu
             df_input = pd.read_json(row['input_json'], orient='records')
             st.session_state[f'input_df_hoatdong_{i}'] = df_input
 
         if not results_df.empty:
-            # Chuyển đổi các cột số để đảm bảo tính toán đúng
             for col in results_df.columns:
                 if any(c in col.lower() for c in ['tiết', 'quy đổi', 'số lượng', 'hệ số', 'tuần', '%', 'tv']):
                     results_df[col] = pd.to_numeric(results_df[col], errors='coerce')
             
-            # Gán DataFrame kết quả cho từng hoạt động tương ứng
             for i in range(st.session_state.selectbox_count_hd):
                 df_activity_result = results_df[results_df['activity_index'].astype(str) == str(i)]
                 if 'activity_index' in df_activity_result.columns:
@@ -198,10 +185,12 @@ def sync_data_to_session(inputs_df, results_df):
 
 # --- CÁC HÀM TÍNH TOÁN (CALLBACKS) VÀ HIỂN THỊ (UI) ---
 
+def set_interaction_flag():
+    """Hàm helper để đánh dấu một tương tác của người dùng đang diễn ra."""
+    st.session_state['interaction_in_progress'] = True
+
 def run_initial_calculation(i, activity_name):
-    """Chạy tính toán ban đầu nếu kết quả chưa có trong session state."""
     if f'df_hoatdong_{i}' not in st.session_state:
-        # Mapping giữa tên hoạt động và hàm tính toán tương ứng
         callback_map = {
             df_quydoi_hd_g.iloc[3, 1]: calculate_kiemtraTN,
             df_quydoi_hd_g.iloc[1, 1]: calculate_huongDanChuyenDeTN,
@@ -214,20 +203,18 @@ def run_initial_calculation(i, activity_name):
             df_quydoi_hd_g.iloc[14, 1]: calculate_deTaiNCKH,
             df_quydoi_hd_g.iloc[6, 1]: calculate_danQuanTuVe,
         }
-        # Các hoạt động dùng chung 1 callback
         for idx in [10, 11, 12, 13]:
             callback_map[df_quydoi_hd_g.iloc[idx, 1]] = calculate_traiNghiemGiaoVienCN
-        
-        # Gán callback cho các hoạt động "Quy đổi khác"
         for hoat_dong in df_quydoi_hd_g.iloc[:, 1].dropna().unique():
             if "Quy đổi khác" in hoat_dong:
                 callback_map[hoat_dong] = calculate_hoatdongkhac
-
         if activity_name in callback_map:
             callback_map[activity_name](i)
 
-# --- 1. Kiểm tra Thực tập Tốt nghiệp ---
+# --- Các hàm calculate và ui được cập nhật để gọi set_interaction_flag ---
+
 def calculate_kiemtraTN(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_ngay': [1]}))['so_ngay'].iloc[0]
@@ -244,8 +231,8 @@ def ui_kiemtraTN(i, ten_hoatdong):
     st.number_input("Nhập số ngày đi kiểm tra thực tập TN (ĐVT: Ngày):", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_kiemtraTN, args=(i,))
     st.info("1 ngày đi 8h được tính = 3 tiết")
 
-# --- 2. Hướng dẫn Chuyên đề Tốt nghiệp ---
 def calculate_huongDanChuyenDeTN(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_chuyen_de': [1]}))['so_chuyen_de'].iloc[0]
@@ -262,8 +249,8 @@ def ui_huongDanChuyenDeTN(i, ten_hoatdong):
     st.number_input("Nhập số chuyên đề hướng dẫn (ĐVT: Chuyên đề):", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_huongDanChuyenDeTN, args=(i,))
     st.info("1 chuyên đề được tính = 15 tiết")
 
-# --- 3. Chấm Chuyên đề Tốt nghiệp ---
 def calculate_chamChuyenDeTN(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_bai': [1]}))['so_bai'].iloc[0]
@@ -280,8 +267,8 @@ def ui_chamChuyenDeTN(i, ten_hoatdong):
     st.number_input("Nhập số bài chấm (ĐVT: Bài):", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_chamChuyenDeTN, args=(i,))
     st.info("1 bài chấm được tính = 5 tiết")
 
-# --- 4. Hướng dẫn & Chấm Báo cáo TN ---
 def calculate_huongDanChamBaoCaoTN(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_bai': [1]}))['so_bai'].iloc[0]
@@ -298,8 +285,8 @@ def ui_huongDanChamBaoCaoTN(i, ten_hoatdong):
     st.number_input("Nhập số bài hướng dẫn + chấm báo cáo TN (ĐVT: Bài):", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_huongDanChamBaoCaoTN, args=(i,))
     st.info("1 bài được tính = 0.5 tiết")
 
-# --- 5. Đi thực tập Doanh nghiệp ---
 def calculate_diThucTapDN(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_tuan': [1]}))['so_tuan'].iloc[0]
@@ -317,8 +304,8 @@ def ui_diThucTapDN(i, ten_hoatdong):
     st.number_input("Nhập số tuần đi học (ĐVT: Tuần):", value=int(default_value), min_value=0, max_value=4, key=f"num_input_{i}", on_change=calculate_diThucTapDN, args=(i,))
     st.info("1 tuần được tính = giờ chuẩn / 44")
 
-# --- 6. Bồi dưỡng Nhà giáo ---
 def calculate_boiDuongNhaGiao(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_gio': [1]}))['so_gio'].iloc[0]
@@ -335,8 +322,8 @@ def ui_boiDuongNhaGiao(i, ten_hoatdong):
     st.number_input("Nhập số giờ tham gia bồi dưỡng (ĐVT: Giờ):", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_boiDuongNhaGiao, args=(i,))
     st.info("1 giờ hướng dẫn được tính = 1.5 tiết")
 
-# --- 7. Phong trào TDTT ---
 def calculate_phongTraoTDTT(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     default_value = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'so_ngay': [1]}))['so_ngay'].iloc[0]
@@ -353,8 +340,8 @@ def ui_phongTraoTDTT(i, ten_hoatdong):
     st.number_input("Số ngày làm việc (8 giờ) (ĐVT: Ngày):", value=int(default_value), min_value=0, key=f"num_input_{i}", on_change=calculate_phongTraoTDTT, args=(i,))
     st.info("1 ngày hướng dẫn = 2.5 tiết")
 
-# --- 8. Hoạt động trải nghiệm, GVCN ---
 def calculate_traiNghiemGiaoVienCN(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'so_tiet': 1.0, 'ghi_chu': ''}]))
@@ -381,8 +368,8 @@ def ui_traiNghiemGiaoVienCN(i, ten_hoatdong):
     st.text_input("Thêm ghi chú (nếu có):", value=default_ghi_chu, key=f"note_{i}", on_change=calculate_traiNghiemGiaoVienCN, args=(i,))
     st.info("Điền số quyết định liên quan đến hoạt động này vào ô ghi chú.")
 
-# --- 9. Nhà giáo Hội giảng ---
 def calculate_nhaGiaoHoiGiang(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     default_level = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame({'cap_dat_giai': ['Cấp Trường']}))['cap_dat_giai'].iloc[0]
@@ -403,8 +390,8 @@ def ui_nhaGiaoHoiGiang(i, ten_hoatdong):
     default_index = options.index(default_level) if default_level in options else 2
     st.selectbox("Chọn cấp đạt giải cao nhất:", options, index=default_index, key=f'capgiai_{i}', on_change=calculate_nhaGiaoHoiGiang, args=(i,))
 
-# --- 10. Đề tài NCKH ---
 def calculate_deTaiNCKH(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
     input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'cap_de_tai': 'Cấp Khoa', 'so_luong_tv': 1, 'vai_tro': 'Chủ nhiệm', 'ghi_chu': ''}]))
@@ -428,7 +415,6 @@ def ui_deTaiNCKH(i, ten_hoatdong):
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     if not (isinstance(input_df, pd.DataFrame) and all(k in input_df.columns for k in ['cap_de_tai', 'so_luong_tv', 'vai_tro', 'ghi_chu'])):
         input_df = pd.DataFrame([{'cap_de_tai': 'Cấp Khoa', 'so_luong_tv': 1, 'vai_tro': 'Chủ nhiệm', 'ghi_chu': ''}])
-
     with col1:
         cap_options = ['Cấp Khoa', 'Cấp Trường', 'Cấp Tỉnh/TQ']
         default_cap = input_df['cap_de_tai'].iloc[0]
@@ -444,32 +430,21 @@ def ui_deTaiNCKH(i, ten_hoatdong):
         st.selectbox("Vai trò trong đề tài:", options=vai_tro_options, index=vaitro_index, key=f'vaitro_{i}', on_change=calculate_deTaiNCKH, args=(i,))
         st.text_input("Ghi chú:", value=input_df['ghi_chu'].iloc[0], key=f'ghichu_{i}', on_change=calculate_deTaiNCKH, args=(i,))
 
-# --- 11. Dân quân tự vệ & ANQP ---
 def calculate_danQuanTuVe(i):
+    set_interaction_flag()
     ten_hoatdong = st.session_state.get(f'select_{i}')
     if not ten_hoatdong: return
-    
     today = datetime.date.today()
     input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'ngay_bat_dau': today.isoformat(), 'ngay_ket_thuc': today.isoformat()}]))
-    
     start_date_val = st.session_state.get(f'dqtv_start_{i}', pd.to_datetime(input_df['ngay_bat_dau'].iloc[0]).date())
     end_date_val = st.session_state.get(f'dqtv_end_{i}', pd.to_datetime(input_df['ngay_ket_thuc'].iloc[0]).date())
-
-    ngay_bat_dau = start_date_val
-    ngay_ket_thuc = end_date_val
-
+    ngay_bat_dau, ngay_ket_thuc = start_date_val, end_date_val
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'ngay_bat_dau': ngay_bat_dau.isoformat(), 'ngay_ket_thuc': ngay_ket_thuc.isoformat()}])
-    
-    so_ngay_tham_gia = 0
-    if ngay_ket_thuc >= ngay_bat_dau:
-        so_ngay_tham_gia = (ngay_ket_thuc - ngay_bat_dau).days + 1
-        
+    so_ngay_tham_gia = (ngay_ket_thuc - ngay_bat_dau).days + 1 if ngay_ket_thuc >= ngay_bat_dau else 0
     he_so = (giochuan / 44) / 6
     gio_quy_doi = so_ngay_tham_gia * he_so
-    
     dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong)
     ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
-    
     data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [ten_hoatdong], 'Đơn vị tính': 'Ngày', 'Số lượng': [so_ngay_tham_gia], 'Hệ số': [he_so], 'Giờ quy đổi': [gio_quy_doi]}
     st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
 
@@ -483,80 +458,69 @@ def ui_danQuanTuVe(i, ten_hoatdong):
     else:
         default_start_date = today
         default_end_date = today
-    
     with col1:
         st.date_input("Ngày bắt đầu:", value=default_start_date, key=f"dqtv_start_{i}", on_change=calculate_danQuanTuVe, args=(i,), format="DD/MM/YYYY")
     with col2:
         st.date_input("Ngày kết thúc:", value=default_end_date, key=f"dqtv_end_{i}", on_change=calculate_danQuanTuVe, args=(i,), format="DD/MM/YYYY")
-
     if st.session_state.get(f'dqtv_end_{i}', default_end_date) < st.session_state.get(f'dqtv_start_{i}', default_start_date):
         st.error("Ngày kết thúc không được nhỏ hơn ngày bắt đầu.")
 
-# --- 12. Hoạt động khác ---
 def calculate_hoatdongkhac(i):
-    """Tính toán cho hoạt động khác dựa trên input của người dùng."""
+    set_interaction_flag()
     ten_hoatdong_selectbox = st.session_state.get(f'select_{i}')
     if not ten_hoatdong_selectbox: return
-
     input_df = st.session_state.get(f'input_df_hoatdong_{i}', pd.DataFrame([{'noi_dung': '', 'so_tiet': 0.0, 'ghi_chu': ''}]))
-    default_noi_dung = input_df['noi_dung'].iloc[0]
-    default_so_tiet = input_df['so_tiet'].iloc[0]
-    default_ghi_chu = input_df['ghi_chu'].iloc[0]
-    
+    default_noi_dung, default_so_tiet, default_ghi_chu = input_df.iloc[0]
     noi_dung = st.session_state.get(f'hd_khac_noidung_{i}', default_noi_dung)
     so_tiet = st.session_state.get(f'hd_khac_sotiet_{i}', default_so_tiet)
     ghi_chu = st.session_state.get(f'hd_khac_ghichu_{i}', default_ghi_chu)
-
     st.session_state[f'input_df_hoatdong_{i}'] = pd.DataFrame([{'noi_dung': noi_dung, 'so_tiet': so_tiet, 'ghi_chu': ghi_chu}])
-
     if noi_dung and noi_dung.strip() != '':
         dieu_kien = (df_quydoi_hd_g.iloc[:, 1] == ten_hoatdong_selectbox)
         ma_hoatdong, ma_nckh = df_quydoi_hd_g.loc[dieu_kien, ['MÃ', 'MÃ NCKH']].values[0]
-        
         data = {'Mã HĐ': [ma_hoatdong], 'MÃ NCKH': [ma_nckh], 'Hoạt động quy đổi': [noi_dung.strip()], 'Giờ quy đổi': [float(so_tiet)], 'Ghi chú': [ghi_chu]}
         st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame(data)
     else:
-        # Nếu không có nội dung, tạo DataFrame kết quả rỗng để không bị lỗi
         st.session_state[f'df_hoatdong_{i}'] = pd.DataFrame()
 
 def ui_hoatdongkhac(i, ten_hoatdong):
-    """Hiển thị giao diện nhập liệu cho các hoạt động khác."""
     input_df = st.session_state.get(f'input_df_hoatdong_{i}')
     if isinstance(input_df, pd.DataFrame) and 'noi_dung' in input_df.columns:
-        default_noi_dung = input_df['noi_dung'].iloc[0]
-        default_so_tiet = input_df['so_tiet'].iloc[0]
-        default_ghi_chu = input_df['ghi_chu'].iloc[0]
+        default_noi_dung, default_so_tiet, default_ghi_chu = input_df.iloc[0]
     else:
-        default_noi_dung = ""
-        default_so_tiet = 0.0
-        default_ghi_chu = ""
-    
+        default_noi_dung, default_so_tiet, default_ghi_chu = "", 0.0, ""
     st.text_input("1. Nội dung hoạt động:", value=default_noi_dung, key=f"hd_khac_noidung_{i}", on_change=calculate_hoatdongkhac, args=(i,), help="Nhập nội dung cụ thể của hoạt động.")
     st.number_input("2. Nhập số tiết đã quy đổi:", value=float(default_so_tiet), min_value=0.0, format="%.1f", key=f"hd_khac_sotiet_{i}", on_change=calculate_hoatdongkhac, args=(i,))
     st.text_input("3. Ghi chú:", value=default_ghi_chu, key=f"hd_khac_ghichu_{i}", on_change=calculate_hoatdongkhac, args=(i,), help="Thêm các giải thích liên quan (ví dụ: số quyết định).")
 
-
 # --- MAIN UI ---
 st.markdown("<h1 style='text-align: center; color: orange;'>QUY ĐỔI CÁC HOẠT ĐỘNG KHÁC</h1>", unsafe_allow_html=True)
 
-# Logic tải dữ liệu một lần khi vào trang hoặc khi người dùng thay đổi
-if 'hoatdong_page_loaded_for_user' not in st.session_state or st.session_state.hoatdong_page_loaded_for_user != magv:
-    with st.spinner("Đang tải dữ liệu hoạt động..."):
+# <<<--- SỬA LỖI LOGIC TẢI TRANG --- >>>
+# Kiểm tra xem lần chạy script này có phải do người dùng tương tác trên trang hay không.
+if st.session_state.get('interaction_in_progress', False):
+    # Nếu đúng, đây là một tương tác (ví dụ: nhập số). Bỏ qua việc tải lại dữ liệu từ Sheet.
+    # Đặt lại cờ để lần chạy tiếp theo (nếu là điều hướng) sẽ tải lại dữ liệu.
+    st.session_state['interaction_in_progress'] = False
+else:
+    # Nếu không, đây là một lần tải trang mới (do điều hướng đến).
+    # Tải dữ liệu mới nhất từ Google Sheet.
+    with st.spinner("Đang tải và đồng bộ dữ liệu hoạt động..."):
         inputs_df, results_df = load_hoatdong_from_gsheet(spreadsheet)
         sync_data_to_session(inputs_df, results_df)
-    st.session_state.hoatdong_page_loaded_for_user = magv
-    st.rerun()
 
 # Khởi tạo bộ đếm hoạt động nếu chưa có
 if 'selectbox_count_hd' not in st.session_state:
     st.session_state.selectbox_count_hd = 0
 
 # Callbacks cho các nút thêm/xóa
-def add_callback(): st.session_state.selectbox_count_hd += 1
+def add_callback(): 
+    set_interaction_flag()
+    st.session_state.selectbox_count_hd += 1
 def delete_callback():
+    set_interaction_flag()
     if st.session_state.selectbox_count_hd > 0:
         last_index = st.session_state.selectbox_count_hd - 1
-        # Xóa tất cả các key liên quan đến hoạt động cuối cùng khỏi session_state
         for key_prefix in ['df_hoatdong_', 'input_df_hoatdong_', 'select_']:
             st.session_state.pop(f'{key_prefix}{last_index}', None)
         st.session_state.selectbox_count_hd -= 1
@@ -566,10 +530,10 @@ col_buttons = st.columns(4)
 with col_buttons[0]: st.button("➕ Thêm hoạt động", on_click=add_callback, use_container_width=True)
 with col_buttons[1]: st.button("➖ Xóa hoạt động cuối", on_click=delete_callback, use_container_width=True)
 with col_buttons[2]:
-    if st.button("💾 Cập nhật (Lưu)", key="save_activities", use_container_width=True, type="primary"):
-        save_hoatdong_to_gsheet(spreadsheet)
+    st.button("💾 Cập nhật (Lưu)", on_click=save_hoatdong_to_gsheet, args=(spreadsheet,), use_container_width=True, type="primary")
 with col_buttons[3]:
     if st.button("🔄 Tải lại dữ liệu", key="load_activities_manual", use_container_width=True):
+        # Nút này vẫn giữ nguyên để người dùng có thể chủ động làm mới.
         with st.spinner("Đang tải lại dữ liệu..."):
             reloaded_inputs, reloaded_results = load_hoatdong_from_gsheet(spreadsheet)
             sync_data_to_session(reloaded_inputs, reloaded_results)
@@ -592,10 +556,10 @@ if st.session_state.selectbox_count_hd > 0:
             try:
                 default_index = options_filtered.index(default_activity)
             except ValueError:
-                default_index = 0 # Nếu hoạt động đã lưu không còn trong options, chọn cái đầu tiên
+                default_index = 0
             
             def on_activity_change(idx):
-                """Callback khi người dùng thay đổi loại hoạt động, xóa state cũ để tính toán lại."""
+                set_interaction_flag()
                 st.session_state.pop(f'df_hoatdong_{idx}', None)
                 st.session_state.pop(f'input_df_hoatdong_{idx}', None)
 
@@ -603,7 +567,6 @@ if st.session_state.selectbox_count_hd > 0:
             
             run_initial_calculation(i, hoatdong_x)
             
-            # Gọi hàm UI tương ứng với hoạt động đã chọn
             if hoatdong_x == df_quydoi_hd_g.iloc[7, 1]: ui_diThucTapDN(i, hoatdong_x)
             elif hoatdong_x == df_quydoi_hd_g.iloc[1, 1]: ui_huongDanChuyenDeTN(i, hoatdong_x)
             elif hoatdong_x == df_quydoi_hd_g.iloc[2, 1]: ui_chamChuyenDeTN(i, hoatdong_x)
@@ -617,7 +580,6 @@ if st.session_state.selectbox_count_hd > 0:
             elif hoatdong_x == df_quydoi_hd_g.iloc[14, 1]: ui_deTaiNCKH(i, hoatdong_x)
             elif "Quy đổi khác" in hoatdong_x: ui_hoatdongkhac(i, hoatdong_x)
 
-            # Hiển thị bảng kết quả cho hoạt động hiện tại
             if f'df_hoatdong_{i}' in st.session_state:
                 st.write("---")
                 st.write("Kết quả quy đổi:")
@@ -626,37 +588,23 @@ if st.session_state.selectbox_count_hd > 0:
                     cols_to_show = [col for col in df_display.columns if col not in ['Mã HĐ', 'MÃ NCKH']]
                     st.dataframe(df_display[cols_to_show], hide_index=True, use_container_width=True)
 
-    # Tab cuối cùng: Bảng tổng hợp
     with activity_tabs[-1]:
         st.header("Bảng tổng hợp các hoạt động khác")
         hoatdong_results = []
         de_tai_nckh_name = df_quydoi_hd_g.iloc[14, 1]
-        
         for i in range(st.session_state.selectbox_count_hd):
             result_df = st.session_state.get(f'df_hoatdong_{i}')
             if result_df is not None and not result_df.empty:
                 df_copy = result_df.copy()
                 activity_name = df_copy['Hoạt động quy đổi'].iloc[0]
-
-                # Chuẩn hóa cột cho Đề tài NCKH để hiển thị đồng nhất
                 if activity_name == de_tai_nckh_name:
-                    df_copy = df_copy.rename(columns={
-                        'Cấp đề tài': 'Đơn vị tính',
-                        'Số lượng TV': 'Số lượng',
-                        'Tác giả': 'Hệ số'
-                    })
-                
+                    df_copy = df_copy.rename(columns={'Cấp đề tài': 'Đơn vị tính', 'Số lượng TV': 'Số lượng', 'Tác giả': 'Hệ số'})
                 hoatdong_results.append(df_copy)
         
         if hoatdong_results:
             final_hoatdong_df = pd.concat(hoatdong_results, ignore_index=True)
-            
-            # Các cột mong muốn hiển thị trong bảng tổng hợp
             cols_to_display_summary = ['Hoạt động quy đổi', 'Đơn vị tính', 'Số lượng', 'Hệ số', 'Giờ quy đổi', 'Ghi chú']
-            
-            # Chỉ hiển thị các cột tồn tại trong DataFrame cuối cùng
             existing_cols_to_display = [col for col in cols_to_display_summary if col in final_hoatdong_df.columns]
-            
             st.dataframe(final_hoatdong_df[existing_cols_to_display], use_container_width=True, hide_index=True)
         else:
             st.info("Chưa có hoạt động nào được kê khai hoặc có kết quả quy đổi.")
