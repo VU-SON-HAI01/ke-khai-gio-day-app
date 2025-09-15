@@ -172,7 +172,7 @@ with col4:
 st.divider()
 
 # Xử lý ngày tháng và danh sách hoạt động
-if 'start_date' not in df_ngaytuan_g.columns:
+if 'start_date' not in df_ngaytuan_g.columns and not df_ngaytuan_g.empty:
     year = datetime.date.today().year
     def parse_date_range(date_str, year):
         start_str, end_str = date_str.split('-')
@@ -183,17 +183,20 @@ if 'start_date' not in df_ngaytuan_g.columns:
         dates = [parse_date_range(dr, year - 1) for dr in df_ngaytuan_g['Từ ngày đến ngày']]
         df_ngaytuan_g['start_date'] = [d[0] for d in dates]
         df_ngaytuan_g['end_date'] = [d[1] for d in dates]
-    except: # Xử lý lỗi nếu parse thất bại
+    except Exception:
         df_ngaytuan_g['start_date'] = pd.to_datetime(df_ngaytuan_g['Từ ngày đến ngày'].str.split(' - ').str[0], format='%d/%m')
         df_ngaytuan_g['end_date'] = pd.to_datetime(df_ngaytuan_g['Từ ngày đến ngày'].str.split(' - ').str[1], format='%d/%m')
 
-default_start_date = df_ngaytuan_g['start_date'].min()
-default_end_date = df_ngaytuan_g['end_date'].max()
+default_start_date = df_ngaytuan_g['start_date'].min() if not df_ngaytuan_g.empty else datetime.date.today()
+default_end_date = df_ngaytuan_g['end_date'].max() if not df_ngaytuan_g.empty else datetime.date.today()
 
 activity_col_name = df_quydoi_hd_g.columns[1]
 hoat_dong_list = df_quydoi_hd_g[activity_col_name].dropna().unique().tolist()
 
-# Giao diện Tab động
+# --- Giao diện Tab động và Thu thập dữ liệu ---
+results_df = pd.DataFrame()
+all_inputs = []
+
 if st.session_state.giamgio_count > 0:
     tab_titles = [f"Hoạt động {i+1}" for i in range(st.session_state.giamgio_count)] + ["📊 Tổng hợp"]
     tabs = st.tabs(tab_titles)
@@ -212,110 +215,109 @@ if st.session_state.giamgio_count > 0:
             
             st.text_input("Ghi chú:", key=f'ghichu_{i}', on_change=set_interaction)
 
-# --- THU THẬP DỮ LIỆU VÀ TÍNH TOÁN ---
-all_inputs = []
-for i in range(st.session_state.giamgio_count):
-    record = {
-        'Nội dung hoạt động': st.session_state.get(f'noidung_{i}'),
-        'Cách tính': st.session_state.get(f'cachtinh_{i}'),
-        'Kỳ học': st.session_state.get(f'kyhoc_{i}'),
-        'Từ ngày': st.session_state.get(f'tungay_{i}'),
-        'Đến ngày': st.session_state.get(f'denngay_{i}'),
-        'Ghi chú': st.session_state.get(f'ghichu_{i}')
-    }
-    all_inputs.append(record)
+    # Thu thập dữ liệu sau khi các widget đã được tạo
+    for i in range(st.session_state.giamgio_count):
+        record = {
+            'Nội dung hoạt động': st.session_state.get(f'noidung_{i}'),
+            'Cách tính': st.session_state.get(f'cachtinh_{i}'),
+            'Kỳ học': st.session_state.get(f'kyhoc_{i}'),
+            'Từ ngày': st.session_state.get(f'tungay_{i}'),
+            'Đến ngày': st.session_state.get(f'denngay_{i}'),
+            'Ghi chú': st.session_state.get(f'ghichu_{i}')
+        }
+        all_inputs.append(record)
 
-valid_df = pd.DataFrame(all_inputs).dropna(subset=['Nội dung hoạt động'])
-results_df = pd.DataFrame()
+# --- TÍNH TOÁN (CHỈ KHI CÓ DỮ LIỆU) ---
+if all_inputs:
+    valid_df = pd.DataFrame(all_inputs).dropna(subset=['Nội dung hoạt động'])
+    if not valid_df.empty:
+        # --- LOGIC TÍNH TOÁN CỐT LÕI (GIỮ NGUYÊN) ---
+        percent_col_name = df_quydoi_hd_g.columns[2]
+        ma_giam_col_name = df_quydoi_hd_g.columns[3]
+        TET_WEEKS = [24, 25]
+        CHUC_VU_VP_MAP = {'NV': 0.2 * 8 / 11, 'PTP': 0.18 * 8 / 11, 'TP': 0.14 * 8 / 11, 'PHT': 0.1 * 8 / 11, 'HT': 0.08 * 8 / 11, }
+        CHUC_VU_HIEN_TAI = 'NV'
 
-if not valid_df.empty:
-    # --- LOGIC TÍNH TOÁN CỐT LÕI (GIỮ NGUYÊN) ---
-    percent_col_name = df_quydoi_hd_g.columns[2]
-    ma_giam_col_name = df_quydoi_hd_g.columns[3]
-    TET_WEEKS = [24, 25]
-    CHUC_VU_VP_MAP = {'NV': 0.2 * 8 / 11, 'PTP': 0.18 * 8 / 11, 'TP': 0.14 * 8 / 11, 'PHT': 0.1 * 8 / 11, 'HT': 0.08 * 8 / 11, }
-    CHUC_VU_HIEN_TAI = 'NV'
+        def find_tuan_from_date(target_date):
+            if pd.isna(target_date) or not isinstance(target_date, datetime.date): return "Không xác định"
+            for _, row in df_ngaytuan_g.iterrows():
+                if row['start_date'] <= target_date <= row['end_date']: return row['Tuần']
+            return "Không xác định"
 
-    def find_tuan_from_date(target_date):
-        if not isinstance(target_date, datetime.date): target_date = pd.to_datetime(target_date).date()
-        for _, row in df_ngaytuan_g.iterrows():
-            if row['start_date'] <= target_date <= row['end_date']: return row['Tuần']
-        return "Không xác định"
+        def parse_week_range_for_chart(range_str):
+            numbers = re.findall(r'\d+', str(range_str))
+            return [w for w in range(int(numbers[0]), int(numbers[1]) + 1) if w not in TET_WEEKS] if len(numbers) == 2 else []
 
-    def parse_week_range_for_chart(range_str):
-        numbers = re.findall(r'\d+', str(range_str))
-        return [w for w in range(int(numbers[0]), int(numbers[1]) + 1) if w not in TET_WEEKS] if len(numbers) == 2 else []
-
-    initial_results = []
-    for index, row in valid_df.iterrows():
-        activity_row = df_quydoi_hd_g[df_quydoi_hd_g[activity_col_name] == row["Nội dung hoạt động"]]
-        heso_quydoi = activity_row[percent_col_name].iloc[0] if not activity_row.empty else 0
-        ma_hoatdong = activity_row[ma_giam_col_name].iloc[0] if not activity_row.empty else ""
-        
-        khoang_tuan_str = ""
-        if row["Cách tính"] == 'Học kỳ':
-            if row["Kỳ học"] == "Năm học": khoang_tuan_str = "Tuần 1 - Tuần 46"
-            elif row["Kỳ học"] == "Học kỳ 1": khoang_tuan_str = "Tuần 1 - Tuần 22"
-            else: khoang_tuan_str = "Tuần 23 - Tuần 46"
-        else:
-            tu_tuan = find_tuan_from_date(row["Từ ngày"])
-            den_tuan = find_tuan_from_date(row["Đến ngày"])
-            khoang_tuan_str = f"{tu_tuan} - {den_tuan}"
-        initial_results.append({"Nội dung hoạt động": row["Nội dung hoạt động"], "Từ Tuần - Đến Tuần": khoang_tuan_str, "% Giảm (gốc)": heso_quydoi, "Mã hoạt động": ma_hoatdong, "Ghi chú": row["Ghi chú"]})
-
-    initial_df = pd.DataFrame(initial_results)
-    all_weeks_numeric = list(range(1, 47))
-    unique_activities = initial_df['Nội dung hoạt động'].unique()
-    weekly_tiet_grid_adjusted = pd.DataFrame(0.0, index=all_weeks_numeric, columns=unique_activities)
-    weekly_tiet_grid_adjusted.index.name = 'Tuần' # <<< SỬA LỖI KEYERROR TẠI ĐÂY
-
-    def safe_percent_to_float(p):
-        try: return float(str(p).replace('%', '').replace(',', '.')) / 100
-        except (ValueError, TypeError): return 0.0
-
-    for week_num in [w for w in all_weeks_numeric if w not in TET_WEEKS]:
-        active_this_week = initial_df[initial_df['Từ Tuần - Đến Tuần'].apply(lambda x: week_num in parse_week_range_for_chart(x))].copy()
-        if active_this_week.empty: continue
-        
-        b_activities = active_this_week[active_this_week['Mã hoạt động'].str.startswith('B', na=False)]
-        if len(b_activities) > 1:
-            max_b_percent_val = b_activities['% Giảm (gốc)'].max()
-            active_this_week.loc[b_activities.index, '% Giảm (tuần)'] = np.where(active_this_week.loc[b_activities.index, '% Giảm (gốc)'] == max_b_percent_val, max_b_percent_val, "0%")
-        else:
-            active_this_week.loc[b_activities.index, '% Giảm (tuần)'] = b_activities['% Giảm (gốc)']
-        
-        a_activities = active_this_week[active_this_week['Mã hoạt động'].str.startswith('A', na=False)]
-        running_total_a = 0.0
-        for idx, row_a in a_activities.iterrows():
-            percent_goc = safe_percent_to_float(row_a['% Giảm (gốc)'])
-            if running_total_a + percent_goc <= 0.5:
-                active_this_week.loc[idx, '% Giảm (tuần)'] = row_a['% Giảm (gốc)']
-                running_total_a += percent_goc
+        initial_results = []
+        for index, row in valid_df.iterrows():
+            activity_row = df_quydoi_hd_g[df_quydoi_hd_g[activity_col_name] == row["Nội dung hoạt động"]]
+            heso_quydoi = activity_row[percent_col_name].iloc[0] if not activity_row.empty else 0
+            ma_hoatdong = activity_row[ma_giam_col_name].iloc[0] if not activity_row.empty else ""
+            
+            khoang_tuan_str = ""
+            if row["Cách tính"] == 'Học kỳ':
+                if row["Kỳ học"] == "Năm học": khoang_tuan_str = "Tuần 1 - Tuần 46"
+                elif row["Kỳ học"] == "Học kỳ 1": khoang_tuan_str = "Tuần 1 - Tuần 22"
+                else: khoang_tuan_str = "Tuần 23 - Tuần 46"
             else:
-                active_this_week.loc[idx, '% Giảm (tuần)'] = f"{max(0, 0.5 - running_total_a)*100}%"
-                running_total_a = 0.5
+                tu_tuan = find_tuan_from_date(row["Từ ngày"])
+                den_tuan = find_tuan_from_date(row["Đến ngày"])
+                khoang_tuan_str = f"{tu_tuan} - {den_tuan}"
+            initial_results.append({"Nội dung hoạt động": row["Nội dung hoạt động"], "Từ Tuần - Đến Tuần": khoang_tuan_str, "% Giảm (gốc)": heso_quydoi, "Mã hoạt động": ma_hoatdong, "Ghi chú": row["Ghi chú"]})
 
-        other_activities_mask = ~active_this_week['Mã hoạt động'].str.startswith(('A', 'B'), na=False)
-        active_this_week.loc[other_activities_mask, '% Giảm (tuần)'] = active_this_week.loc[other_activities_mask, '% Giảm (gốc)']
+        initial_df = pd.DataFrame(initial_results)
+        all_weeks_numeric = list(range(1, 47))
+        unique_activities = initial_df['Nội dung hoạt động'].unique()
+        weekly_tiet_grid_adjusted = pd.DataFrame(0.0, index=all_weeks_numeric, columns=unique_activities)
+        weekly_tiet_grid_adjusted.index.name = 'Tuần'
 
-        active_this_week['Tiết/Tuần'] = [safe_percent_to_float(p) * (giochuan / 44) for p in active_this_week['% Giảm (tuần)']]
-        max_tiet_per_week = giochuan / 44
-        if active_this_week['Tiết/Tuần'].sum() > max_tiet_per_week:
-            active_this_week['Tiết/Tuần'] *= max_tiet_per_week / active_this_week['Tiết/Tuần'].sum()
+        def safe_percent_to_float(p):
+            try: return float(str(p).replace('%', '').replace(',', '.')) / 100
+            except (ValueError, TypeError): return 0.0
 
-        for _, final_row in active_this_week.iterrows():
-            weekly_tiet_grid_adjusted.loc[week_num, final_row['Nội dung hoạt động']] = final_row['Tiết/Tuần']
-    
-    final_results = []
-    for _, row in initial_df.iterrows():
-        activity_name = row['Nội dung hoạt động']
-        tong_tiet = round(weekly_tiet_grid_adjusted[activity_name].sum(), 2)
-        so_tuan_active = (weekly_tiet_grid_adjusted[activity_name] > 0).sum()
-        tiet_tuan_avg = round((tong_tiet / so_tuan_active), 2) if so_tuan_active > 0 else 0
-        final_results.append({"Nội dung hoạt động": activity_name, "Từ Tuần - Đến Tuần": row['Từ Tuần - Đến Tuần'], "Số tuần": so_tuan_active, "% Giảm (gốc)": safe_percent_to_float(row['% Giảm (gốc)'])*100, "Tiết/Tuần (TB)": tiet_tuan_avg, "Tổng tiết": tong_tiet, "Mã hoạt động": row['Mã hoạt động'], "Ghi chú": row['Ghi chú']})
-    
-    results_df = pd.DataFrame(final_results)
-    st.session_state.results_df_giamgio = results_df # Lưu kết quả vào session state để nút Save có thể truy cập
+        for week_num in [w for w in all_weeks_numeric if w not in TET_WEEKS]:
+            active_this_week = initial_df[initial_df['Từ Tuần - Đến Tuần'].apply(lambda x: week_num in parse_week_range_for_chart(x))].copy()
+            if active_this_week.empty: continue
+            
+            b_activities = active_this_week[active_this_week['Mã hoạt động'].str.startswith('B', na=False)]
+            if len(b_activities) > 1:
+                max_b_percent_val = b_activities['% Giảm (gốc)'].max()
+                active_this_week.loc[b_activities.index, '% Giảm (tuần)'] = np.where(active_this_week.loc[b_activities.index, '% Giảm (gốc)'] == max_b_percent_val, max_b_percent_val, "0%")
+            else:
+                active_this_week.loc[b_activities.index, '% Giảm (tuần)'] = b_activities['% Giảm (gốc)']
+            
+            a_activities = active_this_week[active_this_week['Mã hoạt động'].str.startswith('A', na=False)]
+            running_total_a = 0.0
+            for idx, row_a in a_activities.iterrows():
+                percent_goc = safe_percent_to_float(row_a['% Giảm (gốc)'])
+                if running_total_a + percent_goc <= 0.5:
+                    active_this_week.loc[idx, '% Giảm (tuần)'] = row_a['% Giảm (gốc)']
+                    running_total_a += percent_goc
+                else:
+                    active_this_week.loc[idx, '% Giảm (tuần)'] = f"{max(0, 0.5 - running_total_a)*100}%"
+                    running_total_a = 0.5
+
+            other_activities_mask = ~active_this_week['Mã hoạt động'].str.startswith(('A', 'B'), na=False)
+            active_this_week.loc[other_activities_mask, '% Giảm (tuần)'] = active_this_week.loc[other_activities_mask, '% Giảm (gốc)']
+
+            active_this_week['Tiết/Tuần'] = [safe_percent_to_float(p) * (giochuan / 44) for p in active_this_week['% Giảm (tuần)']]
+            max_tiet_per_week = giochuan / 44
+            if active_this_week['Tiết/Tuần'].sum() > max_tiet_per_week:
+                active_this_week['Tiết/Tuần'] *= max_tiet_per_week / active_this_week['Tiết/Tuần'].sum()
+
+            for _, final_row in active_this_week.iterrows():
+                weekly_tiet_grid_adjusted.loc[week_num, final_row['Nội dung hoạt động']] = final_row['Tiết/Tuần']
+        
+        final_results = []
+        for _, row in initial_df.iterrows():
+            activity_name = row['Nội dung hoạt động']
+            tong_tiet = round(weekly_tiet_grid_adjusted[activity_name].sum(), 2)
+            so_tuan_active = (weekly_tiet_grid_adjusted[activity_name] > 0).sum()
+            tiet_tuan_avg = round((tong_tiet / so_tuan_active), 2) if so_tuan_active > 0 else 0
+            final_results.append({"Nội dung hoạt động": activity_name, "Từ Tuần - Đến Tuần": row['Từ Tuần - Đến Tuần'], "Số tuần": so_tuan_active, "% Giảm (gốc)": safe_percent_to_float(row['% Giảm (gốc)'])*100, "Tiết/Tuần (TB)": tiet_tuan_avg, "Tổng tiết": tong_tiet, "Mã hoạt động": row['Mã hoạt động'], "Ghi chú": row['Ghi chú']})
+        
+        results_df = pd.DataFrame(final_results)
+        st.session_state.results_df_giamgio = results_df
 
 # --- HIỂN THỊ TRONG TAB TỔNG HỢP ---
 if st.session_state.giamgio_count > 0:
