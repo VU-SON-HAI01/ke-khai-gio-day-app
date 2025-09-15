@@ -267,6 +267,7 @@ if not valid_df.empty:
     all_weeks_numeric = list(range(1, 47))
     unique_activities = initial_df['Nội dung hoạt động'].unique()
     weekly_tiet_grid_adjusted = pd.DataFrame(0.0, index=all_weeks_numeric, columns=unique_activities)
+    weekly_tiet_grid_adjusted.index.name = 'Tuần' # <<< SỬA LỖI KEYERROR TẠI ĐÂY
 
     def safe_percent_to_float(p):
         try: return float(str(p).replace('%', '').replace(',', '.')) / 100
