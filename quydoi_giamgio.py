@@ -119,31 +119,34 @@ def load_giamgio_from_gsheet(spreadsheet):
         st.error(f"Lỗi khi tải dữ liệu giảm trừ đã lưu: {e}")
         return pd.DataFrame()
 
-# --- LOGIC TẢI DỮ LIỆU KHI CHUYỂN TRANG (ĐÃ SỬA LỖI) ---
-# Cơ chế này hoạt động bằng cách mô phỏng lại nút "Tải lại dữ liệu"
-force_reload = st.session_state.get('force_page_reload', False)
+# --- LOGIC TẢI DỮ LIỆU KHI CHUYỂN TRANG (PHIÊN BẢN SỬA LỖI CUỐI CÙNG) ---
 
-# 1. Nếu cờ `force_reload` được bật (do main.py phát hiện chuyển trang)
-if force_reload:
-    # 2. Tắt cờ ngay để không bị lặp lại ở lần rerun.
-    st.session_state.force_page_reload = False
-    
-    # 3. Xóa dữ liệu cũ khỏi session state. Đây là bước quan trọng nhất
-    # để buộc st.data_editor phải khởi tạo lại hoàn toàn.
-    if 'giamgio_input_df' in st.session_state:
-        del st.session_state['giamgio_input_df']
-        
-    # 4. Yêu cầu chạy lại trang. Ở lần chạy lại này, logic bên dưới sẽ được kích hoạt.
+# Khởi tạo bộ đếm reload nếu chưa có
+if 'giamgio_reload_counter' not in st.session_state:
+    st.session_state.giamgio_reload_counter = 0
+
+# Hàm helper để thực hiện việc tải lại dữ liệu một cách nhất quán
+def force_reload_data():
+    """Tải dữ liệu mới, tăng bộ đếm và yêu cầu rerun."""
+    with st.spinner("Đang tải dữ liệu mới nhất..."):
+        st.session_state.giamgio_input_df = load_giamgio_from_gsheet(spreadsheet)
+        # TĂNG BỘ ĐẾM: Đây là bước quan trọng để thay đổi key của data_editor
+        st.session_state.giamgio_reload_counter += 1
     st.rerun()
 
-# 5. Logic này chỉ chạy khi dữ liệu chưa tồn tại trong session,
-#    (tức là lần đầu vào trang, hoặc sau khi bị xóa bởi logic ở trên).
+# Kiểm tra cờ từ main.py
+is_navigating = st.session_state.get('force_page_reload', False)
+
+# Nếu người dùng vừa chuyển đến trang này
+if is_navigating:
+    st.session_state.force_page_reload = False # Tắt cờ ngay
+    force_reload_data() # Kích hoạt quy trình tải lại
+
+# Nếu dữ liệu chưa tồn tại (chỉ xảy ra ở lần đầu tiên vào trang)
 if 'giamgio_input_df' not in st.session_state:
     with st.spinner("Đang tải dữ liệu giảm trừ/kiêm nhiệm đã lưu..."):
-        # 6. Tải dữ liệu mới nhất từ Google Sheet.
         st.session_state.giamgio_input_df = load_giamgio_from_gsheet(spreadsheet)
-        # Không cần st.rerun() ở đây nữa, vì luồng script sẽ tiếp tục chạy xuống dưới
-        # và render st.data_editor với dữ liệu mới này.
+
 
 # --- HÀM TÍNH TOÁN VÀ GIAO DIỆN CHÍNH ---
 def tinh_toan_kiem_nhiem():
@@ -209,7 +212,9 @@ def tinh_toan_kiem_nhiem():
     st.subheader("Bảng kê khai hoạt động")
     edited_df = st.data_editor(
         df_for_editing,
-        num_rows="dynamic", key="quydoi_giamgio_editor",
+        num_rows="dynamic", 
+        # SỬ DỤNG KEY ĐỘNG TỪ BỘ ĐẾM
+        key=f"quydoi_giamgio_editor_{st.session_state.giamgio_reload_counter}",
         column_config={
             "Nội dung hoạt động": st.column_config.SelectboxColumn("Nội dung hoạt động", help="Chọn hoạt động cần quy đổi", width="large", options=hoat_dong_list, required=True),
             "Cách tính": st.column_config.SelectboxColumn("Cách tính", options=["Học kỳ", "Ngày"], required=True),
@@ -370,8 +375,5 @@ with col1:
         save_giamgio_to_gsheet(spreadsheet, input_df_final, result_df_final)
 with col2:
     if st.button("Tải lại dữ liệu", use_container_width=True):
-        # Xóa session state cũ và tải lại từ Google Sheet
-        if 'giamgio_input_df' in st.session_state:
-            del st.session_state['giamgio_input_df']
-        st.rerun()
+        force_reload_data()
 
