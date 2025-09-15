@@ -152,6 +152,9 @@ if 'giamgio_input_df' not in st.session_state:
 def tinh_toan_kiem_nhiem():
     st.markdown("<h1 style='text-align: center; color: orange;'>QUY ĐỔI GIẢM TRỪ/KIÊM NHIỆM</h1>", unsafe_allow_html=True)
     st.caption("Trang này dùng để kê khai các nhiệm vụ quản lý, đoàn thể, đi học, nghỉ chế độ hoặc công tác chủ nhiệm.")
+    
+    # Dựng placeholder ở trên cùng cho các nút điều khiển
+    button_placeholder = st.empty()
 
     # Các hằng số và hàm phụ
     TET_WEEKS = [24, 25]
@@ -318,45 +321,64 @@ def tinh_toan_kiem_nhiem():
         
         results_df = pd.DataFrame(final_results)
         
-        # --- PHẦN HIỂN THỊ KẾT QUẢ (GIỮ NGUYÊN) ---
-        if not results_df.empty:
-            display_columns = ["Nội dung hoạt động", "Từ Tuần - Đến Tuần", "Số tuần", "% Giảm (gốc)", "Tiết/Tuần (TB)", "Tổng tiết", "Ghi chú"]
-            st.dataframe(results_df[display_columns], column_config={"% Giảm (gốc)": st.column_config.NumberColumn(format="%.2f%%"), "Tiết/Tuần (TB)": st.column_config.NumberColumn(format="%.2f"), "Tổng tiết": st.column_config.NumberColumn(format="%.1f")}, hide_index=True, use_container_width=True)
-            st.header("Tổng hợp kết quả")
-            tong_quydoi_ngay = results_df["Tổng tiết"].sum()
-            kiemnhiem_ql_df = results_df[results_df["Mã hoạt động"].str.startswith("A", na=False)]
-            kiemnhiem_ql_tiet = kiemnhiem_ql_df["Tổng tiết"].sum()
-            doanthe_df = results_df[results_df["Mã hoạt động"].str.startswith("B", na=False)]
-            max_doanthe_tiet = doanthe_df["Tổng tiết"].sum()
-            tong_quydoi_ngay_percen = round(tong_quydoi_ngay * 100 / giochuan, 1) if giochuan > 0 else 0
-            kiemnhiem_ql_percen = round(kiemnhiem_ql_tiet * 100 / giochuan, 1) if giochuan > 0 else 0
-            max_doanthe_pecrcen = round(max_doanthe_tiet * 100 / giochuan, 1) if giochuan > 0 else 0
-            col1, col2, col3 = st.columns(3)
-            with col1: st.metric(label="Tổng tiết giảm", value=f'{tong_quydoi_ngay:.1f} (tiết)', delta=f'{tong_quydoi_ngay_percen}%', delta_color="normal")
-            with col2: st.metric(label="Kiêm nhiệm quản lý", value=f'{kiemnhiem_ql_tiet:.1f} (tiết)', delta=f'{kiemnhiem_ql_percen}%', delta_color="normal")
-            with col3: st.metric(label="Kiêm nhiệm Đoàn thể (cao nhất)", value=f'{max_doanthe_tiet:.1f} (tiết)', delta=f'{max_doanthe_pecrcen}%', delta_color="normal")
-            st.header("Biểu đồ phân bổ tiết giảm theo tuần")
-            chart_data_points = weekly_tiet_grid_original.copy()
-            for tet_week in TET_WEEKS:
-                if tet_week in chart_data_points.index: chart_data_points.loc[tet_week] = np.nan
-            chart_data_points_long = chart_data_points.reset_index().melt(id_vars=['Tuần'], var_name='Nội dung hoạt động', value_name='Tiết/Tuần (gốc)')
-            total_per_week = weekly_tiet_grid_adjusted.sum(axis=1).reset_index()
-            total_per_week.columns = ['Tuần', 'Tiết/Tuần (tổng)']
-            total_per_week['Nội dung hoạt động'] = 'Tổng giảm/tuần'
-            for tet_week in TET_WEEKS:
-                if tet_week in total_per_week['Tuần'].values: total_per_week.loc[total_per_week['Tuần'] == tet_week, 'Tiết/Tuần (tổng)'] = np.nan
-            domain = unique_activities.tolist() + ['Tổng giảm/tuần']
-            palette = ['#4E79A7', '#F28E2B', '#E15759', '#76B7B2', '#59A14F', '#EDC948', '#B07AA1', '#FF9DA7', '#9C755F', '#BAB0AC']
-            range_colors = []
-            palette_idx = 0
-            for item in domain:
-                if item == 'Tổng giảm/tuần': range_colors.append('green')
-                else: range_colors.append(palette[palette_idx % len(palette)]); palette_idx += 1
-            points = alt.Chart(chart_data_points_long).mark_point(filled=True, size=60).encode(x=alt.X('Tuần:Q', scale=alt.Scale(domain=[1, 46], clamp=True), axis=alt.Axis(title='Tuần', grid=False, tickCount=46)), y=alt.Y('Tiết/Tuần (gốc):Q', axis=alt.Axis(title='Số tiết giảm')), color=alt.Color('Nội dung hoạt động:N', scale=alt.Scale(domain=domain, range=range_colors), legend=alt.Legend(title="Hoạt động")), tooltip=['Tuần', 'Nội dung hoạt động', alt.Tooltip('Tiết/Tuần (gốc):Q', format='.2f')]).transform_filter(alt.datum['Tiết/Tuần (gốc)'] > 0)
-            line = alt.Chart(total_per_week).mark_line(point=alt.OverlayMarkDef(color="green")).encode(x=alt.X('Tuần:Q'), y=alt.Y('Tiết/Tuần (tổng):Q'), color=alt.value('green'))
-            combined_chart = (points + line).interactive()
-            st.altair_chart(combined_chart, use_container_width=True)
-            st.caption("Ghi chú: Các điểm thể hiện số tiết giảm gốc. Đường màu xanh lá cây thể hiện tổng số tiết giảm/tuần đã được điều chỉnh và giới hạn ở mức tối đa.")
+    # --- PHẦN HIỂN THỊ KẾT QUẢ VÀ CÁC NÚT ĐIỀU KHIỂN ---
+    
+    # Sau khi có đủ dữ liệu, điền vào placeholder đã tạo ở trên
+    with button_placeholder.container():
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("💾 Cập nhật (Lưu)", use_container_width=True, type="primary", help="Lưu trạng thái hiện tại của bảng kê khai vào Google Sheet."):
+                save_giamgio_to_gsheet(spreadsheet, edited_df, results_df)
+                st.toast("Đã lưu thành công!", icon="✅")
+        with col2:
+            if st.button("🔄 Tải lại dữ liệu", use_container_width=True, help="Tải lại dữ liệu mới nhất từ Google Sheet, xóa bỏ các thay đổi chưa lưu."):
+                force_reload_data()
+        with col3:
+            if st.button("🗑️ Xóa trắng", use_container_width=True, help="Xóa tất cả các dòng trong bảng kê khai. BẠN CẦN BẤM LƯU ĐỂ CẬP NHẬT THAY ĐỔI NÀY."):
+                # Logic for clearing: gán dataframe rỗng và rerun
+                st.session_state.giamgio_input_df = pd.DataFrame(columns=['Nội dung hoạt động', 'Cách tính', 'Kỳ học', 'Từ ngày', 'Đến ngày', 'Ghi chú'])
+                st.session_state.giamgio_reload_counter += 1
+                st.rerun()
+        st.divider()
+
+    if not results_df.empty:
+        display_columns = ["Nội dung hoạt động", "Từ Tuần - Đến Tuần", "Số tuần", "% Giảm (gốc)", "Tiết/Tuần (TB)", "Tổng tiết", "Ghi chú"]
+        st.dataframe(results_df[display_columns], column_config={"% Giảm (gốc)": st.column_config.NumberColumn(format="%.2f%%"), "Tiết/Tuần (TB)": st.column_config.NumberColumn(format="%.2f"), "Tổng tiết": st.column_config.NumberColumn(format="%.1f")}, hide_index=True, use_container_width=True)
+        st.header("Tổng hợp kết quả")
+        tong_quydoi_ngay = results_df["Tổng tiết"].sum()
+        kiemnhiem_ql_df = results_df[results_df["Mã hoạt động"].str.startswith("A", na=False)]
+        kiemnhiem_ql_tiet = kiemnhiem_ql_df["Tổng tiết"].sum()
+        doanthe_df = results_df[results_df["Mã hoạt động"].str.startswith("B", na=False)]
+        max_doanthe_tiet = doanthe_df["Tổng tiết"].sum()
+        tong_quydoi_ngay_percen = round(tong_quydoi_ngay * 100 / giochuan, 1) if giochuan > 0 else 0
+        kiemnhiem_ql_percen = round(kiemnhiem_ql_tiet * 100 / giochuan, 1) if giochuan > 0 else 0
+        max_doanthe_pecrcen = round(max_doanthe_tiet * 100 / giochuan, 1) if giochuan > 0 else 0
+        col1, col2, col3 = st.columns(3)
+        with col1: st.metric(label="Tổng tiết giảm", value=f'{tong_quydoi_ngay:.1f} (tiết)', delta=f'{tong_quydoi_ngay_percen}%', delta_color="normal")
+        with col2: st.metric(label="Kiêm nhiệm quản lý", value=f'{kiemnhiem_ql_tiet:.1f} (tiết)', delta=f'{kiemnhiem_ql_percen}%', delta_color="normal")
+        with col3: st.metric(label="Kiêm nhiệm Đoàn thể (cao nhất)", value=f'{max_doanthe_tiet:.1f} (tiết)', delta=f'{max_doanthe_pecrcen}%', delta_color="normal")
+        st.header("Biểu đồ phân bổ tiết giảm theo tuần")
+        chart_data_points = weekly_tiet_grid_original.copy()
+        for tet_week in TET_WEEKS:
+            if tet_week in chart_data_points.index: chart_data_points.loc[tet_week] = np.nan
+        chart_data_points_long = chart_data_points.reset_index().melt(id_vars=['Tuần'], var_name='Nội dung hoạt động', value_name='Tiết/Tuần (gốc)')
+        total_per_week = weekly_tiet_grid_adjusted.sum(axis=1).reset_index()
+        total_per_week.columns = ['Tuần', 'Tiết/Tuần (tổng)']
+        total_per_week['Nội dung hoạt động'] = 'Tổng giảm/tuần'
+        for tet_week in TET_WEEKS:
+            if tet_week in total_per_week['Tuần'].values: total_per_week.loc[total_per_week['Tuần'] == tet_week, 'Tiết/Tuần (tổng)'] = np.nan
+        domain = unique_activities.tolist() + ['Tổng giảm/tuần']
+        palette = ['#4E79A7', '#F28E2B', '#E15759', '#76B7B2', '#59A14F', '#EDC948', '#B07AA1', '#FF9DA7', '#9C755F', '#BAB0AC']
+        range_colors = []
+        palette_idx = 0
+        for item in domain:
+            if item == 'Tổng giảm/tuần': range_colors.append('green')
+            else: range_colors.append(palette[palette_idx % len(palette)]); palette_idx += 1
+        points = alt.Chart(chart_data_points_long).mark_point(filled=True, size=60).encode(x=alt.X('Tuần:Q', scale=alt.Scale(domain=[1, 46], clamp=True), axis=alt.Axis(title='Tuần', grid=False, tickCount=46)), y=alt.Y('Tiết/Tuần (gốc):Q', axis=alt.Axis(title='Số tiết giảm')), color=alt.Color('Nội dung hoạt động:N', scale=alt.Scale(domain=domain, range=range_colors), legend=alt.Legend(title="Hoạt động")), tooltip=['Tuần', 'Nội dung hoạt động', alt.Tooltip('Tiết/Tuần (gốc):Q', format='.2f')]).transform_filter(alt.datum['Tiết/Tuần (gốc)'] > 0)
+        line = alt.Chart(total_per_week).mark_line(point=alt.OverlayMarkDef(color="green")).encode(x=alt.X('Tuần:Q'), y=alt.Y('Tiết/Tuần (tổng):Q'), color=alt.value('green'))
+        combined_chart = (points + line).interactive()
+        st.altair_chart(combined_chart, use_container_width=True)
+        st.caption("Ghi chú: Các điểm thể hiện số tiết giảm gốc. Đường màu xanh lá cây thể hiện tổng số tiết giảm/tuần đã được điều chỉnh và giới hạn ở mức tối đa.")
     else:
         st.info("Vui lòng nhập ít nhất một hoạt động vào bảng trên.")
     
@@ -364,16 +386,5 @@ def tinh_toan_kiem_nhiem():
 
 # --- GIAO DIỆN CHÍNH ---
 # Gọi hàm chính để hiển thị và tính toán
-input_df_final, result_df_final = tinh_toan_kiem_nhiem()
-
-# Các nút điều khiển
-st.divider()
-col1, col2, _ = st.columns(3)
-with col1:
-    if st.button("Cập nhật (Lưu)", use_container_width=True, type="primary"):
-        # Lưu trạng thái cuối cùng từ data editor
-        save_giamgio_to_gsheet(spreadsheet, input_df_final, result_df_final)
-with col2:
-    if st.button("Tải lại dữ liệu", use_container_width=True):
-        force_reload_data()
+tinh_toan_kiem_nhiem()
 
