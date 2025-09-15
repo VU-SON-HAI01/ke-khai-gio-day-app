@@ -119,20 +119,22 @@ def load_giamgio_from_gsheet(spreadsheet):
         st.error(f"Lỗi khi tải dữ liệu giảm trừ đã lưu: {e}")
         return pd.DataFrame()
 
-# --- LOGIC TẢI DỮ LIỆU KHI CHUYỂN TRANG (ĐÃ SỬA LỖI) ---
-# Sử dụng cờ 'force_page_reload' được thiết lập bởi main.py để phát hiện điều hướng trang.
-# Đây là cách đáng tin cậy để tải lại dữ liệu khi người dùng vào trang này từ một trang khác.
+# --- LOGIC TẢI DỮ LIỆU KHI CHUYỂN TRANG (SỬA LỖI VỚI st.rerun) ---
 force_reload = st.session_state.get('force_page_reload', False)
 
-# Nếu cờ được bật (nghĩa là người dùng vừa điều hướng đến đây)
-# hoặc nếu dữ liệu chưa bao giờ được tải vào session, thì tiến hành tải.
+# Điều kiện này chỉ đúng khi người dùng điều hướng đến trang này,
+# hoặc khi trang được tải lần đầu tiên.
 if force_reload or 'giamgio_input_df' not in st.session_state:
-    with st.spinner("Đang tải dữ liệu giảm trừ/kiêm nhiệm đã lưu..."):
-        st.session_state.giamgio_input_df = load_giamgio_from_gsheet(spreadsheet)
-        # Tắt cờ đi sau khi đã tải xong. Điều này ngăn việc tải lại dữ liệu
-        # khi người dùng tương tác với các widget (như data_editor) trên trang này.
-        if 'force_page_reload' in st.session_state:
-            st.session_state.force_page_reload = False
+    # Tắt cờ ngay lập tức để lần rerun tiếp theo không vào lại đây.
+    if st.session_state.get('force_page_reload'):
+        st.session_state.force_page_reload = False
+    
+    # Tải dữ liệu mới nhất từ Google Sheet vào session_state.
+    st.session_state.giamgio_input_df = load_giamgio_from_gsheet(spreadsheet)
+    
+    # Yêu cầu Streamlit chạy lại script của trang này từ đầu.
+    # Việc này đảm bảo st.data_editor sẽ được render với dữ liệu mới.
+    st.rerun()
 
 
 # --- HÀM TÍNH TOÁN VÀ GIAO DIỆN CHÍNH ---
