@@ -119,18 +119,21 @@ def load_giamgio_from_gsheet(spreadsheet):
         st.error(f"Lỗi khi tải dữ liệu giảm trừ đã lưu: {e}")
         return pd.DataFrame()
 
-# --- LOGIC TẢI DỮ LIỆU KHI CHUYỂN TRANG ---
-# Dựa trên cơ chế của main.py để phát hiện việc chuyển trang
-THIS_PAGE_TITLE = "Kê Giảm trừ/Kiêm nhiệm"
-previous_page_title = st.session_state.get('current_page_title', None)
+# --- LOGIC TẢI DỮ LIỆU KHI CHUYỂN TRANG (ĐÃ SỬA LỖI) ---
+# Sử dụng cờ 'force_page_reload' được thiết lập bởi main.py để phát hiện điều hướng trang.
+# Đây là cách đáng tin cậy để tải lại dữ liệu khi người dùng vào trang này từ một trang khác.
+force_reload = st.session_state.get('force_page_reload', False)
 
-# Nếu người dùng vừa chuyển đến trang này, hoặc dữ liệu chưa được tải lần nào
-if previous_page_title != THIS_PAGE_TITLE or 'giamgio_input_df' not in st.session_state:
+# Nếu cờ được bật (nghĩa là người dùng vừa điều hướng đến đây)
+# hoặc nếu dữ liệu chưa bao giờ được tải vào session, thì tiến hành tải.
+if force_reload or 'giamgio_input_df' not in st.session_state:
     with st.spinner("Đang tải dữ liệu giảm trừ/kiêm nhiệm đã lưu..."):
         st.session_state.giamgio_input_df = load_giamgio_from_gsheet(spreadsheet)
+        # Tắt cờ đi sau khi đã tải xong. Điều này ngăn việc tải lại dữ liệu
+        # khi người dùng tương tác với các widget (như data_editor) trên trang này.
+        if 'force_page_reload' in st.session_state:
+            st.session_state.force_page_reload = False
 
-# Cập nhật lại tên trang hiện tại vào session state
-st.session_state['current_page_title'] = THIS_PAGE_TITLE
 
 # --- HÀM TÍNH TOÁN VÀ GIAO DIỆN CHÍNH ---
 def tinh_toan_kiem_nhiem():
@@ -359,3 +362,4 @@ with col2:
         if 'giamgio_input_df' in st.session_state:
             del st.session_state['giamgio_input_df']
         st.rerun()
+
