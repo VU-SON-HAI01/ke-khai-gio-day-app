@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import gspread
 from gspread_dataframe import set_with_dataframe
-import fun_quydoi as fq
 import ast
 import re
 from itertools import zip_longest
@@ -54,7 +54,163 @@ ma_gv = st.session_state.get('magv', 'khong_ro')
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
 KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
 
-# --- CÁC HÀM HỖ TRỢ ---
+# --- CÁC HÀM TÍNH TOÁN HỆ SỐ (TỪ fun_quydoi.py) ---
+def timmanghe(malop_f):
+    """Xác định mã nghề từ mã lớp."""
+    S = str(malop_f)
+    if len(S) > 5:
+        if S[-1] == "X": return "MON" + S[2:5] + "X"
+        if S[0:2] <= "48": return "MON" + S[2:5] + "Y"
+        if S[0:4] == "VHPT": return "VHPT"
+        return "MON" + S[2:5] + "Z"
+    return "MON" + S[2] + "Y" if len(S) >= 3 and S[2].isdigit() else "MON00Y"
+
+def timheso_tc_cd(chuangv, malop):
+    """Tìm hệ số dựa trên chuẩn giáo viên và mã lớp."""
+    chuangv_short = {"Cao đẳng": "CĐ", "Trung cấp": "TC"}.get(chuangv, "CĐ")
+    heso_map = {"CĐ": {"1": 1, "2": 0.89, "3": 0.79}, "TC": {"1": 1, "2": 1, "3": 0.89}}
+    return heso_map.get(chuangv_short, {}).get(str(malop)[2], 2.0) if len(str(malop)) >= 3 else 2.0
+
+def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
+    """Tìm hệ số dựa trên sĩ số và điều kiện nặng nhọc."""
+    try:
+        cleaned_siso = int(float(tuan_siso)) if tuan_siso is not None and str(tuan_siso).strip() != '' else 0
+    except (ValueError, TypeError):
+        cleaned_siso = 0
+    tuan_siso = cleaned_siso
+
+    df_hesosiso = df_hesosiso_g.copy()
+    for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
+        df_hesosiso[col] = pd.to_numeric(df_hesosiso[col], errors='coerce').fillna(0)
+
+    dieukien_nn_lop = False
+    if isinstance(malop_khoa, str) and len(malop_khoa) >= 5 and malop_khoa[2:5].isdigit():
+        nghe_info = df_nangnhoc_g[df_nangnhoc_g['MÃ NGHỀ'] == malop_khoa[2:5]]
+        if not nghe_info.empty and nghe_info['Nặng nhọc'].iloc[0] in ['NN49', 'NN']:
+            dieukien_nn_lop = True
+
+    hesomon_siso_LT, hesomon_siso_TH = 1.0, 1.0
+    ar_hesosiso_qd = df_hesosiso['Hệ số'].values
+    mamon_prefix = mamon[:2] if isinstance(mamon, str) else ""
+
+    for i in range(len(ar_hesosiso_qd)):
+        if df_hesosiso['LT min'].values[i] <= tuan_siso <= df_hesosiso['LT max'].values[i]:
+            hesomon_siso_LT = ar_hesosiso_qd[i]
+        if df_hesosiso['TH min'].values[i] <= tuan_siso <= df_hesosiso['TH max'].values[i]:
+            hesomon_siso_TH = ar_hesosiso_qd[i]
+
+    if dieukien_nn_lop and mamon_prefix != "MC":
+        for i in range(len(ar_hesosiso_qd)):
+            if df_hesosiso['THNN min'].values[i] <= tuan_siso <= df_hesosiso['THNN max'].values[i]:
+                hesomon_siso_TH = ar_hesosiso_qd[i]
+                break
+    return hesomon_siso_LT, hesomon_siso_TH
+
+def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g):
+    """Hàm xử lý chính, tính toán quy đổi giờ giảng."""
+    lop_chon = input_data.get('lop_hoc')
+    mon_chon = input_data.get('mon_hoc')
+    tuandentuan = input_data.get('tuan')
+    kieu_ke_khai = input_data.get('cach_ke', 'Kê theo MĐ, MH')
+    tiet_nhap = input_data.get('tiet', "0")
+    tiet_lt_nhap = input_data.get('tiet_lt', "0")
+    tiet_th_nhap = input_data.get('tiet_th', "0")
+
+    if not lop_chon: return pd.DataFrame(), {"error": "Vui lòng chọn một Lớp học."}
+    if not mon_chon: return pd.DataFrame(), {"error": "Vui lòng chọn một Môn học."}
+    if not isinstance(tuandentuan, (list, tuple)) or len(tuandentuan) != 2:
+        return pd.DataFrame(), {"error": "Phạm vi tuần không hợp lệ."}
+
+    # Lấy DataFrame tương ứng với Khóa/Hệ đã chọn
+    selected_khoa = input_data.get('khoa')
+    df_lop_mapping = {
+        'Khóa 48': df_lop_g,
+        'Khóa 49': df_lop_g,
+        'Khóa 50': df_lop_g,
+        'Lớp ghép': df_lopghep_g,
+        'Lớp tách': df_loptach_g,
+        'Sơ cấp + VHPT': df_lopsc_g
+    }
+    source_df = df_lop_mapping.get(selected_khoa)
+    
+    malop_info = source_df[source_df['Lớp'] == lop_chon] if source_df is not None else pd.DataFrame()
+    if malop_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'."}
+    
+    malop = malop_info['Mã_lớp'].iloc[0]
+    
+    dsmon_code = malop_info['Mã_DSMON'].iloc[0]
+    mon_info = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
+    if mon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'."}
+
+    mamon = mon_info[mon_info['Môn_học'] == mon_chon]['Mã_môn'].iloc[0]
+    
+    tuanbatdau, tuanketthuc = tuandentuan
+    locdulieu_info = df_ngaytuan_g.iloc[tuanbatdau - 1:tuanketthuc].copy()
+    
+    try:
+        arr_tiet_lt = np.array([int(x) for x in str(tiet_lt_nhap).split()]) if tiet_lt_nhap and tiet_lt_nhap.strip() else np.array([], dtype=int)
+        arr_tiet_th = np.array([int(x) for x in str(tiet_th_nhap).split()]) if tiet_th_nhap and tiet_th_nhap.strip() else np.array([], dtype=int)
+        arr_tiet = np.array([int(x) for x in str(tiet_nhap).split()]) if tiet_nhap and tiet_nhap.strip() else np.array([], dtype=int)
+    except (ValueError, TypeError):
+        return pd.DataFrame(), {"error": "Định dạng số tiết không hợp lệ. Vui lòng chỉ nhập số và dấu cách."}
+
+    if kieu_ke_khai == 'Kê theo MĐ, MH':
+        if len(locdulieu_info) != len(arr_tiet): 
+            return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})."}
+        # Tách tiết tổng thành LT và TH dựa vào Mã môn
+        if mamon[:2] in ['MH', 'MC']:
+            arr_tiet_lt = arr_tiet
+            arr_tiet_th = np.zeros_like(arr_tiet)
+        else:
+            arr_tiet_lt = np.zeros_like(arr_tiet)
+            arr_tiet_th = arr_tiet
+    else:
+        if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
+            return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết LT ({len(arr_tiet_lt)}) hoặc TH ({len(arr_tiet_th)})."}
+        arr_tiet = arr_tiet_lt + arr_tiet_th
+    
+    dssiso = [malop_info[thang].iloc[0] if thang in malop_info.columns else 0 for thang in locdulieu_info['Tháng']]
+
+    df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
+    df_result['Sĩ số'] = dssiso
+    df_result['Tiết'] = arr_tiet
+    df_result['Tiết_LT'] = arr_tiet_lt
+    df_result['Tiết_TH'] = arr_tiet_th
+    df_result['HS TC/CĐ'] = timheso_tc_cd(chuangv, malop)
+    
+    heso_lt_list, heso_th_list = [], []
+    for siso in df_result['Sĩ số']:
+        lt, th = timhesomon_siso(mamon, siso, malop, df_nangnhoc_g, df_hesosiso_g)
+        heso_lt_list.append(lt)
+        heso_th_list.append(th)
+        
+    df_result['HS_SS_LT'] = heso_lt_list
+    df_result['HS_SS_TH'] = heso_th_list
+
+    numeric_cols = ['Sĩ số', 'Tiết', 'Tiết_LT', 'HS_SS_LT', 'HS_SS_TH', 'Tiết_TH', 'HS TC/CĐ']
+    for col in numeric_cols:
+        df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0)
+    
+    # Tính toán cột mới
+    df_result["QĐ thừa"] = (df_result["Tiết_LT"] * df_result["HS_SS_LT"]) + (df_result["Tiết_TH"] * df_result["HS_SS_TH"])
+    df_result["HS_SS_LT_tron"] = df_result["HS_SS_LT"].clip(lower=1)
+    df_result["HS_SS_TH_tron"] = df_result["HS_SS_TH"].clip(lower=1)
+    df_result["QĐ thiếu"] = df_result["HS TC/CĐ"] * ((df_result["Tiết_LT"] * df_result["HS_SS_LT_tron"]) + (df_result["HS_SS_TH_tron"] * df_result["Tiết_TH"]))
+
+    rounding_map = {"Sĩ số": 0, "Tiết": 1, "HS_SS_LT": 1, "HS_SS_TH": 1, "QĐ thừa": 1, "QĐ thiếu": 1, "HS TC/CĐ": 2, "Tiết_LT": 1, "Tiết_TH": 1}
+    for col, decimals in rounding_map.items():
+        if col in df_result.columns:
+            df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0).round(decimals)
+
+    df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
+    final_columns = ["Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "QĐ thiếu"]
+    df_final = df_result[[col for col in final_columns if col in df_result.columns]]
+
+    summary_info = {"mamon": mamon, "heso_tccd": df_final['HS TC/CĐ'].mean()}
+    
+    return df_final, summary_info
+
+# --- CÁC HÀM HỖ TRỢ KHÁC ---
 def get_default_input_dict():
     """Tạo một dictionary chứa dữ liệu input mặc định cho một môn."""
     default_lop = ''
@@ -92,7 +248,6 @@ def save_data_to_sheet(worksheet_name, data_to_save):
     if 'tuan' in df_to_save.columns:
         df_to_save['tuan'] = df_to_save['tuan'].astype(object).apply(lambda x: str(x) if isinstance(x, tuple) else x)
     set_with_dataframe(worksheet, df_to_save, include_index=False, resize=True)
-
 
 def load_all_mon_data():
     """Tải tất cả dữ liệu môn học đã lưu của GV từ Google Sheet."""
@@ -191,7 +346,6 @@ for i, tab in enumerate(tabs[:-1]):
         khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
         selected_khoa = st.selectbox("Chọn Khóa/Hệ", options=khoa_options, index=khoa_options.index(current_input.get('khoa', khoa_options[0])), key=f"widget_khoa_{i}", on_change=update_tab_state, args=('khoa', i))
         
-        # Lấy danh sách lớp học dựa trên lựa chọn Khóa/Hệ
         df_lop_mapping = {
             'Khóa 48': df_lop_g,
             'Khóa 49': df_lop_g,
@@ -206,12 +360,10 @@ for i, tab in enumerate(tabs[:-1]):
         if source_df is not None and not source_df.empty:
             if selected_khoa.startswith('Khóa'):
                 khoa_prefix = selected_khoa.split(' ')[1]
-                # Chuyển đổi cột 'Mã_lớp' thành string để có thể dùng str.startswith
                 filtered_lop_options = source_df[source_df['Mã_lớp'].astype(str).str.startswith(khoa_prefix, na=False)]['Lớp'].tolist()
             else:
                 filtered_lop_options = source_df['Lớp'].tolist()
         
-        # Đảm bảo giá trị lop_hoc hiện tại vẫn tồn tại trong danh sách mới
         if current_input.get('lop_hoc') not in filtered_lop_options:
             current_input['lop_hoc'] = filtered_lop_options[0] if filtered_lop_options else ''
             st.session_state.mon_hoc_data[i]['lop_hoc'] = current_input['lop_hoc']
@@ -221,20 +373,16 @@ for i, tab in enumerate(tabs[:-1]):
 
         # --- CHỌN MÔN HỌC ĐÃ CẬP NHẬT ---
         dsmon_options = []
-        df_dsmon_loc = pd.DataFrame() # Khởi tạo DataFrame trống
+        df_dsmon_loc = pd.DataFrame()
         if current_input.get('lop_hoc') and source_df is not None:
-            # Tìm mã DSMON (Giá trị A) từ lớp học đã chọn
             dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON'].iloc[0]
             if not pd.isna(dsmon_code) and df_mon_g is not None and not df_mon_g.empty:
-                # Lọc df_mon_g bằng dsmon_code (Giá trị A) dựa trên cột Mã_ngành
-                # Giả định df_mon_g có cột 'Mã_ngành' và 'Môn_học'
                 if 'Mã_ngành' in df_mon_g.columns and 'Môn_học' in df_mon_g.columns:
                     df_dsmon_loc = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
                     dsmon_options = df_dsmon_loc['Môn_học'].dropna().astype(str).tolist()
                 else:
                     st.warning("Lỗi: Không tìm thấy các cột 'Mã_ngành' hoặc 'Môn_học' trong df_mon.")
         
-        # Đảm bảo giá trị mon_hoc hiện tại vẫn tồn tại trong danh sách mới
         if current_input.get('mon_hoc') not in dsmon_options:
             current_input['mon_hoc'] = dsmon_options[0] if dsmon_options else ''
             st.session_state.mon_hoc_data[i]['mon_hoc'] = current_input['mon_hoc']
@@ -242,13 +390,6 @@ for i, tab in enumerate(tabs[:-1]):
         mon_hoc_index = dsmon_options.index(current_input.get('mon_hoc')) if current_input.get('mon_hoc') in dsmon_options else 0
         st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key=f"widget_mon_hoc_{i}", on_change=update_tab_state, args=('mon_hoc', i))
 
-        # Hiển thị df_giatrimon_loc để kiểm tra
-        selected_mon_hoc = current_input.get('mon_hoc')
-        if not df_dsmon_loc.empty and selected_mon_hoc:
-            df_giatrimon_loc = df_dsmon_loc[df_dsmon_loc['Môn_học'] == selected_mon_hoc]
-            st.subheader("Kiểm tra DataFrame của Môn học đã chọn")
-            st.dataframe(df_giatrimon_loc)
-        
         st.slider("Chọn Tuần giảng dạy", 1, 50, value=current_input.get('tuan', (1, 12)), key=f"widget_tuan_{i}", on_change=update_tab_state, args=('tuan', i))
         st.radio("Chọn phương pháp kê khai", ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), index=0 if current_input.get('cach_ke') == 'Kê theo MĐ, MH' else 1, key=f"widget_cach_ke_{i}", on_change=update_tab_state, args=('cach_ke', i), horizontal=True)
 
@@ -276,7 +417,7 @@ for i, tab in enumerate(tabs[:-1]):
                 validation_placeholder.error(f"Lỗi: Số tuần ({so_tuan_chon}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
 
         if is_input_valid:
-            df_result, summary = fq.process_mon_data(current_input, chuangv, source_df, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g)
+            df_result, summary = process_mon_data(current_input, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g)
             if summary and "error" in summary:
                 validation_placeholder.error(f"Lỗi tính toán: {summary['error']}")
                 st.session_state.results_data[i] = pd.DataFrame()
@@ -358,9 +499,8 @@ with tabs[-1]:
         }
         summary_df.rename(columns=rename_map, inplace=True)
         
-        # Chuyển đổi các cột tiết sang dạng list để hiển thị kiểu "pill"
         cols_to_convert_to_list = ['Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần']
-        for col in cols_df.columns:
+        for col in cols_to_convert_to_list:
             if col in summary_df.columns:
                 summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
 
@@ -371,7 +511,6 @@ with tabs[-1]:
         ]
         final_columns_to_display = [col for col in display_columns if col in summary_df.columns]
         
-        # Chia DataFrame theo học kỳ
         df_hk1 = summary_df[summary_df['Học kỳ'] == 1]
         df_hk2 = summary_df[summary_df['Học kỳ'] == 2]
 
@@ -389,7 +528,6 @@ with tabs[-1]:
         
         st.markdown("---")
         
-        # Tính toán và hiển thị tổng hợp cuối cùng
         def display_totals(title, df):
             total_tiet_day = df['Tiết'].sum()
             total_qd_thua = df['QĐ thừa'].sum()
