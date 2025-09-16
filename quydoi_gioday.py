@@ -12,15 +12,32 @@ if 'initialized' not in st.session_state or not st.session_state.initialized:
     st.error("Vui lòng đăng nhập và đảm bảo thông tin của bạn đã được tải thành công từ trang chủ.")
     st.stop()
 
-# Bổ sung các df mới cần kiểm tra
-required_data = [
-    'spreadsheet', 'df_lop', 'df_lopghep', 'df_loptach', 'df_lopsc',
-    'df_mon', 'df_ngaytuan', 'df_nangnhoc', 'df_hesosiso', 'chuangv'
+# --- Sửa lỗi: Kiểm tra dữ liệu nền một cách an toàn ---
+# Tách biến DataFrame và các biến khác để kiểm tra riêng
+required_dfs = [
+    'df_lop', 'df_lopghep', 'df_loptach', 'df_lopsc',
+    'df_mon', 'df_ngaytuan', 'df_nangnhoc', 'df_hesosiso'
 ]
-missing_data = [item for item in required_data if item not in st.session_state or st.session_state[item].empty]
+required_others = ['spreadsheet', 'chuangv']
+
+missing_data = []
+# 1. Kiểm tra sự tồn tại của tất cả các biến cần thiết
+for key in required_dfs + required_others:
+    if key not in st.session_state:
+        missing_data.append(key)
+
+# 2. Nếu biến tồn tại và là DataFrame, kiểm tra xem nó có rỗng không
+# Chỉ thực hiện nếu không có lỗi thiếu biến ở bước 1
+if not missing_data:
+    for key in required_dfs:
+        # Đảm bảo rằng key tồn tại trước khi kiểm tra .empty
+        if key in st.session_state and st.session_state[key].empty:
+            missing_data.append(f"{key} (dữ liệu rỗng)")
+
 if missing_data:
-    st.error(f"Lỗi: Không tìm thấy hoặc dữ liệu rỗng cho: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ.")
+    st.error(f"Lỗi: Không tìm thấy hoặc dữ liệu nền không hợp lệ cho: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ và file 'DATA_KEGIO' có dữ liệu.")
     st.stop()
+
 
 # --- CSS TÙY CHỈNH GIAO DIỆN ---
 st.markdown("""
@@ -280,3 +297,4 @@ else:
         col_cn1.metric("Tổng Tiết dạy Cả năm", f"{total_tiet_cn:,.0f}")
         col_cn2.metric("Tổng Quy đổi (dư) Cả năm", f"{total_qd_thua_cn:,.1f}")
         col_cn3.metric("Tổng Quy đổi (thiếu) Cả năm", f"{total_qd_thieu_cn:,.1f}")
+
