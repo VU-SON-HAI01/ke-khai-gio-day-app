@@ -59,7 +59,7 @@ def get_default_input_dict():
     """Tạo một dictionary chứa dữ liệu input mặc định cho một môn."""
     default_lop = ''
     if df_lop_g is not None and not df_lop_g.empty:
-        filtered_lops = df_lop_g[df_lop_g['Mã lớp'].str.startswith('48', na=False)]['Lớp']
+        filtered_lops = df_lop_g[df_lop_g['Mã_lớp'].astype(str).str.startswith('48', na=False)]['Lớp']
         default_lop = filtered_lops.iloc[0] if not filtered_lops.empty else df_lop_g['Lớp'].iloc[0]
     return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': DEFAULT_TIET_STRING, 'tiet_lt': '0', 'tiet_th': '0'}
 
@@ -206,7 +206,8 @@ for i, tab in enumerate(tabs[:-1]):
         if source_df is not None and not source_df.empty:
             if selected_khoa.startswith('Khóa'):
                 khoa_prefix = selected_khoa.split(' ')[1]
-                filtered_lop_options = source_df[source_df['Mã lớp'].str.startswith(khoa_prefix, na=False)]['Lớp'].tolist()
+                # Chuyển đổi cột 'Mã_lớp' thành string để có thể dùng str.startswith
+                filtered_lop_options = source_df[source_df['Mã_lớp'].astype(str).str.startswith(khoa_prefix, na=False)]['Lớp'].tolist()
             else:
                 filtered_lop_options = source_df['Lớp'].tolist()
         
