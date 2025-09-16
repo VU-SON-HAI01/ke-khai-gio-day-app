@@ -187,73 +187,98 @@ def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, ol
 
 @st.cache_data(ttl=600)
 def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_base/'):
-    """Tải tất cả các file dữ liệu nền Parquet và từ Google Sheet quản trị."""
-    # (Hàm này được giữ nguyên, không thay đổi)
+    """
+    Tải tất cả các file dữ liệu nền từ Google Sheet quản trị và một số file Parquet cục bộ.
+    """
     loaded_dfs = {}
-    
-    # --- Phần tải Parquet (không đổi) ---
-    files_to_load_parquet = ['df_giaovien.parquet', 'df_hesosiso.parquet', 'df_khoa.parquet', 'df_lop.parquet',
-                             'df_lopgheptach.parquet', 'df_manghe.parquet', 'df_mon.parquet', 'df_nangnhoc.parquet',
-                             'df_ngaytuan.parquet', 'mau_kelop.parquet', 'mau_quydoi.parquet']
-    
-    total_files = len(files_to_load_parquet) + 2 # +2 cho sheet từ Google
-    progress_bar = st.progress(0, text="Đang tải dữ liệu cơ sở...")
-    
-    for i, file_name in enumerate(files_to_load_parquet):
+
+    # --- Định nghĩa các nguồn dữ liệu ---
+    # Các file template Parquet tải từ local
+    local_parquet_templates = {
+        'mau_kelop': 'mau_kelop.parquet',
+        'mau_quydoi': 'mau_quydoi.parquet'
+    }
+
+    # Các sheet dữ liệu chính tải từ Google Sheet "DATA_KEGIO"
+    sheets_to_load = {
+        'df_giaovien': 'DS_GIAOVIEN',
+        'df_hesosiso': 'HESOSISO',
+        'df_khoa': 'MA_KHOA',
+        'df_mon': 'DSMON',
+        'df_nangnhoc': 'NANG_NHOC',
+        'df_ngaytuan': 'TUAN_NGAY',
+        'df_lop': 'DSLOP',
+        'df_lopghep': 'DSLOP_GHEP',
+        'df_loptach': 'DSLOP_TACH',
+        'df_lopsc': 'DSLOP_SC',
+        'df_quydoi_hd': 'QUYDOI_HD',
+        'df_quydoi_hd_them': 'QUYDOIKHAC'
+    }
+
+    total_items = len(local_parquet_templates) + len(sheets_to_load)
+    progress_bar = st.progress(0, text="Đang khởi tạo tải dữ liệu...")
+    items_processed = 0
+
+    # --- 1. Tải các file Parquet template cục bộ ---
+    for df_key, file_name in local_parquet_templates.items():
+        items_processed += 1
+        progress_text = f"Đang tải template {file_name}..."
+        progress_bar.progress(items_processed / total_items, text=progress_text)
         try:
             df = pd.read_parquet(os.path.join(base_path, file_name), engine='pyarrow')
-            loaded_dfs[file_name.replace('.parquet', '')] = df
+            loaded_dfs[df_key] = df
         except Exception as e:
-            st.warning(f"Không thể tải file '{file_name}': {e}")
-        progress_bar.progress((i + 1) / total_files, text=f"Đang tải {file_name}...")
+            st.warning(f"Không thể tải file template cục bộ '{file_name}': {e}")
+            loaded_dfs[df_key] = pd.DataFrame()  # Khởi tạo DF rỗng nếu lỗi
 
-    # --- Phần tải từ Google Sheet (Đã cập nhật) ---
+    # --- 2. Tải dữ liệu từ Google Sheet ---
     try:
-        # 1. Tìm ID của folder "DỮ_LIỆU_QUẢN_TRỊ"
+        # Tìm ID của folder "DỮ_LIỆU_QUẢN_TRỊ"
         folder_query = f"mimeType='application/vnd.google-apps.folder' and name='{ADMIN_DATA_FOLDER_NAME}' and trashed=false"
         folder_response = _sa_drive_service.files().list(q=folder_query, fields='files(id)').execute()
         folders = folder_response.get('files', [])
-        
         if not folders:
             raise FileNotFoundError(f"Không tìm thấy thư mục quản trị có tên '{ADMIN_DATA_FOLDER_NAME}'.")
-        
         folder_id = folders[0].get('id')
 
-        # 2. Tìm ID của file "DATA_KEGIO" bên trong folder đó
+        # Tìm ID của file "DATA_KEGIO" bên trong folder đó
         file_query = f"name='{ADMIN_DATA_SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
         file_response = _sa_drive_service.files().list(q=file_query, fields='files(id)').execute()
         files = file_response.get('files', [])
-
         if not files:
             raise FileNotFoundError(f"Không tìm thấy file '{ADMIN_DATA_SHEET_NAME}' trong thư mục '{ADMIN_DATA_FOLDER_NAME}'.")
-            
         file_id = files[0].get('id')
 
-        # 3. Mở file bằng ID và tải dữ liệu
+        # Mở file bằng ID
         admin_data_sheet = _sa_gspread_client.open_by_key(file_id)
-        
-        worksheet_hd = admin_data_sheet.worksheet("QUYDOI_HD")
-        df_quydoi_hd = pd.DataFrame(worksheet_hd.get_all_records())
-        loaded_dfs['df_quydoi_hd'] = df_quydoi_hd
-        progress_bar.progress((len(files_to_load_parquet) + 1) / total_files, text="Đang tải sheet QUYDOI_HD...")
 
-        worksheet_khac = admin_data_sheet.worksheet("QUYDOIKHAC")
-        df_quydoi_hd_them = pd.DataFrame(worksheet_khac.get_all_records())
-        loaded_dfs['df_quydoi_hd_them'] = df_quydoi_hd_them
-        progress_bar.progress((len(files_to_load_parquet) + 2) / total_files, text="Đang tải sheet QUYDOIKHAC...")
-        
+        # Tải lần lượt các sheet đã định nghĩa
+        for df_key, sheet_name in sheets_to_load.items():
+            items_processed += 1
+            progress_text = f"Đang tải sheet '{sheet_name}'..."
+            progress_bar.progress(items_processed / total_items, text=progress_text)
+            try:
+                worksheet = admin_data_sheet.worksheet(sheet_name)
+                df = pd.DataFrame(worksheet.get_all_records())
+                loaded_dfs[df_key] = df
+            except gspread.exceptions.WorksheetNotFound:
+                st.warning(f"Không tìm thấy sheet '{sheet_name}' trong file '{ADMIN_DATA_SHEET_NAME}'.")
+                loaded_dfs[df_key] = pd.DataFrame()  # Khởi tạo DF rỗng nếu lỗi
+            except Exception as e_sheet:
+                st.error(f"Lỗi khi tải sheet '{sheet_name}': {e_sheet}")
+                loaded_dfs[df_key] = pd.DataFrame()  # Khởi tạo DF rỗng nếu lỗi
+
     except (gspread.exceptions.SpreadsheetNotFound, FileNotFoundError) as e:
-        st.error(f"Lỗi truy cập file dữ liệu quản trị: {e}")
-        loaded_dfs['df_quydoi_hd'] = pd.DataFrame()
-        loaded_dfs['df_quydoi_hd_them'] = pd.DataFrame()
-    except gspread.exceptions.WorksheetNotFound as e:
-        st.error(f"Lỗi: Không tìm thấy sheet '{e.args[0]}' trong file '{ADMIN_DATA_SHEET_NAME}'.")
-        loaded_dfs['df_quydoi_hd'] = pd.DataFrame() 
-        loaded_dfs['df_quydoi_hd_them'] = pd.DataFrame()
-    except Exception as e:
-        st.error(f"Lỗi khi tải dữ liệu từ Google Sheet: {e}")
-        loaded_dfs['df_quydoi_hd'] = pd.DataFrame() 
-        loaded_dfs['df_quydoi_hd_them'] = pd.DataFrame()
+        st.error(f"Lỗi truy cập file dữ liệu quản trị '{ADMIN_DATA_SHEET_NAME}': {e}")
+        # Khởi tạo tất cả các DF rỗng nếu không tìm thấy file chính
+        for df_key in sheets_to_load.keys():
+            if df_key not in loaded_dfs:
+                loaded_dfs[df_key] = pd.DataFrame()
+    except Exception as e_main:
+        st.error(f"Lỗi không xác định khi tải dữ liệu từ Google Sheet: {e_main}")
+        for df_key in sheets_to_load.keys():
+            if df_key not in loaded_dfs:
+                loaded_dfs[df_key] = pd.DataFrame()
 
     progress_bar.empty()
     return loaded_dfs
@@ -419,8 +444,8 @@ else:
                 if magv and spreadsheet:
                     all_base_data = load_all_base_data(sa_gspread_client, sa_drive_service) 
                     
-                    if all_base_data.get('df_quydoi_hd').empty or all_base_data.get('df_quydoi_hd_them').empty:
-                        st.error("Không thể tải dữ liệu quy đổi cần thiết từ Google Sheet. Vui lòng liên hệ Admin.")
+                    if all_base_data.get('df_giaovien').empty or all_base_data.get('df_khoa').empty:
+                        st.error("Không thể tải dữ liệu giáo viên hoặc khoa. Vui lòng liên hệ Admin.")
                         st.stop()
                     
                     teacher_info = get_teacher_info_from_local(magv, all_base_data.get('df_giaovien'), all_base_data.get('df_khoa'))
@@ -487,3 +512,4 @@ else:
             }
             pg = st.navigation(pages)
             pg.run()
+}
