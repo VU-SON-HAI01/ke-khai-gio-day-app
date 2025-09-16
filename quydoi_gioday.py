@@ -219,15 +219,20 @@ for i, tab in enumerate(tabs[:-1]):
         lop_hoc_index = filtered_lop_options.index(current_input.get('lop_hoc')) if current_input.get('lop_hoc') in filtered_lop_options else 0
         st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key=f"widget_lop_hoc_{i}", on_change=update_tab_state, args=('lop_hoc', i))
 
-        # --- CHỌN MÔN HỌC MỚI ---
+        # --- CHỌN MÔN HỌC ĐÃ CẬP NHẬT ---
         dsmon_options = []
+        df_dsmon_loc = pd.DataFrame() # Khởi tạo DataFrame trống
         if current_input.get('lop_hoc') and source_df is not None:
-            # Tìm mã DSMON từ lớp học đã chọn
+            # Tìm mã DSMON (Giá trị A) từ lớp học đã chọn
             dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON'].iloc[0]
-            if not pd.isna(dsmon_code):
-                # Lấy danh sách môn học từ df_mon dựa trên mã ngành
-                if df_mon_g is not None and dsmon_code in df_mon_g.columns:
-                    dsmon_options = df_mon_g[dsmon_code].dropna().astype(str).tolist()
+            if not pd.isna(dsmon_code) and df_mon_g is not None and not df_mon_g.empty:
+                # Lọc df_mon_g bằng dsmon_code (Giá trị A) dựa trên cột Mã_ngành
+                # Giả định df_mon_g có cột 'Mã_ngành' và 'Môn_học'
+                if 'Mã_ngành' in df_mon_g.columns and 'Môn_học' in df_mon_g.columns:
+                    df_dsmon_loc = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
+                    dsmon_options = df_dsmon_loc['Môn_học'].dropna().astype(str).tolist()
+                else:
+                    st.warning("Lỗi: Không tìm thấy các cột 'Mã_ngành' hoặc 'Môn_học' trong df_mon.")
         
         # Đảm bảo giá trị mon_hoc hiện tại vẫn tồn tại trong danh sách mới
         if current_input.get('mon_hoc') not in dsmon_options:
@@ -237,6 +242,13 @@ for i, tab in enumerate(tabs[:-1]):
         mon_hoc_index = dsmon_options.index(current_input.get('mon_hoc')) if current_input.get('mon_hoc') in dsmon_options else 0
         st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key=f"widget_mon_hoc_{i}", on_change=update_tab_state, args=('mon_hoc', i))
 
+        # Hiển thị df_giatrimon_loc để kiểm tra
+        selected_mon_hoc = current_input.get('mon_hoc')
+        if not df_dsmon_loc.empty and selected_mon_hoc:
+            df_giatrimon_loc = df_dsmon_loc[df_dsmon_loc['Môn_học'] == selected_mon_hoc]
+            st.subheader("Kiểm tra DataFrame của Môn học đã chọn")
+            st.dataframe(df_giatrimon_loc)
+        
         st.slider("Chọn Tuần giảng dạy", 1, 50, value=current_input.get('tuan', (1, 12)), key=f"widget_tuan_{i}", on_change=update_tab_state, args=('tuan', i))
         st.radio("Chọn phương pháp kê khai", ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), index=0 if current_input.get('cach_ke') == 'Kê theo MĐ, MH' else 1, key=f"widget_cach_ke_{i}", on_change=update_tab_state, args=('cach_ke', i), horizontal=True)
 
@@ -348,7 +360,7 @@ with tabs[-1]:
         
         # Chuyển đổi các cột tiết sang dạng list để hiển thị kiểu "pill"
         cols_to_convert_to_list = ['Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần']
-        for col in cols_to_convert_to_list:
+        for col in cols_df.columns:
             if col in summary_df.columns:
                 summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
 
