@@ -125,7 +125,7 @@ with st.expander("📝 THÊM/CẬP NHẬT GIỜ DẠY", expanded=True):
             selected_khoa_he = st.selectbox("Chọn Khóa/Hệ", options=khoa_he_options, key="sb_khoa_he")
 
         with col2:
-            # 2. Chọn Lớp học (động theo Khóa/Hệ)
+            # 2. Cập nhật cách lấy danh sách Lớp học
             class_options = ["--Chọn--"]
             lop_df_map = {
                 "Khóa...": st.session_state.df_lop,
@@ -137,17 +137,18 @@ with st.expander("📝 THÊM/CẬP NHẬT GIỜ DẠY", expanded=True):
             if selected_khoa_he != "--Chọn--":
                 selected_lop_df = lop_df_map[selected_khoa_he]
                 if 'Lớp' in selected_lop_df.columns:
-                    class_options.extend(selected_lop_df['Lớp'].unique().tolist())
+                    # Sắp xếp danh sách lớp học theo alphabet để dễ tìm kiếm
+                    class_list = sorted(selected_lop_df['Lớp'].dropna().unique().tolist())
+                    class_options.extend(class_list)
             
             selected_class = st.selectbox("Chọn Lớp học", options=class_options, key="sb_lop")
 
-        # 3. Chọn Môn học (động theo Lớp học)
+        # 3. Cập nhật cách lấy danh sách Môn học
         mon_hoc_options = ["--Chọn--"]
         ma_dsmon_value = None
-        if selected_class != "--Chọn--" and selected_lop_df is not None:
-            # Kiểm tra sự tồn tại của cột 'Mã_DSMON'
+        if selected_class != "--Chọn--" and selected_lop_df is not None and not selected_lop_df.empty:
             if 'Mã_DSMON' not in selected_lop_df.columns:
-                st.error(f"Lỗi nghiêm trọng: Cột 'Mã_DSMON' không tồn tại trong sheet cho '{selected_khoa_he}'. Vui lòng thêm cột này vào file Google Sheet 'DATA_KEGIO' để tiếp tục.")
+                st.error(f"Lỗi cấu hình: Cột 'Mã_DSMON' không tồn tại trong dữ liệu cho '{selected_khoa_he}'. Vui lòng kiểm tra file 'DATA_KEGIO'.")
                 st.stop()
             
             class_row = selected_lop_df[selected_lop_df['Lớp'] == selected_class]
@@ -156,7 +157,9 @@ with st.expander("📝 THÊM/CẬP NHẬT GIỜ DẠY", expanded=True):
                 if pd.notna(ma_dsmon_value):
                     filtered_mon_df = st.session_state.df_mon[st.session_state.df_mon['Mã_ngành'] == ma_dsmon_value]
                     if not filtered_mon_df.empty:
-                         mon_hoc_options.extend(filtered_mon_df['Môn_học'].unique().tolist())
+                        # Sắp xếp danh sách môn học theo alphabet
+                        mon_hoc_list = sorted(filtered_mon_df['Môn_học'].dropna().unique().tolist())
+                        mon_hoc_options.extend(mon_hoc_list)
 
         selected_mon_hoc = st.selectbox("Chọn Môn học", options=mon_hoc_options, key="sb_mon_hoc")
 
