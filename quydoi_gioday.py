@@ -12,32 +12,11 @@ if 'initialized' not in st.session_state or not st.session_state.initialized:
     st.error("Vui lòng đăng nhập và đảm bảo thông tin của bạn đã được tải thành công từ trang chủ.")
     st.stop()
 
-# --- Sửa lỗi: Kiểm tra dữ liệu nền một cách an toàn ---
-# Tách biến DataFrame và các biến khác để kiểm tra riêng
-required_dfs = [
-    'df_lop', 'df_lopghep', 'df_loptach', 'df_lopsc',
-    'df_mon', 'df_ngaytuan', 'df_nangnhoc', 'df_hesosiso'
-]
-required_others = ['spreadsheet', 'chuangv']
-
-missing_data = []
-# 1. Kiểm tra sự tồn tại của tất cả các biến cần thiết
-for key in required_dfs + required_others:
-    if key not in st.session_state:
-        missing_data.append(key)
-
-# 2. Nếu biến tồn tại và là DataFrame, kiểm tra xem nó có rỗng không
-# Chỉ thực hiện nếu không có lỗi thiếu biến ở bước 1
-if not missing_data:
-    for key in required_dfs:
-        # Đảm bảo rằng key tồn tại trước khi kiểm tra .empty
-        if key in st.session_state and st.session_state[key].empty:
-            missing_data.append(f"{key} (dữ liệu rỗng)")
-
+required_data = ['spreadsheet', 'df_lop', 'df_mon', 'df_ngaytuan', 'df_nangnhoc', 'df_hesosiso', 'chuangv', 'df_lopghep', 'df_loptach', 'df_lopsc']
+missing_data = [item for item in required_data if item not in st.session_state]
 if missing_data:
-    st.error(f"Lỗi: Không tìm thấy hoặc dữ liệu nền không hợp lệ cho: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ và file 'DATA_KEGIO' có dữ liệu.")
+    st.error(f"Lỗi: Không tìm thấy dữ liệu cần thiết: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ.")
     st.stop()
-
 
 # --- CSS TÙY CHỈNH GIAO DIỆN ---
 st.markdown("""
@@ -52,209 +31,337 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 10px;
         padding: 15px;
-        background-color: #0a2941;
-    }
-    /* Tăng kích thước font chữ cho các lựa chọn trong selectbox */
-    div[data-baseweb="select"] > div {
-        font-size: 1.1em;
+        margin: 5px 0;
     }
 </style>
 """, unsafe_allow_html=True)
 
 
-# --- CÁC HÀM XỬ LÝ ---
-def load_data_from_sheet(spreadsheet, sheet_name):
-    """Tải dữ liệu từ một sheet cụ thể và trả về DataFrame."""
+# --- LẤY DỮ LIỆU CƠ SỞ TỪ SESSION STATE ---
+spreadsheet = st.session_state.spreadsheet
+df_lop_g = st.session_state.get('df_lop')
+df_mon_g = st.session_state.get('df_mon')
+df_ngaytuan_g = st.session_state.get('df_ngaytuan')
+df_nangnhoc_g = st.session_state.get('df_nangnhoc')
+df_hesosiso_g = st.session_state.get('df_hesosiso')
+chuangv = st.session_state.get('chuangv')
+df_lopghep_g = st.session_state.get('df_lopghep')
+df_loptach_g = st.session_state.get('df_loptach')
+df_lopsc_g = st.session_state.get('df_lopsc')
+ma_gv = st.session_state.get('magv', 'khong_ro')
+
+# --- HẰNG SỐ ---
+DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
+KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
+
+# --- CÁC HÀM HỖ TRỢ ---
+def get_default_input_dict():
+    """Tạo một dictionary chứa dữ liệu input mặc định cho một môn."""
+    default_lop = ''
+    if df_lop_g is not None and not df_lop_g.empty:
+        filtered_lops = df_lop_g[df_lop_g['Mã lớp'].str.startswith('48', na=False)]['Lớp']
+        default_lop = filtered_lops.iloc[0] if not filtered_lops.empty else df_lop_g['Lớp'].iloc[0]
+    return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': DEFAULT_TIET_STRING, 'tiet_lt': '0', 'tiet_th': '0'}
+
+def load_data_from_sheet(worksheet_name):
+    """Tải dữ liệu từ một worksheet cụ thể."""
     try:
-        worksheet = spreadsheet.worksheet(sheet_name)
+        worksheet = spreadsheet.worksheet(worksheet_name)
         data = worksheet.get_all_records()
-        df = pd.DataFrame(data)
-        # Đảm bảo các cột số học là số, điền NA bằng 0
-        for col in ['Số_tiết_dạy', 'Sĩ_số', 'LT', 'TH', 'Hệ_số_ss', 'Hệ_số_nn', 'Hệ_số_lớp', 'Hệ_số_khác', 'Giờ_quy_đổi']:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-        return df
+        if not data: return None
+        input_data = data[0]
+        if 'tuan' in input_data and isinstance(input_data['tuan'], str):
+            try:
+                input_data['tuan'] = ast.literal_eval(input_data['tuan'])
+            except:
+                input_data['tuan'] = (1, 12)
+        return input_data
     except gspread.exceptions.WorksheetNotFound:
-        st.warning(f"Không tìm thấy sheet '{sheet_name}'. Sẽ tạo mới khi có dữ liệu.")
-        return pd.DataFrame()
-    except Exception as e:
-        st.error(f"Lỗi khi tải dữ liệu từ sheet '{sheet_name}': {e}")
-        return pd.DataFrame()
+        return None
+    except Exception:
+        return get_default_input_dict()
 
-def save_data_to_sheet(spreadsheet, sheet_name, df):
-    """Lưu DataFrame vào một sheet cụ thể."""
+def save_data_to_sheet(worksheet_name, data_to_save):
+    """Lưu dữ liệu vào một worksheet cụ thể."""
     try:
-        worksheet = spreadsheet.worksheet(sheet_name)
-        worksheet.clear()
-        set_with_dataframe(worksheet, df)
-        return True
+        worksheet = spreadsheet.worksheet(worksheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        try:
-            worksheet = spreadsheet.add_worksheet(title=sheet_name, rows=100, cols=20)
-            set_with_dataframe(worksheet, df)
-            return True
-        except Exception as e:
-            st.error(f"Không thể tạo và lưu vào sheet '{sheet_name}': {e}")
-            return False
-    except Exception as e:
-        st.error(f"Lỗi khi lưu dữ liệu vào sheet '{sheet_name}': {e}")
-        return False
+        worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=100, cols=30)
+    
+    df_to_save = pd.DataFrame([data_to_save]) if isinstance(data_to_save, dict) else data_to_save.copy()
+    if 'tuan' in df_to_save.columns:
+        df_to_save['tuan'] = df_to_save['tuan'].astype(object).apply(lambda x: str(x) if isinstance(x, tuple) else x)
+    set_with_dataframe(worksheet, df_to_save, include_index=False, resize=True)
 
-# --- KHỞI TẠO VÀ TẢI DỮ LIỆU ---
-st.title("✍️ Kê khai Giờ dạy")
-st.markdown("Trang này dùng để kê khai số tiết giảng dạy thực tế và tính toán giờ quy đổi tương ứng.")
 
-SHEET_NAME = "KEGIO_GIODAY"
-if 'gioday_df' not in st.session_state or st.session_state.get('force_page_reload'):
-    with st.spinner("Đang tải dữ liệu giờ dạy..."):
-        st.session_state.gioday_df = load_data_from_sheet(st.session_state.spreadsheet, SHEET_NAME)
-        st.session_state['force_page_reload'] = False # Reset cờ
+def load_all_mon_data():
+    """Tải tất cả dữ liệu môn học đã lưu của GV từ Google Sheet."""
+    st.session_state.mon_hoc_data = []
+    st.session_state.results_data = []
+    all_worksheets = [ws.title for ws in spreadsheet.worksheets()]
+    
+    input_sheet_indices = sorted([int(re.search(r'_(\d+)$', ws).group(1)) for ws in all_worksheets if re.match(r'input_giangday_\d+', ws)], key=int)
+    
+    if not input_sheet_indices:
+        st.session_state.mon_hoc_data.append(get_default_input_dict())
+        st.session_state.results_data.append(pd.DataFrame())
+        return
 
-df = st.session_state.gioday_df
-
-# --- GIAO DIỆN NHẬP LIỆU ---
-with st.expander("📝 THÊM/CẬP NHẬT GIỜ DẠY", expanded=True):
-    with st.form(key="gioday_form", clear_on_submit=True):
-        st.subheader("Thông tin Lớp và Môn học")
-
-        # --- Lựa chọn động ---
-        col1, col2 = st.columns(2)
-        with col1:
-            # 1. Chọn Khóa/Hệ
-            khoa_he_options = ["--Chọn--", "Khóa...", "Lớp ghép", "Lớp tách", "Sơ cấp + VHPT"]
-            selected_khoa_he = st.selectbox("Chọn Khóa/Hệ", options=khoa_he_options, key="sb_khoa_he")
-
-        with col2:
-            # 2. Cập nhật cách lấy danh sách Lớp học
-            class_options = ["--Chọn--"]
-            lop_df_map = {
-                "Khóa...": st.session_state.df_lop,
-                "Lớp ghép": st.session_state.df_lopghep,
-                "Lớp tách": st.session_state.df_loptach,
-                "Sơ cấp + VHPT": st.session_state.df_lopsc
-            }
-            selected_lop_df = None
-            if selected_khoa_he != "--Chọn--":
-                selected_lop_df = lop_df_map[selected_khoa_he]
-                if 'Lớp' in selected_lop_df.columns:
-                    # Sắp xếp danh sách lớp học theo alphabet để dễ tìm kiếm
-                    class_list = sorted(selected_lop_df['Lớp'].dropna().unique().tolist())
-                    class_options.extend(class_list)
-            
-            selected_class = st.selectbox("Chọn Lớp học", options=class_options, key="sb_lop")
-
-        # 3. Cập nhật cách lấy danh sách Môn học
-        mon_hoc_options = ["--Chọn--"]
-        ma_dsmon_value = None
-        if selected_class != "--Chọn--" and selected_lop_df is not None and not selected_lop_df.empty:
-            if 'Mã_DSMON' not in selected_lop_df.columns:
-                st.error(f"Lỗi cấu hình: Cột 'Mã_DSMON' không tồn tại trong dữ liệu cho '{selected_khoa_he}'. Vui lòng kiểm tra file 'DATA_KEGIO'.")
-                st.stop()
-            
-            class_row = selected_lop_df[selected_lop_df['Lớp'] == selected_class]
-            if not class_row.empty:
-                ma_dsmon_value = class_row.iloc[0]['Mã_DSMON']
-                if pd.notna(ma_dsmon_value):
-                    filtered_mon_df = st.session_state.df_mon[st.session_state.df_mon['Mã_ngành'] == ma_dsmon_value]
-                    if not filtered_mon_df.empty:
-                        # Sắp xếp danh sách môn học theo alphabet
-                        mon_hoc_list = sorted(filtered_mon_df['Môn_học'].dropna().unique().tolist())
-                        mon_hoc_options.extend(mon_hoc_list)
-
-        selected_mon_hoc = st.selectbox("Chọn Môn học", options=mon_hoc_options, key="sb_mon_hoc")
-
-        st.markdown("---")
-        st.subheader("Thông tin chi tiết Giờ dạy")
+    for i in input_sheet_indices:
+        input_ws_name = f'input_giangday_{i}'
+        result_ws_name = f'output_giangday_{i}'
         
-        col3, col4, col5 = st.columns(3)
-        with col3:
-            so_tiet_day = st.number_input("Số tiết dạy thực tế", min_value=1, step=1)
-            ngay_bat_dau = st.date_input("Ngày bắt đầu")
-        with col4:
-            hs_lop = st.number_input("Hệ số lớp (ghép, tách)", min_value=0.0, step=0.1, value=1.0)
-            ngay_ket_thuc = st.date_input("Ngày kết thúc")
-        with col5:
-            hs_khac = st.number_input("Hệ số khác", min_value=0.0, step=0.1, value=1.0)
-            ghi_chu = st.text_input("Ghi chú")
+        input_data = load_data_from_sheet(input_ws_name)
+        st.session_state.mon_hoc_data.append(input_data if input_data else get_default_input_dict())
+        
+        try:
+            result_df = pd.DataFrame(spreadsheet.worksheet(result_ws_name).get_all_records())
+            st.session_state.results_data.append(result_df)
+        except (gspread.exceptions.WorksheetNotFound, Exception):
+            st.session_state.results_data.append(pd.DataFrame())
 
-        submitted = st.form_submit_button("Lưu thông tin")
+# --- CALLBACKS CHO CÁC NÚT ---
+def add_mon_hoc():
+    st.session_state.mon_hoc_data.append(get_default_input_dict())
+    st.session_state.results_data.append(pd.DataFrame())
 
-        if submitted:
-            if selected_class == "--Chọn--" or selected_mon_hoc == "--Chọn--":
-                st.warning("Vui lòng chọn đầy đủ Lớp học và Môn học.")
+def remove_mon_hoc():
+    if len(st.session_state.mon_hoc_data) > 1:
+        st.session_state.mon_hoc_data.pop()
+        st.session_state.results_data.pop()
+
+def save_all_data():
+    """Lưu tất cả dữ liệu với logic tùy chỉnh cho cột 'tiet'."""
+    with st.spinner("Đang lưu tất cả dữ liệu..."):
+        for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
+            mon_index = i + 1
+            data_to_save = input_data.copy()
+            if data_to_save.get('cach_ke') == 'Kê theo LT, TH chi tiết':
+                try:
+                    tiet_lt_list = [int(x) for x in str(data_to_save.get('tiet_lt', '0')).split()]
+                    tiet_th_list = [int(x) for x in str(data_to_save.get('tiet_th', '0')).split()]
+                    tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
+                    data_to_save['tiet'] = ' '.join(map(str, tiet_sum_list))
+                except ValueError:
+                    data_to_save['tiet'] = ''
+                    st.warning(f"Môn {mon_index}: Định dạng số tiết LT/TH không hợp lệ, cột 'tiet' tổng hợp sẽ bị bỏ trống.")
+            elif data_to_save.get('cach_ke') == 'Kê theo MĐ, MH':
+                data_to_save['tiet_lt'] = '0'
+                data_to_save['tiet_th'] = '0'
+            input_ws_name = f'input_giangday_{mon_index}'
+            result_ws_name = f'output_giangday_{mon_index}'
+            save_data_to_sheet(input_ws_name, data_to_save)
+            if not result_data.empty:
+                save_data_to_sheet(result_ws_name, result_data)
+    st.success("Đã lưu thành công tất cả dữ liệu!")
+
+# --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
+if 'mon_hoc_data' not in st.session_state:
+    load_all_mon_data()
+
+# --- THANH CÔNG CỤ ---
+cols = st.columns(4)
+with cols[0]:
+    st.button("➕ Thêm môn", on_click=add_mon_hoc, use_container_width=True)
+with cols[1]:
+    st.button("➖ Xóa môn", on_click=remove_mon_hoc, use_container_width=True, disabled=len(st.session_state.mon_hoc_data) <= 1)
+with cols[2]:
+    st.button("🔄 Reset dữ liệu", on_click=load_all_mon_data, use_container_width=True, help="Tải lại toàn bộ dữ liệu từ Google Sheet")
+with cols[3]:
+    st.button("💾 Lưu tất cả", on_click=save_all_data, use_container_width=True, type="primary")
+
+st.markdown("---")
+
+# --- GIAO DIỆN TAB ---
+mon_tab_names = [f"Môn {i+1}" for i in range(len(st.session_state.mon_hoc_data))]
+all_tab_names = mon_tab_names + ["📊 Tổng hợp"]
+tabs = st.tabs(all_tab_names)
+
+# Vòng lặp cho các tab Môn học
+for i, tab in enumerate(tabs[:-1]):
+    with tab:
+        st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
+        
+        def update_tab_state(key, index):
+            st.session_state.mon_hoc_data[index][key] = st.session_state[f"widget_{key}_{index}"]
+
+        current_input = st.session_state.mon_hoc_data[i]
+        
+        # --- CHỌN KHÓA/HỆ VÀ CHỌN LỚP HỌC MỚI ---
+        khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
+        selected_khoa = st.selectbox("Chọn Khóa/Hệ", options=khoa_options, index=khoa_options.index(current_input.get('khoa', khoa_options[0])), key=f"widget_khoa_{i}", on_change=update_tab_state, args=('khoa', i))
+        
+        # Lấy danh sách lớp học dựa trên lựa chọn Khóa/Hệ
+        df_lop_mapping = {
+            'Khóa 48': df_lop_g,
+            'Khóa 49': df_lop_g,
+            'Khóa 50': df_lop_g,
+            'Lớp ghép': df_lopghep_g,
+            'Lớp tách': df_loptach_g,
+            'Sơ cấp + VHPT': df_lopsc_g
+        }
+        source_df = df_lop_mapping.get(selected_khoa)
+        
+        filtered_lop_options = []
+        if source_df is not None and not source_df.empty:
+            if selected_khoa.startswith('Khóa'):
+                khoa_prefix = selected_khoa.split(' ')[1]
+                filtered_lop_options = source_df[source_df['Mã lớp'].str.startswith(khoa_prefix, na=False)]['Lớp'].tolist()
             else:
-                with st.spinner("Đang xử lý và tính toán..."):
-                    # Lấy thông tin từ các DataFrame nền
-                    mon_hoc_info = st.session_state.df_mon[st.session_state.df_mon['Môn_học'] == selected_mon_hoc].iloc[0]
-                    
-                    # Tính toán các giá trị
-                    tuan_bd, thang_bd, nam_bd = fq.get_week_month_year(ngay_bat_dau, st.session_state.df_ngaytuan)
-                    tuan_kt, thang_kt, nam_kt = fq.get_week_month_year(ngay_ket_thuc, st.session_state.df_ngaytuan)
-                    si_so = fq.get_siso_from_class(selected_class, thang_bd, selected_lop_df)
-                    loai_hinh = f"{mon_hoc_info['LT']}LT+{mon_hoc_info['TH']}TH"
-                    ma_mon = mon_hoc_info['Mã_môn']
-                    nang_nhoc_code = fq.get_nangnhoc_code(ma_dsmon_value, st.session_state.df_mon, st.session_state.df_nangnhoc)
-                    
-                    # Tính hệ số
-                    hs_ss = fq.get_heso_siso(si_so, mon_hoc_info['LT'] > 0, nang_nhoc_code, st.session_state.df_hesosiso)
-                    hs_nn = fq.get_heso_nangnhoc(nang_nhoc_code)
+                filtered_lop_options = source_df['Lớp'].tolist()
+        
+        # Đảm bảo giá trị lop_hoc hiện tại vẫn tồn tại trong danh sách mới
+        if current_input.get('lop_hoc') not in filtered_lop_options:
+            current_input['lop_hoc'] = filtered_lop_options[0] if filtered_lop_options else ''
+            st.session_state.mon_hoc_data[i]['lop_hoc'] = current_input['lop_hoc']
+        
+        lop_hoc_index = filtered_lop_options.index(current_input.get('lop_hoc')) if current_input.get('lop_hoc') in filtered_lop_options else 0
+        st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key=f"widget_lop_hoc_{i}", on_change=update_tab_state, args=('lop_hoc', i))
 
-                    # Tính giờ quy đổi
-                    gio_qd = fq.calculate_gio_quy_doi(so_tiet_day, hs_ss, hs_nn, hs_lop, hs_khac)
+        # --- CHỌN MÔN HỌC MỚI ---
+        dsmon_options = []
+        if current_input.get('lop_hoc') and source_df is not None:
+            # Tìm mã DSMON từ lớp học đã chọn
+            dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON'].iloc[0]
+            if not pd.isna(dsmon_code):
+                # Lấy danh sách môn học từ df_mon dựa trên mã ngành
+                if df_mon_g is not None and dsmon_code in df_mon_g.columns:
+                    dsmon_options = df_mon_g[dsmon_code].dropna().astype(str).tolist()
+        
+        # Đảm bảo giá trị mon_hoc hiện tại vẫn tồn tại trong danh sách mới
+        if current_input.get('mon_hoc') not in dsmon_options:
+            current_input['mon_hoc'] = dsmon_options[0] if dsmon_options else ''
+            st.session_state.mon_hoc_data[i]['mon_hoc'] = current_input['mon_hoc']
+        
+        mon_hoc_index = dsmon_options.index(current_input.get('mon_hoc')) if current_input.get('mon_hoc') in dsmon_options else 0
+        st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key=f"widget_mon_hoc_{i}", on_change=update_tab_state, args=('mon_hoc', i))
 
-                    new_row = {
-                        "Lớp": selected_class, "Môn_học": selected_mon_hoc, "Mã_môn": ma_mon,
-                        "Số_tiết_dạy": so_tiet_day, "Sĩ_số": si_so, "Loại_hình": loai_hinh,
-                        "LT": mon_hoc_info['LT'], "TH": mon_hoc_info['TH'],
-                        "Ngày_bắt_đầu": ngay_bat_dau.strftime("%Y-%m-%d"), "Tuần_bắt_đầu": tuan_bd,
-                        "Tháng_bắt_đầu": thang_bd, "Năm_bắt_đầu": nam_bd,
-                        "Ngày_kết_thúc": ngay_ket_thuc.strftime("%Y-%m-%d"), "Tuần_kết_thúc": tuan_kt,
-                        "Tháng_kết_thúc": thang_kt, "Năm_kết_thúc": nam_kt,
-                        "Mã_NN": nang_nhoc_code, "Hệ_số_ss": hs_ss, "Hệ_số_nn": hs_nn,
-                        "Hệ_số_lớp": hs_lop, "Hệ_số_khác": hs_khac, "Giờ_quy_đổi": gio_qd,
-                        "Ghi_chú": ghi_chu
-                    }
-                    
-                    temp_df = pd.DataFrame([new_row])
-                    st.session_state.gioday_df = pd.concat([st.session_state.gioday_df, temp_df], ignore_index=True)
-                    
-                    if save_data_to_sheet(st.session_state.spreadsheet, SHEET_NAME, st.session_state.gioday_df):
-                        st.success("Đã lưu thông tin giờ dạy thành công!")
-                    else:
-                        # Nếu lưu thất bại, rollback lại df
-                        st.session_state.gioday_df = st.session_state.gioday_df.iloc[:-1]
+        st.slider("Chọn Tuần giảng dạy", 1, 50, value=current_input.get('tuan', (1, 12)), key=f"widget_tuan_{i}", on_change=update_tab_state, args=('tuan', i))
+        st.radio("Chọn phương pháp kê khai", ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), index=0 if current_input.get('cach_ke') == 'Kê theo MĐ, MH' else 1, key=f"widget_cach_ke_{i}", on_change=update_tab_state, args=('cach_ke', i), horizontal=True)
 
+        if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
+            st.text_input("Nhập số tiết mỗi tuần", value=current_input.get('tiet', DEFAULT_TIET_STRING), key=f"widget_tiet_{i}", on_change=update_tab_state, args=('tiet', i))
+        else:
+            c1, c2 = st.columns(2)
+            with c1: st.text_input("Nhập số tiết Lý thuyết mỗi tuần", value=current_input.get('tiet_lt', '0'), key=f"widget_tiet_lt_{i}", on_change=update_tab_state, args=('tiet_lt', i))
+            with c2: st.text_input("Nhập số tiết Thực hành mỗi tuần", value=current_input.get('tiet_th', '0'), key=f"widget_tiet_th_{i}", on_change=update_tab_state, args=('tiet_th', i))
+        
+        validation_placeholder = st.empty()
+        is_input_valid = True
+        selected_tuan_range = current_input.get('tuan', (1, 1)); so_tuan_chon = selected_tuan_range[1] - selected_tuan_range[0] + 1
+        
+        if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
+            so_tiet_dem_duoc = len([x for x in str(current_input.get('tiet', '')).split() if x])
+            if so_tiet_dem_duoc != so_tuan_chon:
+                validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
+                is_input_valid = False
+        else:
+            so_tiet_lt_dem_duoc = len([x for x in str(current_input.get('tiet_lt', '')).split() if x])
+            so_tiet_th_dem_duoc = len([x for x in str(current_input.get('tiet_th', '')).split() if x])
+            if so_tiet_lt_dem_duoc != so_tuan_chon or so_tiet_th_dem_duoc != so_tuan_chon:
+                is_input_valid = False
+                validation_placeholder.error(f"Lỗi: Số tuần ({so_tuan_chon}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
 
-# --- HIỂN THỊ DỮ LIỆU ĐÃ KÊ KHAI ---
-st.header("Bảng tổng hợp Giờ dạy đã kê khai")
+        if is_input_valid:
+            df_result, summary = fq.process_mon_data(current_input, chuangv, source_df, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g)
+            if summary and "error" in summary:
+                validation_placeholder.error(f"Lỗi tính toán: {summary['error']}")
+                st.session_state.results_data[i] = pd.DataFrame()
+            elif df_result is not None and not df_result.empty:
+                st.session_state.results_data[i] = df_result
 
-if df.empty:
-    st.info("Chưa có dữ liệu giờ dạy nào được kê khai.")
-else:
-    # Logic tính toán giờ chuẩn và hiển thị
-    df_display = df.copy()
-    df_display['Học_kỳ'] = df_display['Tháng_bắt_đầu'].apply(lambda x: 1 if x in [8,9,10,11,12,1] else 2)
-    
-    # Tính toán giờ quy đổi thừa/thiếu
-    df_display['giochuan_gv'] = st.session_state.giochuan
-    df_display[['Tiết', 'QĐ thừa', 'QĐ thiếu']] = df_display.apply(
-        lambda row: pd.Series(fq.tinh_gio_day_chi_tiet(
-            row['LT'], row['TH'], row['Số_tiết_dạy'], st.session_state.chuangv
-        )), axis=1
-    )
-    
-    # Chia theo học kỳ
-    df_hk1 = df_display[df_display['Học_kỳ'] == 1]
-    df_hk2 = df_display[df_display['Học_kỳ'] == 2]
+        st.subheader(f"II. Bảng kết quả tính toán - Môn {i+1}")
+        result_df = st.session_state.results_data[i]
+        if not result_df.empty:
+            df_display = result_df.copy()
+            cols_to_sum = ['Tiết', 'Tiết_LT', 'Tiết_TH', 'QĐ thừa', 'QĐ thiếu']
+            for col in cols_to_sum:
+                if col in df_display.columns:
+                    df_display[col] = pd.to_numeric(df_display[col], errors='coerce').fillna(0)
+            
+            total_row_data = {col: df_display[col].sum() for col in cols_to_sum}
+            total_row_data['Tuần'] = '**Tổng cộng**'
+            total_row_df = pd.DataFrame([total_row_data])
 
-    # Các cột cần hiển thị
-    final_columns_to_display = [
-        "Lớp", "Môn_học", "Số_tiết_dạy", "Sĩ_số", "Loại_hình", "Ngày_bắt_đầu",
-        "Ngày_kết_thúc", "Hệ_số_ss", "Hệ_số_nn", "Hệ_số_lớp", "Hệ_số_khác",
-        "Giờ_quy_đổi", "Ghi_chú", "Tiết", "QĐ thừa", "QĐ thiếu"
-    ]
-    
-    with st.container():
+            df_with_total = pd.concat([df_display, total_row_df], ignore_index=True)
+            st.dataframe(df_with_total.fillna(''))
+        else:
+            st.info("Chưa có dữ liệu tính toán hợp lệ.")
+
+# Xử lý tab "Tổng hợp"
+with tabs[-1]:
+    st.header("Tổng hợp khối lượng giảng dạy")
+    if st.session_state.mon_hoc_data:
+        summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
+        
+        qd_thua_totals = []
+        qd_thieu_totals = []
+        for res_df in st.session_state.results_data:
+            if not res_df.empty:
+                qd_thua_totals.append(pd.to_numeric(res_df['QĐ thừa'], errors='coerce').sum())
+                qd_thieu_totals.append(pd.to_numeric(res_df['QĐ thiếu'], errors='coerce').sum())
+            else:
+                qd_thua_totals.append(0)
+                qd_thieu_totals.append(0)
+        
+        summary_df['QĐ thừa'] = qd_thua_totals
+        summary_df['QĐ thiếu'] = qd_thieu_totals
+
+        def calculate_display_tiet(row):
+            if row['cach_ke'] == 'Kê theo LT, TH chi tiết':
+                try:
+                    tiet_lt_list = [int(x) for x in str(row.get('tiet_lt', '0')).split()]
+                    tiet_th_list = [int(x) for x in str(row.get('tiet_th', '0')).split()]
+                    tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
+                    return ' '.join(map(str, tiet_sum_list))
+                except ValueError: return ''
+            else: return row['tiet']
+            
+        def calculate_total_tiet(tiet_string):
+            try:
+                return sum(int(t) for t in str(tiet_string).split())
+            except (ValueError, TypeError):
+                return 0
+        
+        def get_semester(tuan_tuple):
+            try:
+                if isinstance(tuan_tuple, tuple) and len(tuan_tuple) == 2:
+                    avg_week = (tuan_tuple[0] + tuan_tuple[1]) / 2
+                    return 1 if avg_week < 22 else 2
+            except: return 1
+            return 1
+
+        if not summary_df.empty:
+            summary_df['Tiết theo tuần'] = summary_df.apply(calculate_display_tiet, axis=1)
+            summary_df['Tiết'] = summary_df['Tiết theo tuần'].apply(calculate_total_tiet)
+            summary_df['Học kỳ'] = summary_df['tuan'].apply(get_semester)
+
+        summary_df.insert(0, "Thứ tự", mon_tab_names)
+        
+        rename_map = {
+            'lop_hoc': 'Lớp học', 'mon_hoc': 'Môn học', 'tuan': 'Tuần đến Tuần',
+            'tiet_lt': 'Tiết LT theo tuần', 'tiet_th': 'Tiết TH theo tuần',
+            'QĐ thừa': 'QĐ thừa', 'QĐ thiếu': 'QĐ thiếu'
+        }
+        summary_df.rename(columns=rename_map, inplace=True)
+        
+        # Chuyển đổi các cột tiết sang dạng list để hiển thị kiểu "pill"
+        cols_to_convert_to_list = ['Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần']
+        for col in cols_to_convert_to_list:
+            if col in summary_df.columns:
+                summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
+
+        display_columns = [
+            'Thứ tự', 'Lớp học', 'Môn học', 'Tuần đến Tuần', 'Tiết',
+            'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần',
+            'QĐ thừa', 'QĐ thiếu'
+        ]
+        final_columns_to_display = [col for col in display_columns if col in summary_df.columns]
+        
+        # Chia DataFrame theo học kỳ
+        df_hk1 = summary_df[summary_df['Học kỳ'] == 1]
+        df_hk2 = summary_df[summary_df['Học kỳ'] == 2]
+
         st.subheader("Học kỳ 1")
         if not df_hk1.empty:
             st.dataframe(df_hk1[final_columns_to_display])
@@ -270,14 +377,10 @@ else:
         st.markdown("---")
         
         # Tính toán và hiển thị tổng hợp cuối cùng
-        def display_totals(title, df_hk):
-            if df_hk.empty:
-                total_tiet_day, total_qd_thua, total_qd_thieu = 0, 0, 0
-            else:
-                total_tiet_day = df_hk['Tiết'].sum()
-                total_qd_thua = df_hk['QĐ thừa'].sum()
-                total_qd_thieu = df_hk['QĐ thiếu'].sum()
-                
+        def display_totals(title, df):
+            total_tiet_day = df['Tiết'].sum()
+            total_qd_thua = df['QĐ thừa'].sum()
+            total_qd_thieu = df['QĐ thiếu'].sum()
             st.subheader(title)
             col1, col2, col3 = st.columns(3)
             col1.metric("Tổng Tiết dạy", f"{total_tiet_day:,.0f}")
@@ -289,15 +392,11 @@ else:
         tiet_hk2, qd_thua_hk2, qd_thieu_hk2 = display_totals("Tổng hợp Học kỳ 2", df_hk2)
         
         st.markdown("---")
-        
-        # Tổng hợp cả năm
         st.subheader("Tổng hợp Cả năm")
-        total_tiet_cn = tiet_hk1 + tiet_hk2
-        total_qd_thua_cn = qd_thua_hk1 + qd_thua_hk2
-        total_qd_thieu_cn = qd_thieu_hk1 + qd_thieu_hk2
-        
-        col_cn1, col_cn2, col_cn3 = st.columns(3)
-        col_cn1.metric("Tổng Tiết dạy Cả năm", f"{total_tiet_cn:,.0f}")
-        col_cn2.metric("Tổng Quy đổi (dư) Cả năm", f"{total_qd_thua_cn:,.1f}")
-        col_cn3.metric("Tổng Quy đổi (thiếu) Cả năm", f"{total_qd_thieu_cn:,.1f}")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Tổng Tiết dạy", f"{(tiet_hk1 + tiet_hk2):,.0f}")
+        col2.metric("Tổng Quy đổi (khi dư giờ)", f"{(qd_thua_hk1 + qd_thua_hk2):,.1f}")
+        col3.metric("Tổng quy đổi (khi thiếu giờ)", f"{(qd_thieu_hk1 + qd_thieu_hk2):,.1f}")
 
+    else:
+        st.info("Chưa có dữ liệu môn học nào để tổng hợp.")
