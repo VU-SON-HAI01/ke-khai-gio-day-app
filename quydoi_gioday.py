@@ -105,17 +105,20 @@ st.session_state.selected_classes = selected_classes
 # --- XÁC ĐỊNH CHUẨN GV DỰA TRÊN LỰA CHỌN LỚP HỌC VÀ BẢNG DSLOP ---
 # Mặc định là 'Trung cấp'
 st.session_state.chuan_gv = 'Trung cấp'
-# Lọc df_lop để chỉ lấy các lớp được chọn
-if st.session_state.selected_classes:
-    df_lop_loc = st.session_state.df_lop[st.session_state.df_lop['Lớp'].isin(st.session_state.selected_classes)]
-    # Lấy giá trị từ cột 'Mã_lớp' tương ứng với các lớp đã chọn
-    ma_lop_series = df_lop_loc['Mã_lớp']
-    
-    for ma_lop in ma_lop_series:
-        # Kiểm tra ký tự thứ 3 (chỉ số 2) của 'Mã_lớp'
-        if pd.notna(ma_lop) and len(str(ma_lop)) > 2 and str(ma_lop)[2] == '1':
-            st.session_state.chuan_gv = 'Cao đẳng'
-            break
+# Kiểm tra nếu cột 'Mã_lớp' tồn tại trong df_lop
+if 'Mã_lớp' in st.session_state.df_lop.columns:
+    if st.session_state.selected_classes:
+        df_lop_loc = st.session_state.df_lop[st.session_state.df_lop['Lớp'].isin(st.session_state.selected_classes)]
+        # Lấy giá trị từ cột 'Mã_lớp' tương ứng với các lớp đã chọn
+        ma_lop_series = df_lop_loc['Mã_lớp']
+        
+        for ma_lop in ma_lop_series:
+            # Kiểm tra ký tự thứ 3 (chỉ số 2) của 'Mã_lớp'
+            if pd.notna(ma_lop) and len(str(ma_lop)) > 2 and str(ma_lop)[2] == '1':
+                st.session_state.chuan_gv = 'Cao đẳng'
+                break
+else:
+    st.warning("Không tìm thấy cột 'Mã_lớp' trong bảng df_lop. Chuẩn GV mặc định sẽ được đặt là 'Trung cấp'. Vui lòng kiểm tra lại dữ liệu nguồn.")
 
 # Lọc df_mon và chuangv dựa trên chuẩn GV đã xác định
 df_mon = df_mon[df_mon['Chủ đề'] == st.session_state.chuan_gv].copy()
