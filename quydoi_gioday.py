@@ -173,8 +173,15 @@ st.markdown(f"### Bảng kết quả tính toán cho Giáo viên: **{selected_gv
 
 # --- LỌC DỮ LIỆU THEO GIÁO VIÊN VÀ HỌC KỲ ---
 df_gv = df_ngaytuan_loc[df_ngaytuan_loc['GV'] == selected_gv].copy()
-df_hk1 = df_gv[df_gv['Học kỳ'] == 1].copy()
-df_hk2 = df_gv[df_gv['Học kỳ'] == 2].copy()
+
+# Kiểm tra sự tồn tại của cột 'Học kỳ'
+if 'Học kỳ' in df_gv.columns:
+    df_hk1 = df_gv[df_gv['Học kỳ'] == 1].copy()
+    df_hk2 = df_gv[df_gv['Học kỳ'] == 2].copy()
+else:
+    st.warning("Không tìm thấy cột 'Học kỳ' trong dữ liệu. Mặc định tất cả tiết dạy sẽ được tính cho Học kỳ 1.")
+    df_hk1 = df_gv.copy()
+    df_hk2 = pd.DataFrame(columns=df_gv.columns)
 
 for df in [df_hk1, df_hk2]:
     if not df.empty:
