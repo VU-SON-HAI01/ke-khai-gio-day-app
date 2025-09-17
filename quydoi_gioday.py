@@ -120,24 +120,33 @@ df_ngaytuan_loc = df_ngaytuan_filtered[
 ].copy()
 
 # --- CHÈN CỘT SĨ SỐ DỰA VÀO THÁNG VÀ df_lop ---
-# Lấy danh sách các lớp từ df_ngaytuan_loc
+# TẠO MỘT DICTIONARY ĐỂ LƯU SĨ SỐ THEO LỚP VÀ THÁNG TỪ DF_LOP
+# Hàm để trích xuất số tháng từ tên cột 'Tháng X'
+def extract_month_number(col_name):
+    match = re.search(r'Tháng (\d+)', col_name)
+    return int(match.group(1)) if match else None
+
+# Lấy danh sách các cột tháng
+month_columns = [col for col in df_lop.columns if 'Tháng' in col]
 df_lop['Lớp'] = df_lop['Lớp'].astype(str).str.strip()
 
-# Tạo một dictionary để lưu trữ sĩ số theo tháng cho từng lớp
 siso_dict = {}
 for index, row in df_lop.iterrows():
     lop = row['Lớp']
     siso_lop = {}
-    for i in range(1, 13):
-        thang = str(i)
-        if thang in row and not pd.isna(row[thang]):
-            siso_lop[i] = row[thang]
+    for col in month_columns:
+        month_number = extract_month_number(col)
+        if month_number is not None and not pd.isna(row[col]):
+            siso_lop[month_number] = row[col]
     siso_dict[lop] = siso_lop
 
 def get_siso(row, siso_dict):
-    lop = str(row['Lớp']).strip()
-    thang = row['Tháng']
-    return siso_dict.get(lop, {}).get(thang, np.nan)
+    try:
+        lop = str(row['Lớp']).strip()
+        thang = int(row['Tháng'])
+        return siso_dict.get(lop, {}).get(thang, np.nan)
+    except (ValueError, KeyError, TypeError):
+        return np.nan
 
 # Áp dụng hàm để tạo cột Sĩ số
 df_ngaytuan_loc['Sĩ số'] = df_ngaytuan_loc.apply(lambda row: get_siso(row, siso_dict), axis=1)
