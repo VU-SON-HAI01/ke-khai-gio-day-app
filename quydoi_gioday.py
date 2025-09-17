@@ -12,7 +12,7 @@ if 'initialized' not in st.session_state or not st.session_state.initialized:
     st.error("Vui lòng đăng nhập và đảm bảo thông tin của bạn đã được tải thành công từ trang chủ.")
     st.stop()
 
-required_data = ['spreadsheet', 'df_lop', 'df_mon', 'df_ngaytuan', 'df_nangnhoc', 'df_hesosiso', 'chuangv', 'df_lopghep', 'df_loptach', 'df_lopsc']
+required_data = ['spreadsheet', 'df_lop', 'df_mon', 'df_ngaytuan', 'df_hesosiso', 'chuangv', 'df_lopghep', 'df_loptach', 'df_lopsc']
 missing_data = [item for item in required_data if item not in st.session_state]
 if missing_data:
     st.error(f"Lỗi: Không tìm thấy dữ liệu cần thiết: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ.")
@@ -42,7 +42,6 @@ spreadsheet = st.session_state.spreadsheet
 df_lop_g = st.session_state.get('df_lop')
 df_mon_g = st.session_state.get('df_mon')
 df_ngaytuan_g = st.session_state.get('df_ngaytuan')
-df_nangnhoc_g = st.session_state.get('df_nangnhoc')
 df_hesosiso_g = st.session_state.get('df_hesosiso')
 chuangv = st.session_state.get('chuangv')
 df_lopghep_g = st.session_state.get('df_lopghep')
@@ -54,59 +53,54 @@ ma_gv = st.session_state.get('magv', 'khong_ro')
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
 KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
 
-# --- CÁC HÀM TÍNH TOÁN HỆ SỐ (TỪ fun_quydoi.py) ---
-def timmanghe(malop_f):
-    """Xác định mã nghề từ mã lớp."""
-    S = str(malop_f)
-    if len(S) > 5:
-        if S[-1] == "X": return "MON" + S[2:5] + "X"
-        if S[0:2] <= "48": return "MON" + S[2:5] + "Y"
-        if S[0:4] == "VHPT": return "VHPT"
-        return "MON" + S[2:5] + "Z"
-    return "MON" + S[2] + "Y" if len(S) >= 3 and S[2].isdigit() else "MON00Y"
-
+# --- CÁC HÀM TÍNH TOÁN HỆ SỐ ---
 def timheso_tc_cd(chuangv, malop):
     """Tìm hệ số dựa trên chuẩn giáo viên và mã lớp."""
     chuangv_short = {"Cao đẳng": "CĐ", "Trung cấp": "TC"}.get(chuangv, "CĐ")
     heso_map = {"CĐ": {"1": 1, "2": 0.89, "3": 0.79}, "TC": {"1": 1, "2": 1, "3": 0.89}}
     return heso_map.get(chuangv_short, {}).get(str(malop)[2], 2.0) if len(str(malop)) >= 3 else 2.0
 
-def timhesomon_siso(mamon, tuan_siso, malop_khoa, df_nangnhoc_g, df_hesosiso_g):
-    """Tìm hệ số dựa trên sĩ số và điều kiện nặng nhọc."""
+def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
+    """
+    Tìm hệ số quy đổi dựa trên sĩ số, loại tiết (LT/TH) và điều kiện nặng nhọc.
+    
+    Tham số:
+    - siso: Sĩ số của lớp học.
+    - is_heavy_duty: True nếu môn học là nặng nhọc, False nếu bình thường.
+    - lesson_type: 'LT' cho tiết Lý thuyết, 'TH' cho tiết Thực hành.
+    - df_hesosiso_g: DataFrame chứa bảng tra cứu hệ số.
+    """
     try:
-        cleaned_siso = int(float(tuan_siso)) if tuan_siso is not None and str(tuan_siso).strip() != '' else 0
+        cleaned_siso = int(float(siso)) if siso is not None and str(siso).strip() != '' else 0
     except (ValueError, TypeError):
         cleaned_siso = 0
-    tuan_siso = cleaned_siso
+    siso = cleaned_siso
 
     df_hesosiso = df_hesosiso_g.copy()
     for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
         df_hesosiso[col] = pd.to_numeric(df_hesosiso[col], errors='coerce').fillna(0)
+    
+    heso_siso = 1.0
 
-    dieukien_nn_lop = False
-    if isinstance(malop_khoa, str) and len(malop_khoa) >= 5 and malop_khoa[2:5].isdigit():
-        nghe_info = df_nangnhoc_g[df_nangnhoc_g['MÃ NGHỀ'] == malop_khoa[2:5]]
-        if not nghe_info.empty and nghe_info['Nặng nhọc'].iloc[0] in ['NN49', 'NN']:
-            dieukien_nn_lop = True
-
-    hesomon_siso_LT, hesomon_siso_TH = 1.0, 1.0
-    ar_hesosiso_qd = df_hesosiso['Hệ số'].values
-    mamon_prefix = mamon[:2] if isinstance(mamon, str) else ""
-
-    for i in range(len(ar_hesosiso_qd)):
-        if df_hesosiso['LT min'].values[i] <= tuan_siso <= df_hesosiso['LT max'].values[i]:
-            hesomon_siso_LT = ar_hesosiso_qd[i]
-        if df_hesosiso['TH min'].values[i] <= tuan_siso <= df_hesosiso['TH max'].values[i]:
-            hesomon_siso_TH = ar_hesosiso_qd[i]
-
-    if dieukien_nn_lop and mamon_prefix != "MC":
-        for i in range(len(ar_hesosiso_qd)):
-            if df_hesosiso['THNN min'].values[i] <= tuan_siso <= df_hesosiso['THNN max'].values[i]:
-                hesomon_siso_TH = ar_hesosiso_qd[i]
+    if lesson_type == 'LT':
+        for i in range(len(df_hesosiso)):
+            if df_hesosiso['LT min'].values[i] <= siso <= df_hesosiso['LT max'].values[i]:
+                heso_siso = df_hesosiso['Hệ số'].values[i]
                 break
-    return hesomon_siso_LT, hesomon_siso_TH
+    elif lesson_type == 'TH':
+        if is_heavy_duty:
+            for i in range(len(df_hesosiso)):
+                if df_hesosiso['THNN min'].values[i] <= siso <= df_hesosiso['THNN max'].values[i]:
+                    heso_siso = df_hesosiso['Hệ số'].values[i]
+                    break
+        else: # Not heavy duty
+            for i in range(len(df_hesosiso)):
+                if df_hesosiso['TH min'].values[i] <= siso <= df_hesosiso['TH max'].values[i]:
+                    heso_siso = df_hesosiso['Hệ số'].values[i]
+                    break
+    return heso_siso
 
-def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g):
+def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g):
     """Hàm xử lý chính, tính toán quy đổi giờ giảng."""
     lop_chon = input_data.get('lop_hoc')
     mon_chon = input_data.get('mon_hoc')
@@ -142,7 +136,12 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     mon_info = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
     if mon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'."}
 
-    mamon = mon_info[mon_info['Môn_học'] == mon_chon]['Mã_môn'].iloc[0]
+    mamon_info = mon_info[mon_info['Môn_học'] == mon_chon]
+    if mamon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
+
+    # Lấy thông tin về Nặng nhọc và loại tiết
+    is_heavy_duty = mamon_info['Nặng_nhọc'].iloc[0] == 'NN'
+    kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     
     tuanbatdau, tuanketthuc = tuandentuan
     locdulieu_info = df_ngaytuan_g.iloc[tuanbatdau - 1:tuanketthuc].copy()
@@ -154,17 +153,21 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     except (ValueError, TypeError):
         return pd.DataFrame(), {"error": "Định dạng số tiết không hợp lệ. Vui lòng chỉ nhập số và dấu cách."}
 
+    # Tách tiết tổng thành LT và TH dựa vào cột 'Tính MĐ/MH'
     if kieu_ke_khai == 'Kê theo MĐ, MH':
         if len(locdulieu_info) != len(arr_tiet): 
             return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})."}
-        # Tách tiết tổng thành LT và TH dựa vào Mã môn
-        if mamon[:2] in ['MH', 'MC']:
+        if kieu_tinh_mdmh == 'LT':
             arr_tiet_lt = arr_tiet
             arr_tiet_th = np.zeros_like(arr_tiet)
-        else:
+        elif kieu_tinh_mdmh == 'TH':
             arr_tiet_lt = np.zeros_like(arr_tiet)
             arr_tiet_th = arr_tiet
-    else:
+        else: # 'LTTH'
+            return pd.DataFrame(), {"error": "Môn học này yêu cầu kê khai tiết LT, TH chi tiết."}
+    else: # 'Kê theo LT, TH chi tiết'
+        if kieu_tinh_mdmh != 'LTTH':
+             return pd.DataFrame(), {"error": "Môn học này không yêu cầu kê khai tiết LT, TH chi tiết."}
         if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
             return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết LT ({len(arr_tiet_lt)}) hoặc TH ({len(arr_tiet_th)})."}
         arr_tiet = arr_tiet_lt + arr_tiet_th
@@ -180,7 +183,8 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     
     heso_lt_list, heso_th_list = [], []
     for siso in df_result['Sĩ số']:
-        lt, th = timhesomon_siso(mamon, siso, malop, df_nangnhoc_g, df_hesosiso_g)
+        lt = timhesomon_siso(siso, is_heavy_duty, 'LT', df_hesosiso_g)
+        th = timhesomon_siso(siso, is_heavy_duty, 'TH', df_hesosiso_g)
         heso_lt_list.append(lt)
         heso_th_list.append(th)
         
@@ -206,7 +210,7 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     final_columns = ["Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "QĐ thiếu"]
     df_final = df_result[[col for col in final_columns if col in df_result.columns]]
 
-    summary_info = {"mamon": mamon, "heso_tccd": df_final['HS TC/CĐ'].mean()}
+    summary_info = {"mamon": mamon_info['Mã_môn'].iloc[0], "heso_tccd": df_final['HS TC/CĐ'].mean()}
     
     return df_final, summary_info
 
@@ -391,7 +395,21 @@ for i, tab in enumerate(tabs[:-1]):
         st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key=f"widget_mon_hoc_{i}", on_change=update_tab_state, args=('mon_hoc', i))
 
         st.slider("Chọn Tuần giảng dạy", 1, 50, value=current_input.get('tuan', (1, 12)), key=f"widget_tuan_{i}", on_change=update_tab_state, args=('tuan', i))
-        st.radio("Chọn phương pháp kê khai", ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết'), index=0 if current_input.get('cach_ke') == 'Kê theo MĐ, MH' else 1, key=f"widget_cach_ke_{i}", on_change=update_tab_state, args=('cach_ke', i), horizontal=True)
+        
+        # Lấy thông tin về loại tiết từ df_mon_g
+        kieu_tinh_mdmh = ''
+        if current_input.get('mon_hoc') and 'Tính MĐ/MH' in df_dsmon_loc.columns:
+            mon_info = df_dsmon_loc[df_dsmon_loc['Môn_học'] == current_input.get('mon_hoc')]
+            if not mon_info.empty:
+                kieu_tinh_mdmh = mon_info['Tính MĐ/MH'].iloc[0]
+        
+        options = []
+        if kieu_tinh_mdmh == 'LTTH':
+            options = ('Kê theo LT, TH chi tiết', 'Kê theo MĐ, MH')
+        else:
+            options = ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết')
+            
+        st.radio("Chọn phương pháp kê khai", options, index=0, key=f"widget_cach_ke_{i}", on_change=update_tab_state, args=('cach_ke', i), horizontal=True)
 
         if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
             st.text_input("Nhập số tiết mỗi tuần", value=current_input.get('tiet', DEFAULT_TIET_STRING), key=f"widget_tiet_{i}", on_change=update_tab_state, args=('tiet', i))
@@ -409,15 +427,21 @@ for i, tab in enumerate(tabs[:-1]):
             if so_tiet_dem_duoc != so_tuan_chon:
                 validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
                 is_input_valid = False
+            elif kieu_tinh_mdmh == 'LTTH':
+                 validation_placeholder.error("Lỗi: Môn học này yêu cầu kê khai tiết LT, TH chi tiết.")
+                 is_input_valid = False
         else:
             so_tiet_lt_dem_duoc = len([x for x in str(current_input.get('tiet_lt', '')).split() if x])
             so_tiet_th_dem_duoc = len([x for x in str(current_input.get('tiet_th', '')).split() if x])
             if so_tiet_lt_dem_duoc != so_tuan_chon or so_tiet_th_dem_duoc != so_tuan_chon:
                 is_input_valid = False
                 validation_placeholder.error(f"Lỗi: Số tuần ({so_tuan_chon}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
+            elif kieu_tinh_mdmh != 'LTTH':
+                validation_placeholder.error("Lỗi: Môn học này không yêu cầu kê khai tiết LT, TH chi tiết.")
+                is_input_valid = False
 
         if is_input_valid:
-            df_result, summary = process_mon_data(current_input, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_nangnhoc_g, df_hesosiso_g)
+            df_result, summary = process_mon_data(current_input, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
             if summary and "error" in summary:
                 validation_placeholder.error(f"Lỗi tính toán: {summary['error']}")
                 st.session_state.results_data[i] = pd.DataFrame()
