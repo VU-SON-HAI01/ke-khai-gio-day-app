@@ -60,9 +60,10 @@ if 'last_input_week_start' not in st.session_state:
     st.session_state.last_input_week_start = 1
 if 'last_input_week_end' not in st.session_state:
     st.session_state.last_input_week_end = 52
-# Khởi tạo Chuẩn GV trong session state
 if 'chuan_gv' not in st.session_state:
     st.session_state.chuan_gv = 'Trung cấp'
+if 'selected_classes' not in st.session_state:
+    st.session_state.selected_classes = []
 
 # --- TẢI DỮ LIỆU TỪ SESSION STATE ---
 df_lop = st.session_state.df_lop
@@ -76,7 +77,7 @@ df_lopsc = st.session_state.df_lopsc
 
 st.markdown("<h1 class='main-header'>Tính Toán Số Tiết Dạy Và Quy Đổi</h1>", unsafe_allow_html=True)
 
-# --- INPUT TUẦN HỌC ---
+# --- INPUT TUẦN HỌC VÀ CHỌN LỚP ---
 st.sidebar.header("Chọn Tuần Giảng Dạy")
 col1, col2 = st.sidebar.columns(2)
 tuan_bat_dau = col1.number_input("Tuần bắt đầu", min_value=1, max_value=52, value=st.session_state.last_input_week_start)
@@ -89,47 +90,63 @@ if tuan_bat_dau > tuan_ket_thuc:
 st.session_state.last_input_week_start = tuan_bat_dau
 st.session_state.last_input_week_end = tuan_ket_thuc
 
+# Sidebar for class selection
+st.sidebar.header("Chọn Lớp Học")
+all_classes = sorted(df_ngaytuan['Lớp'].unique())
+selected_classes = st.sidebar.multiselect("Chọn lớp", options=all_classes)
+st.session_state.selected_classes = selected_classes
+
+# --- XÁC ĐỊNH CHUẨN GV DỰA TRÊN LỰA CHỌN LỚP HỌC ---
+# Mặc định là 'Trung cấp'
+st.session_state.chuan_gv = 'Trung cấp'
+# Nếu có lớp được chọn, kiểm tra mã lớp
+if st.session_state.selected_classes:
+    for lop in st.session_state.selected_classes:
+        # Kiểm tra ký tự thứ 3 (chỉ số 2) của mã lớp
+        if len(lop) > 2 and str(lop)[2] == '1':
+            st.session_state.chuan_gv = 'Cao đẳng'
+            break
+
+# Lọc df_mon và chuangv dựa trên chuẩn GV đã xác định
+df_mon = df_mon[df_mon['Chủ đề'] == st.session_state.chuan_gv].copy()
+chuangv = chuangv[chuangv['Chuẩn'] == st.session_state.chuan_gv].copy()
+st.sidebar.write(f"Chuẩn GV đã chọn: **{st.session_state.chuan_gv}**")
+
 # --- TIỀN XỬ LÝ DỮ LIỆU df_ngaytuan ---
-# Ánh xạ tên cột để khắc phục lỗi KeyError
 if 'Tiết dạy' in df_ngaytuan.columns:
     df_ngaytuan.rename(columns={'Tiết dạy': 'Tiết'}, inplace=True)
 elif 'Số Tiết' in df_ngaytuan.columns:
     df_ngaytuan.rename(columns={'Số Tiết': 'Tiết'}, inplace=True)
-# Thêm các tên cột khác nếu cần
 
-# Hàm để trích xuất số từ chuỗi
 def extract_number(text):
     if pd.isna(text):
         return np.nan
     match = re.search(r'\d+', str(text))
     return int(match.group()) if match else np.nan
 
-# Áp dụng định dạng và trích xuất dữ liệu
 df_ngaytuan['Tháng'] = df_ngaytuan['Tháng'].apply(extract_number)
 df_ngaytuan['Tuần'] = df_ngaytuan['Tuần'].apply(extract_number)
 df_ngaytuan['Từ ngày đến ngày'] = df_ngaytuan['Từ ngày đến ngày'].astype(str)
 
-# Chuyển đổi cột ngày
 df_ngaytuan['Ngày bắt đầu'] = pd.to_datetime(df_ngaytuan['Ngày bắt đầu'], format='%d/%m/%Y', errors='coerce')
 df_ngaytuan['Ngày kết thúc'] = pd.to_datetime(df_ngaytuan['Ngày kết thúc'], format='%d/%m/%Y', errors='coerce')
 
-# Lọc bỏ các tuần nghỉ TẾT
 df_ngaytuan_filtered = df_ngaytuan[df_ngaytuan['Tuần_Tết'] != 'TẾT'].copy()
 
-# --- LỌC df_ngaytuan DỰA TRÊN TUẦN BẮT ĐẦU VÀ KẾT THÚC ---
+# --- LỌC df_ngaytuan DỰA TRÊN TUẦN VÀ LỚP HỌC ĐƯỢC CHỌN ---
 df_ngaytuan_loc = df_ngaytuan_filtered[
     (df_ngaytuan_filtered['Tuần'] >= tuan_bat_dau) & 
     (df_ngaytuan_filtered['Tuần'] <= tuan_ket_thuc)
 ].copy()
 
+if st.session_state.selected_classes:
+    df_ngaytuan_loc = df_ngaytuan_loc[df_ngaytuan_loc['Lớp'].isin(st.session_state.selected_classes)]
+
 # --- CHÈN CỘT SĨ SỐ DỰA VÀO THÁNG VÀ df_lop ---
-# TẠO MỘT DICTIONARY ĐỂ LƯU SĨ SỐ THEO LỚP VÀ THÁNG TỪ DF_LOP
-# Hàm để trích xuất số tháng từ tên cột 'Tháng X'
 def extract_month_number(col_name):
     match = re.search(r'Tháng (\d+)', col_name)
     return int(match.group(1)) if match else None
 
-# Lấy danh sách các cột tháng
 month_columns = [col for col in df_lop.columns if 'Tháng' in col]
 df_lop['Lớp'] = df_lop['Lớp'].astype(str).str.strip()
 
@@ -151,21 +168,7 @@ def get_siso(row, siso_dict):
     except (ValueError, KeyError, TypeError):
         return np.nan
 
-# Áp dụng hàm để tạo cột Sĩ số
 df_ngaytuan_loc['Sĩ số'] = df_ngaytuan_loc.apply(lambda row: get_siso(row, siso_dict), axis=1)
-
-# --- XỬ LÝ CHUẨN GIÁO VIÊN ---
-# Kiểm tra nếu có lớp Cao đẳng trong df_ngaytuan_loc để cập nhật chuẩn GV
-# Một lớp Cao đẳng được định nghĩa là mã lớp có ký tự "1" ở vị trí thứ 3 (chỉ số 2)
-if any(isinstance(lop, str) and len(lop) > 2 and lop[2] == '1' for lop in df_ngaytuan_loc['Lớp']):
-    st.session_state.chuan_gv = 'Cao đẳng'
-else:
-    st.session_state.chuan_gv = 'Trung cấp'
-
-# Lọc df_mon và chuangv dựa trên chuẩn GV đã xác định
-df_mon = df_mon[df_mon['Chủ đề'] == st.session_state.chuan_gv].copy()
-chuangv = chuangv[chuangv['Chuẩn'] == st.session_state.chuan_gv].copy()
-st.sidebar.write(f"Chuẩn GV đã chọn: **{st.session_state.chuan_gv}**")
 
 # --- CHỌN GIÁO VIÊN ---
 gv_options = sorted(chuangv['GV'].unique())
@@ -178,14 +181,12 @@ df_gv = df_ngaytuan_loc[df_ngaytuan_loc['GV'] == selected_gv].copy()
 df_hk1 = df_gv[df_gv['Học kỳ'] == 1].copy()
 df_hk2 = df_gv[df_gv['Học kỳ'] == 2].copy()
 
-# --- CHUYỂN ĐỔI KIỂU DỮ LIỆU ---
 for df in [df_hk1, df_hk2]:
     if not df.empty:
         df['Tên môn'] = df['Tên môn'].astype(str)
         df['Tiết'] = pd.to_numeric(df['Tiết'], errors='coerce').fillna(0).astype(int)
         df['Sĩ số'] = pd.to_numeric(df['Sĩ số'], errors='coerce').fillna(0).astype(int)
 
-# --- XỬ LÝ LỚP GHÉP ---
 if not df_lopghep.empty:
     df_lopghep['Lớp'] = df_lopghep['Lớp'].astype(str).str.strip()
     df_lopghep['Các lớp thành phần'] = df_lopghep['Các lớp thành phần'].apply(lambda x: [cls.strip() for cls in x.split('+')])
@@ -201,7 +202,6 @@ if not df_lopghep.empty:
     df_hk1['Sĩ số'] = df_hk1.apply(get_siso_lopghep, args=(df_lopghep,), axis=1)
     df_hk2['Sĩ số'] = df_hk2.apply(get_siso_lopghep, args=(df_lopghep,), axis=1)
 
-# --- XỬ LÝ HỆ SỐ SĨ SỐ ---
 if not df_hesosiso.empty:
     df_hesosiso['Sĩ số'] = pd.to_numeric(df_hesosiso['Sĩ số'], errors='coerce')
     df_hesosiso['Hệ số'] = pd.to_numeric(df_hesosiso['Hệ số'], errors='coerce')
@@ -211,7 +211,7 @@ if not df_hesosiso.empty:
             return 1.0
         siso_min_less_than = df_hesosiso[df_hesosiso['Sĩ số'] <= siso]['Sĩ số'].max()
         if pd.isna(siso_min_less_than):
-            return 1.0 # Default if no match found
+            return 1.0
         
         heso_row = df_hesosiso[df_hesosiso['Sĩ số'] == siso_min_less_than].iloc[0]
         return heso_row['Hệ số']
@@ -221,28 +221,23 @@ if not df_hesosiso.empty:
     if not df_hk2.empty:
         df_hk2['Hệ số sĩ số'] = df_hk2['Sĩ số'].apply(lambda x: get_heso(x, df_hesosiso))
 
-# --- XỬ LÝ LỚP TÁCH VÀ LỚP SC ---
 def process_loptach_sc(df, df_loptach, df_lopsc):
     if df.empty:
         return df
     
-    # Process Lớp Tách
     if not df_loptach.empty:
         df_loptach['Lớp'] = df_loptach['Lớp'].astype(str).str.strip()
         df_loptach['Tên môn'] = df_loptach['Tên môn'].astype(str).str.strip()
         df_loptach['Hệ số tách'] = pd.to_numeric(df_loptach['Hệ số tách'], errors='coerce').fillna(1.0)
-
         merged_df = pd.merge(df, df_loptach, on=['Lớp', 'Tên môn'], how='left')
         df['Hệ số tách'] = merged_df['Hệ số tách'].fillna(1.0)
     else:
         df['Hệ số tách'] = 1.0
 
-    # Process Lớp SC
     if not df_lopsc.empty:
         df_lopsc['Lớp'] = df_lopsc['Lớp'].astype(str).str.strip()
         df_lopsc['Tên môn'] = df_lopsc['Tên môn'].astype(str).str.strip()
         df_lopsc['Hệ số SC'] = pd.to_numeric(df_lopsc['Hệ số SC'], errors='coerce').fillna(1.0)
-
         merged_df = pd.merge(df, df_lopsc, on=['Lớp', 'Tên môn'], how='left')
         df['Hệ số SC'] = merged_df['Hệ số SC'].fillna(1.0)
     else:
@@ -253,7 +248,6 @@ def process_loptach_sc(df, df_loptach, df_lopsc):
 df_hk1 = process_loptach_sc(df_hk1, df_loptach, df_lopsc)
 df_hk2 = process_loptach_sc(df_hk2, df_loptach, df_lopsc)
 
-# --- CHIA HỌC KỲ CHO DF_MON ---
 df_mon_hk1 = df_mon[df_mon['Học kỳ'] == 1].copy()
 df_mon_hk2 = df_mon[df_mon['Học kỳ'] == 2].copy()
 df_mon_hk1['Tên môn'] = df_mon_hk1['Tên môn'].astype(str).str.strip()
@@ -265,18 +259,14 @@ def calculate_converted_time(df, df_mon):
 
     df['Tên môn'] = df['Tên môn'].astype(str).str.strip()
     df_mon['Tên môn'] = df_mon['Tên môn'].astype(str).str.strip()
-
     merged_df = pd.merge(df, df_mon, on='Tên môn', how='left')
     merged_df['Hệ số môn'] = pd.to_numeric(merged_df['Hệ số môn'], errors='coerce').fillna(1.0)
-
-    # Calculate Quy đổi
     merged_df['Quy đổi'] = merged_df['Tiết'] * merged_df['Hệ số môn'] * merged_df['Hệ số sĩ số'] * merged_df['Hệ số tách'] * merged_df['Hệ số SC']
     return merged_df
 
 df_hk1_final = calculate_converted_time(df_hk1, df_mon_hk1)
 df_hk2_final = calculate_converted_time(df_hk2, df_mon_hk2)
 
-# --- TÍNH TOÁN QUY ĐỔI THỪA/THIẾU ---
 def calculate_thua_thieu(df):
     if df.empty:
         return df
@@ -291,7 +281,6 @@ def calculate_thua_thieu(df):
 df_hk1_final = calculate_thua_thieu(df_hk1_final)
 df_hk2_final = calculate_thua_thieu(df_hk2_final)
 
-# --- HIỂN THỊ BẢNG KẾT QUẢ ---
 if not df_hk1_final.empty:
     df_hk1_final['Tiết'] = df_hk1_final['Tiết'].astype(int)
     df_hk1_final['Sĩ số'] = df_hk1_final['Sĩ số'].astype(int)
@@ -358,7 +347,6 @@ tiet_hk2, qd_thua_hk2, qd_thieu_hk2 = display_totals("Tổng hợp Học kỳ 2"
 
 st.markdown("---")
 
-# Tổng hợp cả hai học kỳ
 st.subheader("Tổng hợp cả hai Học kỳ")
 total_tiet = tiet_hk1 + tiet_hk2
 total_qd_thua = qd_thua_hk1 + qd_thua_hk2
@@ -370,8 +358,7 @@ col2.metric("Tổng Quy đổi (khi dư giờ)", f"{total_qd_thua:,.1f}")
 col3.metric("Tổng quy đổi (khi thiếu giờ)", f"{total_qd_thieu:,.1f}")
 
 st.markdown("---")
-# Hiển thị df_ngaytuan_loc (chỉ để kiểm tra)
-st.subheader("Bảng dữ liệu đã lọc theo tuần (df_ngaytuan_loc)")
+st.subheader("Bảng dữ liệu đã lọc theo tuần và lớp (df_ngaytuan_loc)")
 st.dataframe(df_ngaytuan_loc)
 st.markdown("---")
 st.subheader("Bảng df_lop để kiểm tra")
