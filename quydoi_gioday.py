@@ -139,7 +139,6 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     mamon_info = mon_info_source[mon_info_source['Môn_học'] == mon_chon]
     if mamon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
 
-    # Lấy thông tin về Nặng nhọc và loại tiết
     is_heavy_duty = mamon_info['Nặng_nhọc'].iloc[0] == 'NN'
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     
@@ -153,7 +152,6 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     except (ValueError, TypeError):
         return pd.DataFrame(), {"error": "Định dạng số tiết không hợp lệ. Vui lòng chỉ nhập số và dấu cách."}
 
-    # Tách tiết tổng thành LT và TH dựa vào cột 'Tính MĐ/MH'
     if kieu_ke_khai == 'Kê theo MĐ, MH':
         if len(locdulieu_info) != len(arr_tiet): 
             return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})."}
@@ -163,32 +161,27 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         elif kieu_tinh_mdmh == 'TH':
             arr_tiet_lt = np.zeros_like(arr_tiet)
             arr_tiet_th = arr_tiet
-        else: # 'LTTH'
+        else:
             return pd.DataFrame(), {"error": "Môn học này yêu cầu kê khai tiết LT, TH chi tiết."}
-    else: # 'Kê theo LT, TH chi tiết'
+    else:
         if kieu_tinh_mdmh != 'LTTH':
              return pd.DataFrame(), {"error": "Môn học này không yêu cầu kê khai tiết LT, TH chi tiết."}
         if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
             return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết LT ({len(arr_tiet_lt)}) hoặc TH ({len(arr_tiet_th)})."}
         arr_tiet = arr_tiet_lt + arr_tiet_th
 
-    # Cập nhật logic lấy sĩ số theo từng tháng
     df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
-    
-    # Lấy thông tin tháng và sĩ số từ malop_info
-    month_columns = [col for col in malop_info.columns if re.match(r'T\d+', col)]
-    malop_siso_data = malop_info[month_columns].iloc[0].to_dict()
-    malop_siso_data_cleaned = {int(re.sub(r'T', '', k)): v for k, v in malop_siso_data.items()}
 
-    dssiso = []
-    for thang in df_result['Tháng']:
-        if thang in malop_siso_data_cleaned:
-            siso_value = malop_siso_data_cleaned[thang]
-            dssiso.append(siso_value)
-        else:
-            dssiso.append(0)
+    # LOGIC MỚI: TÌM SĨ SỐ THEO MÃ LỚP VÀ THÁNG
+    siso_list = []
+    for month in df_result['Tháng']:
+        month_col = f"T{month}"
+        siso = malop_info[month_col].iloc[0] if month_col in malop_info.columns else 0
+        siso_list.append(siso)
 
-    df_result['Sĩ số'] = dssiso
+    df_result['Sĩ số'] = siso_list
+    # KẾT THÚC LOGIC MỚI
+
     df_result['Tiết'] = arr_tiet
     df_result['Tiết_LT'] = arr_tiet_lt
     df_result['Tiết_TH'] = arr_tiet_th
@@ -208,7 +201,6 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     for col in numeric_cols:
         df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0)
     
-    # Tính toán cột mới
     df_result["QĐ thừa"] = (df_result["Tiết_LT"] * df_result["HS_SS_LT"]) + (df_result["Tiết_TH"] * df_result["HS_SS_TH"])
     df_result["HS_SS_LT_tron"] = df_result["HS_SS_LT"].clip(lower=1)
     df_result["HS_SS_TH_tron"] = df_result["HS_SS_TH"].clip(lower=1)
@@ -223,16 +215,13 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     final_columns = ["Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "QĐ thiếu"]
     df_final = df_result[[col for col in final_columns if col in df_result.columns]]
     
-    # Tạo bảng sĩ số theo tuần
     siso_by_week = pd.DataFrame({
-        'Tuần': list(range(tuanbatdau, tuanketthuc + 1)),
-        'Sĩ số': dssiso
+        'Tuần': df_result['Tuần'],
+        'Sĩ số': df_result['Sĩ số']
     })
     
-    # Lấy thông tin môn học đã lọc
     mon_info_filtered = mon_info_source[mon_info_source['Môn_học'] == mon_chon]
 
-    # Thêm thông tin giải thích vào `st.session_state`
     processing_log = {
         'lop_chon': lop_chon,
         'mon_chon': mon_chon,
@@ -287,7 +276,6 @@ def save_data_to_sheet(worksheet_name, data_to_save):
     if 'tuan' in df_to_save.columns:
         df_to_save['tuan'] = df_to_save['tuan'].astype(object).apply(lambda x: str(x) if isinstance(x, tuple) else x)
     
-    # Loại bỏ cột index trước khi lưu
     if 'index' in df_to_save.columns:
         df_to_save = df_to_save.drop(columns=['index'])
         
@@ -377,7 +365,6 @@ mon_tab_names = [f"Môn {i+1}" for i in range(len(st.session_state.mon_hoc_data)
 all_tab_names = mon_tab_names + ["📊 Tổng hợp"]
 tabs = st.tabs(all_tab_names)
 
-# Vòng lặp cho các tab Môn học
 for i, tab in enumerate(tabs[:-1]):
     with tab:
         st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
@@ -387,7 +374,6 @@ for i, tab in enumerate(tabs[:-1]):
 
         current_input = st.session_state.mon_hoc_data[i]
         
-        # --- CHỌN KHÓA/HỆ VÀ CHỌN LỚP HỌC MỚI ---
         khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
         selected_khoa = st.selectbox("Chọn Khóa/Hệ", options=khoa_options, index=khoa_options.index(current_input.get('khoa', khoa_options[0])), key=f"widget_khoa_{i}", on_change=update_tab_state, args=('khoa', i))
         
@@ -417,7 +403,6 @@ for i, tab in enumerate(tabs[:-1]):
         lop_hoc_index = filtered_lop_options.index(current_input.get('lop_hoc')) if current_input.get('lop_hoc') in filtered_lop_options else 0
         st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key=f"widget_lop_hoc_{i}", on_change=update_tab_state, args=('lop_hoc', i))
 
-        # --- CHỌN MÔN HỌC ĐÃ CẬP NHẬT ---
         dsmon_options = []
         df_dsmon_loc = pd.DataFrame()
         if current_input.get('lop_hoc') and source_df is not None:
@@ -438,7 +423,6 @@ for i, tab in enumerate(tabs[:-1]):
 
         st.slider("Chọn Tuần giảng dạy", 1, 50, value=current_input.get('tuan', (1, 12)), key=f"widget_tuan_{i}", on_change=update_tab_state, args=('tuan', i))
         
-        # Lấy thông tin về loại tiết từ df_mon_g
         kieu_tinh_mdmh = ''
         if current_input.get('mon_hoc') and 'Tính MĐ/MH' in df_dsmon_loc.columns:
             mon_info = df_dsmon_loc[df_dsmon_loc['Môn_học'] == current_input.get('mon_hoc')]
@@ -506,7 +490,6 @@ for i, tab in enumerate(tabs[:-1]):
             df_with_total = pd.concat([df_display, total_row_df], ignore_index=True)
             st.dataframe(df_with_total.fillna(''))
             
-            # Khối giải thích quá trình xử lý dữ liệu
             with st.expander("📝 Giải thích quy trình quy đổi tiết giảng dạy"):
                 processing_log = st.session_state.get(f'processing_log_{i}', {})
                 st.markdown(f"""
@@ -553,7 +536,6 @@ for i, tab in enumerate(tabs[:-1]):
         else:
             st.info("Chưa có dữ liệu tính toán hợp lệ.")
 
-# Xử lý tab "Tổng hợp"
 with tabs[-1]:
     st.header("Tổng hợp khối lượng giảng dạy")
     if st.session_state.mon_hoc_data:
