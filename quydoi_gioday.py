@@ -37,23 +37,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- LẤY DỮ LIỆU CƠ SỞ TỪ SESSION STATE ---
-spreadsheet = st.session_state.spreadsheet
-df_lop_g = st.session_state.get('df_lop')
-df_mon_g = st.session_state.get('df_mon')
-df_ngaytuan_g = st.session_state.get('df_ngaytuan')
-df_hesosiso_g = st.session_state.get('df_hesosiso')
-chuangv = st.session_state.get('chuangv', 'khong_ro')
-df_lopghep_g = st.session_state.get('df_lopghep')
-df_loptach_g = st.session_state.get('df_loptach')
-df_lopsc_g = st.session_state.get('df_lopsc')
-ma_gv = st.session_state.get('magv', 'khong_ro')
-
-# --- HẰNG SỐ ---
-DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
-KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
-
-# --- CÁC HÀM TÍNH TOÁN HỆ SỐ ---
+# --- HÀM TÍNH TOÁN HỆ SỐ ---
 def timheso_tc_cd(chuangv, malop):
     """Tìm hệ số dựa trên chuẩn giáo viên và mã lớp."""
     chuangv_short = {"Cao đẳng": "CĐ", "Trung cấp": "TC"}.get(chuangv, "CĐ")
@@ -99,6 +83,22 @@ def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
                     heso_siso = df_hesosiso['Hệ số'].values[i]
                     break
     return heso_siso
+
+# --- LẤY DỮ LIỆU CƠ SỞ TỪ SESSION STATE ---
+spreadsheet = st.session_state.spreadsheet
+df_lop_g = st.session_state.get('df_lop')
+df_mon_g = st.session_state.get('df_mon')
+df_ngaytuan_g = st.session_state.get('df_ngaytuan')
+df_hesosiso_g = st.session_state.get('df_hesosiso')
+chuangv = st.session_state.get('chuangv', 'khong_ro')
+df_lopghep_g = st.session_state.get('df_lopghep')
+df_loptach_g = st.session_state.get('df_loptach')
+df_lopsc_g = st.session_state.get('df_lopsc')
+ma_gv = st.session_state.get('magv', 'khong_ro')
+
+# --- HẰNG SỐ ---
+DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
+KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
 
 def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g):
     """Hàm xử lý chính, tính toán quy đổi giờ giảng."""
@@ -172,23 +172,22 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
             return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết LT ({len(arr_tiet_lt)}) hoặc TH ({len(arr_tiet_th)})."}
         arr_tiet = arr_tiet_lt + arr_tiet_th
 
-    # Cập nhật logic lấy sĩ số theo từng tháng dựa trên thông tin lớp học đã lọc
-    dssiso = []
-    if 'Tháng' in locdulieu_info.columns:
-        for thang in locdulieu_info['Tháng']:
-            if thang in malop_info.columns:
-                try:
-                    siso_value = int(malop_info[thang].iloc[0])
-                    dssiso.append(siso_value)
-                except (ValueError, IndexError):
-                    dssiso.append(0)
-            else:
-                dssiso.append(0)
-    else:
-        # Trường hợp không có cột 'Tháng', mặc định sĩ số là 0
-        dssiso = [0] * len(locdulieu_info)
-
+    # Cập nhật logic lấy sĩ số theo từng tháng
     df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
+    
+    # Lấy thông tin tháng và sĩ số từ malop_info
+    month_columns = [col for col in malop_info.columns if re.match(r'T\d+', col)]
+    malop_siso_data = malop_info[month_columns].iloc[0].to_dict()
+    malop_siso_data_cleaned = {int(re.sub(r'T', '', k)): v for k, v in malop_siso_data.items()}
+
+    dssiso = []
+    for thang in df_result['Tháng']:
+        if thang in malop_siso_data_cleaned:
+            siso_value = malop_siso_data_cleaned[thang]
+            dssiso.append(siso_value)
+        else:
+            dssiso.append(0)
+
     df_result['Sĩ số'] = dssiso
     df_result['Tiết'] = arr_tiet
     df_result['Tiết_LT'] = arr_tiet_lt
