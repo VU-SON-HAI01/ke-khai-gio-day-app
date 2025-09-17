@@ -43,7 +43,7 @@ df_lop_g = st.session_state.get('df_lop')
 df_mon_g = st.session_state.get('df_mon')
 df_ngaytuan_g = st.session_state.get('df_ngaytuan')
 df_hesosiso_g = st.session_state.get('df_hesosiso')
-chuangv = st.session_state.get('chuangv')
+chuangv = st.session_state.get('chuangv', 'khong_ro')
 df_lopghep_g = st.session_state.get('df_lopghep')
 df_loptach_g = st.session_state.get('df_loptach')
 df_lopsc_g = st.session_state.get('df_lopsc')
@@ -171,8 +171,22 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
             return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết LT ({len(arr_tiet_lt)}) hoặc TH ({len(arr_tiet_th)})."}
         arr_tiet = arr_tiet_lt + arr_tiet_th
-    
-    dssiso = [malop_info[thang].iloc[0] if thang in malop_info.columns else 0 for thang in locdulieu_info['Tháng']]
+
+    # Cập nhật logic lấy sĩ số theo từng tháng dựa trên thông tin lớp học đã lọc
+    dssiso = []
+    if 'Tháng' in locdulieu_info.columns:
+        for thang in locdulieu_info['Tháng']:
+            if thang in malop_info.columns:
+                try:
+                    siso_value = int(malop_info[thang].iloc[0])
+                    dssiso.append(siso_value)
+                except (ValueError, IndexError):
+                    dssiso.append(0)
+            else:
+                dssiso.append(0)
+    else:
+        # Trường hợp không có cột 'Tháng', mặc định sĩ số là 0
+        dssiso = [0] * len(locdulieu_info)
 
     df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
     df_result['Sĩ số'] = dssiso
