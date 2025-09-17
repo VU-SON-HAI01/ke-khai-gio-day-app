@@ -1,514 +1,355 @@
 import streamlit as st
-import gspread
 import pandas as pd
-from streamlit_oauth import OAuth2Component
-import requests
-from google.oauth2.service_account import Credentials as ServiceAccountCredentials
-from google.oauth2.credentials import Credentials as UserCredentials
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-import os
+import numpy as np
+import gspread
+from gspread_dataframe import set_with_dataframe
+import ast
+import re
+from itertools import zip_longest
 
-# --- CẤU HÌNH BAN ĐẦU ---
-st.set_page_config(layout="wide", page_title="Hệ thống Kê khai Giờ giảng")
-st.image("image/banner-top-kegio.jpg", use_container_width=True)
-
-# --- TẢI CẤU HÌNH TỪ STREAMLIT SECRETS ---
-try:
-    CLIENT_ID = st.secrets["google_oauth"]["clientId"]
-    CLIENT_SECRET = st.secrets["google_oauth"]["clientSecret"]
-    REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
-
-    ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
-    USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
-    TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"]
-    TEMPLATE_FILE_ID = st.secrets["google_sheet"]["template_file_id"]
-
-    # Cập nhật secrets cho folder và file dữ liệu quản trị
-    ADMIN_DATA_FOLDER_NAME = st.secrets["google_sheet"]["admin_data_folder_name"]
-    ADMIN_DATA_SHEET_NAME = st.secrets["google_sheet"]["admin_data_sheet_name"]
-
-    ADMIN_EMAIL = "vshai48kd1@gmail.com"
-    CLIENT_EMAIL = st.secrets["gcp_service_account"]["client_email"]
-
-except KeyError as e:
-    st.error(f"Lỗi: Không tìm thấy thông tin cấu hình '{e.args[0]}' trong st.secrets.")
+# --- KIỂM TRA ĐIỀU KIỆN TIÊN QUYẾT (TỪ MAIN.PY) ---
+if 'initialized' not in st.session_state or not st.session_state.initialized:
+    st.error("Vui lòng đăng nhập và đảm bảo thông tin của bạn đã được tải thành công từ trang chủ.")
     st.stop()
 
-# --- URLS VÀ SCOPES CHO OAUTH2 ---
-AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-TOKEN_URL = "https://oauth2.googleapis.com/token"
-REVOKE_URL = "https://oauth2.googleapis.com/revoke"
-SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/drive"]
+required_data = ['spreadsheet', 'df_lop', 'df_mon', 'df_ngaytuan', 'df_hesosiso', 'chuangv', 'df_lopghep', 'df_loptach', 'df_lopsc']
+missing_data = [item for item in required_data if item not in st.session_state]
+if missing_data:
+    st.error(f"Lỗi: Không tìm thấy dữ liệu cần thiết: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ.")
+    st.stop()
+
+# --- CSS TÙY CHỈNH GIAO DIỆN ---
+st.markdown("""
+<style>
+    /* Cho phép các ô trong bảng dữ liệu tự động xuống dòng */
+    .stDataFrame [data-testid="stTable"] div[data-testid="stVerticalBlock"] {
+        white-space: normal;
+        word-wrap: break-word;
+    }
+    /* Thêm đường viền và kiểu dáng cho các ô số liệu (metric) */
+    [data-testid="stMetric"] {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+    }
+    .main-header {
+        color: #2e86de;
+        text-align: center;
+        font-size: 2.5em;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+    }
+    .dataframe-container {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .dataframe-container h3 {
+        color: #333;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- TẢI DỮ LIỆU TỪ SESSION STATE ---
+df_lop = st.session_state.df_lop
+df_mon = st.session_state.df_mon
+df_ngaytuan = st.session_state.df_ngaytuan
+df_hesosiso = st.session_state.df_hesosiso
+chuangv = st.session_state.chuangv
+df_lopghep = st.session_state.df_lopghep
+df_loptach = st.session_state.df_loptach
+df_lopsc = st.session_state.df_lopsc
+
+# --- HIỂN THỊ DATAFRAME df_ngaytuan BAN ĐẦU ĐỂ KIỂM TRA ---
+st.markdown("### 🔍 Bảng dữ liệu gốc (df_ngaytuan) trước khi xử lý")
+st.dataframe(df_ngaytuan)
+st.markdown("---")
 
 
-# --- CÁC HÀM KẾT NỐI VÀ XỬ LÝ API ---
+# --- KHỞI TẠO BIẾN SESSION ---
+if 'last_input_week_start' not in st.session_state:
+    st.session_state.last_input_week_start = 1
+if 'last_input_week_end' not in st.session_state:
+    st.session_state.last_input_week_end = 52
+if 'chuan_gv' not in st.session_state:
+    st.session_state.chuan_gv = 'Trung cấp'
+if 'selected_classes' not in st.session_state:
+    st.session_state.selected_classes = []
 
-@st.cache_resource
-def connect_as_service_account():
-    """Kết nối bằng Service Account, trả về cả gspread client và drive service."""
-    try:
-        creds_dict = st.secrets["gcp_service_account"]
-        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_service_account_info(creds_dict, scopes=scopes)
-        gspread_client = gspread.authorize(creds)
-        drive_service = build('drive', 'v3', credentials=creds)
-        return gspread_client, drive_service
-    except Exception as e:
-        st.error(f"Lỗi kết nối với tư cách Service Account: {e}")
-        return None, None
+st.markdown("<h1 class='main-header'>Tính Toán Số Tiết Dạy Và Quy Đổi</h1>", unsafe_allow_html=True)
 
+# --- INPUT TUẦN HỌC VÀ CHỌN LỚP ---
+st.sidebar.header("Chọn Tuần Giảng Dạy")
+col1, col2 = st.sidebar.columns(2)
+tuan_bat_dau = col1.number_input("Tuần bắt đầu", min_value=1, max_value=52, value=st.session_state.last_input_week_start)
+tuan_ket_thuc = col2.number_input("Tuần kết thúc", min_value=1, max_value=52, value=st.session_state.last_input_week_end)
 
-@st.cache_resource
-def connect_as_user(_token):
-    """Tạo các client API (gspread, drive) từ token của người dùng đã đăng nhập."""
-    try:
-        creds = UserCredentials(
-            token=_token['access_token'], refresh_token=_token.get('refresh_token'),
-            token_uri=TOKEN_URL, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES
-        )
-        gspread_client = gspread.authorize(creds)
-        drive_service = build('drive', 'v3', credentials=creds)
-        return gspread_client, drive_service
-    except Exception as e:
-        st.error(f"Lỗi xác thực với tài khoản người dùng: {e}. Token có thể đã hết hạn.")
-        st.session_state.token = None
-        st.rerun()
-        return None, None
+if tuan_bat_dau > tuan_ket_thuc:
+    st.warning("Tuần bắt đầu không được lớn hơn Tuần kết thúc. Đã tự động điều chỉnh.")
+    tuan_ket_thuc = tuan_bat_dau
 
+st.session_state.last_input_week_start = tuan_bat_dau
+st.session_state.last_input_week_end = tuan_ket_thuc
 
-def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file):
-    # (Hàm này được giữ nguyên, không thay đổi)
-    try:
-        df_upload = pd.read_excel(uploaded_file)
-        if 'email' not in df_upload.columns or 'magv' not in df_upload.columns:
-            st.error("Lỗi: File Excel phải chứa 2 cột có tên là 'email' và 'magv'.")
-            return
+# Sidebar for class selection
+st.sidebar.header("Chọn Lớp Học")
+all_classes = sorted(df_ngaytuan['Lớp'].unique())
+selected_classes = st.sidebar.multiselect("Chọn lớp", options=all_classes)
+st.session_state.selected_classes = selected_classes
 
-        df_upload['email'] = df_upload['email'].astype(str)
-        last_valid_index = df_upload[
-            df_upload['email'].str.strip().ne('') & df_upload['email'].str.lower().ne('nan')].last_valid_index()
-
-        if last_valid_index is None:
-            st.warning("Không tìm thấy email hợp lệ nào trong file được tải lên.")
-            return
-
-        df_to_process = df_upload.loc[:last_valid_index]
-        st.info(f"Đã tìm thấy dữ liệu. Sẽ xử lý {len(df_to_process)} dòng.")
-
-        mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-        records = mapping_sheet.get_all_records()
-        df_map = pd.DataFrame(records)
-
-        existing_files_q = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
-        response = admin_drive_service.files().list(q=existing_files_q, fields='files(name)').execute()
-        existing_filenames = {file['name'] for file in response.get('files', [])}
-
-        st.write("--- Bắt đầu xử lý ---")
-        progress_bar = st.progress(0)
-        status_area = st.container()
-        log_messages = []
-        rows_to_add = []
-
-        for index, row in df_to_process.iterrows():
-            new_email = str(row.get('email', '')).strip()
-            new_magv_str = str(row.get('magv', '')).strip()
-
-            if not new_email or not new_magv_str or new_email.lower() == 'nan':
-                continue
-
-            if new_magv_str not in existing_filenames:
-                copied_file_metadata = {'name': new_magv_str, 'parents': [folder_id]}
-                copied_file = admin_drive_service.files().copy(fileId=TEMPLATE_FILE_ID,
-                                                               body=copied_file_metadata).execute()
-                admin_drive_service.permissions().create(
-                    fileId=copied_file.get('id'),
-                    body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
-                    sendNotificationEmail=True
-                ).execute()
-                log_messages.append(f"✅ Đã tạo file '{new_magv_str}' và chia sẻ cho {new_email}.")
-                existing_filenames.add(new_magv_str)
-
-            email_exists = not df_map.empty and new_email in df_map['email'].values
-            magv_exists = not df_map.empty and new_magv_str in df_map['magv'].astype(str).values
-
-            if not email_exists and not magv_exists:
-                rows_to_add.append([new_email, new_magv_str])
-                log_messages.append(f"✅ Sẽ thêm vào bảng phân quyền: {new_email} -> {new_magv_str}.")
-
-            status_area.info("\n".join(log_messages[-5:]))
-            progress_bar.progress((index + 1) / len(df_to_process))
-
-        if rows_to_add:
-            mapping_sheet.append_rows(rows_to_add)
-            st.success(f"Đã thêm thành công {len(rows_to_add)} người dùng mới vào bảng phân quyền.")
-
-        st.success("--- Xử lý hàng loạt hoàn tất! ---")
-        st.balloons()
-
-    except Exception as e:
-        st.error(f"Đã xảy ra lỗi trong quá trình xử lý hàng loạt: {e}")
-
-
-def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, old_email, new_email):
-    # (Hàm này được giữ nguyên, không thay đổi)
-    try:
-        spreadsheet = sa_gspread_client.open(magv_to_update)
-        file_id = spreadsheet.id
-
-        permissions = admin_drive_service.permissions().list(fileId=file_id,
-                                                             fields="permissions(id, emailAddress)").execute()
-        permission_id_to_delete = None
-        for p in permissions.get('permissions', []):
-            if p.get('emailAddress') == old_email:
-                permission_id_to_delete = p.get('id')
+# --- XÁC ĐỊNH CHUẨN GV DỰA TRÊN LỰA CHỌN LỚP HỌC VÀ BẢNG DSLOP ---
+# Mặc định là 'Trung cấp'
+st.session_state.chuan_gv = 'Trung cấp'
+# Kiểm tra nếu cột 'Mã_lớp' tồn tại trong df_lop
+if 'Mã_lớp' in st.session_state.df_lop.columns:
+    if st.session_state.selected_classes:
+        df_lop_loc = st.session_state.df_lop[st.session_state.df_lop['Lớp'].isin(st.session_state.selected_classes)]
+        # Lấy giá trị từ cột 'Mã_lớp' tương ứng với các lớp đã chọn
+        ma_lop_series = df_lop_loc['Mã_lớp']
+        
+        for ma_lop in ma_lop_series:
+            # Kiểm tra ký tự thứ 3 (chỉ số 2) của 'Mã_lớp'
+            if pd.notna(ma_lop) and len(str(ma_lop)) > 2 and str(ma_lop)[2] == '1':
+                st.session_state.chuan_gv = 'Cao đẳng'
                 break
-
-        if permission_id_to_delete:
-            admin_drive_service.permissions().delete(fileId=file_id, permissionId=permission_id_to_delete).execute()
-
-        admin_drive_service.permissions().create(
-            fileId=file_id,
-            body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
-            sendNotificationEmail=True
-        ).execute()
-
-        mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-        cell = mapping_sheet.find(old_email)
-        if cell:
-            mapping_sheet.update_cell(cell.row, cell.col, new_email)
-
-        return True, f"Đã cập nhật thành công email cho Mã GV '{magv_to_update}' từ '{old_email}' sang '{new_email}'."
-
-    except gspread.exceptions.SpreadsheetNotFound:
-        return False, f"Lỗi: Không tìm thấy file Google Sheet có tên '{magv_to_update}'."
-    except Exception as e:
-        return False, f"Đã xảy ra lỗi trong quá trình cập nhật: {e}"
-
-@st.cache_data(ttl=600)
-def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_base/'):
-    """
-    Tải tất cả các file dữ liệu nền từ Google Sheet quản trị và một số file Parquet cục bộ.
-    """
-    loaded_dfs = {}
-
-    # --- Định nghĩa các nguồn dữ liệu ---
-    # Các file template Parquet tải từ local
-    local_parquet_templates = {
-        'mau_kelop': 'mau_kelop.parquet',
-        'mau_quydoi': 'mau_quydoi.parquet'
-    }
-
-    # Các sheet dữ liệu chính tải từ Google Sheet "DATA_KEGIO"
-    sheets_to_load = {
-        'df_giaovien': 'DS_GIAOVIEN',
-        'df_hesosiso': 'HESOSISO',
-        'df_khoa': 'MA_KHOA',
-        'df_mon': 'DSMON',
-        'df_nangnhoc': 'NANG_NHOC',
-        'df_ngaytuan': 'TUAN_NGAY',
-        'df_lop': 'DSLOP',
-        'df_lopghep': 'DSLOP_GHEP',
-        'df_loptach': 'DSLOP_TACH',
-        'df_lopsc': 'DSLOP_SC',
-        'df_quydoi_hd': 'QUYDOI_HD',
-        'df_quydoi_hd_them': 'QUYDOIKHAC'
-    }
-
-    total_items = len(local_parquet_templates) + len(sheets_to_load)
-    progress_bar = st.progress(0, text="Đang khởi tạo tải dữ liệu...")
-    items_processed = 0
-
-    # --- 1. Tải các file Parquet template cục bộ ---
-    for df_key, file_name in local_parquet_templates.items():
-        items_processed += 1
-        progress_text = f"Đang tải template {file_name}..."
-        progress_bar.progress(items_processed / total_items, text=progress_text)
-        try:
-            df = pd.read_parquet(os.path.join(base_path, file_name), engine='pyarrow')
-            loaded_dfs[df_key] = df
-        except Exception as e:
-            st.warning(f"Không thể tải file template cục bộ '{file_name}': {e}")
-            loaded_dfs[df_key] = pd.DataFrame()  # Khởi tạo DF rỗng nếu lỗi
-
-    # --- 2. Tải dữ liệu từ Google Sheet ---
-    try:
-        # Tìm ID của folder "DỮ_LIỆU_QUẢN_TRỊ"
-        folder_query = f"mimeType='application/vnd.google-apps.folder' and name='{ADMIN_DATA_FOLDER_NAME}' and trashed=false"
-        folder_response = _sa_drive_service.files().list(q=folder_query, fields='files(id)').execute()
-        folders = folder_response.get('files', [])
-        if not folders:
-            raise FileNotFoundError(f"Không tìm thấy thư mục quản trị có tên '{ADMIN_DATA_FOLDER_NAME}'.")
-        folder_id = folders[0].get('id')
-
-        # Tìm ID của file "DATA_KEGIO" bên trong folder đó
-        file_query = f"name='{ADMIN_DATA_SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
-        file_response = _sa_drive_service.files().list(q=file_query, fields='files(id)').execute()
-        files = file_response.get('files', [])
-        if not files:
-            raise FileNotFoundError(f"Không tìm thấy file '{ADMIN_DATA_SHEET_NAME}' trong thư mục '{ADMIN_DATA_FOLDER_NAME}'.")
-        file_id = files[0].get('id')
-
-        # Mở file bằng ID
-        admin_data_sheet = _sa_gspread_client.open_by_key(file_id)
-
-        # Tải lần lượt các sheet đã định nghĩa
-        for df_key, sheet_name in sheets_to_load.items():
-            items_processed += 1
-            progress_text = f"Đang tải sheet '{sheet_name}'..."
-            progress_bar.progress(items_processed / total_items, text=progress_text)
-            try:
-                worksheet = admin_data_sheet.worksheet(sheet_name)
-                df = pd.DataFrame(worksheet.get_all_records())
-                loaded_dfs[df_key] = df
-            except gspread.exceptions.WorksheetNotFound:
-                st.warning(f"Không tìm thấy sheet '{sheet_name}' trong file '{ADMIN_DATA_SHEET_NAME}'.")
-                loaded_dfs[df_key] = pd.DataFrame()  # Khởi tạo DF rỗng nếu lỗi
-            except Exception as e_sheet:
-                st.error(f"Lỗi khi tải sheet '{sheet_name}': {e_sheet}")
-                loaded_dfs[df_key] = pd.DataFrame()  # Khởi tạo DF rỗng nếu lỗi
-
-    except (gspread.exceptions.SpreadsheetNotFound, FileNotFoundError) as e:
-        st.error(f"Lỗi truy cập file dữ liệu quản trị '{ADMIN_DATA_SHEET_NAME}': {e}")
-        # Khởi tạo tất cả các DF rỗng nếu không tìm thấy file chính
-        for df_key in sheets_to_load.keys():
-            if df_key not in loaded_dfs:
-                loaded_dfs[df_key] = pd.DataFrame()
-    except Exception as e_main:
-        st.error(f"Lỗi không xác định khi tải dữ liệu từ Google Sheet: {e_main}")
-        for df_key in sheets_to_load.keys():
-            if df_key not in loaded_dfs:
-                loaded_dfs[df_key] = pd.DataFrame()
-
-    progress_bar.empty()
-    return loaded_dfs
-
-
-def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
-    # (Hàm này được giữ nguyên, không thay đổi)
-    if magv is None or df_giaovien is None or df_khoa is None or df_giaovien.empty or df_khoa.empty:
-        return None
-    teacher_row = df_giaovien[df_giaovien['Magv'].astype(str) == str(magv)]
-    if not teacher_row.empty:
-        info = teacher_row.iloc[0].to_dict()
-        khoa_row = df_khoa[df_khoa['Mã'] == str(magv)[0]]
-        info['ten_khoa'] = khoa_row['Khoa/Phòng/Trung tâm'].iloc[0] if not khoa_row.empty else "Không rõ"
-        return info
-    return None
-
-
-def get_user_spreadsheet(sa_gspread_client, email):
-    # (Hàm này được giữ nguyên, không thay đổi)
-    try:
-        mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-        df = pd.DataFrame(mapping_sheet.get_all_records())
-        user_row = df[df['email'] == email]
-        if user_row.empty:
-            return None, None
-        magv = str(user_row.iloc[0]['magv'])
-        spreadsheet = sa_gspread_client.open(magv)
-        return magv, spreadsheet
-    except gspread.exceptions.SpreadsheetNotFound as e:
-        st.error(f"Lỗi: Không tìm thấy file Google Sheet được gán cho bạn (tên file mong muốn: {e.args[0]}). Vui lòng liên hệ Admin.")
-        return None, None
-    except Exception as e:
-        st.error(f"Lỗi khi truy cập file làm việc: {e}")
-        return None, None
-
-
-# --- GIAO DIỆN VÀ LUỒNG ỨNG DỤNG CHÍNH ---
-oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
-
-if 'token' not in st.session_state:
-    st.session_state.token = None
-
-if st.session_state.token is None:
-    st.info("Vui lòng đăng nhập bằng tài khoản Google.")
-    result = oauth2.authorize_button(
-        name="Đăng nhập với Google", icon="https://www.google.com.tw/favicon.ico",
-        redirect_uri=REDIRECT_URI, scope=" ".join(SCOPES), key="google_login", use_container_width=True
-    )
-    if result and 'token' in result:
-        st.session_state.token = result['token']
-        try:
-            user_response = requests.get("https://www.googleapis.com/oauth2/v1/userinfo",
-                                         headers={"Authorization": f"Bearer {result['token']['access_token']}"})
-            user_response.raise_for_status()
-            st.session_state.user_info = user_response.json()
-            st.rerun()
-        except requests.exceptions.RequestException as e:
-            st.error(f"Lỗi khi lấy thông tin người dùng: {e}");
-            st.session_state.token = None
 else:
-    user_info = st.session_state.user_info
-    user_email = user_info.get('email')
-    
-    def main_page():
-        welcome_name = st.session_state.get('tengv', user_info.get('name', ''))
-        st.header(f"Chào mừng, {welcome_name}!")
-        st.info("Đây là trang chính của hệ thống. Vui lòng chọn chức năng từ menu bên trái.")
+    st.warning("Không tìm thấy cột 'Mã_lớp' trong bảng df_lop. Chuẩn GV mặc định sẽ được đặt là 'Trung cấp'. Vui lòng kiểm tra lại dữ liệu nguồn.")
+
+# Lọc df_mon và chuangv dựa trên chuẩn GV đã xác định
+df_mon = df_mon[df_mon['Chủ đề'] == st.session_state.chuan_gv].copy()
+chuangv = chuangv[chuangv['Chuẩn'] == st.session_state.chuan_gv].copy()
+st.sidebar.write(f"Chuẩn GV đã chọn: **{st.session_state.chuan_gv}**")
+
+# --- TIỀN XỬ LÝ DỮ LIỆU df_ngaytuan ---
+if 'Tiết dạy' in df_ngaytuan.columns:
+    df_ngaytuan.rename(columns={'Tiết dạy': 'Tiết'}, inplace=True)
+elif 'Số Tiết' in df_ngaytuan.columns:
+    df_ngaytuan.rename(columns={'Số Tiết': 'Tiết'}, inplace=True)
+
+df_ngaytuan['Tháng'] = pd.to_numeric(df_ngaytuan['Tháng'], errors='coerce')
+df_ngaytuan['Tuần'] = pd.to_numeric(df_ngaytuan['Tuần'], errors='coerce')
+
+df_ngaytuan_filtered = df_ngaytuan[df_ngaytuan['Tuần_Tết'] != 'TẾT'].copy()
+
+# --- LỌC df_ngaytuan DỰA TRÊN TUẦN VÀ LỚP HỌC ĐƯỢC CHỌN ---
+df_ngaytuan_loc = df_ngaytuan_filtered[
+    (df_ngaytuan_filtered['Tuần'] >= tuan_bat_dau) & 
+    (df_ngaytuan_filtered['Tuần'] <= tuan_ket_thuc)
+].copy()
+
+if st.session_state.selected_classes:
+    df_ngaytuan_loc = df_ngaytuan_loc[df_ngaytuan_loc['Lớp'].isin(st.session_state.selected_classes)]
+
+# --- CHÈN CỘT SĨ SỐ DỰA VÀO THÁNG VÀ df_lop ---
+def get_siso(row, df_lop):
+    try:
+        lop = str(row['Lớp']).strip()
+        thang = int(row['Tháng'])
         
-        if st.session_state.get('initialized'):
-            with st.expander("Kiểm tra dữ liệu đã tải: df_quydoi_hd (từ sheet QUYDOI_HD)"):
-                if 'df_quydoi_hd' in st.session_state and not st.session_state.df_quydoi_hd.empty:
-                    st.dataframe(st.session_state.df_quydoi_hd)
-                else:
-                    st.warning("Không có dữ liệu 'df_quydoi_hd' để hiển thị. Vui lòng kiểm tra lại quyền truy cập và tên file/sheet.")
-            
-            with st.expander("Kiểm tra dữ liệu đã tải: df_quydoi_hd_them (từ sheet QUYDOIKHAC)"):
-                if 'df_quydoi_hd_them' in st.session_state and not st.session_state.df_quydoi_hd_them.empty:
-                    st.dataframe(st.session_state.df_quydoi_hd_them)
-                else:
-                    st.warning("Không có dữ liệu 'df_quydoi_hd_them' để hiển thị. Vui lòng kiểm tra lại quyền truy cập và tên file/sheet.")
-    
-    # --- PHÂN QUYỀN VÀ HIỂN THỊ GIAO DIỆN ---
-    if user_email == ADMIN_EMAIL:
-        # Giao diện của Admin (giữ nguyên, không thay đổi)
-        with st.sidebar:
-            st.header(f"Xin chào, {user_info.get('name', '')}!")
-            if st.button("Đăng xuất", use_container_width=True):
-                st.session_state.clear()
-                st.rerun()
-
-        sa_gspread_client, sa_drive_service = connect_as_service_account()
-        admin_gspread_client, admin_drive_service = connect_as_user(st.session_state.token)
-
-        if not sa_gspread_client or not admin_drive_service:
-            st.error("Lỗi kết nối tới Google API. Vui lòng thử lại.")
-            st.stop()
-            
-        st.subheader("👨‍💻 Bảng điều khiển của Admin")
-        main_page()
-        with st.expander("Tạo người dùng hàng loạt từ file Excel", expanded=True):
-            uploaded_file = st.file_uploader(
-                "Chọn file Excel của bạn",
-                type=['xlsx', 'xls'],
-                help="File Excel phải có 2 cột tên là 'email' và 'magv'."
-            )
-            if uploaded_file is not None:
-                if st.button("🚀 Bắt đầu xử lý hàng loạt"):
-                    query = f"mimeType='application/vnd.google-apps.folder' and name='{TARGET_FOLDER_NAME}' and 'me' in owners"
-                    response = admin_drive_service.files().list(q=query, fields='files(id)').execute()
-                    folders = response.get('files', [])
-                    if not folders:
-                        st.error(f"Lỗi: Admin ({ADMIN_EMAIL}) không sở hữu thư mục nào có tên '{TARGET_FOLDER_NAME}'.")
-                    else:
-                        folder_id = folders[0].get('id')
-                        bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file)
+        # Tìm hàng tương ứng trong df_lop
+        lop_row = df_lop[df_lop['Lớp'].str.strip() == lop]
         
-        st.divider()
+        if not lop_row.empty:
+            # Tìm tên cột sĩ số theo tháng
+            siso_col = f"Tháng {thang}"
+            if siso_col in lop_row.columns and pd.notna(lop_row[siso_col].iloc[0]):
+                return int(lop_row[siso_col].iloc[0])
+    except (ValueError, KeyError, TypeError):
+        pass
+    return np.nan
 
-        with st.expander("Cập nhật Email cho Giáo viên"):
-            try:
-                mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-                records = mapping_sheet.get_all_records()
-                df_map = pd.DataFrame(records)
+df_ngaytuan_loc['Sĩ số'] = df_ngaytuan_loc.apply(lambda row: get_siso(row, df_lop), axis=1)
 
-                if not df_map.empty:
-                    magv_list = df_map['magv'].astype(str).tolist()
-                    selected_magv = st.selectbox("Chọn Mã giáo viên để cập nhật", options=[""] + magv_list)
+# --- CHỌN GIÁO VIÊN ---
+gv_options = sorted(chuangv['GV'].unique())
+selected_gv = st.sidebar.selectbox("Chọn Giáo viên", gv_options)
 
-                    if selected_magv:
-                        user_data = df_map[df_map['magv'].astype(str) == selected_magv]
-                        old_email = user_data.iloc[0]['email']
-                        
-                        st.text_input("Email cũ", value=old_email, disabled=True)
-                        new_email = st.text_input("Nhập Email mới", key=f"new_email_{selected_magv}")
+st.markdown(f"### Bảng kết quả tính toán cho Giáo viên: **{selected_gv}**")
 
-                        if st.button("Cập nhật Email"):
-                            if new_email and new_email != old_email:
-                                with st.spinner("Đang cập nhật..."):
-                                    success, message = update_user_email(admin_drive_service, sa_gspread_client,
-                                                                         selected_magv, old_email, new_email)
-                                if success:
-                                    st.success(message)
-                                    st.rerun()
-                                else:
-                                    st.error(message)
-                            else:
-                                st.warning("Vui lòng nhập một email mới và khác với email cũ.")
-                else:
-                    st.info("Bảng phân quyền đang trống.")
-            except Exception as e:
-                st.error(f"Không thể tải danh sách giáo viên: {e}")
+# --- LỌC DỮ LIỆU THEO GIÁO VIÊN VÀ HỌC KỲ ---
+df_gv = df_ngaytuan_loc[df_ngaytuan_loc['GV'] == selected_gv].copy()
+df_hk1 = df_gv[df_gv['Học kỳ'] == 1].copy()
+df_hk2 = df_gv[df_gv['Học kỳ'] == 2].copy()
 
+for df in [df_hk1, df_hk2]:
+    if not df.empty:
+        df['Tiết'] = pd.to_numeric(df['Tiết'], errors='coerce').fillna(0).astype(int)
+
+# Chỉnh sửa: Loại bỏ logic xử lý Sĩ số của lớp ghép ở đây vì đã có cột Sĩ số
+# if not df_lopghep.empty:
+#    ...
+
+if not df_hesosiso.empty:
+    df_hesosiso['Sĩ số'] = pd.to_numeric(df_hesosiso['Sĩ số'], errors='coerce')
+    df_hesosiso['Hệ số'] = pd.to_numeric(df_hesosiso['Hệ số'], errors='coerce')
+
+    def get_heso(siso, df_hesosiso):
+        if pd.isna(siso):
+            return 1.0
+        # Tìm hệ số tương ứng với sĩ số
+        siso_min_less_than = df_hesosiso[df_hesosiso['Sĩ số'] <= siso]['Sĩ số'].max()
+        if pd.isna(siso_min_less_than):
+            return 1.0
+        heso_row = df_hesosiso[df_hesosiso['Sĩ số'] == siso_min_less_than].iloc[0]
+        return heso_row['Hệ số']
+
+    if not df_hk1.empty:
+        df_hk1['Hệ số sĩ số'] = df_hk1['Sĩ số'].apply(lambda x: get_heso(x, df_hesosiso))
+    if not df_hk2.empty:
+        df_hk2['Hệ số sĩ số'] = df_hk2['Sĩ số'].apply(lambda x: get_heso(x, df_hesosiso))
+
+def process_loptach_sc(df, df_loptach, df_lopsc):
+    if df.empty:
+        return df
+    
+    if not df_loptach.empty:
+        df_loptach['Lớp'] = df_loptach['Lớp'].astype(str).str.strip()
+        df_loptach['Tên môn'] = df_loptach['Tên môn'].astype(str).str.strip()
+        df_loptach['Hệ số tách'] = pd.to_numeric(df_loptach['Hệ số tách'], errors='coerce').fillna(1.0)
+        merged_df = pd.merge(df, df_loptach, on=['Lớp', 'Tên môn'], how='left')
+        df['Hệ số tách'] = merged_df['Hệ số tách'].fillna(1.0)
     else:
-        # --- GIAO DIỆN CỦA USER THƯỜNG ---
-        if 'initialized' not in st.session_state:
-            with st.spinner("Đang kiểm tra quyền và tải dữ liệu..."):
-                sa_gspread_client, sa_drive_service = connect_as_service_account()
-                if not sa_gspread_client or not sa_drive_service: st.stop()
+        df['Hệ số tách'] = 1.0
 
-                magv, spreadsheet = get_user_spreadsheet(sa_gspread_client, user_email)
+    if not df_lopsc.empty:
+        df_lopsc['Lớp'] = df_lopsc['Lớp'].astype(str).str.strip()
+        df_lopsc['Tên môn'] = df_lopsc['Tên môn'].astype(str).str.strip()
+        df_lopsc['Hệ số SC'] = pd.to_numeric(df_lopsc['Hệ số SC'], errors='coerce').fillna(1.0)
+        merged_df = pd.merge(df, df_lopsc, on=['Lớp', 'Tên môn'], how='left')
+        df['Hệ số SC'] = merged_df['Hệ số SC'].fillna(1.0)
+    else:
+        df['Hệ số SC'] = 1.0
+    return df
 
-                if magv and spreadsheet:
-                    all_base_data = load_all_base_data(sa_gspread_client, sa_drive_service) 
-                    
-                    if all_base_data.get('df_giaovien').empty or all_base_data.get('df_khoa').empty:
-                        st.error("Không thể tải dữ liệu giáo viên hoặc khoa. Vui lòng liên hệ Admin.")
-                        st.stop()
-                    
-                    teacher_info = get_teacher_info_from_local(magv, all_base_data.get('df_giaovien'), all_base_data.get('df_khoa'))
+df_hk1 = process_loptach_sc(df_hk1, df_loptach, df_lopsc)
+df_hk2 = process_loptach_sc(df_hk2, df_loptach, df_lopsc)
 
-                    if teacher_info:
-                        st.session_state.magv = magv
-                        st.session_state.spreadsheet = spreadsheet
-                        for key, df_data in all_base_data.items():
-                            st.session_state[key] = df_data
-                        st.session_state.tengv = teacher_info.get('Tên giảng viên')
-                        st.session_state.ten_khoa = teacher_info.get('ten_khoa')
-                        st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
-                        giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
-                        st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
-                        st.session_state.initialized = True
-                        st.rerun() 
-                    else:
-                        st.error(f"Đã xác thực nhưng không tìm thấy thông tin chi tiết cho Mã GV: {magv} trong dữ liệu cục bộ.")
-                        st.stop()
-                else:
-                    st.error("Tài khoản của bạn chưa được đăng ký trong hệ thống.")
-                    st.warning(f"Vui lòng liên hệ Admin ({ADMIN_EMAIL}) để được cấp quyền truy cập.")
-                    st.stop()
+df_mon_hk1 = df_mon[df_mon['Học kỳ'] == 1].copy()
+df_mon_hk2 = df_mon[df_mon['Học kỳ'] == 2].copy()
 
-        if st.session_state.get('initialized'):
-            with st.sidebar:
-                st.header(":green[THÔNG TIN GIÁO VIÊN]")
-                st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
-                st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
-                st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
-                st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
-                st.write(f"**Chuẩn GV:** :green[{st.session_state.chuangv}]")
-                st.divider()
-                if st.button("Đăng xuất", use_container_width=True, key="user_logout"):
-                    st.session_state.clear()
-                    st.rerun()
-            
-            # <<<--- BẮT ĐẦU PHẦN CODE MỚI --- >>>
-            # LOGIC ĐỂ TỰ ĐỘNG TẢI LẠI DỮ LIỆU KHI CHUYỂN TRANG
-            # Lấy tên trang hiện tại từ URL query params. 'st.navigation' tự động cập nhật param 'page'.
-            # Nếu không có param 'page' (lần chạy đầu tiên), mặc định là 'Trang chủ'.
-            current_page_title = st.query_params.get("page", "Trang chủ")
+def calculate_converted_time(df, df_mon):
+    if df.empty:
+        return pd.DataFrame()
 
-            # Lấy tên trang đã lưu từ lần chạy trước
-            previous_page_title = st.session_state.get('current_page_title', None)
+    merged_df = pd.merge(df, df_mon, on='Môn học', how='left')
+    merged_df['Hệ số môn'] = pd.to_numeric(merged_df['Hệ số môn'], errors='coerce').fillna(1.0)
+    merged_df['Quy đổi'] = merged_df['Tiết'] * merged_df['Hệ số môn'] * merged_df['Hệ số sĩ số'] * merged_df['Hệ số tách'] * merged_df['Hệ số SC']
+    
+    # Loại bỏ các cột trùng lặp
+    merged_df = merged_df.loc[:,~merged_df.columns.duplicated()]
 
-            # Nếu trang đã thay đổi so với lần trước, đặt cờ yêu cầu tải lại dữ liệu
-            if previous_page_title != current_page_title:
-                st.session_state['force_page_reload'] = True
-                # Cập nhật trang hiện tại vào session state để so sánh cho lần sau
-                st.session_state['current_page_title'] = current_page_title
-            # <<<--- KẾT THÚC PHẦN CODE MỚI --- >>>
+    return merged_df
 
-            pages = {
-                "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
-                "Kê khai": [
-                    st.Page("quydoi_gioday.py", title="Kê giờ dạy", icon="✍️"),
-                    st.Page("quydoi_thiketthuc.py", title="Kê Thi kết thúc", icon="📝"),
-                    st.Page("quydoi_giamgio.py", title="Kê Giảm trừ/Kiêm nhiệm", icon="⚖️"),
-                    st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃")
-                ],
-                "Báo cáo": [st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file", icon="📄")],
-                "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")]
-            }
-            pg = st.navigation(pages)
-            pg.run()
+df_hk1_final = calculate_converted_time(df_hk1, df_mon_hk1)
+df_hk2_final = calculate_converted_time(df_hk2, df_mon_hk2)
+
+def calculate_thua_thieu(df, chuangv, selected_gv):
+    if df.empty or chuangv.empty:
+        return df
+
+    gv_row = chuangv[chuangv['GV'] == selected_gv]
+    if gv_row.empty:
+        df['Tiết chuẩn'] = 0
+        df['QĐ thừa'] = 0
+        df['QĐ thiếu'] = 0
+        return df
+
+    tiet_chuan = gv_row['Hệ số'].iloc[0]
+    total_qd = df['Quy đổi'].sum()
+    
+    df['Tiết chuẩn'] = tiet_chuan
+    df['QĐ thừa'] = max(0, total_qd - tiet_chuan)
+    df['QĐ thiếu'] = max(0, tiet_chuan - total_qd)
+
+    return df
+
+df_hk1_final = calculate_thua_thieu(df_hk1_final, chuangv, selected_gv)
+df_hk2_final = calculate_thua_thieu(df_hk2_final, chuangv, selected_gv)
+
+if not df_hk1_final.empty:
+    df_hk1_final['Tiết'] = df_hk1_final['Tiết'].astype(int)
+    df_hk1_final['Sĩ số'] = df_hk1_final['Sĩ số'].astype(int)
+    df_hk1_final['Hệ số môn'] = df_hk1_final['Hệ số môn'].round(1)
+    df_hk1_final['Hệ số sĩ số'] = df_hk1_final['Hệ số sĩ số'].round(1)
+    df_hk1_final['Hệ số tách'] = df_hk1_final['Hệ số tách'].round(1)
+    df_hk1_final['Hệ số SC'] = df_hk1_final['Hệ số SC'].round(1)
+    df_hk1_final['Quy đổi'] = df_hk1_final['Quy đổi'].round(2)
+    df_hk1_final['Tiết chuẩn'] = df_hk1_final['Tiết chuẩn'].round(2)
+    df_hk1_final['QĐ thừa'] = df_hk1_final['QĐ thừa'].round(2)
+    df_hk1_final['QĐ thiếu'] = df_hk1_final['QĐ thiếu'].round(2)
+    
+if not df_hk2_final.empty:
+    df_hk2_final['Tiết'] = df_hk2_final['Tiết'].astype(int)
+    df_hk2_final['Sĩ số'] = df_hk2_final['Sĩ số'].astype(int)
+    df_hk2_final['Hệ số môn'] = df_hk2_final['Hệ số môn'].round(1)
+    df_hk2_final['Hệ số sĩ số'] = df_hk2_final['Hệ số sĩ số'].round(1)
+    df_hk2_final['Hệ số tách'] = df_hk2_final['Hệ số tách'].round(1)
+    df_hk2_final['Hệ số SC'] = df_hk2_final['Hệ số SC'].round(1)
+    df_hk2_final['Quy đổi'] = df_hk2_final['Quy đổi'].round(2)
+    df_hk2_final['Tiết chuẩn'] = df_hk2_final['Tiết chuẩn'].round(2)
+    df_hk2_final['QĐ thừa'] = df_hk2_final['QĐ thừa'].round(2)
+    df_hk2_final['QĐ thiếu'] = df_hk2_final['QĐ thiếu'].round(2)
+
+columns_to_display = ['GV', 'Môn học', 'Lớp', 'Tiết', 'Tuần', 'Tháng', 'Học kỳ', 'Sĩ số',
+                      'Hệ số môn', 'Hệ số sĩ số', 'Hệ số tách', 'Hệ số SC', 'Quy đổi']
+
+final_columns_to_display = [col for col in columns_to_display if col in df_hk1_final.columns]
+
+st.markdown("<div class='dataframe-container'>", unsafe_allow_html=True)
+st.subheader("Học kỳ 1")
+if not df_hk1_final.empty:
+    st.dataframe(df_hk1_final[final_columns_to_display])
+else:
+    st.info("Không có dữ liệu cho Học kỳ 1.")
+st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("<div class='dataframe-container'>", unsafe_allow_html=True)
+st.subheader("Học kỳ 2")
+if not df_hk2_final.empty:
+    st.dataframe(df_hk2_final[final_columns_to_display])
+else:
+    st.info("Không có dữ liệu cho Học kỳ 2.")
+st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("---")
+
+def display_totals(title, df):
+    if df.empty:
+        st.subheader(title)
+        st.info("Không có dữ liệu để tính tổng.")
+        return 0, 0, 0
+    total_tiet_day = df['Tiết'].sum()
+    total_qd_thua = df['QĐ thừa'].iloc[0] if 'QĐ thừa' in df.columns and not df.empty else 0
+    total_qd_thieu = df['QĐ thiếu'].iloc[0] if 'QĐ thiếu' in df.columns and not df.empty else 0
+    
+    st.subheader(title)
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Tổng Tiết dạy", f"{total_tiet_day:,.0f}")
+    col2.metric("Tổng Quy đổi", f"{df['Quy đổi'].sum():,.1f}")
+    col3.metric("Tiết chuẩn", f"{df['Tiết chuẩn'].iloc[0]:,.1f}")
+
+    col4, col5, col6 = st.columns(3)
+    col4.metric("Quy đổi thừa", f"{total_qd_thua:,.1f}")
+    col5.metric("Quy đổi thiếu", f"{total_qd_thieu:,.1f}")
+    
+    return total_tiet_day, total_qd_thua, total_qd_thieu
+
+tiet_hk1, qd_thua_hk1, qd_thieu_hk1 = display_totals("Tổng hợp Học kỳ 1", df_hk1_final)
+tiet_hk2, qd_thua_hk2, qd_thieu_hk2 = display_totals("Tổng hợp Học kỳ 2", df_hk2_final)
+
+st.markdown("---")
+
+st.subheader("Tổng hợp cả hai Học kỳ")
+total_tiet = tiet_hk1 + tiet_hk2
+total_qd_thua = qd_thua_hk1 + qd_thua_hk2
+total_qd_thieu = qd_thieu_hk1 + qd_thieu_hk2
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Tổng Tiết dạy", f"{total_tiet:,.0f}")
+col2.metric("Tổng Quy đổi (khi dư giờ)", f"{total_qd_thua:,.1f}")
+col3.metric("Tổng quy đổi (khi thiếu giờ)", f"{total_qd_thieu:,.1f}")
