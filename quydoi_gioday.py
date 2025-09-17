@@ -224,6 +224,17 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     final_columns = ["Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "QĐ thiếu"]
     df_final = df_result[[col for col in final_columns if col in df_result.columns]]
 
+    # Thêm thông tin giải thích vào `st.session_state`
+    processing_log = {
+        'lop_chon': lop_chon,
+        'mon_chon': mon_chon,
+        'malop': malop,
+        'selected_khoa': selected_khoa,
+        'tuandentuan': tuandentuan,
+        'siso_per_month': {thang: siso_value for thang, siso_value in zip(locdulieu_info['Tháng'], dssiso)}
+    }
+    st.session_state[f'processing_log_{input_data.get("index")}'] = processing_log
+    
     summary_info = {"mamon": mamon_info['Mã_môn'].iloc[0], "heso_tccd": df_final['HS TC/CĐ'].mean()}
     
     return df_final, summary_info
@@ -235,7 +246,7 @@ def get_default_input_dict():
     if df_lop_g is not None and not df_lop_g.empty:
         filtered_lops = df_lop_g[df_lop_g['Mã_lớp'].astype(str).str.startswith('48', na=False)]['Lớp']
         default_lop = filtered_lops.iloc[0] if not filtered_lops.empty else df_lop_g['Lớp'].iloc[0]
-    return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': DEFAULT_TIET_STRING, 'tiet_lt': '0', 'tiet_th': '0'}
+    return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': DEFAULT_TIET_STRING, 'tiet_lt': '0', 'tiet_th': '0', 'index': len(st.session_state.get('mon_hoc_data', []))}
 
 def load_data_from_sheet(worksheet_name):
     """Tải dữ liệu từ một worksheet cụ thể."""
@@ -265,6 +276,11 @@ def save_data_to_sheet(worksheet_name, data_to_save):
     df_to_save = pd.DataFrame([data_to_save]) if isinstance(data_to_save, dict) else data_to_save.copy()
     if 'tuan' in df_to_save.columns:
         df_to_save['tuan'] = df_to_save['tuan'].astype(object).apply(lambda x: str(x) if isinstance(x, tuple) else x)
+    
+    # Loại bỏ cột index trước khi lưu
+    if 'index' in df_to_save.columns:
+        df_to_save = df_to_save.drop(columns=['index'])
+        
     set_with_dataframe(worksheet, df_to_save, include_index=False, resize=True)
 
 def load_all_mon_data():
@@ -285,6 +301,7 @@ def load_all_mon_data():
         result_ws_name = f'output_giangday_{i}'
         
         input_data = load_data_from_sheet(input_ws_name)
+        if input_data: input_data['index'] = len(st.session_state.mon_hoc_data)
         st.session_state.mon_hoc_data.append(input_data if input_data else get_default_input_dict())
         
         try:
@@ -477,6 +494,32 @@ for i, tab in enumerate(tabs[:-1]):
 
             df_with_total = pd.concat([df_display, total_row_df], ignore_index=True)
             st.dataframe(df_with_total.fillna(''))
+            
+            # Khối giải thích quá trình xử lý dữ liệu
+            with st.expander("📝 Giải thích chi tiết quá trình lấy dữ liệu"):
+                processing_log = st.session_state.get(f'processing_log_{i}', {})
+                st.markdown(f"""
+                Dưới đây là các bước hệ thống đã thực hiện để tạo ra bảng tính toán này:
+
+                1.  **Chọn Lớp học & Môn học:**
+                    -   Bạn đã chọn **Lớp `{processing_log.get('lop_chon')}`** từ danh sách lớp của **`{processing_log.get('selected_khoa')}`**.
+                    -   Hệ thống tra cứu trong bảng **`df_lop`** để tìm **Mã_lớp** tương ứng, ở đây là `{processing_log.get('malop')}`.
+                    -   Tiếp đó, hệ thống tìm **Mã_DSMON** của lớp này (ví dụ: `MON481X` cho lớp `K48D1...`).
+                    -   Hệ thống dùng `Mã_DSMON` để lọc bảng **`df_mon`** và tìm danh sách môn học cho ngành đó.
+                    -   Cuối cùng, hệ thống xác nhận rằng **Môn học `{processing_log.get('mon_chon')}`** tồn tại trong danh sách này.
+                
+                2.  **Lấy Sĩ số theo tháng:**
+                    -   Bạn đã chọn tuần giảng dạy từ **`{processing_log.get('tuandentuan', (1, 1))}`**.
+                    -   Hệ thống lấy thông tin **Tháng** từ bảng **`df_ngaytuan`** cho các tuần này.
+                    -   Đối với **mỗi tháng** trong phạm vi đã chọn, hệ thống tra cứu lại dòng của lớp **`{processing_log.get('lop_chon')}`** trong bảng **`df_lop`**.
+                    -   Hệ thống dùng tên tháng (`T9`, `T10`,...) làm tên cột để lấy giá trị sĩ số tương ứng.
+                    -   **Kết quả:** Sĩ số cho từng tháng đã được ghi nhận như sau:
+                        -   `{', '.join([f'{month}: {siso}' for month, siso in processing_log.get('siso_per_month', {}).items()])}`
+                    
+                3.  **Hoàn tất tính toán:**
+                    -   Hệ thống sử dụng các giá trị sĩ số đã lấy được ở trên để tính toán **Hệ số sĩ số (HS_SS_LT, HS_SS_TH)** cho từng tuần, tương ứng với tháng mà tuần đó thuộc về.
+                    -   Các cột còn lại trong bảng kết quả được tính toán dựa trên các công thức đã định sẵn, sử dụng các giá trị này.
+                """)
         else:
             st.info("Chưa có dữ liệu tính toán hợp lệ.")
 
