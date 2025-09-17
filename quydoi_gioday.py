@@ -133,10 +133,10 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     malop = malop_info['Mã_lớp'].iloc[0]
     
     dsmon_code = malop_info['Mã_DSMON'].iloc[0]
-    mon_info = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
-    if mon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'."}
+    mon_info_source = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
+    if mon_info_source.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'."}
 
-    mamon_info = mon_info[mon_info['Môn_học'] == mon_chon]
+    mamon_info = mon_info_source[mon_info_source['Môn_học'] == mon_chon]
     if mamon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
 
     # Lấy thông tin về Nặng nhọc và loại tiết
@@ -223,6 +223,15 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
     final_columns = ["Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "QĐ thiếu"]
     df_final = df_result[[col for col in final_columns if col in df_result.columns]]
+    
+    # Tạo bảng sĩ số theo tuần
+    siso_by_week = pd.DataFrame({
+        'Tuần': list(range(tuanbatdau, tuanketthuc + 1)),
+        'Sĩ số': dssiso
+    })
+    
+    # Lấy thông tin môn học đã lọc
+    mon_info_filtered = mon_info_source[mon_info_source['Môn_học'] == mon_chon]
 
     # Thêm thông tin giải thích vào `st.session_state`
     processing_log = {
@@ -231,7 +240,9 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         'malop': malop,
         'selected_khoa': selected_khoa,
         'tuandentuan': tuandentuan,
-        'siso_per_month': {thang: siso_value for thang, siso_value in zip(locdulieu_info['Tháng'], dssiso)}
+        'siso_per_month_df': siso_by_week,
+        'malop_info_df': malop_info,
+        'mon_info_filtered_df': mon_info_filtered
     }
     st.session_state[f'processing_log_{input_data.get("index")}'] = processing_log
     
@@ -395,7 +406,8 @@ for i, tab in enumerate(tabs[:-1]):
         if source_df is not None and not source_df.empty:
             if selected_khoa.startswith('Khóa'):
                 khoa_prefix = selected_khoa.split(' ')[1]
-                filtered_lop_options = source_df[source_df['Mã_lớp'].astype(str).str.startswith(khoa_prefix, na=False)]['Lớp'].tolist()
+                filtered_lops = source_df[source_df['Mã_lớp'].astype(str).str.startswith(khoa_prefix, na=False)]['Lớp']
+                filtered_lop_options = filtered_lops.tolist()
             else:
                 filtered_lop_options = source_df['Lớp'].tolist()
         
@@ -496,28 +508,47 @@ for i, tab in enumerate(tabs[:-1]):
             st.dataframe(df_with_total.fillna(''))
             
             # Khối giải thích quá trình xử lý dữ liệu
-            with st.expander("📝 Giải thích chi tiết quá trình lấy dữ liệu"):
+            with st.expander("📝 Giải thích quy trình quy đổi tiết giảng dạy"):
                 processing_log = st.session_state.get(f'processing_log_{i}', {})
                 st.markdown(f"""
                 Dưới đây là các bước hệ thống đã thực hiện để tạo ra bảng tính toán này:
 
-                1.  **Chọn Lớp học & Môn học:**
-                    -   Bạn đã chọn **Lớp `{processing_log.get('lop_chon')}`** từ danh sách lớp của **`{processing_log.get('selected_khoa')}`**.
-                    -   Hệ thống tra cứu trong bảng **`df_lop`** để tìm **Mã_lớp** tương ứng, ở đây là `{processing_log.get('malop')}`.
-                    -   Tiếp đó, hệ thống tìm **Mã_DSMON** của lớp này (ví dụ: `MON481X` cho lớp `K48D1...`).
-                    -   Hệ thống dùng `Mã_DSMON` để lọc bảng **`df_mon`** và tìm danh sách môn học cho ngành đó.
-                    -   Cuối cùng, hệ thống xác nhận rằng **Môn học `{processing_log.get('mon_chon')}`** tồn tại trong danh sách này.
+                1.  **Lấy thông tin từ lớp học đã chọn:**
+                    -   Bạn đã chọn **Lớp `{processing_log.get('lop_chon')}`**.
+                    -   Hệ thống đã lọc dữ liệu từ bảng `df_lop` để lấy thông tin chi tiết của lớp này:
+                """)
+                if not processing_log.get('malop_info_df', pd.DataFrame()).empty:
+                    st.dataframe(processing_log['malop_info_df'])
+                else:
+                    st.info("Không tìm thấy dữ liệu chi tiết cho lớp học đã chọn.")
                 
-                2.  **Lấy Sĩ số theo tháng:**
+                st.markdown(f"""
+                2.  **Lấy thông tin môn học đã chọn:**
+                    -   Bạn đã chọn **Môn học `{processing_log.get('mon_chon')}`**.
+                    -   Hệ thống đã lọc dữ liệu từ bảng `df_mon` để lấy thông tin chi tiết của môn học này:
+                """)
+                if not processing_log.get('mon_info_filtered_df', pd.DataFrame()).empty:
+                    st.dataframe(processing_log['mon_info_filtered_df'])
+                else:
+                    st.info("Không tìm thấy dữ liệu chi tiết cho môn học đã chọn.")
+                
+                st.markdown(f"""
+                3.  **Lấy Sĩ số theo tuần:**
                     -   Bạn đã chọn tuần giảng dạy từ **`{processing_log.get('tuandentuan', (1, 1))}`**.
-                    -   Hệ thống lấy thông tin **Tháng** từ bảng **`df_ngaytuan`** cho các tuần này.
-                    -   Đối với **mỗi tháng** trong phạm vi đã chọn, hệ thống tra cứu lại dòng của lớp **`{processing_log.get('lop_chon')}`** trong bảng **`df_lop`**.
-                    -   Hệ thống dùng tên tháng (`T9`, `T10`,...) làm tên cột để lấy giá trị sĩ số tương ứng.
-                    -   **Kết quả:** Sĩ số cho từng tháng đã được ghi nhận như sau:
-                        -   `{', '.join([f'{month}: {siso}' for month, siso in processing_log.get('siso_per_month', {}).items()])}`
-                    
-                3.  **Hoàn tất tính toán:**
-                    -   Hệ thống sử dụng các giá trị sĩ số đã lấy được ở trên để tính toán **Hệ số sĩ số (HS_SS_LT, HS_SS_TH)** cho từng tuần, tương ứng với tháng mà tuần đó thuộc về.
+                    -   Hệ thống lấy thông tin sĩ số từ bảng `df_lop` tương ứng với tháng mà mỗi tuần thuộc về.
+                    -   **Kết quả sĩ số theo từng tuần:**
+                """)
+                if not processing_log.get('siso_per_month_df', pd.DataFrame()).empty:
+                    siso_df = processing_log['siso_per_month_df'].T
+                    siso_df.columns = [f"Tuần {t}" for t in siso_df.iloc[0]]
+                    siso_df = siso_df.iloc[1:]
+                    st.dataframe(siso_df)
+                else:
+                    st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")
+                
+                st.markdown(f"""
+                4.  **Hoàn tất tính toán:**
+                    -   Hệ thống sử dụng các giá trị sĩ số đã lấy được ở trên để tính toán **Hệ số sĩ số (HS_SS_LT, HS_SS_TH)** cho từng tuần.
                     -   Các cột còn lại trong bảng kết quả được tính toán dựa trên các công thức đã định sẵn, sử dụng các giá trị này.
                 """)
         else:
