@@ -60,6 +60,9 @@ if 'last_input_week_start' not in st.session_state:
     st.session_state.last_input_week_start = 1
 if 'last_input_week_end' not in st.session_state:
     st.session_state.last_input_week_end = 52
+# Khởi tạo Chuẩn GV trong session state
+if 'chuan_gv' not in st.session_state:
+    st.session_state.chuan_gv = 'Trung cấp'
 
 # --- TẢI DỮ LIỆU TỪ SESSION STATE ---
 df_lop = st.session_state.df_lop
@@ -150,6 +153,19 @@ def get_siso(row, siso_dict):
 
 # Áp dụng hàm để tạo cột Sĩ số
 df_ngaytuan_loc['Sĩ số'] = df_ngaytuan_loc.apply(lambda row: get_siso(row, siso_dict), axis=1)
+
+# --- XỬ LÝ CHUẨN GIÁO VIÊN ---
+# Kiểm tra nếu có lớp Cao đẳng trong df_ngaytuan_loc để cập nhật chuẩn GV
+# Một lớp Cao đẳng được định nghĩa là mã lớp có ký tự "1" ở vị trí thứ 3 (chỉ số 2)
+if any(isinstance(lop, str) and len(lop) > 2 and lop[2] == '1' for lop in df_ngaytuan_loc['Lớp']):
+    st.session_state.chuan_gv = 'Cao đẳng'
+else:
+    st.session_state.chuan_gv = 'Trung cấp'
+
+# Lọc df_mon và chuangv dựa trên chuẩn GV đã xác định
+df_mon = df_mon[df_mon['Chủ đề'] == st.session_state.chuan_gv].copy()
+chuangv = chuangv[chuangv['Chuẩn'] == st.session_state.chuan_gv].copy()
+st.sidebar.write(f"Chuẩn GV đã chọn: **{st.session_state.chuan_gv}**")
 
 # --- CHỌN GIÁO VIÊN ---
 gv_options = sorted(chuangv['GV'].unique())
