@@ -86,15 +86,41 @@ if tuan_bat_dau > tuan_ket_thuc:
 st.session_state.last_input_week_start = tuan_bat_dau
 st.session_state.last_input_week_end = tuan_ket_thuc
 
+# --- TIỀN XỬ LÝ DỮ LIỆU df_ngaytuan ---
+# Ánh xạ tên cột để khắc phục lỗi KeyError
+if 'Tiết dạy' in df_ngaytuan.columns:
+    df_ngaytuan.rename(columns={'Tiết dạy': 'Tiết'}, inplace=True)
+elif 'Số Tiết' in df_ngaytuan.columns:
+    df_ngaytuan.rename(columns={'Số Tiết': 'Tiết'}, inplace=True)
+# Thêm các tên cột khác nếu cần
+
+# Hàm để trích xuất số từ chuỗi
+def extract_number(text):
+    if pd.isna(text):
+        return np.nan
+    match = re.search(r'\d+', str(text))
+    return int(match.group()) if match else np.nan
+
+# Áp dụng định dạng và trích xuất dữ liệu
+df_ngaytuan['Tháng'] = df_ngaytuan['Tháng'].apply(extract_number)
+df_ngaytuan['Tuần'] = df_ngaytuan['Tuần'].apply(extract_number)
+df_ngaytuan['Từ ngày đến ngày'] = df_ngaytuan['Từ ngày đến ngày'].astype(str)
+
+# Chuyển đổi cột ngày
+df_ngaytuan['Ngày bắt đầu'] = pd.to_datetime(df_ngaytuan['Ngày bắt đầu'], format='%d/%m/%Y', errors='coerce')
+df_ngaytuan['Ngày kết thúc'] = pd.to_datetime(df_ngaytuan['Ngày kết thúc'], format='%d/%m/%Y', errors='coerce')
+
+# Lọc bỏ các tuần nghỉ TẾT
+df_ngaytuan_filtered = df_ngaytuan[df_ngaytuan['Tuần_Tết'] != 'TẾT'].copy()
+
 # --- LỌC df_ngaytuan DỰA TRÊN TUẦN BẮT ĐẦU VÀ KẾT THÚC ---
-df_ngaytuan_loc = df_ngaytuan[
-    (df_ngaytuan['Tuần'] >= tuan_bat_dau) & 
-    (df_ngaytuan['Tuần'] <= tuan_ket_thuc)
+df_ngaytuan_loc = df_ngaytuan_filtered[
+    (df_ngaytuan_filtered['Tuần'] >= tuan_bat_dau) & 
+    (df_ngaytuan_filtered['Tuần'] <= tuan_ket_thuc)
 ].copy()
 
 # --- CHÈN CỘT SĨ SỐ DỰA VÀO THÁNG VÀ df_lop ---
 # Lấy danh sách các lớp từ df_ngaytuan_loc
-list_lop = df_ngaytuan_loc['Lớp'].unique()
 df_lop['Lớp'] = df_lop['Lớp'].astype(str).str.strip()
 
 # Tạo một dictionary để lưu trữ sĩ số theo tháng cho từng lớp
