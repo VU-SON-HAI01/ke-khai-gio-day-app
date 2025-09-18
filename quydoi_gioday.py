@@ -209,7 +209,7 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     
     # NEW LOGIC: DYNAMICALLY CALCULATE HS TC/CĐ
     # Get the chuan_lop for the selected class
-    chuan_lop_hien_tai = 'TC' if int(str(malop)[:3]) > 1 else 'CĐ'
+    chuan_lop_hien_tai = 'TC' if int(str(malop)[2:3]) > 1 else 'CĐ'
     # Use the new chuan_lop in the function call
     df_result['HS TC/CĐ'] = timheso_tc_cd(chuangv, malop)
     # END OF NEW LOGIC
