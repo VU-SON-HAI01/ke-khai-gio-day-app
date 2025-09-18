@@ -1,7 +1,3 @@
-# Tiêu đề: Quy đổi giờ dạy
-# Mục đích: Tính toán và quy đổi giờ giảng dạy dựa trên các hệ số khác nhau.
-# Phiên bản: 1.0
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -49,12 +45,11 @@ def timheso_tc_cd(chuangv, malop):
     """
     Find the coefficient based on the teacher's standard and class code.
     
-    This function contains the OLD logic for timheso_tc_cd.
-    The new logic is implemented within the main UI loop.
+    This function has been simplified to return a fixed value as the main logic for
+    determining 'chuangv' is now handled dynamically in a separate function.
+    The actual coefficient calculation based on 'chuangv' is done later in process_mon_data.
     """
-    chuangv_short = {"Cao đẳng": "CĐ", "Trung cấp": "TC"}.get(chuangv, "CĐ")
-    heso_map = {"CĐ": {"1": 1, "2": 0.89, "3": 0.79}, "TC": {"1": 1, "2": 1, "3": 0.89}}
-    return heso_map.get(chuangv_short, {}).get(str(malop)[2], 2.0) if len(str(malop)) >= 3 else 2.0
+    return 2.0
 
 def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
     """
@@ -113,13 +108,13 @@ ma_gv = st.session_state.get('magv', 'khong_ro')
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
 KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
 
-def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g):
+def process_mon_data(input_data, chuangv_hien_tai, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g):
     """
     Main processing function, calculates the conversion of teaching hours.
     
     Parameters:
     - input_data: A dictionary containing user selections.
-    - chuangv: Teacher's standard (will be dynamically calculated by the new logic).
+    - chuangv_hien_tai: The teacher's standard ('Cao đẳng' or 'Trung cấp') passed from the main UI loop.
     - df_lop_g, etc.: DataFrames from session state.
     """
     lop_chon = input_data.get('lop_hoc')
@@ -192,27 +187,29 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
 
     df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
 
-    # NEW LOGIC: FIND CLASS SIZE BY CLASS CODE AND MONTH
+    # Get class size for each month
     siso_list = []
     for month in df_result['Tháng']:
-        # FIX: Change how column names are created to match "Tháng 8", "Tháng 9", ...
         month_col = f"Tháng {month}"
         siso = malop_info[month_col].iloc[0] if month_col in malop_info.columns else 0
         siso_list.append(siso)
 
     df_result['Sĩ số'] = siso_list
+    
+    # NEW LOGIC: DYNAMICALLY CALCULATE HS TC/CĐ
+    heso_map = {"CĐ": {"1": 1, "2": 0.89, "3": 0.79}, "TC": {"1": 1, "2": 1, "3": 0.89}}
+    malop_string = str(malop)
+    # Use the 3rd character from the left (index 2) to determine the class type
+    class_type_digit = malop_string[2] if len(malop_string) >= 3 else '1'
+    
+    heso_tccd = heso_map.get('CĐ' if chuangv_hien_tai == 'Cao đẳng' else 'TC', {}).get(class_type_digit, 2.0)
+    
+    df_result['HS TC/CĐ'] = heso_tccd
     # END OF NEW LOGIC
-
+    
     df_result['Tiết'] = arr_tiet
     df_result['Tiết_LT'] = arr_tiet_lt
     df_result['Tiết_TH'] = arr_tiet_th
-    
-    # NEW LOGIC: DYNAMICALLY CALCULATE HS TC/CĐ
-    # Get the chuan_lop for the selected class
-    chuan_lop_hien_tai = 'TC' if int(str(malop)[2:3]) > 1 else 'CĐ'
-    # Use the new chuan_lop in the function call
-    df_result['HS TC/CĐ'] = timheso_tc_cd(chuangv, malop)
-    # END OF NEW LOGIC
     
     heso_lt_list, heso_th_list = [], []
     for siso in df_result['Sĩ số']:
@@ -261,7 +258,7 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     }
     st.session_state[f'processing_log_{input_data.get("index")}'] = processing_log
     
-    summary_info = {"mamon": mamon_info['Mã_môn'].iloc[0], "heso_tccd": df_final['HS TC/CĐ'].mean()}
+    summary_info = {"mamon": mamon_info['Mã_môn'].iloc[0], "heso_tccd": heso_tccd}
     
     return df_final, summary_info
 
@@ -404,8 +401,11 @@ def update_chuangv():
             if not malop_info.empty:
                 malop = malop_info['Mã_lớp'].iloc[0]
                 # Convert the 3rd character from the left to a number and compare
-                chuan_lop = 'TC' if int(str(malop)[2:3]) > 1 else 'CĐ'
-                chuan_lops_all.append(chuan_lop)
+                try:
+                    chuan_lop = 'TC' if int(str(malop)[2:3]) > 1 else 'CĐ'
+                    chuan_lops_all.append(chuan_lop)
+                except (ValueError, IndexError):
+                    pass # Ignore if malop is not in the expected format
     
     # Check the rule to determine chuangv
     if all(chuan == 'TC' for chuan in chuan_lops_all) and chuan_lops_all:
@@ -417,11 +417,11 @@ def update_chuangv():
 st.title("Bảng kê giờ giảng")
 st.write(f"Giáo viên: **{st.session_state.get('hoten', 'Không rõ')}**")
 
-if st.session_state.get('chuangv'):
-    st.info(f"Chuẩn giáo viên hiện tại của bạn được xác định là: **{st.session_state.chuangv}**")
-
 # Call the function to update chuangv before rendering the UI
 update_chuangv()
+
+if st.session_state.get('chuangv'):
+    st.info(f"Chuẩn giáo viên hiện tại của bạn được xác định là: **{st.session_state.chuangv}**")
 
 for i, input_data in enumerate(st.session_state.mon_hoc_data):
     st.markdown(f"### Môn học {i + 1}")
@@ -481,8 +481,11 @@ for i, input_data in enumerate(st.session_state.mon_hoc_data):
                 malop_info_hien_tai = source_df[source_df['Lớp'] == lop_chon]
                 if not malop_info_hien_tai.empty:
                     malop_hien_tai = malop_info_hien_tai['Mã_lớp'].iloc[0]
-                    chuan_lop_hien_tai = 'Trung cấp' if int(str(malop_hien_tai)[2:3]) > 1 else 'Cao đẳng'
-                    st.markdown(f"**Chuẩn lớp:** **{chuan_lop_hien_tai}**")
+                    try:
+                        chuan_lop_hien_tai = 'Trung cấp' if int(str(malop_hien_tai)[2:3]) > 1 else 'Cao đẳng'
+                        st.markdown(f"**Chuẩn lớp:** **{chuan_lop_hien_tai}**")
+                    except (ValueError, IndexError):
+                        st.markdown(f"**Chuẩn lớp:** **Không xác định**")
 
 
         # Update session state with selected values
