@@ -7,6 +7,9 @@ import ast
 import re
 from itertools import zip_longest
 
+
+
+
 # ==============================
 # BẮT ĐẦU: LOGIC TỪ FUN_QUYDOI.PY
 # ==============================
@@ -237,7 +240,28 @@ df_lop_g = st.session_state.get('df_lop')
 df_mon_g = st.session_state.get('df_mon')
 df_ngaytuan_g = st.session_state.get('df_ngaytuan')
 df_hesosiso_g = st.session_state.get('df_hesosiso')
-chuangv = st.session_state.get('chuangv', 'khong_ro')
+
+# Xác định chuangv động từ danh sách mã môn trong tất cả các tab
+mon_data_list = st.session_state.get('mon_hoc_data', [])
+danh_sach_mamon = []
+
+if df_mon_g is not None and not df_mon_g.empty:
+    for mon_data in mon_data_list:
+        mon_hoc = mon_data.get('mon_hoc')
+        if mon_hoc:
+            dsmon_code = df_lop_g[df_lop_g['Lớp'] == mon_data.get('lop_hoc')]['Mã_DSMON'].iloc[0] \                         if not df_lop_g.empty else None
+            if dsmon_code:
+                mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & 
+                                    (df_mon_g['Môn_học'] == mon_hoc)]
+                if not mon_info.empty:
+                    mamon = mon_info['Mã_môn'].iloc[0]
+                    danh_sach_mamon.append(mamon)
+
+if danh_sach_mamon:
+    chuangv = xac_dinh_chuan_gv(danh_sach_mamon)
+else:
+    chuangv = 'khong_ro'
+
 df_lopghep_g = st.session_state.get('df_lopghep')
 df_loptach_g = st.session_state.get('df_loptach')
 df_lopsc_g = st.session_state.get('df_lopsc')
