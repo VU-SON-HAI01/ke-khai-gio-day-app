@@ -85,9 +85,9 @@ def xac_dinh_chuan_gv(danh_sach_ma_mon: List[str]) -> str:
     
     # Điều kiện để xác định Chuẩn_GV
     co_lop_cd = 'Lớp_CĐ' in ds_loai_lop
-    chi_day_mc = all(mon == 'Môn_MC' for mon in ds_loai_mon)
+    chi_day_mc = all(mon == 'Môn_MC' for mon in ds_loai_mon if mon != 'Không tìm thấy')
     khong_day_cd = not co_lop_cd
-    chi_day_vh = all(mon == 'Môn_VH' for mon in ds_loai_mon)
+    chi_day_vh = all(mon == 'Môn_VH' for mon in ds_loai_mon if mon != 'Không tìm thấy')
 
     # Áp dụng logic theo thứ tự ưu tiên
     if co_lop_cd and chi_day_mc:
@@ -140,26 +140,3 @@ def xu_ly_danh_sach_mon(ma_mon_list: List[str]) -> pd.DataFrame:
         })
     
     return pd.DataFrame(ket_qua)
-
-# ---
-# Bước 4: Chạy chương trình
-if __name__ == "__main__":
-    # Ví dụ 1: Dạy cả lớp CĐ và lớp TC
-    list_mon_1 = ["101Y_MC02", "202X_MH01", "303Z_MĐ03", "404A_VH04"]
-    df_ket_qua_1 = xu_ly_danh_sach_mon(list_mon_1)
-    print("--- Kết quả cho Danh sách 1 ---")
-    print(df_ket_qua_1)
-    print("\n")
-
-    # Ví dụ 2: Dạy lớp CĐ và chỉ dạy môn MC
-    list_mon_2 = ["110P_MC15", "101Y_MC02", "215P_MC01"]
-    df_ket_qua_2 = xu_ly_danh_sach_mon(list_mon_2)
-    print("--- Kết quả cho Danh sách 2 ---")
-    print(df_ket_qua_2)
-    print("\n")
-
-    # Ví dụ 3: Chỉ dạy môn VH
-    list_mon_3 = ["404A_VH04", "320K_VH09"]
-    df_ket_qua_3 = xu_ly_danh_sach_mon(list_mon_3)
-    print("--- Kết quả cho Danh sách 3 ---")
-    print(df_ket_qua_3)
