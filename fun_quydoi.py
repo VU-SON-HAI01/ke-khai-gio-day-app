@@ -1,5 +1,6 @@
 import pandas as pd
 from typing import List, Tuple, Dict, Any
+import re
 
 # Bước 1: Chuẩn bị dữ liệu (các bảng hệ số)
 # (Bạn có thể lưu các bảng này vào file Excel riêng và đọc vào đây)
@@ -19,100 +20,69 @@ def tao_cac_bang_he_so() -> Dict[str, pd.DataFrame]:
     }
     df_cdmc = pd.DataFrame(data_cdmc, index=['Lớp_CĐ', 'Lớp_TC', 'Lớp_SC', 'Lớp_VH'])
 
-    data_tc = {
-        'Môn_MC': [1.00, 1.00, 0.89, 1.00],
-        'Môn_MĐ/MH': [1.00, 1.00, 0.89, 1.00],
-        'Môn_VH': [1.00, 1.00, 1.00, 1.00]
-    }
-    df_tc = pd.DataFrame(data_tc, index=['Lớp_CĐ', 'Lớp_TC', 'Lớp_SC', 'Lớp_VH'])
-
     data_tcmc = {
-        'Môn_MC': [1.00, 1.00, 0.89, 1.00],
-        'Môn_MĐ/MH': [1.00, 1.00, 0.89, 1.00],
+        'Môn_MC': [1.00, 0.89, 0.79, 1.00],
+        'Môn_MĐ/MH': [1.00, 0.89, 0.79, 1.00],
         'Môn_VH': [1.00, 1.00, 1.00, 1.00]
     }
     df_tcmc = pd.DataFrame(data_tcmc, index=['Lớp_CĐ', 'Lớp_TC', 'Lớp_SC', 'Lớp_VH'])
 
-    data_vh = {
-        'Môn_MC': [1.00, 1.00, 1.00, 1.00],
-        'Môn_MĐ/MH': [1.00, 1.00, 1.00, 1.00],
-        'Môn_VH': [1.00, 1.00, 1.00, 1.00]
-    }
-    df_vh = pd.DataFrame(data_vh, index=['Lớp_CĐ', 'Lớp_TC', 'Lớp_SC', 'Lớp_VH'])
-
     return {
         'CĐ': df_cd,
         'CĐMC': df_cdmc,
-        'TC': df_tc,
         'TCMC': df_tcmc,
-        'VH': df_vh
     }
 
-# ---
-# Bước 2: Các hàm logic
+# Bước 2: Viết các hàm hỗ trợ
 def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
-    """Xác định loại lớp và loại môn cho một mã môn duy nhất."""
-    ma_mon_upper = str(ma_mon).upper()
+    """
+    Phân loại mã môn học để xác định loại lớp và loại môn học.
+    Trả về (Loại Lớp, Loại Môn).
+    """
+    ma_mon = str(ma_mon).strip().upper()
     
-    # Xác định loại lớp
-    ky_tu_dau = ma_mon_upper[0]
-    if ky_tu_dau == '1':
-        loai_lop = 'Lớp_CĐ'
-    elif ky_tu_dau == '2':
-        loai_lop = 'Lớp_TC'
-    elif ky_tu_dau == '3':
-        loai_lop = 'Lớp_SC'
-    else:
-        loai_lop = 'Lớp_VH'
+    loai_lop = "Lớp_VH"
+    if "CĐ" in ma_mon:
+        loai_lop = "Lớp_CĐ"
+    elif "TC" in ma_mon:
+        loai_lop = "Lớp_TC"
+    elif "SC" in ma_mon:
+        loai_lop = "Lớp_SC"
 
-    # Xác định loại môn
-    if 'MC' in ma_mon_upper:
-        loai_mon = 'Môn_MC'
-    elif 'MH' in ma_mon_upper or 'MĐ' in ma_mon_upper:
-        loai_mon = 'Môn_MĐ/MH'
-    elif 'VH' in ma_mon_upper:
-        loai_mon = 'Môn_VH'
-    else:
-        loai_mon = 'Không tìm thấy'
+    loai_mon = "Môn_VH"
+    if "_MC" in ma_mon:
+        loai_mon = "Môn_MC"
+    elif "_MĐ" in ma_mon or "_MH" in ma_mon:
+        loai_mon = "Môn_MĐ/MH"
         
-    return loai_lop, loai_mon
-
-# ---
-def xac_dinh_chuan_gv(danh_sach_ma_mon: List[str]) -> str:
-    """Xác định Chuẩn_GV dựa trên toàn bộ danh sách mã môn."""
-    ds_loai_lop = [phan_loai_ma_mon(ma)[0] for ma in danh_sach_ma_mon]
-    ds_loai_mon = [phan_loai_ma_mon(ma)[1] for ma in danh_sach_ma_mon]
+    return (loai_lop, loai_mon)
     
-    # Điều kiện để xác định Chuẩn_GV
-    co_lop_cd = 'Lớp_CĐ' in ds_loai_lop
-    chi_day_mc = all(mon == 'Môn_MC' for mon in ds_loai_mon)
-    khong_day_cd = not co_lop_cd
-    chi_day_vh = all(mon == 'Môn_VH' for mon in ds_loai_mon)
-
-    # Áp dụng logic theo thứ tự ưu tiên
-    if co_lop_cd and chi_day_mc:
-        return 'CĐMC'
-    if co_lop_cd:
-        return 'CĐ'
-    if khong_day_cd and chi_day_mc:
-        return 'TCMC'
-    if khong_day_cd:
-        return 'TC'
-    if chi_day_vh:
-        return 'VH'
+def xac_dinh_chuan_gv(ma_mon_list: List[str]) -> str:
+    """
+    Xác định chuẩn giảng viên dựa trên danh sách các môn học được giao.
+    """
+    is_cd = any(phan_loai_ma_mon(ma)[0] == "Lớp_CĐ" for ma in ma_mon_list)
+    is_tc = any(phan_loai_ma_mon(ma)[0] == "Lớp_TC" for ma in ma_mon_list)
     
-    return "Không xác định"
+    if is_cd and is_tc:
+        return "CĐMC"
+    elif is_cd:
+        return "CĐ"
+    elif is_tc:
+        return "TCMC"
+    else:
+        # Nếu không có CĐ hoặc TC, mặc định là CĐ để tra bảng
+        return "CĐ"
 
-# ---
-# Bước 3: Hàm chính (main function)
-def xu_ly_danh_sach_mon(ma_mon_list: List[str]) -> pd.DataFrame:
+# Bước 3: Hàm chính để tìm hệ số quy đổi
+def tim_he_so_tc_cd(ma_mon_list: List[str]) -> pd.DataFrame:
     """
-    Hàm chính để xử lý toàn bộ logic:
-    1. Xác định Chuẩn_GV từ danh sách mã môn.
-    2. Lấy bảng hệ số tương ứng.
-    3. Tính toán hệ số cho từng mã môn trong danh sách.
-    4. Trả về DataFrame kết quả.
+    Tìm hệ số quy đổi cho một danh sách mã môn học.
+    Trả về DataFrame chứa Mã Môn, Chuẩn_GV và Hệ số.
     """
+    if not ma_mon_list:
+        return pd.DataFrame()
+        
     bang_he_so_chuan = tao_cac_bang_he_so()
     chuan_gv = xac_dinh_chuan_gv(ma_mon_list)
     
@@ -140,26 +110,3 @@ def xu_ly_danh_sach_mon(ma_mon_list: List[str]) -> pd.DataFrame:
         })
     
     return pd.DataFrame(ket_qua)
-
-# ---
-# Bước 4: Chạy chương trình
-if __name__ == "__main__":
-    # Ví dụ 1: Dạy cả lớp CĐ và lớp TC
-    list_mon_1 = ["101Y_MC02", "202X_MH01", "303Z_MĐ03", "404A_VH04"]
-    df_ket_qua_1 = xu_ly_danh_sach_mon(list_mon_1)
-    print("--- Kết quả cho Danh sách 1 ---")
-    print(df_ket_qua_1)
-    print("\n")
-
-    # Ví dụ 2: Dạy lớp CĐ và chỉ dạy môn MC
-    list_mon_2 = ["110P_MC15", "101Y_MC02", "215P_MC01"]
-    df_ket_qua_2 = xu_ly_danh_sach_mon(list_mon_2)
-    print("--- Kết quả cho Danh sách 2 ---")
-    print(df_ket_qua_2)
-    print("\n")
-
-    # Ví dụ 3: Chỉ dạy môn VH
-    list_mon_3 = ["404A_VH04", "320K_VH09"]
-    df_ket_qua_3 = xu_ly_danh_sach_mon(list_mon_3)
-    print("--- Kết quả cho Danh sách 3 ---")
-    print(df_ket_qua_3)
