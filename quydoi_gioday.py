@@ -6,6 +6,10 @@ from gspread_dataframe import set_with_dataframe
 import ast
 import re
 from itertools import zip_longest
+
+
+
+
 # ==============================
 # BẮT ĐẦU: LOGIC TỪ FUN_QUYDOI.PY
 # ==============================
@@ -245,7 +249,7 @@ if df_mon_g is not None and not df_mon_g.empty:
     for mon_data in mon_data_list:
         mon_hoc = mon_data.get('mon_hoc')
         if mon_hoc:
-            dsmon_code = df_lop_g[df_lop_g['Lớp'] == mon_data.get('lop_hoc')]['Mã_DSMON'].iloc[0] \                         if not df_lop_g.empty else None
+            dsmon_code = df_lop_g[df_lop_g['Lớp'] == mon_data.get('lop_hoc')]['Mã_DSMON'].iloc[0] if not df_lop_g.empty else None
             if dsmon_code:
                 mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & 
                                     (df_mon_g['Môn_học'] == mon_hoc)]
