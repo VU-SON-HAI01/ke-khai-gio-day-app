@@ -711,6 +711,7 @@ for i, tab in enumerate(tabs[:-1]):
                 st.markdown(f"""
                 4.  **Liệt kê hệ số TC/CĐ:**
                     -   Hệ số TC/CĐ được xác định dựa trên mã ngành của lớp học và chuẩn GV.
+                    -   **Chuẩn GV áp dụng cho môn này:** `{chuangv}`
                     -   **Giá trị hệ số TC/CĐ sử dụng cho môn này:** `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
                     -   Hệ số TC/CĐ đã được đưa vào cột **HS TC/CĐ** tại bảng kết quả tính toán bên trên.
                 """)
