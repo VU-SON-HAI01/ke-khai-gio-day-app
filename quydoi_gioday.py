@@ -519,6 +519,32 @@ mon_tab_names = [f"Môn {i+1}" for i in range(len(st.session_state.mon_hoc_data)
 all_tab_names = mon_tab_names + ["📊 Tổng hợp"]
 tabs = st.tabs(all_tab_names)
 
+danh_sach_mamon_nganh_all = []
+for mon_input in st.session_state.mon_hoc_data:
+    selected_khoa = mon_input.get('khoa')
+    lop_hoc = mon_input.get('lop_hoc')
+    mon_hoc = mon_input.get('mon_hoc')
+    df_lop_mapping = {
+        'Khóa 48': df_lop_g,
+        'Khóa 49': df_lop_g,
+        'Khóa 50': df_lop_g,
+        'Lớp ghép': df_lopghep_g,
+        'Lớp tách': df_loptach_g,
+        'Sơ cấp + VHPT': df_lopsc_g
+    }
+    source_df = df_lop_mapping.get(selected_khoa)
+    if lop_hoc and source_df is not None and not source_df.empty:
+        dsmon_code = source_df[source_df['Lớp'] == lop_hoc]['Mã_DSMON']
+        if not dsmon_code.empty:
+            dsmon_code = dsmon_code.iloc[0]
+            mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
+            if not mon_info.empty:
+                mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
+                danh_sach_mamon_nganh_all.append(mamon_nganh)
+
+st.session_state.chuan_gv = xac_dinh_chuan_gv(danh_sach_mamon_nganh_all)
+
+
 for i, tab in enumerate(tabs[:-1]):
     with tab:
         st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
@@ -683,7 +709,7 @@ for i, tab in enumerate(tabs[:-1]):
                     # Sử dụng Mã_môn_ngành thay vì Mã_môn
                     mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
                     danh_sach_mamon_tab.append(mamon_nganh)
-        chuangv_tab = xac_dinh_chuan_gv(danh_sach_mamon_tab) if danh_sach_mamon_tab else 'khong_ro'
+        chuangv_tab = st.session_state.chuan_gv
 
 
         # Kiểm tra hợp lệ dữ liệu nhập
