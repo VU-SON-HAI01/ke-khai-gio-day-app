@@ -828,23 +828,23 @@ for i, tab in enumerate(tabs[:-1]):
                     st.info("Không tìm thấy dữ liệu chi tiết cho môn học đã chọn.")
             
                 
+                # ...existing code...
                 # 3. Sĩ số theo tuần
                 st.markdown(f"""
                 3. **Lấy Sĩ số theo tuần:**
                     - Thực hiện giảng dạy từ tuần {selected_tuan_range[0]} đến tuần {selected_tuan_range[1]} (giải thích: tuần {selected_tuan_range[0]} tương ứng giá trị tuần bắt đầu và tuần {selected_tuan_range[1]} tương ứng tuần kết thúc).
                     - Dưới đây là bảng sĩ số chi tiết theo từng tuần đã giảng dạy:
                 """)
-                siso_df = processing_log.get('siso_per_month_df', pd.DataFrame())
-                if not siso_df.empty and 'Tuần' in siso_df.columns and 'Sĩ số' in siso_df.columns and 'Tháng' in df_result.columns:
-                    # Chuẩn bị dữ liệu ngang
-                    week_labels = [f"Tuần {t}" for t in df_result['Tuần'].values]
-                    month_row = df_result['Tháng'].astype(str).tolist()
-                    siso_row = df_result['Sĩ số'].astype(str).tolist()
+                if not result_df.empty and all(col in result_df.columns for col in ['Tuần', 'Tháng', 'Sĩ số']):
+                    week_labels = [f"Tuần {t}" for t in result_df['Tuần'].values]
+                    month_row = result_df['Tháng'].astype(str).tolist()
+                    siso_row = result_df['Sĩ số'].astype(str).tolist()
                     data = [week_labels, month_row, siso_row]
                     df_horizontal = pd.DataFrame(data, index=['Tuần', 'Tháng', 'Sĩ số'])
                     st.dataframe(df_horizontal)
                 else:
                     st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")
+                # ...existing code...
                 
             
                 # 4. Hệ số TC/CĐ
