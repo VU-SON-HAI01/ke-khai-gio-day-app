@@ -680,9 +680,11 @@ for i, tab in enumerate(tabs[:-1]):
                 dsmon_code = dsmon_code.iloc[0]
                 mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == current_input.get('mon_hoc'))]
                 if not mon_info.empty:
-                    mamon = mon_info['Mã_môn'].iloc[0]
-                    danh_sach_mamon_tab.append(mamon)
+                    # Sử dụng Mã_môn_ngành thay vì Mã_môn
+                    mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
+                    danh_sach_mamon_tab.append(mamon_nganh)
         chuangv_tab = xac_dinh_chuan_gv(danh_sach_mamon_tab) if danh_sach_mamon_tab else 'khong_ro'
+
 
         # Kiểm tra hợp lệ dữ liệu nhập
         if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
