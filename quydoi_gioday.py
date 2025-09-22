@@ -90,28 +90,26 @@ def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
 
 # ---
 def xac_dinh_chuan_gv(danh_sach_ma_mon: List[str]) -> str:
-    """Xác định Chuẩn_GV dựa trên toàn bộ danh sách mã môn."""
     ds_loai_lop = [phan_loai_ma_mon(ma)[0] for ma in danh_sach_ma_mon]
     ds_loai_mon = [phan_loai_ma_mon(ma)[1] for ma in danh_sach_ma_mon]
-    
-    # Điều kiện để xác định Chuẩn_GV
-    co_lop_cd = 'Lớp_CĐ' in ds_loai_lop
     chi_day_mc = all(mon == 'Môn_MC' for mon in ds_loai_mon)
-    khong_day_cd = not co_lop_cd
     chi_day_vh = all(mon == 'Môn_VH' for mon in ds_loai_mon)
+    co_lop_cd = 'Lớp_CĐ' in ds_loai_lop
+    co_lop_tc = 'Lớp_TC' in ds_loai_lop
 
-    # Áp dụng logic theo thứ tự ưu tiên
-    if co_lop_cd and chi_day_mc:
-        return 'CĐMC'
+    # Đúng logic: Tất cả đều là MC
+    if chi_day_mc:
+        if co_lop_cd:
+            return 'CĐMC'
+        elif co_lop_tc:
+            return 'TCMC'
+    # Nếu không phải tất cả đều là MC
     if co_lop_cd:
         return 'CĐ'
-    if khong_day_cd and chi_day_mc:
-        return 'TCMC'
-    if khong_day_cd:
+    if co_lop_tc:
         return 'TC'
     if chi_day_vh:
         return 'VH'
-    
     return "Không xác định"
 
 # ---
