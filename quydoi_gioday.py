@@ -777,54 +777,94 @@ for i, tab in enumerate(tabs[:-1]):
 
             with st.expander("📝 Giải thích quy trình quy đổi tiết giảng dạy"):
                 processing_log = st.session_state.get(f'processing_log_{i}', {})
+            
+                # 1. Thông tin lớp học đã chọn
                 st.markdown(f"""
-                Dưới đây là các bước hệ thống đã thực hiện để tạo ra bảng tính toán này:
-
-                1.  **Lấy thông tin từ lớp học đã chọn:**
-                    -   Bạn đã chọn **Lớp `{processing_log.get('lop_chon')}`**.
-                    -   Hệ thống đã lọc dữ liệu từ bảng `df_lop` để lấy thông tin chi tiết của lớp này:
+                1. **Lấy thông tin từ lớp học đã chọn:**
+                    - Bạn đã chọn **Lớp `{processing_log.get('lop_chon')}`**.
+                    - Đây là bảng thống kê sĩ số theo tháng của lớp {processing_log.get('lop_chon')}:
                 """)
-                if not processing_log.get('malop_info_df', pd.DataFrame()).empty:
-                    st.dataframe(processing_log['malop_info_df'])
+                malop_info_df = processing_log.get('malop_info_df', pd.DataFrame())
+                if not malop_info_df.empty:
+                    # Ẩn cột index, Mã_DSMON
+                    df_display = malop_info_df.drop(columns=[col for col in ['Mã_DSMON'] if col in malop_info_df.columns])
+                    df_display = df_display.reset_index(drop=True)
+                    st.dataframe(df_display)
                 else:
                     st.info("Không tìm thấy dữ liệu chi tiết cho lớp học đã chọn.")
-
+            
+                # 2. Thông tin môn học đã chọn
                 st.markdown(f"""
-                2.  **Lấy thông tin môn học đã chọn:**
-                    -   Bạn đã chọn **Môn học `{processing_log.get('mon_chon')}`**.
-                    -   Hệ thống đã lọc dữ liệu từ bảng `df_mon` để lấy thông tin chi tiết của môn học này:
+                2. **Lấy thông tin môn học đã chọn:**
+                    - Bạn đã chọn **Môn học `{processing_log.get('mon_chon')}`**.
+                    - Đây là thông tin về môn học đã chọn:
                 """)
-                if not processing_log.get('mon_info_filtered_df', pd.DataFrame()).empty:
-                    st.dataframe(processing_log['mon_info_filtered_df'])
+                mon_info_filtered_df = processing_log.get('mon_info_filtered_df', pd.DataFrame())
+                if not mon_info_filtered_df.empty:
+                    df_mon_display = mon_info_filtered_df.copy()
+                    # Chỉ giữ các cột cần thiết và đổi tên
+                    col_map = {
+                        'Môn_học': 'Môn học',
+                        'LT': 'Tiết LT',
+                        'TH': 'Tiết TH',
+                        'KT': 'Tiết KT',
+                        'Nặng_nhọc': 'Ngành nặng nhọc',
+                        'MH/MĐ': 'MH/MĐ/MC'
+                    }
+                    keep_cols = [col for col in ['Môn_học', 'LT', 'TH', 'KT', 'Nặng_nhọc', 'MH/MĐ'] if col in df_mon_display.columns]
+                    df_mon_display = df_mon_display[keep_cols].rename(columns=col_map)
+                    # Xử lý giá trị Nặng_nhọc
+                    if 'Ngành nặng nhọc' in df_mon_display.columns:
+                        df_mon_display['Ngành nặng nhọc'] = df_mon_display['Ngành nặng nhọc'].replace({'BT': 'Ngành bình thường', 'NN': 'Ngành TH Nặng nhọc'})
+                    # Xử lý giá trị MH/MĐ/MC
+                    if 'MH/MĐ/MC' in df_mon_display.columns:
+                        df_mon_display['MH/MĐ/MC'] = df_mon_display['MH/MĐ/MC'].replace({
+                            'MH': 'Môn học (LT)',
+                            'MĐ': 'Môđun (TH+LT)',
+                            'MC': 'Môn chung'
+                        })
+                    st.dataframe(df_mon_display)
                 else:
                     st.info("Không tìm thấy dữ liệu chi tiết cho môn học đã chọn.")
-
+            
+                # 3. Sĩ số theo tuần
                 st.markdown(f"""
-                3.  **Lấy Sĩ số theo tuần:**
-                    -   Bạn đã chọn tuần giảng dạy từ **`{processing_log.get('tuandentuan', (1, 1))}`**.
-                    -   Hệ thống lấy thông tin sĩ số từ bảng `df_lop` tương ứng với tháng mà mỗi tuần thuộc về.
-                    -   **Kết quả sĩ số theo từng tuần:**
+                3. **Lấy Sĩ số theo tuần:**
+                    - Thực hiện giảng dạy từ tuần {selected_tuan_range[0]} đến tuần {selected_tuan_range[1]} (giải thích: tuần {selected_tuan_range[0]} tương ứng giá trị tuần bắt đầu và tuần {selected_tuan_range[1]} tương ứng tuần kết thúc).
+                    - Dưới đây là bảng sĩ số chi tiết theo từng tuần đã giảng dạy:
                 """)
-
-                if not processing_log.get('siso_per_month_df', pd.DataFrame()).empty:
-                    siso_df = processing_log['siso_per_month_df'].T
-                    siso_df.columns = [f"Tuần {t}" for t in siso_df.iloc[0]]
-                    siso_df = siso_df.iloc[1:]
-                    st.dataframe(siso_df)
+                siso_df = processing_log.get('siso_per_month_df', pd.DataFrame())
+                if not siso_df.empty:
+                    # Thêm dòng Tháng trên đầu bảng sĩ số
+                    df_siso_display = siso_df.copy()
+                    if 'Tuần' in df_siso_display.columns and 'Sĩ số' in df_siso_display.columns and 'Tháng' in df_result.columns:
+                        df_siso_display['Tháng'] = df_result['Tháng'].values
+                        # Đưa dòng Tháng lên đầu
+                        df_siso_display = df_siso_display[['Tháng', 'Tuần', 'Sĩ số']]
+                    st.dataframe(df_siso_display)
                 else:
                     st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")
-
+            
+                # 4. Hệ số TC/CĐ
+                # Đổi tên chuẩn GV
+                gv_map = {
+                    'TC': 'Trung cấp',
+                    'CĐ': 'Cao đẳng',
+                    'TCMC': 'Trung cấp (Môn chung)',
+                    'CĐMC': 'Cao đẳng (Môn chung)'
+                }
+                chuan_gv_display = gv_map.get(chuangv_tab, chuangv_tab)
                 st.markdown(f"""
-                4.  **Liệt kê hệ số TC/CĐ:**
-                    -   Hệ số TC/CĐ được xác định dựa trên mã ngành của lớp học và chuẩn GV.
-                    -   **Chuẩn GV áp dụng cho môn này:** `{chuangv_tab}`
-                    -   **Giá trị hệ số TC/CĐ sử dụng cho môn này:** `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
-                    -   Hệ số TC/CĐ đã được đưa vào cột **HS TC/CĐ** tại bảng kết quả tính toán bên trên.
+                4. **Liệt kê hệ số TC/CĐ:**
+                    - Hệ số TC/CĐ được xác định dựa trên chuẩn GV và Lớp giảng dạy.
+                    - Chuẩn giáo viên: `{chuan_gv_display}`
+                    - Giá trị hệ số TC/CĐ sử dụng cho môn này: `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
+                    - Hệ số TC/CĐ đã được đưa vào cột **HS TC/CĐ** tại bảng kết quả tính toán bên trên.
                 """)
                 st.markdown(f"""
-                5.  **Hoàn tất tính toán:**
-                    -   Hệ thống sử dụng các giá trị sĩ số đã lấy được ở trên để tính toán **Hệ số sĩ số (HS_SS_LT, HS_SS_TH)** cho từng tuần.
-                    -   Các cột còn lại trong bảng kết quả được tính toán dựa trên các công thức đã định sẵn, sử dụng các giá trị này.
+                5. **Hoàn tất tính toán:**
+                    - Hệ thống sử dụng các giá trị sĩ số đã lấy được ở trên để tính toán **Hệ số sĩ số (HS_SS_LT, HS_SS_TH)** cho từng tuần.
+                    - Các cột còn lại trong bảng kết quả được tính toán dựa trên các công thức đã định sẵn, sử dụng các giá trị này.
                 """)
         else:
             st.info("Chưa có dữ liệu tính toán hợp lệ.")
