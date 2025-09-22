@@ -153,6 +153,20 @@ def xu_ly_danh_sach_mon(ma_mon_list: List[str]) -> pd.DataFrame:
 # Wrapper thay cho timheso_tc_cd cũ
 def tim_he_so_tc_cd(ma_mon_list: list) -> pd.DataFrame:
     return xu_ly_danh_sach_mon(ma_mon_list)
+
+def tra_cuu_heso_tccd(mamon_nganh: str, chuan_gv: str) -> float:
+    """
+    Tra cứu hệ số TC/CĐ dựa vào mã môn ngành và chuẩn GV.
+    """
+    bang_he_so = tao_cac_bang_he_so()
+    if chuan_gv not in bang_he_so:
+        return 1.0  # Giá trị mặc định nếu không tìm thấy chuẩn GV
+    loai_lop, loai_mon = phan_loai_ma_mon(mamon_nganh)
+    try:
+        return float(bang_he_so[chuan_gv].loc[loai_lop, loai_mon])
+    except Exception:
+        return 1.0
+
 # ==============================
 # KẾT THÚC: LOGIC FUN_QUYDOI.PY
 # ==============================
@@ -244,6 +258,7 @@ ma_gv = st.session_state.get('magv', 'khong_ro')
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
 KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
 
+
 def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g):
     """Hàm xử lý chính, tính toán quy đổi giờ giảng."""
     lop_chon = input_data.get('lop_hoc')
@@ -332,13 +347,14 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     df_result['Tiết_TH'] = arr_tiet_th
 
     # CẬP NHẬT: SỬ DỤNG LOGIC TÍNH TOÁN HỆ SỐ TỪ FUN_QUYDOI.PY
+
     try:
-        ma_mon_nganh = mamon_info['Mã_môn_ngành'].iloc[0]  # Lấy đúng mã môn ngành từ df_mon
-        df_heso = tim_he_so_tc_cd([ma_mon_nganh])
-        he_so_tccd = df_heso['Hệ số'].iloc[0] if not df_heso.empty else 0.0
+        ma_mon_nganh = mamon_info['Mã_môn_ngành'].iloc[0]
+        he_so_tccd = tra_cuu_heso_tccd(ma_mon_nganh, chuangv)
     except Exception as e:
         return pd.DataFrame(), {"error": f"Lỗi khi tính toán hệ số TC/CĐ: {e}"}
     df_result['HS TC/CĐ'] = he_so_tccd
+
     # KẾT THÚC CẬP NHẬT
 
     heso_lt_list, heso_th_list = [], []
