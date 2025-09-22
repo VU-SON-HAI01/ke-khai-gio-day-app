@@ -641,7 +641,7 @@ for i, tab in enumerate(tabs[:-1]):
                     df_result = None
                     summary = None
         if is_input_valid:
-            df_result, summary = process_mon_data(current_input, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
+            df_result, summary = process_mon_data(current_input, chuangv_tab, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)df_result, summary = process_mon_data(current_input, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
             if summary and "error" in summary:
                 validation_placeholder.error(f"Lỗi tính toán: {summary['error']}")
                 st.session_state.results_data[i] = pd.DataFrame()
