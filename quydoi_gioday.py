@@ -7,9 +7,6 @@ import ast
 import re
 from itertools import zip_longest
 
-
-
-
 # ==============================
 # BẮT ĐẦU: LOGIC TỪ FUN_QUYDOI.PY
 # ==============================
@@ -154,8 +151,6 @@ def xu_ly_danh_sach_mon(ma_mon_list: List[str]) -> pd.DataFrame:
         })
     
     return pd.DataFrame(ket_qua)
-
-
 
 # Wrapper thay cho timheso_tc_cd cũ
 def tim_he_so_tc_cd(ma_mon_list: list) -> pd.DataFrame:
@@ -358,13 +353,12 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     df_result['Tiết_TH'] = arr_tiet_th
 
     # CẬP NHẬT: SỬ DỤNG LOGIC TÍNH TOÁN HỆ SỐ TỪ FUN_QUYDOI.PY
-    ma_mon_nganh = dsmon_code
     try:
+        ma_mon_nganh = mamon_info['Mã_môn_ngành'].iloc[0]  # Lấy đúng mã môn ngành từ df_mon
         df_heso = tim_he_so_tc_cd([ma_mon_nganh])
         he_so_tccd = df_heso['Hệ số'].iloc[0] if not df_heso.empty else 0.0
     except Exception as e:
         return pd.DataFrame(), {"error": f"Lỗi khi tính toán hệ số TC/CĐ: {e}"}
-
     df_result['HS TC/CĐ'] = he_so_tccd
     # KẾT THÚC CẬP NHẬT
 
