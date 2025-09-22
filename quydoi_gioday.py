@@ -7,12 +7,14 @@ import ast
 import re
 from itertools import zip_longest
 
+
+
+
 # ==============================
 # BẮT ĐẦU: LOGIC TỪ FUN_QUYDOI.PY
 # ==============================
 import pandas as pd
 from typing import List, Tuple, Dict, Any
-
 # Bước 1: Chuẩn bị dữ liệu (các bảng hệ số)
 # (Bạn có thể lưu các bảng này vào file Excel riêng và đọc vào đây)
 def tao_cac_bang_he_so() -> Dict[str, pd.DataFrame]:
@@ -704,6 +706,7 @@ for i, tab in enumerate(tabs[:-1]):
                     -   Hệ thống lấy thông tin sĩ số từ bảng `df_lop` tương ứng với tháng mà mỗi tuần thuộc về.
                     -   **Kết quả sĩ số theo từng tuần:**
                 """)
+
                 if not processing_log.get('siso_per_month_df', pd.DataFrame()).empty:
                     siso_df = processing_log['siso_per_month_df'].T
                     siso_df.columns = [f"Tuần {t}" for t in siso_df.iloc[0]]
@@ -711,9 +714,14 @@ for i, tab in enumerate(tabs[:-1]):
                     st.dataframe(siso_df)
                 else:
                     st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")
-                
                 st.markdown(f"""
-                4.  **Hoàn tất tính toán:**
+                4.  **Liệt kê hệ số TC/CĐ:**
+                    -   Hệ số TC/CĐ được xác định dựa trên mã ngành của lớp học và chuẩn GV.
+                    -   **Giá trị hệ số TC/CĐ sử dụng cho môn này:** `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
+                    -   Hệ số TC/CĐ đã được đưa vào cột **HS TC/CĐ** tại bảng kết quả tính toán bên trên.
+                """)
+                st.markdown(f"""
+                5.  **Hoàn tất tính toán:**
                     -   Hệ thống sử dụng các giá trị sĩ số đã lấy được ở trên để tính toán **Hệ số sĩ số (HS_SS_LT, HS_SS_TH)** cho từng tuần.
                     -   Các cột còn lại trong bảng kết quả được tính toán dựa trên các công thức đã định sẵn, sử dụng các giá trị này.
                 """)
