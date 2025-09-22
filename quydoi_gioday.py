@@ -235,21 +235,6 @@ df_hesosiso_g = st.session_state.get('df_hesosiso')
 
 # Xác định chuangv động từ danh sách mã môn trong tất cả các tab
 mon_data_list = st.session_state.get('mon_hoc_data', [])
-
-# Xác định chuẩn GV riêng cho từng tab, đặt đoạn này vào trong vòng lặp for từng tab:
-for i, tab in enumerate(tabs[:-1]):
-    with tab:
-        # ...existing code...
-        danh_sach_mamon_tab = []
-        if current_input.get('mon_hoc') and source_df is not None and not source_df.empty:
-            dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON'].iloc[0]
-            mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == current_input.get('mon_hoc'))]
-            if not mon_info.empty:
-                mamon = mon_info['Mã_môn'].iloc[0]
-                danh_sach_mamon_tab.append(mamon)
-        chuangv_tab = xac_dinh_chuan_gv(danh_sach_mamon_tab) if danh_sach_mamon_tab else 'khong_ro'
-        # ...truyền chuangv_tab vào process_mon_data...
-
 df_lopghep_g = st.session_state.get('df_lopghep')
 df_loptach_g = st.session_state.get('df_loptach')
 df_lopsc_g = st.session_state.get('df_lopsc')
@@ -537,15 +522,22 @@ tabs = st.tabs(all_tab_names)
 for i, tab in enumerate(tabs[:-1]):
     with tab:
         st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
-        
+
         def update_tab_state(key, index):
             st.session_state.mon_hoc_data[index][key] = st.session_state[f"widget_{key}_{index}"]
 
         current_input = st.session_state.mon_hoc_data[i]
-        
+
         khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
-        selected_khoa = st.selectbox("Chọn Khóa/Hệ", options=khoa_options, index=khoa_options.index(current_input.get('khoa', khoa_options[0])), key=f"widget_khoa_{i}", on_change=update_tab_state, args=('khoa', i))
-        
+        selected_khoa = st.selectbox(
+            "Chọn Khóa/Hệ",
+            options=khoa_options,
+            index=khoa_options.index(current_input.get('khoa', khoa_options[0])),
+            key=f"widget_khoa_{i}",
+            on_change=update_tab_state,
+            args=('khoa', i)
+        )
+
         df_lop_mapping = {
             'Khóa 48': df_lop_g,
             'Khóa 49': df_lop_g,
@@ -555,7 +547,7 @@ for i, tab in enumerate(tabs[:-1]):
             'Sơ cấp + VHPT': df_lopsc_g
         }
         source_df = df_lop_mapping.get(selected_khoa)
-        
+
         filtered_lop_options = []
         if source_df is not None and not source_df.empty:
             if selected_khoa.startswith('Khóa'):
@@ -564,84 +556,159 @@ for i, tab in enumerate(tabs[:-1]):
                 filtered_lop_options = filtered_lops.tolist()
             else:
                 filtered_lop_options = source_df['Lớp'].tolist()
-        
+
         if current_input.get('lop_hoc') not in filtered_lop_options:
             current_input['lop_hoc'] = filtered_lop_options[0] if filtered_lop_options else ''
             st.session_state.mon_hoc_data[i]['lop_hoc'] = current_input['lop_hoc']
-        
+
         lop_hoc_index = filtered_lop_options.index(current_input.get('lop_hoc')) if current_input.get('lop_hoc') in filtered_lop_options else 0
-        st.selectbox("Chọn Lớp học", options=filtered_lop_options, index=lop_hoc_index, key=f"widget_lop_hoc_{i}", on_change=update_tab_state, args=('lop_hoc', i))
+        st.selectbox(
+            "Chọn Lớp học",
+            options=filtered_lop_options,
+            index=lop_hoc_index,
+            key=f"widget_lop_hoc_{i}",
+            on_change=update_tab_state,
+            args=('lop_hoc', i)
+        )
 
         dsmon_options = []
         df_dsmon_loc = pd.DataFrame()
-        if current_input.get('lop_hoc') and source_df is not None:
-            dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON'].iloc[0]
-            if not pd.isna(dsmon_code) and df_mon_g is not None and not df_mon_g.empty:
-                if 'Mã_ngành' in df_mon_g.columns and 'Môn_học' in df_mon_g.columns:
-                    df_dsmon_loc = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
-                    dsmon_options = df_dsmon_loc['Môn_học'].dropna().astype(str).tolist()
-                else:
-                    st.warning("Lỗi: Không tìm thấy các cột 'Mã_ngành' hoặc 'Môn_học' trong df_mon.")
-        
+        if current_input.get('lop_hoc') and source_df is not None and not source_df.empty:
+            dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON']
+            if not dsmon_code.empty:
+                dsmon_code = dsmon_code.iloc[0]
+                if not pd.isna(dsmon_code) and df_mon_g is not None and not df_mon_g.empty:
+                    if 'Mã_ngành' in df_mon_g.columns and 'Môn_học' in df_mon_g.columns:
+                        df_dsmon_loc = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
+                        dsmon_options = df_dsmon_loc['Môn_học'].dropna().astype(str).tolist()
+                    else:
+                        st.warning("Lỗi: Không tìm thấy các cột 'Mã_ngành' hoặc 'Môn_học' trong df_mon.")
+
         if current_input.get('mon_hoc') not in dsmon_options:
             current_input['mon_hoc'] = dsmon_options[0] if dsmon_options else ''
             st.session_state.mon_hoc_data[i]['mon_hoc'] = current_input['mon_hoc']
-        
-        mon_hoc_index = dsmon_options.index(current_input.get('mon_hoc')) if current_input.get('mon_hoc') in dsmon_options else 0
-        st.selectbox("Chọn Môn học", options=dsmon_options, index=mon_hoc_index, key=f"widget_mon_hoc_{i}", on_change=update_tab_state, args=('mon_hoc', i))
 
-        st.slider("Chọn Tuần giảng dạy", 1, 50, value=current_input.get('tuan', (1, 12)), key=f"widget_tuan_{i}", on_change=update_tab_state, args=('tuan', i))
-        
+        mon_hoc_index = dsmon_options.index(current_input.get('mon_hoc')) if current_input.get('mon_hoc') in dsmon_options else 0
+        st.selectbox(
+            "Chọn Môn học",
+            options=dsmon_options,
+            index=mon_hoc_index,
+            key=f"widget_mon_hoc_{i}",
+            on_change=update_tab_state,
+            args=('mon_hoc', i)
+        )
+
+        st.slider(
+            "Chọn Tuần giảng dạy",
+            1, 50,
+            value=current_input.get('tuan', (1, 12)),
+            key=f"widget_tuan_{i}",
+            on_change=update_tab_state,
+            args=('tuan', i)
+        )
+
         kieu_tinh_mdmh = ''
-        if current_input.get('mon_hoc') and 'Tính MĐ/MH' in df_dsmon_loc.columns:
+        if current_input.get('mon_hoc') and not df_dsmon_loc.empty and 'Tính MĐ/MH' in df_dsmon_loc.columns:
             mon_info = df_dsmon_loc[df_dsmon_loc['Môn_học'] == current_input.get('mon_hoc')]
             if not mon_info.empty:
                 kieu_tinh_mdmh = mon_info['Tính MĐ/MH'].iloc[0]
-        
+
         options = []
         if kieu_tinh_mdmh == 'LTTH':
             options = ('Kê theo LT, TH chi tiết', 'Kê theo MĐ, MH')
         else:
             options = ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết')
-            
-        st.radio("Chọn phương pháp kê khai", options, index=0, key=f"widget_cach_ke_{i}", on_change=update_tab_state, args=('cach_ke', i), horizontal=True)
+
+        st.radio(
+            "Chọn phương pháp kê khai",
+            options,
+            index=0,
+            key=f"widget_cach_ke_{i}",
+            on_change=update_tab_state,
+            args=('cach_ke', i),
+            horizontal=True
+        )
+
+        arr_tiet_lt = []
+        arr_tiet_th = []
+        arr_tiet = []
+        locdulieu_info = pd.DataFrame()
 
         if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
-            st.text_input("Nhập số tiết mỗi tuần", value=current_input.get('tiet', DEFAULT_TIET_STRING), key=f"widget_tiet_{i}", on_change=update_tab_state, args=('tiet', i))
+            arr_tiet = [int(x) for x in str(current_input.get('tiet', '')).split() if x]
+        else:
+            arr_tiet_lt = [int(x) for x in str(current_input.get('tiet_lt', '0')).split() if x]
+            arr_tiet_th = [int(x) for x in str(current_input.get('tiet_th', '0')).split() if x]
+
+        if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
+            st.text_input(
+                "Nhập số tiết mỗi tuần",
+                value=current_input.get('tiet', DEFAULT_TIET_STRING),
+                key=f"widget_tiet_{i}",
+                on_change=update_tab_state,
+                args=('tiet', i)
+            )
         else:
             c1, c2 = st.columns(2)
-            with c1: st.text_input("Nhập số tiết Lý thuyết mỗi tuần", value=current_input.get('tiet_lt', '0'), key=f"widget_tiet_lt_{i}", on_change=update_tab_state, args=('tiet_lt', i))
-            with c2: st.text_input("Nhập số tiết Thực hành mỗi tuần", value=current_input.get('tiet_th', '0'), key=f"widget_tiet_th_{i}", on_change=update_tab_state, args=('tiet_th', i))
-        
+            with c1:
+                st.text_input(
+                    "Nhập số tiết Lý thuyết mỗi tuần",
+                    value=current_input.get('tiet_lt', '0'),
+                    key=f"widget_tiet_lt_{i}",
+                    on_change=update_tab_state,
+                    args=('tiet_lt', i)
+                )
+            with c2:
+                st.text_input(
+                    "Nhập số tiết Thực hành mỗi tuần",
+                    value=current_input.get('tiet_th', '0'),
+                    key=f"widget_tiet_th_{i}",
+                    on_change=update_tab_state,
+                    args=('tiet_th', i)
+                )
+
         validation_placeholder = st.empty()
         is_input_valid = True
-        selected_tuan_range = current_input.get('tuan', (1, 1)); so_tuan_chon = selected_tuan_range[1] - selected_tuan_range[0] + 1
-        
+        selected_tuan_range = current_input.get('tuan', (1, 1))
+        so_tuan_chon = selected_tuan_range[1] - selected_tuan_range[0] + 1
+
+        # Xác định chuẩn GV cho từng tab
+        danh_sach_mamon_tab = []
+        if current_input.get('mon_hoc') and source_df is not None and not source_df.empty:
+            dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON']
+            if not dsmon_code.empty:
+                dsmon_code = dsmon_code.iloc[0]
+                mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == current_input.get('mon_hoc'))]
+                if not mon_info.empty:
+                    mamon = mon_info['Mã_môn'].iloc[0]
+                    danh_sach_mamon_tab.append(mamon)
+        chuangv_tab = xac_dinh_chuan_gv(danh_sach_mamon_tab) if danh_sach_mamon_tab else 'khong_ro'
+
+        # Kiểm tra hợp lệ dữ liệu nhập
         if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
-            so_tiet_dem_duoc = len([x for x in str(current_input.get('tiet', '')).split() if x])
+            so_tiet_dem_duoc = len(arr_tiet)
             if so_tiet_dem_duoc != so_tuan_chon:
                 validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
                 is_input_valid = False
             elif kieu_tinh_mdmh == 'LTTH':
-                 validation_placeholder.error("Lỗi: Môn học này yêu cầu kê khai tiết LT, TH chi tiết.")
-                 is_input_valid = False
+                validation_placeholder.error("Lỗi: Môn học này yêu cầu kê khai tiết LT, TH chi tiết.")
+                is_input_valid = False
         else:
+            so_tiet_lt_dem_duoc = len(arr_tiet_lt)
+            so_tiet_th_dem_duoc = len(arr_tiet_th)
+            tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
+            so_tuan = tuanketthuc - tuanbatdau + 1
             if kieu_tinh_mdmh != 'LTTH':
                 df_result = pd.DataFrame()
                 summary = {"error": "Môn học này không yêu cầu kê khai tiết LT, TH chi tiết."}
-            else:
-                # Thêm khai báo biến đếm số tiết LT/TH
-                so_tiet_lt_dem_duoc = len(arr_tiet_lt)
-                so_tiet_th_dem_duoc = len(arr_tiet_th)
-                if len(locdulieu_info) != so_tiet_lt_dem_duoc or len(locdulieu_info) != so_tiet_th_dem_duoc:
-                    df_result = pd.DataFrame()
-                    summary = {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc})."}
-                else:
-                    arr_tiet = arr_tiet_lt + arr_tiet_th
-                    df_result = None
-                    summary = None
+                is_input_valid = False
+            elif so_tuan != so_tiet_lt_dem_duoc or so_tuan != so_tiet_th_dem_duoc:
+                validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
+                is_input_valid = False
+
+        # Xử lý dữ liệu nếu hợp lệ
         if is_input_valid:
-            df_result, summary = process_mon_data(current_input, chuangv_tab, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)df_result, summary = process_mon_data(current_input, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
+            df_result, summary = process_mon_data(current_input, chuangv_tab, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
             if summary and "error" in summary:
                 validation_placeholder.error(f"Lỗi tính toán: {summary['error']}")
                 st.session_state.results_data[i] = pd.DataFrame()
@@ -656,14 +723,14 @@ for i, tab in enumerate(tabs[:-1]):
             for col in cols_to_sum:
                 if col in df_display.columns:
                     df_display[col] = pd.to_numeric(df_display[col], errors='coerce').fillna(0)
-            
+
             total_row_data = {col: df_display[col].sum() for col in cols_to_sum}
             total_row_data['Tuần'] = '**Tổng cộng**'
             total_row_df = pd.DataFrame([total_row_data])
 
             df_with_total = pd.concat([df_display, total_row_df], ignore_index=True)
             st.dataframe(df_with_total.fillna(''))
-            
+
             with st.expander("📝 Giải thích quy trình quy đổi tiết giảng dạy"):
                 processing_log = st.session_state.get(f'processing_log_{i}', {})
                 st.markdown(f"""
@@ -677,7 +744,7 @@ for i, tab in enumerate(tabs[:-1]):
                     st.dataframe(processing_log['malop_info_df'])
                 else:
                     st.info("Không tìm thấy dữ liệu chi tiết cho lớp học đã chọn.")
-                
+
                 st.markdown(f"""
                 2.  **Lấy thông tin môn học đã chọn:**
                     -   Bạn đã chọn **Môn học `{processing_log.get('mon_chon')}`**.
@@ -687,7 +754,7 @@ for i, tab in enumerate(tabs[:-1]):
                     st.dataframe(processing_log['mon_info_filtered_df'])
                 else:
                     st.info("Không tìm thấy dữ liệu chi tiết cho môn học đã chọn.")
-                
+
                 st.markdown(f"""
                 3.  **Lấy Sĩ số theo tuần:**
                     -   Bạn đã chọn tuần giảng dạy từ **`{processing_log.get('tuandentuan', (1, 1))}`**.
@@ -702,6 +769,7 @@ for i, tab in enumerate(tabs[:-1]):
                     st.dataframe(siso_df)
                 else:
                     st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")
+
                 st.markdown(f"""
                 4.  **Liệt kê hệ số TC/CĐ:**
                     -   Hệ số TC/CĐ được xác định dựa trên mã ngành của lớp học và chuẩn GV.
