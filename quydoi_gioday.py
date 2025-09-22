@@ -235,24 +235,20 @@ df_hesosiso_g = st.session_state.get('df_hesosiso')
 
 # Xác định chuangv động từ danh sách mã môn trong tất cả các tab
 mon_data_list = st.session_state.get('mon_hoc_data', [])
-danh_sach_mamon = []
 
-if df_mon_g is not None and not df_mon_g.empty:
-    for mon_data in mon_data_list:
-        mon_hoc = mon_data.get('mon_hoc')
-        if mon_hoc:
-            dsmon_code = df_lop_g[df_lop_g['Lớp'] == mon_data.get('lop_hoc')]['Mã_DSMON'].iloc[0] if not df_lop_g.empty else None
-            if dsmon_code:
-                mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & 
-                                    (df_mon_g['Môn_học'] == mon_hoc)]
-                if not mon_info.empty:
-                    mamon = mon_info['Mã_môn'].iloc[0]
-                    danh_sach_mamon.append(mamon)
-
-if danh_sach_mamon:
-    chuangv = xac_dinh_chuan_gv(danh_sach_mamon)
-else:
-    chuangv = 'khong_ro'
+# Xác định chuẩn GV riêng cho từng tab, đặt đoạn này vào trong vòng lặp for từng tab:
+for i, tab in enumerate(tabs[:-1]):
+    with tab:
+        # ...existing code...
+        danh_sach_mamon_tab = []
+        if current_input.get('mon_hoc') and source_df is not None and not source_df.empty:
+            dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON'].iloc[0]
+            mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == current_input.get('mon_hoc'))]
+            if not mon_info.empty:
+                mamon = mon_info['Mã_môn'].iloc[0]
+                danh_sach_mamon_tab.append(mamon)
+        chuangv_tab = xac_dinh_chuan_gv(danh_sach_mamon_tab) if danh_sach_mamon_tab else 'khong_ro'
+        # ...truyền chuangv_tab vào process_mon_data...
 
 df_lopghep_g = st.session_state.get('df_lopghep')
 df_loptach_g = st.session_state.get('df_loptach')
@@ -709,7 +705,7 @@ for i, tab in enumerate(tabs[:-1]):
                 st.markdown(f"""
                 4.  **Liệt kê hệ số TC/CĐ:**
                     -   Hệ số TC/CĐ được xác định dựa trên mã ngành của lớp học và chuẩn GV.
-                    -   **Chuẩn GV áp dụng cho môn này:** `{chuangv}`
+                    -   **Chuẩn GV áp dụng cho môn này:** `{chuangv_tab}`
                     -   **Giá trị hệ số TC/CĐ sử dụng cho môn này:** `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
                     -   Hệ số TC/CĐ đã được đưa vào cột **HS TC/CĐ** tại bảng kết quả tính toán bên trên.
                 """)
