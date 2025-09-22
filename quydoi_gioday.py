@@ -7,9 +7,6 @@ import ast
 import re
 from itertools import zip_longest
 
-
-
-
 # ==============================
 # BẮT ĐẦU: LOGIC TỪ FUN_QUYDOI.PY
 # ==============================
@@ -639,15 +636,20 @@ for i, tab in enumerate(tabs[:-1]):
                  validation_placeholder.error("Lỗi: Môn học này yêu cầu kê khai tiết LT, TH chi tiết.")
                  is_input_valid = False
         else:
-            so_tiet_lt_dem_duoc = len([x for x in str(current_input.get('tiet_lt', '')).split() if x])
-            so_tiet_th_dem_duoc = len([x for x in str(current_input.get('tiet_th', '')).split() if x])
-            if so_tiet_lt_dem_duoc != so_tuan_chon or so_tiet_th_dem_duoc != so_tuan_chon:
-                is_input_valid = False
-                validation_placeholder.error(f"Lỗi: Số tuần ({so_tuan_chon}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
-            elif kieu_tinh_mdmh != 'LTTH':
-                validation_placeholder.error("Lỗi: Môn học này không yêu cầu kê khai tiết LT, TH chi tiết.")
-                is_input_valid = False
-
+            if kieu_tinh_mdmh != 'LTTH':
+                df_result = pd.DataFrame()
+                summary = {"error": "Môn học này không yêu cầu kê khai tiết LT, TH chi tiết."}
+            else:
+                # Thêm khai báo biến đếm số tiết LT/TH
+                so_tiet_lt_dem_duoc = len(arr_tiet_lt)
+                so_tiet_th_dem_duoc = len(arr_tiet_th)
+                if len(locdulieu_info) != so_tiet_lt_dem_duoc or len(locdulieu_info) != so_tiet_th_dem_duoc:
+                    df_result = pd.DataFrame()
+                    summary = {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc})."}
+                else:
+                    arr_tiet = arr_tiet_lt + arr_tiet_th
+                    df_result = None
+                    summary = None
         if is_input_valid:
             df_result, summary = process_mon_data(current_input, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
             if summary and "error" in summary:
