@@ -328,9 +328,21 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
             return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc})."}
         arr_tiet = arr_tiet_lt + arr_tiet_th
-
+    
+    # ...existing code...
+    if 'Tháng' not in locdulieu_info.columns:
+        found = False
+        for col in locdulieu_info.columns:
+            if col.lower().startswith('thang'):
+                locdulieu_info = locdulieu_info.rename(columns={col: 'Tháng'})
+                found = True
+                break
+        if not found:
+            return pd.DataFrame(), {"error": "Không tìm thấy cột 'Tháng' trong dữ liệu tuần/ngày. Vui lòng kiểm tra lại file nguồn."}
+    # ...existing code...
     df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
-
+    # ...existing code...
+    
     # LOGIC MỚI: TÌM SĨ SỐ THEO MÃ LỚP VÀ THÁNG
     siso_list = []
     for month in df_result['Tháng']:
