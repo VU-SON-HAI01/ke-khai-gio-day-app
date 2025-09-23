@@ -343,12 +343,6 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     df_result = locdulieu_info[['Tuần', 'Từ ngày đến ngày']].copy()
     df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
     
-    # Tạo ánh xạ tuần -> tháng từ df_ngaytuan_g
-    week_to_month = dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Tháng']))
-    df_result['Tháng'] = df_result['Tuần'].map(week_to_month)
-    # ...existing code...
-    st.write("Các cột hiện có trong df_result:", df_result.columns.tolist())
-    st.dataframe(df_result)
     # LOGIC MỚI: TÌM SĨ SỐ THEO MÃ LỚP VÀ THÁNG
     siso_list = []
     for month in df_result['Tháng']:
@@ -852,12 +846,15 @@ for i, tab in enumerate(tabs[:-1]):
                     - Thực hiện giảng dạy từ tuần {selected_tuan_range[0]} đến tuần {selected_tuan_range[1]} (giải thích: tuần {selected_tuan_range[0]} tương ứng giá trị tuần bắt đầu và tuần {selected_tuan_range[1]} tương ứng tuần kết thúc).
                     - Dưới đây là bảng sĩ số chi tiết theo từng tuần đã giảng dạy:
                 """)
+                # --- Trước phần kiểm tra các cột trong result_df ---
+                # Ánh xạ tuần sang tháng từ df_ngaytuan_g
+                week_to_month = dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Tháng']))
+                result_df['Tháng'] = result_df['Tuần'].map(week_to_month)
+                # --- Tiếp tục phần kiểm tra và hiển thị như bạn đã có ---
                 st.write("Các cột hiện có trong result_df:", result_df.columns.tolist())
-
-                # Đảm bảo các cột cần thiết đều có trong result_df
+                
                 required_cols = ['Tuần', 'Tháng', 'Sĩ số']
                 if not result_df.empty and all(col in result_df.columns for col in required_cols):
-                    # Tạo bảng ngang: mỗi hàng là Tuần, Tháng, Sĩ số
                     week_labels = [f"Tuần {t}" for t in result_df['Tuần'].values]
                     month_row = result_df['Tháng'].astype(str).tolist()
                     siso_row = result_df['Sĩ số'].astype(str).tolist()
@@ -865,8 +862,7 @@ for i, tab in enumerate(tabs[:-1]):
                     df_horizontal = pd.DataFrame(data, index=['Tuần', 'Tháng', 'Sĩ số'])
                     st.dataframe(df_horizontal)
                 else:
-                    st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")
-                
+                    st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")                
             
                 # 4. Hệ số TC/CĐ
                 # Đổi tên chuẩn GV
