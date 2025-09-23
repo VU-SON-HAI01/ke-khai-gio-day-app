@@ -343,15 +343,12 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     df_result = locdulieu_info[['Tuần', 'Từ ngày đến ngày']].copy()
     df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
     
-    st.subheader("Kiểm tra bảng df_ngaytuan_g")
-    st.write("Tên các cột trong df_ngaytuan_g:", df_ngaytuan_g.columns.tolist())
-    st.dataframe(df_ngaytuan_g)
-
     # Tạo ánh xạ tuần -> tháng từ df_ngaytuan_g
     week_to_month = dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Tháng']))
     df_result['Tháng'] = df_result['Tuần'].map(week_to_month)
     # ...existing code...
-    
+    st.write("Các cột hiện có trong df_result:", df_result.columns.tolist())
+    st.dataframe(df_result)
     # LOGIC MỚI: TÌM SĨ SỐ THEO MÃ LỚP VÀ THÁNG
     siso_list = []
     for month in df_result['Tháng']:
