@@ -845,7 +845,6 @@ for i, tab in enumerate(tabs[:-1]):
                     st.info("Không tìm thấy dữ liệu chi tiết cho môn học đã chọn.")
             
                 
-                # ...existing code...
                 # 3. Sĩ số theo tuần
                 st.markdown(f"""
                 3. **Lấy Sĩ số theo tuần:**
@@ -853,7 +852,11 @@ for i, tab in enumerate(tabs[:-1]):
                     - Dưới đây là bảng sĩ số chi tiết theo từng tuần đã giảng dạy:
                 """)
                 st.write("Các cột hiện có trong result_df:", result_df.columns.tolist())
-                if not result_df.empty and all(col in result_df.columns for col in ['Tuần', 'Tháng', 'Sĩ số']):
+
+                # Đảm bảo các cột cần thiết đều có trong result_df
+                required_cols = ['Tuần', 'Tháng', 'Sĩ số']
+                if not result_df.empty and all(col in result_df.columns for col in required_cols):
+                    # Tạo bảng ngang: mỗi hàng là Tuần, Tháng, Sĩ số
                     week_labels = [f"Tuần {t}" for t in result_df['Tuần'].values]
                     month_row = result_df['Tháng'].astype(str).tolist()
                     siso_row = result_df['Sĩ số'].astype(str).tolist()
@@ -862,7 +865,6 @@ for i, tab in enumerate(tabs[:-1]):
                     st.dataframe(df_horizontal)
                 else:
                     st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")
-                # ...existing code...
                 
             
                 # 4. Hệ số TC/CĐ
