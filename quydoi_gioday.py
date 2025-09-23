@@ -114,6 +114,35 @@ def xac_dinh_chuan_gv(danh_sach_ma_mon: List[str]) -> str:
 
 # ---
 # Bước 3: Hàm chính (main function)
+def get_tuan_tet(df_ngaytuan_g):
+    """Trả về danh sách các tuần có TẾT."""
+    return df_ngaytuan_g[df_ngaytuan_g['Tuần_Tết'] == 'TẾT']['Tuần'].tolist()
+
+def xu_ly_tuan_tet(arr_tiet, tuanbatdau, tuanketthuc, df_ngaytuan_g):
+    """Gán số tiết = 0 cho các tuần TẾT, giữ nguyên thứ tự tuần."""
+    tuan_range = list(range(tuanbatdau, tuanketthuc + 1))
+    tuan_tet = get_tuan_tet(df_ngaytuan_g)
+    arr_tiet_new = []
+    idx = 0
+    for tuan in tuan_range:
+        if tuan in tuan_tet:
+            arr_tiet_new.append(0)
+        else:
+            arr_tiet_new.append(arr_tiet[idx])
+            idx += 1
+    return arr_tiet_new
+
+def xu_ly_ngay_tet(result_df, df_ngaytuan_g):
+    """Thêm (TẾT) vào cột Ngày nếu tuần là TẾT, và gán Tiết = 0."""
+    tuan_tet = get_tuan_tet(df_ngaytuan_g)
+    tuan_to_ngay = dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Từ ngày đến ngày']))
+    for idx, row in result_df.iterrows():
+        tuan = row['Tuần']
+        if tuan in tuan_tet:
+            result_df.at[idx, 'Ngày'] = f"{tuan_to_ngay.get(tuan, row['Ngày'])}(TẾT)"
+            result_df.at[idx, 'Tiết'] = 0
+    return result_df
+
 def xu_ly_danh_sach_mon(ma_mon_list: List[str]) -> pd.DataFrame:
     """
     Hàm chính để xử lý toàn bộ logic:
@@ -767,11 +796,18 @@ for i, tab in enumerate(tabs[:-1]):
 
         # Xử lý dữ liệu nếu hợp lệ
         if is_input_valid:
+            # Trước khi gọi process_mon_data, xử lý arr_tiet hoặc arr_tiet_lt, arr_tiet_th
+            tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
+            if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
+                arr_tiet = xu_ly_tuan_tet(arr_tiet, tuanbatdau, tuanketthuc, df_ngaytuan_g)
+            else:
+                arr_tiet_lt = xu_ly_tuan_tet(arr_tiet_lt, tuanbatdau, tuanketthuc, df_ngaytuan_g)
+                arr_tiet_th = xu_ly_tuan_tet(arr_tiet_th, tuanbatdau, tuanketthuc, df_ngaytuan_g)
+
             df_result, summary = process_mon_data(current_input, chuangv_tab, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
-            if summary and "error" in summary:
-                validation_placeholder.error(f"Lỗi tính toán: {summary['error']}")
-                st.session_state.results_data[i] = pd.DataFrame()
-            elif df_result is not None and not df_result.empty:
+            # Sau khi có df_result, xử lý hiển thị tuần TẾT
+            if df_result is not None and not df_result.empty:
+                df_result = xu_ly_ngay_tet(df_result, df_ngaytuan_g)
                 st.session_state.results_data[i] = df_result
 
         st.subheader(f"II. Bảng kết quả tính toán - Môn {i+1}")
