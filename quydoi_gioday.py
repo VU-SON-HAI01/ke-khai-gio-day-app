@@ -340,7 +340,12 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         if not found:
             return pd.DataFrame(), {"error": "Không tìm thấy cột 'Tháng' trong dữ liệu tuần/ngày. Vui lòng kiểm tra lại file nguồn."}
     # ...existing code...
-    df_result = locdulieu_info[['Tháng', 'Tuần', 'Từ ngày đến ngày']].copy()
+    df_result = locdulieu_info[['Tuần', 'Từ ngày đến ngày']].copy()
+    df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
+    
+    # Tạo ánh xạ tuần -> tháng từ df_ngaytuan_g
+    week_to_month = dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Tháng']))
+    df_result['Tháng'] = df_result['Tuần'].map(week_to_month)
     # ...existing code...
     
     # LOGIC MỚI: TÌM SĨ SỐ THEO MÃ LỚP VÀ THÁNG
