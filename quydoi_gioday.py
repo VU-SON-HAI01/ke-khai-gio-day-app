@@ -854,15 +854,18 @@ for i, tab in enumerate(tabs[:-1]):
                 week_to_month = dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Tháng']))
                 result_df['Tháng'] = result_df['Tuần'].map(week_to_month)
                 # --- Tiếp tục phần kiểm tra và hiển thị như bạn đã có ---
-                st.write("Các cột hiện có trong result_df:", result_df.columns.tolist())
                 
                 required_cols = ['Tuần', 'Tháng', 'Sĩ số']
                 if not result_df.empty and all(col in result_df.columns for col in required_cols):
                     week_labels = [f"Tuần {t}" for t in result_df['Tuần'].values]
                     month_row = result_df['Tháng'].astype(str).tolist()
                     siso_row = result_df['Sĩ số'].astype(str).tolist()
-                    data = [week_labels, month_row, siso_row]
-                    df_horizontal = pd.DataFrame(data, index=['Tuần', 'Tháng', 'Sĩ số'])
+                    
+                    df_horizontal = pd.DataFrame({
+                        'Tháng': month_row,
+                        'Sĩ số': siso_row
+                    }, index=week_labels).T  # .T để chuyển thành mỗi tuần là một cột
+                    
                     st.dataframe(df_horizontal)
                 else:
                     st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")                
