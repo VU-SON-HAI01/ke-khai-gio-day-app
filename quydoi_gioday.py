@@ -835,6 +835,7 @@ for i, tab in enumerate(tabs[:-1]):
                     - Thực hiện giảng dạy từ tuần {selected_tuan_range[0]} đến tuần {selected_tuan_range[1]} (giải thích: tuần {selected_tuan_range[0]} tương ứng giá trị tuần bắt đầu và tuần {selected_tuan_range[1]} tương ứng tuần kết thúc).
                     - Dưới đây là bảng sĩ số chi tiết theo từng tuần đã giảng dạy:
                 """)
+                st.write("Các cột hiện có trong result_df:", result_df.columns.tolist())
                 if not result_df.empty and all(col in result_df.columns for col in ['Tuần', 'Tháng', 'Sĩ số']):
                     week_labels = [f"Tuần {t}" for t in result_df['Tuần'].values]
                     month_row = result_df['Tháng'].astype(str).tolist()
