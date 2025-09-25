@@ -830,8 +830,11 @@ for i, tab in enumerate(tabs[:-1]):
                 validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
                 is_input_valid = False
 
-        # Xử lý dữ liệu nếu hợp lệ
-        if is_input_valid:
+
+        # Nếu dữ liệu không hợp lệ, hiển thị hướng dẫn cho người dùng
+        if not is_input_valid:
+            st.warning("Bạn phải thực hiện nhập dữ liệu Tiết theo tuần và Lựa chọn Tuần Bắt đầu và Kết thúc giảng dạy tương ứng với Tiến độ đào tạo.")
+        else:
             # Trước khi gọi process_mon_data, xử lý arr_tiet hoặc arr_tiet_lt, arr_tiet_th
             tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
             if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
