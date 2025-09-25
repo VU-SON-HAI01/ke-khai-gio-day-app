@@ -844,8 +844,11 @@ for i, tab in enumerate(tabs[:-1]):
                 arr_tiet_th = xu_ly_tuan_tet(arr_tiet_th, tuanbatdau, tuanketthuc, df_ngaytuan_g)
 
             df_result, summary = process_mon_data(current_input, chuangv_tab, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
-            # Sau khi có df_result, xử lý hiển thị tuần TẾT
+            # Sau khi có df_result, xử lý hiển thị tuần TẾT và lọc theo tuần đã chọn
             if df_result is not None and not df_result.empty:
+                tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
+                # Lọc các tuần nằm trong khoảng đã chọn
+                df_result = df_result[(df_result['Tuần'] >= tuanbatdau) & (df_result['Tuần'] <= tuanketthuc)].reset_index(drop=True)
                 df_result = xu_ly_ngay_tet(df_result, df_ngaytuan_g)
                 st.session_state.results_data[i] = df_result
 
