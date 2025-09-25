@@ -882,6 +882,16 @@ for i, tab in enumerate(tabs[:-1]):
                     # Ẩn cột index, Mã_DSMON
                     df_display = malop_info_df.drop(columns=[col for col in ['Mã_DSMON'] if col in malop_info_df.columns])
                     df_display = df_display.reset_index(drop=True)
+                    # Lọc các tuần nằm trong khoảng đã chọn và loại trừ tuần TẾT
+                    tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
+                    # Nếu có cột Tuần, lọc theo khoảng tuần
+                    if 'Tuần' in df_display.columns:
+                        tuan_range = set(range(tuanbatdau, tuanketthuc+1))
+                        # Nếu có cột Tuần_Tết, loại trừ tuần TẾT
+                        if 'Tuần_Tết' in df_display.columns:
+                            tuan_tet_list = df_display[df_display['Tuần_Tết'].astype(str).str.upper().str.contains('TẾT')]['Tuần'].tolist()
+                            tuan_range = tuan_range.difference(set(tuan_tet_list))
+                        df_display = df_display[df_display['Tuần'].isin(tuan_range)].reset_index(drop=True)
                     st.dataframe(df_display)
                 else:
                     st.info("Không tìm thấy dữ liệu chi tiết cho lớp học đã chọn.")
