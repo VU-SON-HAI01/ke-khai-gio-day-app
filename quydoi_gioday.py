@@ -343,7 +343,18 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     
     tuanbatdau, tuanketthuc = tuandentuan
-    locdulieu_info = df_ngaytuan_g.iloc[tuanbatdau - 1:tuanketthuc].copy()
+    # Lọc tuần theo khoảng đã chọn
+    locdulieu_info = df_ngaytuan_g[(df_ngaytuan_g['Tuần'] >= tuanbatdau) & (df_ngaytuan_g['Tuần'] <= tuanketthuc)].copy()
+    # Loại trừ tuần TẾT nếu có cột Tuần_Tết
+    if 'Tuần_Tết' in locdulieu_info.columns:
+        tuan_tet_mask = locdulieu_info['Tuần_Tết'].astype(str).str.upper().str.contains('TẾT')
+        locdulieu_info = locdulieu_info[~tuan_tet_mask].copy()
+    else:
+        # Fallback: loại trừ tuần có "TẾT" trong cột Ghi chú hoặc TẾT
+        if 'Ghi chú' in locdulieu_info.columns:
+            locdulieu_info = locdulieu_info[~locdulieu_info['Ghi chú'].astype(str).str.upper().str.contains('TẾT')].copy()
+        elif 'TẾT' in locdulieu_info.columns:
+            locdulieu_info = locdulieu_info[~locdulieu_info['TẾT'].astype(str).str.upper().str.contains('TẾT')].copy()
     
     try:
         arr_tiet_lt = np.array([int(x) for x in str(tiet_lt_nhap).split()]) if tiet_lt_nhap and tiet_lt_nhap.strip() else np.array([], dtype=int)
