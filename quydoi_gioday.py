@@ -423,6 +423,29 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     
     return df_final, summary_info
 
+def xu_ly_tuan_tet(arr_tiet, tuanbatdau, tuanketthuc, df_ngaytuan_g):
+    """
+    Hàm xử lý số tiết theo tuần, tự động gán số tiết = 0 cho tuần TẾT.
+    arr_tiet: mảng số tiết nhập vào (list hoặc np.array)
+    tuanbatdau, tuanketthuc: tuần bắt đầu và kết thúc
+    df_ngaytuan_g: DataFrame chứa thông tin tuần, có cột 'Ghi chú' hoặc 'TẾT'
+    """
+    arr_tiet = list(arr_tiet)
+    tuan_range = range(tuanbatdau, tuanketthuc+1)
+    arr_tiet_new = []
+    for idx, tuan in enumerate(tuan_range):
+        # Kiểm tra tuần TẾT
+        ghi_chu = ''
+        if 'Ghi chú' in df_ngaytuan_g.columns:
+            ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'Ghi chú'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
+        elif 'TẾT' in df_ngaytuan_g.columns:
+            ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'TẾT'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
+        if 'TẾT' in ghi_chu.upper():
+            arr_tiet_new.append(0)
+        else:
+            arr_tiet_new.append(arr_tiet[idx] if idx < len(arr_tiet) else 0)
+    return np.array(arr_tiet_new)
+
 # --- CÁC HÀM HỖ TRỢ KHÁC ---
 def get_default_input_dict():
     """Tạo một dictionary chứa dữ liệu input mặc định cho một môn."""
