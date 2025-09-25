@@ -35,7 +35,7 @@ from itertools import zip_longest
 
 def xu_ly_ngay_tet(df_result, df_ngaytuan_g):
     """
-    Đánh dấu tuần TẾT trong cột Ngày của bảng kết quả, ví dụ: "... (TẾT)" nếu tuần đó là TẾT.
+    Nếu là tuần TẾT thì cột Ngày sẽ là 'Nghỉ tết'.
     """
     df_result = df_result.copy()
     for idx, row in df_result.iterrows():
@@ -46,7 +46,7 @@ def xu_ly_ngay_tet(df_result, df_ngaytuan_g):
         elif 'TẾT' in df_ngaytuan_g.columns:
             ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'TẾT'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
         if 'TẾT' in ghi_chu.upper():
-            df_result.at[idx, 'Ngày'] = str(row['Ngày']) + ' (TẾT)'
+            df_result.at[idx, 'Ngày'] = 'Nghỉ tết'
     return df_result
 # ==============================
 # BẮT ĐẦU: LOGIC TỪ FUN_QUYDOI.PY
