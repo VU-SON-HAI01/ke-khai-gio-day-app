@@ -985,12 +985,8 @@ for i, tab in enumerate(tabs[:-1]):
                 4. **Các bước xác định Hệ số dạy lớp Cao đẳng, Trung cấp, Sơ cấp (HS TC/CĐ):**
                     - Hệ số TC/CĐ được xác định dựa trên chuẩn GV và Lớp giảng dạy.
                     - Chuẩn giáo viên: `{chuan_gv_display}`
-                    - Trình độ lớp: `{
-                        {'Trung cấp' if pl == 'Lớp_TC' else 'Cao đẳng' if pl == 'Lớp_CĐ' else 'Sơ cấp' if pl == 'Lớp_SC' else 'Văn hóa phổ thông' if pl == 'Lớp_VH' else pl}
-                        if (pl := phan_loai_ma_mon(mon_info_filtered_df['Mã_môn_ngành'].iloc[0])[0]) and not mon_info_filtered_df.empty and 'Mã_môn_ngành' in mon_info_filtered_df.columns else ''
-                    }`
-                    - Giá trị hệ số TC/CĐ sử dụng cho môn này: `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
-                        <span title="Giáo viên Môn chung => 01 giờ giảng dạy trình độ cao đẳng = 01 giờ chuẩn; 01 giờ giảng dạy trình độ trung cấp = 0,88 giờ chuẩn; Giáo viên Môn nghề => 01 giờ giảng dạy trình độ cao đẳng = 01 giờ chuẩn; 01 giờ giảng dạy trình độ trung cấp = 0,89 giờ chuẩn" style="cursor: help; color: #007bff;">&#9432;</span>
+                    - Trình độ lớp: {'Trung cấp' if pl == 'Lớp_TC' else 'Cao đẳng' if pl == 'Lớp_CĐ' else 'Sơ cấp' if pl == 'Lớp_SC' else 'Văn hóa phổ thông' if pl == 'Lớp_VH' else pl if (pl := phan_loai_ma_mon(mon_info_filtered_df['Mã_môn_ngành'].iloc[0])[0]) and not mon_info_filtered_df.empty and 'Mã_môn_ngành' in mon_info_filtered_df.columns else ''}
+                    - Giá trị hệ số TC/CĐ sử dụng cho môn này: `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`        
                 """)
                 st.markdown(f"""
                 5. **Hoàn tất tính toán:**
