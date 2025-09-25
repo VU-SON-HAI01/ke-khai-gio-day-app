@@ -1,3 +1,16 @@
+# --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
+def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
+    so_tuan_tet = 0
+    tuan_range = range(tuanbatdau, tuanketthuc+1)
+    for tuan in tuan_range:
+        ghi_chu = ''
+        if 'Ghi chú' in df_ngaytuan_g.columns:
+            ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'Ghi chú'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
+        elif 'TẾT' in df_ngaytuan_g.columns:
+            ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'TẾT'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
+        if 'TẾT' in ghi_chu.upper():
+            so_tuan_tet += 1
+    return so_tuan_tet
 # --- CÁC HÀM HỖ TRỢ KHÁC ---
 import streamlit as st
 import pandas as pd
@@ -782,11 +795,14 @@ for i, tab in enumerate(tabs[:-1]):
         chuangv_tab = st.session_state.chuan_gv
 
 
-        # Kiểm tra hợp lệ dữ liệu nhập
+        # Kiểm tra hợp lệ dữ liệu nhập (cập nhật loại trừ tuần TẾT)
+        tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
+        so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
+        so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
         if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
             so_tiet_dem_duoc = len(arr_tiet)
-            if so_tiet_dem_duoc != so_tuan_chon:
-                validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan_chon}) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
+            if so_tiet_dem_duoc != so_tuan_thuc_te:
+                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
                 is_input_valid = False
             elif kieu_tinh_mdmh == 'LTTH':
                 validation_placeholder.error("Lỗi: Môn học này yêu cầu kê khai tiết LT, TH chi tiết.")
@@ -794,14 +810,12 @@ for i, tab in enumerate(tabs[:-1]):
         else:
             so_tiet_lt_dem_duoc = len(arr_tiet_lt)
             so_tiet_th_dem_duoc = len(arr_tiet_th)
-            tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
-            so_tuan = tuanketthuc - tuanbatdau + 1
             if kieu_tinh_mdmh != 'LTTH':
                 df_result = pd.DataFrame()
                 summary = {"error": "Môn học này không yêu cầu kê khai tiết LT, TH chi tiết."}
                 is_input_valid = False
-            elif so_tuan != so_tiet_lt_dem_duoc or so_tuan != so_tiet_th_dem_duoc:
-                validation_placeholder.error(f"Lỗi: Số tuần đã chọn ({so_tuan}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
+            elif so_tuan_thuc_te != so_tiet_lt_dem_duoc or so_tuan_thuc_te != so_tiet_th_dem_duoc:
+                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
                 is_input_valid = False
 
         # Xử lý dữ liệu nếu hợp lệ
