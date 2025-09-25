@@ -1032,3 +1032,19 @@ with tabs[-1]:
 
     else:
         st.info("Chưa có dữ liệu môn học nào để tổng hợp.")
+
+def xu_ly_ngay_tet(df_result, df_ngaytuan_g):
+    """
+    Đánh dấu tuần TẾT trong cột Ngày của bảng kết quả, ví dụ: "... (TẾT)" nếu tuần đó là TẾT.
+    """
+    df_result = df_result.copy()
+    for idx, row in df_result.iterrows():
+        tuan = row['Tuần']
+        ghi_chu = ''
+        if 'Ghi chú' in df_ngaytuan_g.columns:
+            ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'Ghi chú'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
+        elif 'TẾT' in df_ngaytuan_g.columns:
+            ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'TẾT'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
+        if 'TẾT' in ghi_chu.upper():
+            df_result.at[idx, 'Ngày'] = str(row['Ngày']) + ' (TẾT)'
+    return df_result
