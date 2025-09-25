@@ -1,0 +1,29 @@
+# Main App Framework
+streamlit
+streamlit-oauth
+
+# Data Handling
+pandas
+pyarrow
+openpyxl
+
+# Google Integration
+gspread[drive]
+gspread-dataframe
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+pydrive2
+unidecode
+
+# PDF Generation
+fpdf2
+thefuzz
+python-Levenshtein
+
+
+
+
+
+
+
