@@ -1,15 +1,27 @@
 # --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
 def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
+    """
+    Đếm số tuần TẾT dựa vào cột Tuần_Tết nếu có, ánh xạ sang cột Tuần.
+    """
+    tuan_range = set(range(tuanbatdau, tuanketthuc+1))
     so_tuan_tet = 0
-    tuan_range = range(tuanbatdau, tuanketthuc+1)
-    for tuan in tuan_range:
-        ghi_chu = ''
-        if 'Ghi chú' in df_ngaytuan_g.columns:
-            ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'Ghi chú'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
-        elif 'TẾT' in df_ngaytuan_g.columns:
-            ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'TẾT'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
-        if 'TẾT' in ghi_chu.upper():
-            so_tuan_tet += 1
+    # Nếu có cột Tuần_Tết, lấy các tuần có giá trị TẾT
+    if 'Tuần_Tết' in df_ngaytuan_g.columns:
+        # Lấy các tuần có giá trị TẾT
+        tuan_tet_list = df_ngaytuan_g[df_ngaytuan_g['Tuần_Tết'].astype(str).str.upper().str.contains('TẾT')]['Tuần'].tolist()
+        for tuan in tuan_tet_list:
+            if tuan in tuan_range:
+                so_tuan_tet += 1
+    else:
+        # Fallback: dùng logic cũ
+        for tuan in tuan_range:
+            ghi_chu = ''
+            if 'Ghi chú' in df_ngaytuan_g.columns:
+                ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'Ghi chú'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
+            elif 'TẾT' in df_ngaytuan_g.columns:
+                ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'TẾT'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
+            if 'TẾT' in ghi_chu.upper():
+                so_tuan_tet += 1
     return so_tuan_tet
 # --- CÁC HÀM HỖ TRỢ KHÁC ---
 import streamlit as st
