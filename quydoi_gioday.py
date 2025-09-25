@@ -245,93 +245,73 @@ def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
     Tìm hệ số quy đổi dựa trên sĩ số, loại tiết (LT/TH) và điều kiện nặng nhọc.
     
     Tham số:
-                # 1. Thông tin lớp học đã chọn
-                st.markdown(f"""
-                1. **Lấy thông tin từ lớp học đã chọn:**
-                    - Bạn đã chọn **Lớp `{processing_log.get('lop_chon')}`**.
-                    - Đây là bảng thống kê sĩ số theo tháng của lớp {processing_log.get('lop_chon')}:
-                    - Bảng sĩ số từ tuần {selected_tuan_range[0]} đến tuần {selected_tuan_range[1]} (Bỏ qua các tuần Tết)
-                """)
-                malop_info_df = processing_log.get('malop_info_df', pd.DataFrame())
-                if not malop_info_df.empty:
-                    # Ẩn cột index, Mã_DSMON
-                    df_display = malop_info_df.drop(columns=[col for col in ['Mã_DSMON'] if col in malop_info_df.columns])
-                    df_display = df_display.reset_index(drop=True)
-                    st.dataframe(df_display)
-                else:
-                    st.info("Không tìm thấy dữ liệu chi tiết cho lớp học đã chọn.")
+    - siso: Sĩ số của lớp học.
+    - is_heavy_duty: True nếu môn học là nặng nhọc, False nếu bình thường.
+    - lesson_type: 'LT' cho tiết Lý thuyết, 'TH' cho tiết Thực hành.
+    - df_hesosiso_g: DataFrame chứa bảng tra cứu hệ số.
+    """
+    try:
+        cleaned_siso = int(float(siso)) if siso is not None and str(siso).strip() != '' else 0
+    except (ValueError, TypeError):
+        cleaned_siso = 0
+    siso = cleaned_siso
 
-                # Bảng sĩ số theo tuần (bỏ qua tuần Tết)
-                week_to_month = dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Tháng']))
-                result_df['Tháng'] = result_df['Tuần'].map(week_to_month)
-                required_cols = ['Tuần', 'Tháng', 'Sĩ số']
-                if not result_df.empty and all(col in result_df.columns for col in required_cols):
-                    week_labels = [f"Tuần {t}" for t in result_df['Tuần'].values]
-                    month_row = result_df['Tháng'].astype(str).tolist()
-                    siso_row = result_df['Sĩ số'].astype(str).tolist()
-                    df_horizontal = pd.DataFrame({
-                        'Tháng': month_row,
-                        'Sĩ số': siso_row
-                    }, index=week_labels).T
-                    st.dataframe(df_horizontal)
-                else:
-                    st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")
+    df_hesosiso = df_hesosiso_g.copy()
+    for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
+        df_hesosiso[col] = pd.to_numeric(df_hesosiso[col], errors='coerce').fillna(0)
+    
+    heso_siso = 1.0
 
-                # 2. Thông tin môn học đã chọn
-                st.markdown(f"""
-                2. **Lấy thông tin môn học đã chọn:**
-                    - Bạn đã chọn **Môn học `{processing_log.get('mon_chon')}`**.
-                    - Đây là thông tin về môn học đã chọn:
-                """)
-                mon_info_filtered_df = processing_log.get('mon_info_filtered_df', pd.DataFrame())
-                if not mon_info_filtered_df.empty:
-                    df_mon_display = mon_info_filtered_df.copy()
-                    col_map = {
-                        'Môn_học': 'Môn học',
-                        'LT': 'Tiết LT',
-                        'TH': 'Tiết TH',
-                        'KT': 'Tiết KT',
-                        'Nặng_nhọc': 'Ngành nặng nhọc',
-                        'MH/MĐ': 'MH/MĐ/MC'
-                    }
-                    keep_cols = [col for col in ['Môn_học', 'LT', 'TH', 'KT', 'Nặng_nhọc', 'MH/MĐ'] if col in df_mon_display.columns]
-                    df_mon_display = df_mon_display[keep_cols].rename(columns=col_map)
-                    if 'Ngành nặng nhọc' in df_mon_display.columns:
-                        df_mon_display['Ngành nặng nhọc'] = df_mon_display['Ngành nặng nhọc'].replace({'BT': 'Ngành bình thường', 'NN': 'Ngành TH Nặng nhọc'})
-                    if 'MH/MĐ/MC' in df_mon_display.columns:
-                        df_mon_display['MH/MĐ/MC'] = df_mon_display['MH/MĐ/MC'].replace({
-                            'MH': 'Môn học (LT)',
-                            'MĐ': 'Môđun (TH+LT)',
-                            'MC': 'Môn chung'
-                        })
-                    st.dataframe(df_mon_display)
-                else:
-                    st.info("Không tìm thấy dữ liệu chi tiết cho môn học đã chọn.")
+    if lesson_type == 'LT':
+        for i in range(len(df_hesosiso)):
+            if df_hesosiso['LT min'].values[i] <= siso <= df_hesosiso['LT max'].values[i]:
+                heso_siso = df_hesosiso['Hệ số'].values[i]
+                break
+    elif lesson_type == 'TH':
+        if is_heavy_duty:
+            for i in range(len(df_hesosiso)):
+                if df_hesosiso['THNN min'].values[i] <= siso <= df_hesosiso['THNN max'].values[i]:
+                    heso_siso = df_hesosiso['Hệ số'].values[i]
+                    break
+        else: # Not heavy duty
+            for i in range(len(df_hesosiso)):
+                if df_hesosiso['TH min'].values[i] <= siso <= df_hesosiso['TH max'].values[i]:
+                    heso_siso = df_hesosiso['Hệ số'].values[i]
+                    break
+    return heso_siso
 
-                # 3. Các bước xác định Hệ số dạy lớp Cao đẳng, Trung cấp, Sơ cấp (HS TC/CĐ)
-                gv_map = {
-                    'TC': 'Trung cấp',
-                    'CĐ': 'Cao đẳng',
-                    'TCMC': 'Trung cấp (Môn chung)',
-                    'CĐMC': 'Cao đẳng (Môn chung)'
-                }
-                chuan_gv_display = gv_map.get(chuangv_tab, chuangv_tab)
-                st.markdown(f"""
-                3. **Các bước xác định Hệ số dạy lớp Cao đẳng, Trung cấp, Sơ cấp (HS TC/CĐ):**
-                    - Hệ số TC/CĐ được xác định dựa trên chuẩn GV và Lớp giảng dạy.
-                    - Chuẩn giáo viên: `{chuan_gv_display}`
-                    - Trình độ lớp: `{
-                        {'Trung cấp' if pl == 'Lớp_TC' else 'Cao đẳng' if pl == 'Lớp_CĐ' else 'Sơ cấp' if pl == 'Lớp_SC' else 'Văn hóa phổ thông' if pl == 'Lớp_VH' else pl}
-                        if (pl := phan_loai_ma_mon(mon_info_filtered_df['Mã_môn_ngành'].iloc[0])[0]) and not mon_info_filtered_df.empty and 'Mã_môn_ngành' in mon_info_filtered_df.columns else ''
-                    }`
-                    - Giá trị hệ số TC/CĐ sử dụng cho môn này: `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
-                        <span title="Giáo viên Môn chung => 01 giờ giảng dạy trình độ cao đẳng = 01 giờ chuẩn; 01 giờ giảng dạy trình độ trung cấp = 0,88 giờ chuẩn; Giáo viên Môn nghề => 01 giờ giảng dạy trình độ cao đẳng = 01 giờ chuẩn; 01 giờ giảng dạy trình độ trung cấp = 0,89 giờ chuẩn" style="cursor: help; color: #007bff;">&#9432;</span>
-                """)
-                st.markdown(f"""
-                4. **Hoàn tất tính toán:**
-                    - Hệ thống sử dụng các giá trị sĩ số đã lấy được ở trên để tính toán **Hệ số sĩ số (HS_SS_LT, HS_SS_TH)** cho từng tuần.
-                    - Các cột còn lại trong bảng kết quả được tính toán dựa trên các công thức đã định sẵn, sử dụng các giá trị này.
-                """)
+# --- LẤY DỮ LIỆU CƠ SỞ TỪ SESSION STATE ---
+spreadsheet = st.session_state.spreadsheet
+df_lop_g = st.session_state.get('df_lop')
+df_mon_g = st.session_state.get('df_mon')
+df_ngaytuan_g = st.session_state.get('df_ngaytuan')
+df_hesosiso_g = st.session_state.get('df_hesosiso')
+
+# Xác định chuangv động từ danh sách mã môn trong tất cả các tab
+mon_data_list = st.session_state.get('mon_hoc_data', [])
+df_lopghep_g = st.session_state.get('df_lopghep')
+df_loptach_g = st.session_state.get('df_loptach')
+df_lopsc_g = st.session_state.get('df_lopsc')
+ma_gv = st.session_state.get('magv', 'khong_ro')
+
+# --- HẰNG SỐ ---
+DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
+KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
+
+
+def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g):
+    """Hàm xử lý chính, tính toán quy đổi giờ giảng."""
+    lop_chon = input_data.get('lop_hoc')
+    mon_chon = input_data.get('mon_hoc')
+    tuandentuan = input_data.get('tuan')
+    kieu_ke_khai = input_data.get('cach_ke', 'Kê theo MĐ, MH')
+    tiet_nhap = input_data.get('tiet', "0")
+    tiet_lt_nhap = input_data.get('tiet_lt', "0")
+    tiet_th_nhap = input_data.get('tiet_th', "0")
+
+    if not lop_chon: return pd.DataFrame(), {"error": "Vui lòng chọn một Lớp học."}
+    if not mon_chon: return pd.DataFrame(), {"error": "Vui lòng chọn một Môn học."}
+    if not isinstance(tuandentuan, (list, tuple)) or len(tuandentuan) != 2:
         return pd.DataFrame(), {"error": "Phạm vi tuần không hợp lệ."}
 
     # Lấy DataFrame tương ứng với Khóa/Hệ đã chọn
