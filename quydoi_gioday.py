@@ -1,3 +1,12 @@
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import gspread
+from gspread_dataframe import set_with_dataframe
+import ast
+import re
+from itertools import zip_longest
 # --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
 def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
     """
@@ -23,16 +32,6 @@ def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
             if 'TẾT' in ghi_chu.upper():
                 so_tuan_tet += 1
     return so_tuan_tet
-# --- CÁC HÀM HỖ TRỢ KHÁC ---
-import streamlit as st
-import pandas as pd
-import numpy as np
-import gspread
-from gspread_dataframe import set_with_dataframe
-import ast
-import re
-from itertools import zip_longest
-
 def xu_ly_ngay_tet(df_result, df_ngaytuan_g):
     """
     Nếu là tuần TẾT thì cột Ngày sẽ là 'Nghỉ tết'.
@@ -983,11 +982,11 @@ for i, tab in enumerate(tabs[:-1]):
                 }
                 chuan_gv_display = gv_map.get(chuangv_tab, chuangv_tab)
                 st.markdown(f"""
-                4. **Liệt kê hệ số TC/CĐ:**
+                4. **Các bước xác định Hệ số dạy lớp Cao đẳng, Trung cấp, Sơ cấp (HS TC/CĐ):**
                     - Hệ số TC/CĐ được xác định dựa trên chuẩn GV và Lớp giảng dạy.
                     - Chuẩn giáo viên: `{chuan_gv_display}`
+                    - Trình độ lớp: `{phan_loai_ma_mon(mon_info_filtered_df['Mã_môn_ngành'].iloc[0])[0] if not mon_info_filtered_df.empty and 'Mã_môn_ngành' in mon_info_filtered_df.columns else ''}`
                     - Giá trị hệ số TC/CĐ sử dụng cho môn này: `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
-                    - Hệ số TC/CĐ đã được đưa vào cột **HS TC/CĐ** tại bảng kết quả tính toán bên trên.
                 """)
                 st.markdown(f"""
                 5. **Hoàn tất tính toán:**
