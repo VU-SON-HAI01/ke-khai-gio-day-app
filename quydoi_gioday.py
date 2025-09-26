@@ -629,7 +629,7 @@ def save_all_data():
         input_list = []
         output_list = []
         # Lấy danh sách mã môn ngành cho từng môn
-        mamon_nganh_list = st.session_state.get('danh_sach_mamon_nganh_all', [])
+        # Đảm bảo lấy đúng mã môn ngành cho từng môn
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
             data_to_save = input_data.copy()
@@ -646,8 +646,32 @@ def save_all_data():
                 data_to_save['tiet_lt'] = '0'
                 data_to_save['tiet_th'] = '0'
             data_to_save['ID_MÔN'] = f"Môn {mon_index}"
-            # Thêm cột Mã_Môn_Ngành
-            mamon_nganh = mamon_nganh_list[i] if i < len(mamon_nganh_list) else ''
+            # Tự động bổ sung giá trị cho cột Mã_Môn_Ngành
+            mamon_nganh = ''
+            if 'Mã_Môn_Ngành' in data_to_save and data_to_save['Mã_Môn_Ngành']:
+                mamon_nganh = data_to_save['Mã_Môn_Ngành']
+            elif 'mamon_nganh' in data_to_save and data_to_save['mamon_nganh']:
+                mamon_nganh = data_to_save['mamon_nganh']
+            elif 'mon_hoc' in data_to_save and 'lop_hoc' in data_to_save:
+                selected_khoa = data_to_save.get('khoa')
+                lop_hoc = data_to_save.get('lop_hoc')
+                mon_hoc = data_to_save.get('mon_hoc')
+                df_lop_mapping = {
+                    'Khóa 48': df_lop_g,
+                    'Khóa 49': df_lop_g,
+                    'Khóa 50': df_lop_g,
+                    'Lớp ghép': df_lopghep_g,
+                    'Lớp tách': df_loptach_g,
+                    'Sơ cấp + VHPT': df_lopsc_g
+                }
+                source_df = df_lop_mapping.get(selected_khoa)
+                if lop_hoc and source_df is not None and not source_df.empty:
+                    dsmon_code = source_df[source_df['Lớp'] == lop_hoc]['Mã_DSMON']
+                    if not dsmon_code.empty:
+                        dsmon_code = dsmon_code.iloc[0]
+                        mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
+                        if not mon_info.empty:
+                            mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
             data_to_save['Mã_Môn_Ngành'] = mamon_nganh
             input_list.append(data_to_save)
             if not result_data.empty:
