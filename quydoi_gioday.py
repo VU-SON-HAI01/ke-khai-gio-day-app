@@ -626,6 +626,8 @@ def remove_mon_hoc():
 def save_all_data():
     """Lưu tất cả dữ liệu với logic tùy chỉnh cho cột 'tiet'."""
     with st.spinner("Đang lưu tất cả dữ liệu..."):
+        input_list = []
+        output_list = []
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
             data_to_save = input_data.copy()
@@ -642,11 +644,19 @@ def save_all_data():
                 data_to_save['tiet_lt'] = '0'
                 data_to_save['tiet_th'] = '0'
             data_to_save['ID_MÔN'] = f"Môn {mon_index}"
-            save_data_to_sheet('input_giangday', data_to_save)
+            input_list.append(data_to_save)
             if not result_data.empty:
                 result_data = result_data.copy()
                 result_data['ID_MÔN'] = f"Môn {mon_index}"
-                save_data_to_sheet('output_giangday', result_data)
+                output_list.append(result_data)
+        # Lưu toàn bộ input
+        if input_list:
+            input_df = pd.DataFrame(input_list)
+            save_data_to_sheet('input_giangday', input_df)
+        # Lưu toàn bộ output
+        if output_list:
+            output_df = pd.concat(output_list, ignore_index=True)
+            save_data_to_sheet('output_giangday', output_df)
     st.success("Đã lưu thành công tất cả dữ liệu!")
 
 # --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
