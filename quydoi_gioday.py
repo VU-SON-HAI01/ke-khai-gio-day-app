@@ -1,3 +1,47 @@
+import uuid
+# ...existing code...
+# Lưu toàn bộ input vào 1 sheet, thêm cột ID_MÔN
+def save_input_to_gsheet(input_df, mon_index):
+    sheet_name = "input_giangday"
+    input_df = input_df.copy()
+    input_df["ID_MÔN"] = f"Môn {mon_index+1}"
+    worksheet = sh.worksheet(sheet_name)
+    # Đọc dữ liệu cũ
+    try:
+        old_data = worksheet.get_all_records()
+        old_df = pd.DataFrame(old_data)
+    except Exception:
+        old_df = pd.DataFrame()
+    # Gộp dữ liệu mới
+    new_df = pd.concat([old_df, input_df], ignore_index=True)
+    worksheet.clear()
+    set_with_dataframe(worksheet, new_df)
+# Lưu toàn bộ output vào 1 sheet, thêm cột ID_MÔN
+def save_output_to_gsheet(output_df, mon_index):
+    sheet_name = "output_giangday"
+    output_df = output_df.copy()
+    output_df["ID_MÔN"] = f"Môn {mon_index+1}"
+    worksheet = sh.worksheet(sheet_name)
+    # Đọc dữ liệu cũ
+    try:
+        old_data = worksheet.get_all_records()
+        old_df = pd.DataFrame(old_data)
+    except Exception:
+        old_df = pd.DataFrame()
+    # Gộp dữ liệu mới
+    new_df = pd.concat([old_df, output_df], ignore_index=True)
+    worksheet.clear()
+    set_with_dataframe(worksheet, new_df)
+# Load toàn bộ input, lọc theo ID_MÔN
+def load_input_from_gsheet(mon_index):
+    sheet_name = "input_giangday"
+    worksheet = sh.worksheet(sheet_name)
+    data = worksheet.get_all_records()
+    df = pd.DataFrame(data)
+    df_mon = df[df["ID_MÔN"] == f"Môn {mon_index+1}"]
+    return df_mon.reset_index(drop=True)
+    
+# ...existing code...
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -545,23 +589,26 @@ def load_all_mon_data():
     st.session_state.results_data = []
     all_worksheets = [ws.title for ws in spreadsheet.worksheets()]
     
-    input_sheet_indices = sorted([int(re.search(r'_(\d+)$', ws).group(1)) for ws in all_worksheets if re.match(r'input_giangday_\d+', ws)], key=int)
-    
-    if not input_sheet_indices:
+    # Chỉ dùng 1 sheet cho input và 1 sheet cho output
+    if 'input_giangday' not in all_worksheets:
         st.session_state.mon_hoc_data.append(get_default_input_dict())
         st.session_state.results_data.append(pd.DataFrame())
         return
 
-    for i in input_sheet_indices:
-        input_ws_name = f'input_giangday_{i}'
-        result_ws_name = f'output_giangday_{i}'
-        
-        input_data = load_data_from_sheet(input_ws_name)
-        if input_data: input_data['index'] = len(st.session_state.mon_hoc_data)
-        st.session_state.mon_hoc_data.append(input_data if input_data else get_default_input_dict())
-        
+    input_data_all = load_data_from_sheet('input_giangday')
+    if input_data_all is None or len(input_data_all) == 0:
+        st.session_state.mon_hoc_data.append(get_default_input_dict())
+        st.session_state.results_data.append(pd.DataFrame())
+        return
+    # Tách từng môn theo cột ID_MÔN
+    mon_ids = sorted(set(input_data_all['ID_MÔN']))
+    for mon_id in mon_ids:
+        input_data = input_data_all[input_data_all['ID_MÔN'] == mon_id].copy()
+        input_data['index'] = len(st.session_state.mon_hoc_data)
+        st.session_state.mon_hoc_data.append(input_data if not input_data.empty else get_default_input_dict())
         try:
-            result_df = pd.DataFrame(spreadsheet.worksheet(result_ws_name).get_all_records())
+            result_df_all = pd.DataFrame(spreadsheet.worksheet('output_giangday').get_all_records())
+            result_df = result_df_all[result_df_all['ID_MÔN'] == mon_id].copy()
             st.session_state.results_data.append(result_df)
         except (gspread.exceptions.WorksheetNotFound, Exception):
             st.session_state.results_data.append(pd.DataFrame())
@@ -594,11 +641,12 @@ def save_all_data():
             elif data_to_save.get('cach_ke') == 'Kê theo MĐ, MH':
                 data_to_save['tiet_lt'] = '0'
                 data_to_save['tiet_th'] = '0'
-            input_ws_name = f'input_giangday_{mon_index}'
-            result_ws_name = f'output_giangday_{mon_index}'
-            save_data_to_sheet(input_ws_name, data_to_save)
+            data_to_save['ID_MÔN'] = f"Môn {mon_index}"
+            save_data_to_sheet('input_giangday', data_to_save)
             if not result_data.empty:
-                save_data_to_sheet(result_ws_name, result_data)
+                result_data = result_data.copy()
+                result_data['ID_MÔN'] = f"Môn {mon_index}"
+                save_data_to_sheet('output_giangday', result_data)
     st.success("Đã lưu thành công tất cả dữ liệu!")
 
 # --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
