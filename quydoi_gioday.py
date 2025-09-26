@@ -1,5 +1,3 @@
-
-
 # ...existing code...
 import streamlit as st
 import pandas as pd
@@ -528,22 +526,16 @@ def get_default_input_dict():
     return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': DEFAULT_TIET_STRING, 'tiet_lt': '0', 'tiet_th': '0', 'index': len(st.session_state.get('mon_hoc_data', []))}
 
 def load_data_from_sheet(worksheet_name):
-    """Tải dữ liệu từ một worksheet cụ thể."""
     try:
         worksheet = spreadsheet.worksheet(worksheet_name)
         data = worksheet.get_all_records()
-        if not data: return None
-        input_data = data[0]
-        if 'tuan' in input_data and isinstance(input_data['tuan'], str):
-            try:
-                input_data['tuan'] = ast.literal_eval(input_data['tuan'])
-            except:
-                input_data['tuan'] = (1, 12)
-        return input_data
+        if not data:
+            return pd.DataFrame()
+        return pd.DataFrame(data)
     except gspread.exceptions.WorksheetNotFound:
-        return None
+        return pd.DataFrame()
     except Exception:
-        return get_default_input_dict()
+        return pd.DataFrame()
 
 def save_data_to_sheet(worksheet_name, data_to_save):
     """Lưu dữ liệu vào một worksheet cụ thể."""
