@@ -232,7 +232,7 @@ def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
                             arr_tiet_lt = [int(x) for x in str(current_input.get('tiet_lt', '0')).split() if x]
                             arr_tiet_th = [int(x) for x in str(current_input.get('tiet_th', '0')).split() if x]
 
-    # Xác định loại môn
+        # Xác định loại môn
     if 'MC' in ma_mon_upper:
         loai_mon = 'Môn_MC'
     elif 'MH' in ma_mon_upper or 'MĐ' in ma_mon_upper:
@@ -1499,9 +1499,9 @@ with tabs[-1]:
         st.markdown("---")
         
         def display_totals(title, df):
-            total_tiet_day = df['Tiết'].sum()
-            total_qd_thua = df['QĐ thừa'].sum()
-            total_qd_thieu = df['QĐ thiếu'].sum()
+            total_tiet_day = df['Tiết dạy'].sum() if 'Tiết dạy' in df.columns else 0
+            total_qd_thua = df['Tiết QĐ thừa'].sum() if 'Tiết QĐ thừa' in df.columns else 0
+            total_qd_thieu = df['Tiết QĐ thiếu'].sum() if 'Tiết QĐ thiếu' in df.columns else 0
             st.subheader(title)
             col1, col2, col3 = st.columns(3)
             col1.metric("Tổng Tiết dạy", f"{total_tiet_day:,.0f}")
