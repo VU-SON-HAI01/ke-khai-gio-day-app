@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -981,11 +980,25 @@ for i, tab in enumerate(tabs[:-1]):
                     'CĐMC': 'Cao đẳng (Môn chung)'
                 }
                 chuan_gv_display = gv_map.get(chuangv_tab, chuangv_tab)
+                # Xác định trình độ lớp
+                trinh_do_lop = ''
+                if not mon_info_filtered_df.empty and 'Mã_môn_ngành' in mon_info_filtered_df.columns:
+                    pl = phan_loai_ma_mon(mon_info_filtered_df['Mã_môn_ngành'].iloc[0])[0]
+                    if pl == 'Lớp_TC':
+                        trinh_do_lop = 'Trung cấp'
+                    elif pl == 'Lớp_CĐ':
+                        trinh_do_lop = 'Cao đẳng'
+                    elif pl == 'Lớp_SC':
+                        trinh_do_lop = 'Sơ cấp'
+                    elif pl == 'Lớp_VH':
+                        trinh_do_lop = 'Văn hóa phổ thông'
+                    else:
+                        trinh_do_lop = pl
                 st.markdown(f"""
                 4. **Các bước xác định Hệ số dạy lớp Cao đẳng, Trung cấp, Sơ cấp (HS TC/CĐ):**
                     - Hệ số TC/CĐ được xác định dựa trên chuẩn GV và Lớp giảng dạy.
                     - Chuẩn giáo viên: `{chuan_gv_display}`
-                    - Trình độ lớp: {'Trung cấp' if pl == 'Lớp_TC' else 'Cao đẳng' if pl == 'Lớp_CĐ' else 'Sơ cấp' if pl == 'Lớp_SC' else 'Văn hóa phổ thông' if pl == 'Lớp_VH' else pl if (pl := phan_loai_ma_mon(mon_info_filtered_df['Mã_môn_ngành'].iloc[0])[0]) and not mon_info_filtered_df.empty and 'Mã_môn_ngành' in mon_info_filtered_df.columns else ''}
+                    - Trình độ lớp: {trinh_do_lop}
                     - Giá trị hệ số TC/CĐ sử dụng cho môn này: `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`        
                 """)
                 st.markdown(f"""
