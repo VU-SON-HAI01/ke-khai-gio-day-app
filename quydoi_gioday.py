@@ -1,3 +1,21 @@
+# --- KIỂM TRA DỮ LIỆU ĐÃ LOAD ---
+if st.session_state.get('mon_hoc_data'):
+    st.write('Dữ liệu đã load từ Google Sheet:')
+    for idx, mon in enumerate(st.session_state.mon_hoc_data):
+        st.write(f"Môn {idx+1}:")
+        if isinstance(mon, dict):
+            st.write(list(mon.keys()))
+            st.write(mon)
+        elif isinstance(mon, pd.Series):
+            st.write(list(mon.index))
+            st.write(mon.to_dict())
+        elif isinstance(mon, pd.DataFrame):
+            st.write(mon.columns.tolist())
+            st.dataframe(mon)
+        else:
+            st.write(mon)
+else:
+    st.info('Không có dữ liệu môn học nào được load từ Google Sheet.')
 import uuid
 # ...existing code...
 # Lưu toàn bộ input vào 1 sheet, thêm cột ID_MÔN
@@ -621,7 +639,6 @@ def load_all_mon_data():
             st.session_state.results_data.append(result_df)
         except (gspread.exceptions.WorksheetNotFound, Exception):
             st.session_state.results_data.append(pd.DataFrame())
-    st.write(st.session_state.mon_hoc_data)
 # --- CALLBACKS CHO CÁC NÚT ---
 def add_mon_hoc():
     st.session_state.mon_hoc_data.append(get_default_input_dict())
