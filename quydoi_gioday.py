@@ -985,8 +985,8 @@ for i, tab in enumerate(tabs[:-1]):
                 st.markdown(f"""
                 4. **Các bước xác định Hệ số dạy lớp Cao đẳng, Trung cấp, Sơ cấp (:green[HS TC/CĐ]):**
                     - Hệ số :green[TC/CĐ] được xác định dựa trên chuẩn GV và Lớp giảng dạy.
-                    - Chuẩn giáo viên: `{chuan_gv_display}`
-                    - Trình độ lớp: {trinh_do_lop}
+                    - Chuẩn giáo viên: :green[`{chuan_gv_display}`]
+                    - Trình độ lớp: :green[{trinh_do_lop}]
                     - Giá trị hệ số :green[TC/CĐ] sử dụng cho môn này: `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
 
                 5. **Các bước xác định Hệ số theo sĩ số lớp (:green[HS_SS_LT] và :green[HS_SS_TH]):**
