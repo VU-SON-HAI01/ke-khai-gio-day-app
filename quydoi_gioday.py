@@ -601,7 +601,7 @@ def load_all_mon_data():
         st.session_state.results_data.append(pd.DataFrame())
         return
     # Kiểm tra tồn tại cột ID_MÔN trước khi truy cập
-    if 'ID_MÔN' not in input_data_all.columns:
+    if not isinstance(input_data_all, pd.DataFrame) or 'ID_MÔN' not in input_data_all.columns:
         st.session_state.mon_hoc_data.append(get_default_input_dict())
         st.session_state.results_data.append(pd.DataFrame())
         return
