@@ -676,34 +676,57 @@ def load_all_mon_data():
         return
     # Lặp qua từng dòng, mỗi dòng là một môn/tab riêng biệt
     for idx, row in input_data_all.iterrows():
-        input_data = row.copy()
-        # Chuyển đổi trường 'tuan' về tuple số nguyên nếu là chuỗi
-        tuan_val = input_data.get('tuan', (1, 12))
-        if isinstance(tuan_val, str):
-            import re
-            match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
-            if match:
-                tuan_val = (int(match.group(1)), int(match.group(2)))
+            input_data = row.copy()
+            # --- CHUẨN HÓA CÁC TRƯỜNG ---
+            # Tuần
+            tuan_val = input_data.get('tuan', (1, 12))
+            if isinstance(tuan_val, str):
+                import re
+                match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
+                if match:
+                    tuan_val = (int(match.group(1)), int(match.group(2)))
+                else:
+                    tuan_val = (1, 12)
+            elif isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
+                try:
+                    tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
+                except Exception:
+                    tuan_val = (1, 12)
             else:
                 tuan_val = (1, 12)
-        elif isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
-            try:
-                tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
-            except Exception:
-                tuan_val = (1, 12)
-        else:
-            tuan_val = (1, 12)
-        input_data['tuan'] = tuan_val
-        input_data['index'] = len(st.session_state.mon_hoc_data)
-        st.session_state.mon_hoc_data.append(input_data)
-        try:
-            result_df_all = pd.DataFrame(spreadsheet.worksheet('output_giangday').get_all_records())
-            if 'ID_MÔN' in result_df_all.columns:
-                result_df = result_df_all[result_df_all['ID_MÔN'] == input_data['ID_MÔN']].copy()
-            else:
-                result_df = pd.DataFrame()
-            st.session_state.results_data.append(result_df)
-        except (gspread.exceptions.WorksheetNotFound, Exception):
+            input_data['tuan'] = tuan_val
+            # Khoa
+            khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
+            input_data['khoa'] = str(input_data.get('khoa', khoa_options[0]))
+            if input_data['khoa'] not in khoa_options:
+                input_data['khoa'] = khoa_options[0]
+            # Lớp học
+            input_data['lop_hoc'] = str(input_data.get('lop_hoc', ''))
+            # Môn học
+            input_data['mon_hoc'] = str(input_data.get('mon_hoc', ''))
+            # Cách kê
+            cach_ke_options = ['Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết']
+            input_data['cach_ke'] = str(input_data.get('cach_ke', cach_ke_options[0]))
+            if input_data['cach_ke'] not in cach_ke_options:
+                input_data['cach_ke'] = cach_ke_options[0]
+            # Tiết
+            tiet_val = input_data.get('tiet', '')
+            if isinstance(tiet_val, (list, tuple)):
+                tiet_val = ' '.join(str(x) for x in tiet_val)
+            input_data['tiet'] = str(tiet_val)
+            # Tiết LT
+            tiet_lt_val = input_data.get('tiet_lt', '0')
+            if isinstance(tiet_lt_val, (list, tuple)):
+                tiet_lt_val = ' '.join(str(x) for x in tiet_lt_val)
+            input_data['tiet_lt'] = str(tiet_lt_val)
+            # Tiết TH
+            tiet_th_val = input_data.get('tiet_th', '0')
+            if isinstance(tiet_th_val, (list, tuple)):
+                tiet_th_val = ' '.join(str(x) for x in tiet_th_val)
+            input_data['tiet_th'] = str(tiet_th_val)
+            # --- KẾT THÚC CHUẨN HÓA ---
+            input_data['index'] = len(st.session_state.mon_hoc_data)
+            st.session_state.mon_hoc_data.append(input_data)
             st.session_state.results_data.append(pd.DataFrame())
 # --- CALLBACKS CHO CÁC NÚT ---
 def add_mon_hoc():
@@ -725,6 +748,46 @@ def save_all_data():
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
             data_to_save = input_data.copy()
+            # --- CHUẨN HÓA CÁC TRƯỜNG TRƯỚC KHI LƯU ---
+            khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
+            data_to_save['khoa'] = str(data_to_save.get('khoa', khoa_options[0]))
+            if data_to_save['khoa'] not in khoa_options:
+                data_to_save['khoa'] = khoa_options[0]
+            data_to_save['lop_hoc'] = str(data_to_save.get('lop_hoc', ''))
+            data_to_save['mon_hoc'] = str(data_to_save.get('mon_hoc', ''))
+            cach_ke_options = ['Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết']
+            data_to_save['cach_ke'] = str(data_to_save.get('cach_ke', cach_ke_options[0]))
+            if data_to_save['cach_ke'] not in cach_ke_options:
+                data_to_save['cach_ke'] = cach_ke_options[0]
+            tiet_val = data_to_save.get('tiet', '')
+            if isinstance(tiet_val, (list, tuple)):
+                tiet_val = ' '.join(str(x) for x in tiet_val)
+            data_to_save['tiet'] = str(tiet_val)
+            tiet_lt_val = data_to_save.get('tiet_lt', '0')
+            if isinstance(tiet_lt_val, (list, tuple)):
+                tiet_lt_val = ' '.join(str(x) for x in tiet_lt_val)
+            data_to_save['tiet_lt'] = str(tiet_lt_val)
+            tiet_th_val = data_to_save.get('tiet_th', '0')
+            if isinstance(tiet_th_val, (list, tuple)):
+                tiet_th_val = ' '.join(str(x) for x in tiet_th_val)
+            data_to_save['tiet_th'] = str(tiet_th_val)
+            tuan_val = data_to_save.get('tuan', (1, 12))
+            if isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
+                try:
+                    tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
+                except Exception:
+                    tuan_val = (1, 12)
+            elif isinstance(tuan_val, str):
+                import re
+                match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
+                if match:
+                    tuan_val = (int(match.group(1)), int(match.group(2)))
+                else:
+                    tuan_val = (1, 12)
+            else:
+                tuan_val = (1, 12)
+            data_to_save['tuan'] = str(tuan_val)
+            # --- KẾT THÚC CHUẨN HÓA ---
             if data_to_save.get('cach_ke') == 'Kê theo LT, TH chi tiết':
                 try:
                     tiet_lt_list = [int(x) for x in str(data_to_save.get('tiet_lt', '0')).split()]
@@ -738,32 +801,26 @@ def save_all_data():
                 data_to_save['tiet_lt'] = '0'
                 data_to_save['tiet_th'] = '0'
             data_to_save['ID_MÔN'] = f"Môn {mon_index}"
-            # Tự động bổ sung giá trị cho cột Mã_Môn_Ngành
-            mamon_nganh = ''
-            if 'Mã_Môn_Ngành' in data_to_save and data_to_save['Mã_Môn_Ngành']:
-                mamon_nganh = data_to_save['Mã_Môn_Ngành']
-            elif 'mamon_nganh' in data_to_save and data_to_save['mamon_nganh']:
-                mamon_nganh = data_to_save['mamon_nganh']
-            elif 'mon_hoc' in data_to_save and 'lop_hoc' in data_to_save:
-                selected_khoa = data_to_save.get('khoa')
-                lop_hoc = data_to_save.get('lop_hoc')
-                mon_hoc = data_to_save.get('mon_hoc')
-                df_lop_mapping = {
-                    'Khóa 48': df_lop_g,
-                    'Khóa 49': df_lop_g,
-                    'Khóa 50': df_lop_g,
-                    'Lớp ghép': df_lopghep_g,
-                    'Lớp tách': df_loptach_g,
-                    'Sơ cấp + VHPT': df_lopsc_g
-                }
-                source_df = df_lop_mapping.get(selected_khoa)
-                if lop_hoc and source_df is not None and not source_df.empty:
-                    dsmon_code = source_df[source_df['Lớp'] == lop_hoc]['Mã_DSMON']
-                    if not dsmon_code.empty:
-                        dsmon_code = dsmon_code.iloc[0]
-                        mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
-                        if not mon_info.empty:
-                            mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
+            # ...existing code...
+            selected_khoa = data_to_save.get('khoa')
+            lop_hoc = data_to_save.get('lop_hoc')
+            mon_hoc = data_to_save.get('mon_hoc')
+            df_lop_mapping = {
+                'Khóa 48': df_lop_g,
+                'Khóa 49': df_lop_g,
+                'Khóa 50': df_lop_g,
+                'Lớp ghép': df_lopghep_g,
+                'Lớp tách': df_loptach_g,
+                'Sơ cấp + VHPT': df_lopsc_g
+            }
+            source_df = df_lop_mapping.get(selected_khoa)
+            if lop_hoc and source_df is not None and not source_df.empty:
+                dsmon_code = source_df[source_df['Lớp'] == lop_hoc]['Mã_DSMON']
+                if not dsmon_code.empty:
+                    dsmon_code = dsmon_code.iloc[0]
+                    mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
+                    if not mon_info.empty:
+                        mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
             data_to_save['Mã_Môn_Ngành'] = mamon_nganh
             input_list.append(data_to_save)
             if not result_data.empty:
