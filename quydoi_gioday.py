@@ -978,6 +978,21 @@ for i, tab in enumerate(tabs[:-1]):
         validation_placeholder = st.empty()
         is_input_valid = True
         selected_tuan_range = current_input.get('tuan', (1, 1))
+        # Chuyển đổi selected_tuan_range thành tuple số nguyên an toàn
+        if isinstance(selected_tuan_range, str):
+            import re
+            match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", selected_tuan_range)
+            if match:
+                selected_tuan_range = (int(match.group(1)), int(match.group(2)))
+            else:
+                selected_tuan_range = (1, 1)
+        elif isinstance(selected_tuan_range, (list, tuple)) and len(selected_tuan_range) == 2:
+            try:
+                selected_tuan_range = (int(selected_tuan_range[0]), int(selected_tuan_range[1]))
+            except Exception:
+                selected_tuan_range = (1, 1)
+        else:
+            selected_tuan_range = (1, 1)
         so_tuan_chon = selected_tuan_range[1] - selected_tuan_range[0] + 1
 
         # Xác định chuẩn GV cho từng tab
