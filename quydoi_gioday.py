@@ -1250,10 +1250,19 @@ with tabs[-1]:
         
         def get_semester(tuan_tuple):
             try:
+                # Nếu là chuỗi kiểu '(1, 12)' hoặc '[1, 12]', chuyển về tuple
+                if isinstance(tuan_tuple, str):
+                    import re
+                    match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_tuple)
+                    if match:
+                        tuan_tuple = (int(match.group(1)), int(match.group(2)))
+                elif isinstance(tuan_tuple, list) and len(tuan_tuple) == 2:
+                    tuan_tuple = (int(tuan_tuple[0]), int(tuan_tuple[1]))
                 if isinstance(tuan_tuple, tuple) and len(tuan_tuple) == 2:
                     avg_week = (tuan_tuple[0] + tuan_tuple[1]) / 2
                     return 1 if avg_week < 22 else 2
-            except: return 1
+            except:
+                return 1
             return 1
 
         if not summary_df.empty:
