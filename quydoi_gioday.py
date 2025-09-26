@@ -628,6 +628,8 @@ def save_all_data():
     with st.spinner("Đang lưu tất cả dữ liệu..."):
         input_list = []
         output_list = []
+        # Lấy danh sách mã môn ngành cho từng môn
+        mamon_nganh_list = st.session_state.get('danh_sach_mamon_nganh_all', [])
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
             data_to_save = input_data.copy()
@@ -644,10 +646,14 @@ def save_all_data():
                 data_to_save['tiet_lt'] = '0'
                 data_to_save['tiet_th'] = '0'
             data_to_save['ID_MÔN'] = f"Môn {mon_index}"
+            # Thêm cột Mã_Môn_Ngành
+            mamon_nganh = mamon_nganh_list[i] if i < len(mamon_nganh_list) else ''
+            data_to_save['Mã_Môn_Ngành'] = mamon_nganh
             input_list.append(data_to_save)
             if not result_data.empty:
                 result_data = result_data.copy()
                 result_data['ID_MÔN'] = f"Môn {mon_index}"
+                result_data['Mã_Môn_Ngành'] = mamon_nganh
                 output_list.append(result_data)
         # Lưu toàn bộ input
         if input_list:
