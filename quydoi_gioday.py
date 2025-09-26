@@ -123,7 +123,12 @@ def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
                     with tab:
                         st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
                         def update_tab_state(key, index):
-                            st.session_state.mon_hoc_data[index][key] = st.session_state[f"widget_{key}_{index}"]
+                            value = st.session_state[f"widget_{key}_{index}"]
+                            # Đảm bảo giá trị 'cach_ke' luôn là chuỗi hợp lệ
+                            if key == 'cach_ke':
+                                if value not in ['Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết']:
+                                    value = 'Kê theo MĐ, MH'
+                            st.session_state.mon_hoc_data[index][key] = value
                         current_input = st.session_state.mon_hoc_data[i]
                         khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
                         selected_khoa = st.selectbox(
