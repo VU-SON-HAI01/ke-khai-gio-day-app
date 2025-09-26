@@ -1268,6 +1268,25 @@ with tabs[-1]:
         if not summary_df.empty:
             summary_df['Tiết theo tuần'] = summary_df.apply(calculate_display_tiet, axis=1)
             summary_df['Tiết'] = summary_df['Tiết theo tuần'].apply(calculate_total_tiet)
+            # Làm sạch cột 'tuan' trước khi apply get_semester
+            def clean_tuan_value(val):
+                if isinstance(val, str):
+                    import re
+                    match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", val)
+                    if match:
+                        return (int(match.group(1)), int(match.group(2)))
+                    else:
+                        return (1, 12)
+                elif isinstance(val, list) and len(val) == 2:
+                    try:
+                        return (int(val[0]), int(val[1]))
+                    except:
+                        return (1, 12)
+                elif isinstance(val, tuple) and len(val) == 2:
+                    return val
+                else:
+                    return (1, 12)
+            summary_df['tuan'] = summary_df['tuan'].apply(clean_tuan_value)
             summary_df['Học kỳ'] = summary_df['tuan'].apply(get_semester)
 
         summary_df.insert(0, "Thứ tự", mon_tab_names)
