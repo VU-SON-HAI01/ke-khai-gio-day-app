@@ -896,11 +896,8 @@ for i, tab in enumerate(tabs[:-1]):
                     df_display = malop_info_df.drop(columns=[col for col in ['Mã_DSMON'] if col in malop_info_df.columns])
                     df_display = df_display.reset_index(drop=True)
                     # Lọc các tuần nằm trong khoảng đã chọn và loại trừ tuần TẾT
-                    tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
-                    # Nếu có cột Tuần, lọc theo khoảng tuần
                     if 'Tuần' in df_display.columns:
                         tuan_range = set(range(tuanbatdau, tuanketthuc+1))
-                        # Nếu có cột Tuần_Tết, loại trừ tuần TẾT
                         if 'Tuần_Tết' in df_display.columns:
                             tuan_tet_list = df_display[df_display['Tuần_Tết'].astype(str).str.upper().str.contains('TẾT')]['Tuần'].tolist()
                             tuan_range = tuan_range.difference(set(tuan_tet_list))
@@ -908,10 +905,29 @@ for i, tab in enumerate(tabs[:-1]):
                     st.dataframe(df_display)
                 else:
                     st.info("Không tìm thấy dữ liệu chi tiết cho lớp học đã chọn.")
-            
-                # 2. Thông tin môn học đã chọn
+                # 2. Lấy sĩ số theo tuần
+                tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
                 st.markdown(f"""
-                2. **Lấy thông tin môn học đã chọn:**
+                2. **Lấy sĩ số theo tuần:**
+                    - Giảng dạy từ tuần `{tuanbatdau}` đến tuần `{tuanketthuc}`
+                    - Dưới đây là bảng sĩ số chi tiết theo từng tuần đã giảng dạy:
+                """)
+                result_df['Tháng'] = result_df['Tuần'].map(dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Tháng'])))
+                required_cols = ['Tuần', 'Tháng', 'Sĩ số']
+                if not result_df.empty and all(col in result_df.columns for col in required_cols):
+                    week_labels = [f"Tuần {t}" for t in result_df['Tuần'].values]
+                    month_row = result_df['Tháng'].astype(str).tolist()
+                    siso_row = result_df['Sĩ số'].astype(str).tolist()
+                    df_horizontal = pd.DataFrame({
+                        'Tháng': month_row,
+                        'Sĩ số': siso_row
+                    }, index=week_labels).T
+                    st.dataframe(df_horizontal)
+                else:
+                    st.info("Không có dữ liệu sĩ số cho các tuần đã chọn.")
+                # 3. Thông tin môn học đã chọn
+                st.markdown(f"""
+                3. **Lấy thông tin môn học đã chọn:**
                     - Bạn đã chọn **Môn học `{processing_log.get('mon_chon')}`**.
                     - Đây là thông tin về môn học đã chọn:
                 """)
@@ -998,7 +1014,7 @@ for i, tab in enumerate(tabs[:-1]):
                 4. **Các bước xác định Hệ số dạy lớp Cao đẳng, Trung cấp, Sơ cấp (HS TC/CĐ):**
                     - Hệ số TC/CĐ được xác định dựa trên chuẩn GV và Lớp giảng dạy.
                     - Chuẩn giáo viên: `{chuan_gv_display}`
-                    - Trình độ lớp: {trinh_do_lop}
+                    - Trình độ lớp: `{trinh_do_lop}`
                     - Giá trị hệ số TC/CĐ sử dụng cho môn này: `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`        
                 """)
                 st.markdown(f"""
