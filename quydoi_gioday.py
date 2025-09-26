@@ -33,23 +33,6 @@ def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
                 so_tuan_tet += 1
     return so_tuan_tet
 # --- KIỂM TRA DỮ LIỆU ĐÃ LOAD ---
-if st.session_state.get('mon_hoc_data'):
-    st.write('Dữ liệu đã load từ Google Sheet:')
-    for idx, mon in enumerate(st.session_state.mon_hoc_data):
-        st.write(f"Môn {idx+1}:")
-        if isinstance(mon, dict):
-            st.write(list(mon.keys()))
-            st.write(mon)
-        elif isinstance(mon, pd.Series):
-            st.write(list(mon.index))
-            st.write(mon.to_dict())
-        elif isinstance(mon, pd.DataFrame):
-            st.write(mon.columns.tolist())
-            st.dataframe(mon)
-        else:
-            st.write(mon)
-else:
-    st.info('Không có dữ liệu môn học nào được load từ Google Sheet.')
 
 def xu_ly_ngay_tet(df_result, df_ngaytuan_g):
     """
