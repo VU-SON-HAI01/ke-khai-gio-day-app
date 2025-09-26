@@ -1,64 +1,5 @@
-# --- KIỂM TRA DỮ LIỆU ĐÃ LOAD ---
-if st.session_state.get('mon_hoc_data'):
-    st.write('Dữ liệu đã load từ Google Sheet:')
-    for idx, mon in enumerate(st.session_state.mon_hoc_data):
-        st.write(f"Môn {idx+1}:")
-        if isinstance(mon, dict):
-            st.write(list(mon.keys()))
-            st.write(mon)
-        elif isinstance(mon, pd.Series):
-            st.write(list(mon.index))
-            st.write(mon.to_dict())
-        elif isinstance(mon, pd.DataFrame):
-            st.write(mon.columns.tolist())
-            st.dataframe(mon)
-        else:
-            st.write(mon)
-else:
-    st.info('Không có dữ liệu môn học nào được load từ Google Sheet.')
-import uuid
-# ...existing code...
-# Lưu toàn bộ input vào 1 sheet, thêm cột ID_MÔN
-def save_input_to_gsheet(input_df, mon_index):
-    sheet_name = "input_giangday"
-    input_df = input_df.copy()
-    input_df["ID_MÔN"] = f"Môn {mon_index+1}"
-    worksheet = sh.worksheet(sheet_name)
-    # Đọc dữ liệu cũ
-    try:
-        old_data = worksheet.get_all_records()
-        old_df = pd.DataFrame(old_data)
-    except Exception:
-        old_df = pd.DataFrame()
-    # Gộp dữ liệu mới
-    new_df = pd.concat([old_df, input_df], ignore_index=True)
-    worksheet.clear()
-    set_with_dataframe(worksheet, new_df)
-# Lưu toàn bộ output vào 1 sheet, thêm cột ID_MÔN
-def save_output_to_gsheet(output_df, mon_index):
-    sheet_name = "output_giangday"
-    output_df = output_df.copy()
-    output_df["ID_MÔN"] = f"Môn {mon_index+1}"
-    worksheet = sh.worksheet(sheet_name)
-    # Đọc dữ liệu cũ
-    try:
-        old_data = worksheet.get_all_records()
-        old_df = pd.DataFrame(old_data)
-    except Exception:
-        old_df = pd.DataFrame()
-    # Gộp dữ liệu mới
-    new_df = pd.concat([old_df, output_df], ignore_index=True)
-    worksheet.clear()
-    set_with_dataframe(worksheet, new_df)
-# Load toàn bộ input, lọc theo ID_MÔN
-def load_input_from_gsheet(mon_index):
-    sheet_name = "input_giangday"
-    worksheet = sh.worksheet(sheet_name)
-    data = worksheet.get_all_records()
-    df = pd.DataFrame(data)
-    df_mon = df[df["ID_MÔN"] == f"Môn {mon_index+1}"]
-    return df_mon.reset_index(drop=True)
-    
+
+
 # ...existing code...
 import streamlit as st
 import pandas as pd
@@ -93,6 +34,25 @@ def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
             if 'TẾT' in ghi_chu.upper():
                 so_tuan_tet += 1
     return so_tuan_tet
+# --- KIỂM TRA DỮ LIỆU ĐÃ LOAD ---
+if st.session_state.get('mon_hoc_data'):
+    st.write('Dữ liệu đã load từ Google Sheet:')
+    for idx, mon in enumerate(st.session_state.mon_hoc_data):
+        st.write(f"Môn {idx+1}:")
+        if isinstance(mon, dict):
+            st.write(list(mon.keys()))
+            st.write(mon)
+        elif isinstance(mon, pd.Series):
+            st.write(list(mon.index))
+            st.write(mon.to_dict())
+        elif isinstance(mon, pd.DataFrame):
+            st.write(mon.columns.tolist())
+            st.dataframe(mon)
+        else:
+            st.write(mon)
+else:
+    st.info('Không có dữ liệu môn học nào được load từ Google Sheet.')
+
 def xu_ly_ngay_tet(df_result, df_ngaytuan_g):
     """
     Nếu là tuần TẾT thì cột Ngày sẽ là 'Nghỉ tết'.
