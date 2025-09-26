@@ -1420,7 +1420,6 @@ with tabs[-1]:
             return 0
 
         summary_rows = []
-        st.write(st.session_state.results_data)
         for i, item in enumerate(st.session_state.mon_hoc_data):
             if not isinstance(item, dict):
                 continue
@@ -1428,11 +1427,12 @@ with tabs[-1]:
             lop_hoc = item.get('lop_hoc', '')
             tiet_theo_tuan = format_tiet_theo_tuan(item)
             res_df = st.session_state.results_data[i] if i < len(st.session_state.results_data) else pd.DataFrame()
+            st.write(st.session_state.results_data)
             tiet_day = get_result_value(res_df, 'Tiết')
             qd_thua = get_result_value(res_df, 'QĐ thừa')
             qd_thieu = get_result_value(res_df, 'QĐ thiếu')
             # Lấy tuần bắt đầu/kết thúc từ bảng kết quả tính toán
-            st.write(res_df)
+            st.write(i)
             if not res_df.empty and 'Tuần' in res_df.columns:
                 week_start = res_df['Tuần'].iloc[0]
                 week_end = res_df['Tuần'].iloc[-1]
