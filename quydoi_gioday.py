@@ -1431,6 +1431,7 @@ with tabs[-1]:
             qd_thua = get_result_value(res_df, 'QĐ thừa')
             qd_thieu = get_result_value(res_df, 'QĐ thiếu')
             # Lấy tuần bắt đầu/kết thúc từ bảng kết quả tính toán
+            st.write(res_df)
             if not res_df.empty and 'Tuần' in res_df.columns:
                 week_start = res_df['Tuần'].iloc[0]
                 week_end = res_df['Tuần'].iloc[-1]
