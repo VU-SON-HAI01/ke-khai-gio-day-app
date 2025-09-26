@@ -600,7 +600,11 @@ def load_all_mon_data():
         st.session_state.mon_hoc_data.append(get_default_input_dict())
         st.session_state.results_data.append(pd.DataFrame())
         return
-    # Tách từng môn theo cột ID_MÔN
+    # Kiểm tra tồn tại cột ID_MÔN trước khi truy cập
+    if 'ID_MÔN' not in input_data_all.columns:
+        st.session_state.mon_hoc_data.append(get_default_input_dict())
+        st.session_state.results_data.append(pd.DataFrame())
+        return
     mon_ids = sorted(set(input_data_all['ID_MÔN']))
     for mon_id in mon_ids:
         input_data = input_data_all[input_data_all['ID_MÔN'] == mon_id].copy()
@@ -608,7 +612,10 @@ def load_all_mon_data():
         st.session_state.mon_hoc_data.append(input_data if not input_data.empty else get_default_input_dict())
         try:
             result_df_all = pd.DataFrame(spreadsheet.worksheet('output_giangday').get_all_records())
-            result_df = result_df_all[result_df_all['ID_MÔN'] == mon_id].copy()
+            if 'ID_MÔN' in result_df_all.columns:
+                result_df = result_df_all[result_df_all['ID_MÔN'] == mon_id].copy()
+            else:
+                result_df = pd.DataFrame()
             st.session_state.results_data.append(result_df)
         except (gspread.exceptions.WorksheetNotFound, Exception):
             st.session_state.results_data.append(pd.DataFrame())
