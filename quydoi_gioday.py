@@ -133,7 +133,116 @@ def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
     elif ky_tu_dau == '3':
         loai_lop = 'Lớp_SC'
     else:
-        loai_lop = 'Lớp_VH'
+        for i, tab in enumerate(tabs[:-1]):
+            with tab:
+                st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
+                for i, tab in enumerate(tabs[:-1]):
+                    with tab:
+                        st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
+                        def update_tab_state(key, index):
+                            st.session_state.mon_hoc_data[index][key] = st.session_state[f"widget_{key}_{index}"]
+                        current_input = st.session_state.mon_hoc_data[i]
+                        khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
+                        selected_khoa = st.selectbox(
+                            "Chọn Khóa/Hệ",
+                            options=khoa_options,
+                            index=khoa_options.index(current_input.get('khoa', khoa_options[0])),
+                            key=f"widget_khoa_{i}",
+                            on_change=update_tab_state,
+                            args=('khoa', i)
+                        )
+                        df_lop_mapping = {
+                            'Khóa 48': df_lop_g,
+                            'Khóa 49': df_lop_g,
+                            'Khóa 50': df_lop_g,
+                            'Lớp ghép': df_lopghep_g,
+                            'Lớp tách': df_loptach_g,
+                            'Sơ cấp + VHPT': df_lopsc_g
+                        }
+                        source_df = df_lop_mapping.get(selected_khoa)
+                        filtered_lop_options = []
+                        if source_df is not None and not source_df.empty:
+                            if selected_khoa.startswith('Khóa'):
+                                khoa_prefix = selected_khoa.split(' ')[1]
+                                filtered_lops = source_df[source_df['Mã_lớp'].astype(str).str.startswith(khoa_prefix, na=False)]['Lớp']
+                                filtered_lop_options = filtered_lops.tolist()
+                            else:
+                                filtered_lop_options = source_df['Lớp'].tolist()
+                        if current_input.get('lop_hoc') not in filtered_lop_options:
+                            current_input['lop_hoc'] = filtered_lop_options[0] if filtered_lop_options else ''
+                            st.session_state.mon_hoc_data[i]['lop_hoc'] = current_input['lop_hoc']
+                        lop_hoc_index = filtered_lop_options.index(current_input.get('lop_hoc')) if current_input.get('lop_hoc') in filtered_lop_options else 0
+                        st.selectbox(
+                            "Chọn Lớp học",
+                            options=filtered_lop_options,
+                            index=lop_hoc_index,
+                            key=f"widget_lop_hoc_{i}",
+                            on_change=update_tab_state,
+                            args=('lop_hoc', i)
+                        )
+                        dsmon_options = []
+                        df_dsmon_loc = pd.DataFrame()
+                        if current_input.get('lop_hoc') and source_df is not None and not source_df.empty:
+                            dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON']
+                            if not dsmon_code.empty:
+                                dsmon_code = dsmon_code.iloc[0]
+                                if not pd.isna(dsmon_code) and df_mon_g is not None and not df_mon_g.empty:
+                                    if 'Mã_ngành' in df_mon_g.columns and 'Môn_học' in df_mon_g.columns:
+                                        df_dsmon_loc = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
+                                        dsmon_options = df_dsmon_loc['Môn_học'].dropna().astype(str).tolist()
+                                    else:
+                                        st.warning("Lỗi: Không tìm thấy các cột 'Mã_ngành' hoặc 'Môn_học' trong df_mon.")
+                        if current_input.get('mon_hoc') not in dsmon_options:
+                            current_input['mon_hoc'] = dsmon_options[0] if dsmon_options else ''
+                            st.session_state.mon_hoc_data[i]['mon_hoc'] = current_input['mon_hoc']
+                        mon_hoc_index = dsmon_options.index(current_input.get('mon_hoc')) if current_input.get('mon_hoc') in dsmon_options else 0
+                        st.selectbox(
+                            "Chọn Môn học",
+                            options=dsmon_options,
+                            index=mon_hoc_index,
+                            key=f"widget_mon_hoc_{i}",
+                            on_change=update_tab_state,
+                            args=('mon_hoc', i)
+                        )
+                        tuan_value = current_input.get('tuan', (1, 12))
+                        if not isinstance(tuan_value, (list, tuple)) or len(tuan_value) != 2:
+                            tuan_value = (1, 12)
+                        st.slider(
+                            "Chọn Tuần giảng dạy",
+                            1, 50,
+                            value=tuan_value,
+                            key=f"widget_tuan_{i}",
+                            on_change=update_tab_state,
+                            args=('tuan', i)
+                        )
+                        kieu_tinh_mdmh = ''
+                        if current_input.get('mon_hoc') and not df_dsmon_loc.empty and 'Tính MĐ/MH' in df_dsmon_loc.columns:
+                            mon_info = df_dsmon_loc[df_dsmon_loc['Môn_học'] == current_input.get('mon_hoc')]
+                            if not mon_info.empty:
+                                kieu_tinh_mdmh = mon_info['Tính MĐ/MH'].iloc[0]
+                        options = []
+                        if kieu_tinh_mdmh == 'LTTH':
+                            options = ('Kê theo LT, TH chi tiết', 'Kê theo MĐ, MH')
+                        else:
+                            options = ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết')
+                        st.radio(
+                            "Chọn phương pháp kê khai",
+                            options,
+                            index=0,
+                            key=f"widget_cach_ke_{i}",
+                            on_change=update_tab_state,
+                            args=('cach_ke', i),
+                            horizontal=True
+                        )
+                        arr_tiet_lt = []
+                        arr_tiet_th = []
+                        arr_tiet = []
+                        locdulieu_info = pd.DataFrame()
+                        if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
+                            arr_tiet = [int(x) for x in str(current_input.get('tiet', '')).split() if x]
+                        else:
+                            arr_tiet_lt = [int(x) for x in str(current_input.get('tiet_lt', '0')).split() if x]
+                            arr_tiet_th = [int(x) for x in str(current_input.get('tiet_th', '0')).split() if x]
 
     # Xác định loại môn
     if 'MC' in ma_mon_upper:
