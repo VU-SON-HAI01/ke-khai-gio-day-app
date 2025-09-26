@@ -1225,14 +1225,22 @@ with tabs[-1]:
         summary_df['QĐ thiếu'] = qd_thieu_totals
 
         def calculate_display_tiet(row):
-            if row['cach_ke'] == 'Kê theo LT, TH chi tiết':
+            cach_ke = str(row.get('cach_ke', 'Kê theo MĐ, MH'))
+            if cach_ke == 'Kê theo LT, TH chi tiết':
                 try:
-                    tiet_lt_list = [int(x) for x in str(row.get('tiet_lt', '0')).split()]
-                    tiet_th_list = [int(x) for x in str(row.get('tiet_th', '0')).split()]
+                    tiet_lt_raw = row.get('tiet_lt', '0')
+                    tiet_th_raw = row.get('tiet_th', '0')
+                    tiet_lt_list = [int(x) for x in str(tiet_lt_raw).split() if str(x).strip().isdigit()]
+                    tiet_th_list = [int(x) for x in str(tiet_th_raw).split() if str(x).strip().isdigit()]
                     tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
                     return ' '.join(map(str, tiet_sum_list))
-                except ValueError: return ''
-            else: return row['tiet']
+                except Exception:
+                    return ''
+            else:
+                tiet_raw = row.get('tiet', '')
+                if isinstance(tiet_raw, (list, tuple)):
+                    return ' '.join(map(str, tiet_raw))
+                return str(tiet_raw)
             
         def calculate_total_tiet(tiet_string):
             try:
