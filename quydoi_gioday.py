@@ -689,6 +689,23 @@ def load_all_mon_data():
     # Lặp qua từng dòng, mỗi dòng là một môn/tab riêng biệt
     for idx, row in input_data_all.iterrows():
         input_data = row.copy()
+        # Chuyển đổi trường 'tuan' về tuple số nguyên nếu là chuỗi
+        tuan_val = input_data.get('tuan', (1, 12))
+        if isinstance(tuan_val, str):
+            import re
+            match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
+            if match:
+                tuan_val = (int(match.group(1)), int(match.group(2)))
+            else:
+                tuan_val = (1, 12)
+        elif isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
+            try:
+                tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
+            except Exception:
+                tuan_val = (1, 12)
+        else:
+            tuan_val = (1, 12)
+        input_data['tuan'] = tuan_val
         input_data['index'] = len(st.session_state.mon_hoc_data)
         st.session_state.mon_hoc_data.append(input_data)
         try:
