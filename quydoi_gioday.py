@@ -1381,23 +1381,23 @@ with tabs[-1]:
     tab_names = mon_tab_names[:n_rows] if len(mon_tab_names) >= n_rows else [f"Môn {i+1}" for i in range(n_rows)]
     summary_df.insert(0, "Thứ tự", tab_names)
         
-        rename_map = {
-            'lop_hoc': 'Lớp học',
-            'mon_hoc': 'Môn học',
-            'tuan': 'Tuần đến Tuần',
-            'tiet_lt': 'Tiết LT theo tuần',
-            'tiet_th': 'Tiết TH theo tuần',
-            'QĐ thừa': 'QĐ thừa',
-            'QĐ thiếu': 'QĐ thiếu'
-        }
-        summary_df.rename(columns=rename_map, inplace=True)
-        
-        cols_to_convert_to_list = ['Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần']
-        for col in cols_to_convert_to_list:
-            if col in summary_df.columns:
-                summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
-    
-        # Chuẩn bị bảng tổng hợp mới theo yêu cầu
+    rename_map = {
+        'lop_hoc': 'Lớp học',
+        'mon_hoc': 'Môn học',
+        'tuan': 'Tuần đến Tuần',
+        'tiet_lt': 'Tiết LT theo tuần',
+        'tiet_th': 'Tiết TH theo tuần',
+        'QĐ thừa': 'QĐ thừa',
+        'QĐ thiếu': 'QĐ thiếu'
+    }
+    summary_df.rename(columns=rename_map, inplace=True)
+
+    cols_to_convert_to_list = ['Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần']
+    for col in cols_to_convert_to_list:
+        if col in summary_df.columns:
+            summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
+
+    # Chuẩn bị bảng tổng hợp mới theo yêu cầu
         def format_tuan(tuan_val):
             if isinstance(tuan_val, str):
                 import re
@@ -1411,7 +1411,7 @@ with tabs[-1]:
             elif not (isinstance(tuan_val, tuple) and len(tuan_val) == 2):
                 tuan_val = (1, 12)
             return f"{tuan_val[0]} - {tuan_val[1]}"
-    
+        
         def format_tiet_theo_tuan(row):
             cach_ke = str(row.get('cach_ke', 'Kê theo MĐ, MH'))
             if cach_ke == 'Kê theo LT, TH chi tiết':
@@ -1428,13 +1428,13 @@ with tabs[-1]:
                 else:
                     tiet_list = str(tiet_raw).split()
                 return '/'.join(tiet_list)
-    
+        
         # Lấy dữ liệu tổng cộng từ bảng kết quả tính toán
         def get_result_value(res_df, col):
             if not res_df.empty and col in res_df.columns:
                 return res_df[col].sum()
             return 0
-    
+        
         summary_rows = []
         for i, item in enumerate(st.session_state.mon_hoc_data):
             if not isinstance(item, dict):
@@ -1482,10 +1482,10 @@ with tabs[-1]:
                 'Tiết QĐ thiếu': qd_thieu,
                 'Học kỳ': hoc_ky
             })
-    
+        
         summary_df_new = pd.DataFrame(summary_rows)
         display_columns_new = ['Môn học', 'Lớp học', 'Tuần dạy', 'Tiết theo tuần', 'Tiết dạy', 'Tiết QĐ thừa', 'Tiết QĐ thiếu']
-    
+        
         # Đảm bảo luôn có cột 'Học kỳ' dựa trên tuần bắt đầu/kết thúc
         def get_hoc_ky_from_tuan_str(tuan_str):
             # tuan_str dạng "1 - 12"
@@ -1497,22 +1497,22 @@ with tabs[-1]:
             except:
                 pass
             return 1
-    
+        
         if 'Tuần dạy' in summary_df_new.columns:
             summary_df_new['Học kỳ'] = summary_df_new['Tuần dạy'].apply(get_hoc_ky_from_tuan_str)
         else:
             summary_df_new['Học kỳ'] = 1
-    
+        
         if 'Học kỳ' in summary_df_new.columns:
             df_hk1 = summary_df_new[summary_df_new['Học kỳ'] == 1]
             df_hk2 = summary_df_new[summary_df_new['Học kỳ'] == 2]
-    
+        
             st.subheader("Học kỳ 1")
             if not df_hk1.empty:
                 st.dataframe(df_hk1[display_columns_new])
             else:
                 st.info("Không có dữ liệu cho Học kỳ 1.")
-    
+        
             st.subheader("Học kỳ 2")
             if not df_hk2.empty:
                 st.dataframe(df_hk2[display_columns_new])
@@ -1533,7 +1533,7 @@ with tabs[-1]:
             col2.metric("Tổng Quy đổi (khi dư giờ)", f"{total_qd_thua:,.1f}")
             col3.metric("Tổng quy đổi (khi thiếu giờ)", f"{total_qd_thieu:,.1f}")
             return total_tiet_day, total_qd_thua, total_qd_thieu
-    
+        
         tiet_hk1, qd_thua_hk1, qd_thieu_hk1 = display_totals("Tổng hợp Học kỳ 1", df_hk1)
         tiet_hk2, qd_thua_hk2, qd_thieu_hk2 = display_totals("Tổng hợp Học kỳ 2", df_hk2)
         
