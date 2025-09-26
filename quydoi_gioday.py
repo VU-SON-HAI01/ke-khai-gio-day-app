@@ -1420,6 +1420,7 @@ with tabs[-1]:
             return 0
 
         summary_rows = []
+        st.write(st.session_state.mon_hoc_data)
         for i, item in enumerate(st.session_state.mon_hoc_data):
             if not isinstance(item, dict):
                 continue
