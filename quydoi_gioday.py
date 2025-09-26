@@ -1434,6 +1434,7 @@ with tabs[-1]:
             if not res_df.empty and 'Tuần' in res_df.columns:
                 week_start = res_df['Tuần'].iloc[0]
                 week_end = res_df['Tuần'].iloc[-1]
+                st.write(week_start, week_end)
                 tuan_str = f"{week_start} - {week_end}"
                 try:
                     avg_week = (int(week_start) + int(week_end)) / 2
