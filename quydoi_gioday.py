@@ -1386,8 +1386,26 @@ with tabs[-1]:
         ]
         final_columns_to_display = [col for col in display_columns if col in summary_df.columns]
         
-        df_hk1 = summary_df[summary_df['Học kỳ'] == 1]
-        df_hk2 = summary_df[summary_df['Học kỳ'] == 2]
+        # Tự động chia HK1/HK2 theo tuần bắt đầu/kết thúc
+        def get_hoc_ky_from_tuan(tuan_val):
+            # tuan_val là tuple (start, end) hoặc chuỗi '(1, 12)'
+            if isinstance(tuan_val, str):
+                import re
+                match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
+                if match:
+                    tuan_val = (int(match.group(1)), int(match.group(2)))
+                else:
+                    tuan_val = (1, 12)
+            elif isinstance(tuan_val, list) and len(tuan_val) == 2:
+                tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
+            elif not (isinstance(tuan_val, tuple) and len(tuan_val) == 2):
+                tuan_val = (1, 12)
+            avg_week = (tuan_val[0] + tuan_val[1]) / 2
+            return 1 if avg_week < 22 else 2
+
+        summary_df['__HK__'] = summary_df['Tuần đến Tuần'].apply(get_hoc_ky_from_tuan) if 'Tuần đến Tuần' in summary_df.columns else 1
+        df_hk1 = summary_df[summary_df['__HK__'] == 1]
+        df_hk2 = summary_df[summary_df['__HK__'] == 2]
 
         st.subheader("Học kỳ 1")
         if not df_hk1.empty:
