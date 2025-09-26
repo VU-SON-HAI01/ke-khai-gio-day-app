@@ -982,22 +982,22 @@ for i, tab in enumerate(tabs[:-1]):
                         trinh_do_lop = 'Văn hóa phổ thông'
                     else:
                         trinh_do_lop = pl
-                st.write(f"""
-                4. **Các bước xác định Hệ số dạy lớp Cao đẳng, Trung cấp, Sơ cấp (**HS TC/CĐ**):
-                    - Hệ số **TC/CĐ** được xác định dựa trên chuẩn GV và Lớp giảng dạy.
+                st.markdown(f"""
+                4. **Các bước xác định Hệ số dạy lớp Cao đẳng, Trung cấp, Sơ cấp (:green[HS TC/CĐ]):**
+                    - Hệ số :green[TC/CĐ] được xác định dựa trên chuẩn GV và Lớp giảng dạy.
                     - Chuẩn giáo viên: `{chuan_gv_display}`
                     - Trình độ lớp: {trinh_do_lop}
-                    - Giá trị hệ số **TC/CĐ** sử dụng cho môn này: `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
+                    - Giá trị hệ số :green[TC/CĐ] sử dụng cho môn này: `{result_df['HS TC/CĐ'].iloc[0] if 'HS TC/CĐ' in result_df.columns and not result_df.empty else ''}`
 
-                5. **Các bước xác định Hệ số theo sĩ số lớp (**HS_SS_LT** và **HS_SS_TH**):**
-                    - Tại mỗi tuần xác định sĩ số lớp thông qua bảng quy đổi có hệ số lý thuyết (**HS_SS_LT**)
-                    - Tại mỗi tuần xác định sĩ số lớp và môn học thuộc nhóm nặng nhọc thông qua bảng quy đổi có hệ số thực hành (**HS_SS_TH**)
+                5. **Các bước xác định Hệ số theo sĩ số lớp (:green[HS_SS_LT] và :green[HS_SS_TH]):**
+                    - Tại mỗi tuần xác định sĩ số lớp thông qua bảng quy đổi có hệ số lý thuyết (:green[HS_SS_LT])
+                    - Tại mỗi tuần xác định sĩ số lớp và môn học thuộc nhóm nặng nhọc thông qua bảng quy đổi có hệ số thực hành (:green[HS_SS_TH])
 
-                6. **Cột Quy đổi thừa giờ và Quy đổi thiếu giờ (**QĐ thừa** và **QĐ thiếu**):**
-                    - Quy đổi thừa giờ = **HS TC/CĐ** * [(**HS SS LT** * Tiết LT) +  (**HS SS TH** * Tiết TH)]
-                    - Quy đổi thiếu giờ = **HS TC/CĐ** * [(**HS SS LT_tron** * Tiết LT) +  (**HS SS TH_tron** * Tiết TH)], trong đó nếu **HS SS TH** < 1.0 hoặc **HS SS LT** <1.0 thì sẽ tự động quy đổi về 1.0
-                    - Trường hợp 1: Sử dụng Kết quả **QĐ thừa** để tính khối lượng giảng dạy của GV cuối cùng (Bao gồm tất cả các quy đổi khác) mà "DƯ GIỜ" thì sử dụng kết quả này để thanh toán dư giờ cho GV
-                    - Trường hợp 2: Sử dụng Kết quả **QĐ thừa** để tính khối lượng giờ của GV cuối cùng (Bao gồm tất cả các quy đổi khác) mà "THIẾU GIỜ" thì sử dụng cột **QĐ thiếu** để tính toán lại khối lượng giảng dạy của GV, nếu kết quả tính lại thừa giờ thì không thanh toán Dư giờ
+                6. **Cột Quy đổi thừa giờ và Quy đổi thiếu giờ (:green[QĐ thừa] và :green[QĐ thiếu]):**
+                    - Quy đổi thừa giờ = :green[HS TC/CĐ] * [(:green[HS SS LT] * Tiết LT) +  (:green[HS SS TH] * Tiết TH)]
+                    - Quy đổi thiếu giờ = :green[HS TC/CĐ] * [(:green[HS SS LT_tron] * Tiết LT) +  (:green[HS SS TH_tron] * Tiết TH)], trong đó nếu :green[HS SS TH] < 1.0 hoặc :green[HS SS LT] <1.0 thì sẽ tự động quy đổi về 1.0
+                    - Trường hợp 1: Sử dụng Kết quả :green[QĐ thừa] để tính khối lượng giảng dạy của GV cuối cùng (Bao gồm tất cả các quy đổi khác) mà "DƯ GIỜ" thì sử dụng kết quả này để thanh toán dư giờ cho GV
+                    - Trường hợp 2: Sử dụng Kết quả :green[QĐ thừa] để tính khối lượng giờ của GV cuối cùng (Bao gồm tất cả các quy đổi khác) mà "THIẾU GIỜ" thì sử dụng cột :green[QĐ thiếu] để tính toán lại khối lượng giảng dạy của GV, nếu kết quả tính lại thừa giờ thì không thanh toán Dư giờ
                 """)
         else:
             st.info("Chưa có dữ liệu tính toán hợp lệ.")
