@@ -1341,8 +1341,11 @@ with tabs[-1]:
             return 1
 
         if not summary_df.empty:
+            # Đảm bảo luôn có cột 'Tiết theo tuần' và 'Tiết'
             summary_df['Tiết theo tuần'] = summary_df.apply(calculate_display_tiet, axis=1)
             summary_df['Tiết'] = summary_df['Tiết theo tuần'].apply(calculate_total_tiet)
+            # Đảm bảo kiểu dữ liệu là số cho cột 'Tiết'
+            summary_df['Tiết'] = pd.to_numeric(summary_df['Tiết'], errors='coerce').fillna(0).astype(int)
             # Làm sạch cột 'tuan' trước khi apply get_semester
             def clean_tuan_value(val):
                 if isinstance(val, str):
@@ -1363,7 +1366,6 @@ with tabs[-1]:
                     return (1, 12)
             if 'tuan' in summary_df.columns:
                 summary_df['tuan'] = summary_df['tuan'].apply(clean_tuan_value)
-                summary_df['Học kỳ'] = summary_df['tuan'].apply(get_semester)
 
         summary_df.insert(0, "Thứ tự", mon_tab_names)
         
