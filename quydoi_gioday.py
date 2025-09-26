@@ -794,10 +794,13 @@ for i, tab in enumerate(tabs[:-1]):
             args=('mon_hoc', i)
         )
 
+        tuan_value = current_input.get('tuan', (1, 12))
+        if not isinstance(tuan_value, (list, tuple)) or len(tuan_value) != 2:
+            tuan_value = (1, 12)
         st.slider(
             "Chọn Tuần giảng dạy",
             1, 50,
-            value=current_input.get('tuan', (1, 12)),
+            value=tuan_value,
             key=f"widget_tuan_{i}",
             on_change=update_tab_state,
             args=('tuan', i)
