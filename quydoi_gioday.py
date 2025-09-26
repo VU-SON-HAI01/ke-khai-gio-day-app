@@ -966,12 +966,27 @@ for i, tab in enumerate(tabs[:-1]):
         )
 
         tuan_value = current_input.get('tuan', (1, 12))
-        if not isinstance(tuan_value, (list, tuple)) or len(tuan_value) != 2:
+        # Đảm bảo tuan_value là tuple 2 số nguyên
+        if isinstance(tuan_value, str):
+            import re
+            match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_value)
+            if match:
+                tuan_value = (int(match.group(1)), int(match.group(2)))
+            else:
+                tuan_value = (1, 12)
+        elif isinstance(tuan_value, (list, tuple)) and len(tuan_value) == 2:
+            try:
+                tuan_value = (int(tuan_value[0]), int(tuan_value[1]))
+            except Exception:
+                tuan_value = (1, 12)
+        else:
             tuan_value = (1, 12)
+        # Tách ra tuần bắt đầu và tuần kết thúc để gán cho slider
+        tuan_batdau, tuan_ketthuc = tuan_value
         st.slider(
             "Chọn Tuần giảng dạy",
             1, 50,
-            value=tuan_value,
+            value=(tuan_batdau, tuan_ketthuc),
             key=f"widget_tuan_{i}",
             on_change=update_tab_state,
             args=('tuan', i)
@@ -1266,6 +1281,9 @@ with tabs[-1]:
             if isinstance(item, dict):
                 # Loại bỏ các trường lồng ghép/phức tạp nếu có
                 simple_item = {k: v for k, v in item.items() if isinstance(v, (str, int, float, bool, tuple, list))}
+                # Đảm bảo luôn có trường 'tuan'
+                if 'tuan' not in simple_item or simple_item['tuan'] is None:
+                    simple_item['tuan'] = (1, 12)
                 cleaned_data.append(simple_item)
         summary_df = pd.DataFrame(cleaned_data)
         qd_thua_totals = []
@@ -1343,8 +1361,9 @@ with tabs[-1]:
                     return val
                 else:
                     return (1, 12)
-            summary_df['tuan'] = summary_df['tuan'].apply(clean_tuan_value)
-            summary_df['Học kỳ'] = summary_df['tuan'].apply(get_semester)
+            if 'tuan' in summary_df.columns:
+                summary_df['tuan'] = summary_df['tuan'].apply(clean_tuan_value)
+                summary_df['Học kỳ'] = summary_df['tuan'].apply(get_semester)
 
         summary_df.insert(0, "Thứ tự", mon_tab_names)
         
