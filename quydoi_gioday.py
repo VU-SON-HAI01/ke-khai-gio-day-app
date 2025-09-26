@@ -1198,8 +1198,14 @@ for i, tab in enumerate(tabs[:-1]):
 with tabs[-1]:
     st.header("Tổng hợp khối lượng giảng dạy")
     if st.session_state.mon_hoc_data:
-        summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
-        
+        # Làm sạch dữ liệu: chỉ giữ lại dict, loại bỏ các trường phức tạp
+        cleaned_data = []
+        for item in st.session_state.mon_hoc_data:
+            if isinstance(item, dict):
+                # Loại bỏ các trường lồng ghép/phức tạp nếu có
+                simple_item = {k: v for k, v in item.items() if isinstance(v, (str, int, float, bool, tuple, list))}
+                cleaned_data.append(simple_item)
+        summary_df = pd.DataFrame(cleaned_data)
         qd_thua_totals = []
         qd_thieu_totals = []
         for res_df in st.session_state.results_data:
