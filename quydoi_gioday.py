@@ -585,9 +585,10 @@ def save_data_to_sheet(worksheet_name, data_to_save):
 
 def load_all_mon_data():
     """Tải tất cả dữ liệu môn học đã lưu của GV từ Google Sheet."""
-    st.write(st.session_state.mon_hoc_data)
+    
     st.session_state.mon_hoc_data = []
     st.session_state.results_data = []
+    st.write(st.session_state.mon_hoc_data)
     all_worksheets = [ws.title for ws in spreadsheet.worksheets()]
     
     # Chỉ dùng 1 sheet cho input và 1 sheet cho output
