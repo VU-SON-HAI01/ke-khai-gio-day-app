@@ -1295,7 +1295,16 @@ with tabs[-1]:
             else:
                 qd_thua_totals.append(0)
                 qd_thieu_totals.append(0)
-        
+        # Đảm bảo độ dài của các cột tổng khớp với số dòng của summary_df
+        n_rows = len(summary_df)
+        if len(qd_thua_totals) < n_rows:
+            qd_thua_totals += [0] * (n_rows - len(qd_thua_totals))
+        if len(qd_thieu_totals) < n_rows:
+            qd_thieu_totals += [0] * (n_rows - len(qd_thieu_totals))
+        if len(qd_thua_totals) > n_rows:
+            qd_thua_totals = qd_thua_totals[:n_rows]
+        if len(qd_thieu_totals) > n_rows:
+            qd_thieu_totals = qd_thieu_totals[:n_rows]
         summary_df['QĐ thừa'] = qd_thua_totals
         summary_df['QĐ thiếu'] = qd_thieu_totals
 
