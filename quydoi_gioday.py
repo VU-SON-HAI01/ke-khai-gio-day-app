@@ -1425,28 +1425,33 @@ with tabs[-1]:
                 continue
             mon_hoc = item.get('mon_hoc', '')
             lop_hoc = item.get('lop_hoc', '')
-            tuan_str = format_tuan(item.get('tuan', (1, 12)))
             tiet_theo_tuan = format_tiet_theo_tuan(item)
-            # Lấy kết quả từ bảng tính toán
             res_df = st.session_state.results_data[i] if i < len(st.session_state.results_data) else pd.DataFrame()
             tiet_day = get_result_value(res_df, 'Tiết')
             qd_thua = get_result_value(res_df, 'QĐ thừa')
             qd_thieu = get_result_value(res_df, 'QĐ thiếu')
-            # Tính học kỳ
-            tuan_val = item.get('tuan', (1, 12))
-            if isinstance(tuan_val, str):
-                import re
-                match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
-                if match:
-                    tuan_val = (int(match.group(1)), int(match.group(2)))
-                else:
-                    tuan_val = (1, 12)
-            elif isinstance(tuan_val, list) and len(tuan_val) == 2:
-                tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
-            elif not (isinstance(tuan_val, tuple) and len(tuan_val) == 2):
-                tuan_val = (1, 12)
-            avg_week = (tuan_val[0] + tuan_val[1]) / 2
-            hoc_ky = 1 if avg_week < 22 else 2
+            # Lấy tuần bắt đầu/kết thúc từ bảng kết quả tính toán
+            if not res_df.empty and 'Tuần' in res_df.columns:
+                week_start = res_df['Tuần'].iloc[0]
+                week_end = res_df['Tuần'].iloc[-1]
+                tuan_str = f"{week_start} - {week_end}"
+                try:
+                    avg_week = (int(week_start) + int(week_end)) / 2
+                    hoc_ky = 1 if avg_week < 22 else 2
+                except:
+                    hoc_ky = 1
+            else:
+                tuan_str = format_tuan(item.get('tuan', (1, 12)))
+                # Fallback: lấy từ dữ liệu đầu vào nếu không có bảng kết quả
+                try:
+                    parts = [int(x.strip()) for x in tuan_str.split('-')]
+                    if len(parts) == 2:
+                        avg_week = (parts[0] + parts[1]) / 2
+                        hoc_ky = 1 if avg_week < 22 else 2
+                    else:
+                        hoc_ky = 1
+                except:
+                    hoc_ky = 1
             summary_rows.append({
                 'Môn học': mon_hoc,
                 'Lớp học': lop_hoc,
