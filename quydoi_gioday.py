@@ -1461,20 +1461,40 @@ with tabs[-1]:
         summary_df_new = pd.DataFrame(summary_rows)
         display_columns_new = ['Môn học', 'Lớp học', 'Tuần dạy', 'Tiết theo tuần', 'Tiết dạy', 'Tiết QĐ thừa', 'Tiết QĐ thiếu']
 
-        df_hk1 = summary_df_new[summary_df_new['Học kỳ'] == 1]
-        df_hk2 = summary_df_new[summary_df_new['Học kỳ'] == 2]
+        # Đảm bảo luôn có cột 'Học kỳ' dựa trên tuần bắt đầu/kết thúc
+        def get_hoc_ky_from_tuan_str(tuan_str):
+            # tuan_str dạng "1 - 12"
+            try:
+                parts = [int(x.strip()) for x in tuan_str.split('-')]
+                if len(parts) == 2:
+                    avg_week = (parts[0] + parts[1]) / 2
+                    return 1 if avg_week < 22 else 2
+            except:
+                pass
+            return 1
 
-        st.subheader("Học kỳ 1")
-        if not df_hk1.empty:
-            st.dataframe(df_hk1[display_columns_new])
+        if 'Tuần dạy' in summary_df_new.columns:
+            summary_df_new['Học kỳ'] = summary_df_new['Tuần dạy'].apply(get_hoc_ky_from_tuan_str)
         else:
-            st.info("Không có dữ liệu cho Học kỳ 1.")
+            summary_df_new['Học kỳ'] = 1
 
-        st.subheader("Học kỳ 2")
-        if not df_hk2.empty:
-            st.dataframe(df_hk2[display_columns_new])
+        if 'Học kỳ' in summary_df_new.columns:
+            df_hk1 = summary_df_new[summary_df_new['Học kỳ'] == 1]
+            df_hk2 = summary_df_new[summary_df_new['Học kỳ'] == 2]
+
+            st.subheader("Học kỳ 1")
+            if not df_hk1.empty:
+                st.dataframe(df_hk1[display_columns_new])
+            else:
+                st.info("Không có dữ liệu cho Học kỳ 1.")
+
+            st.subheader("Học kỳ 2")
+            if not df_hk2.empty:
+                st.dataframe(df_hk2[display_columns_new])
+            else:
+                st.info("Không có dữ liệu cho Học kỳ 2.")
         else:
-            st.info("Không có dữ liệu cho Học kỳ 2.")
+            st.warning("Không thể xác định học kỳ do thiếu dữ liệu tuần dạy.")
         
         st.markdown("---")
         
