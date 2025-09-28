@@ -20,3 +20,5 @@ unidecode
 fpdf2
 thefuzz
 python-Levenshtein
+# Excel
+XlsxWriter
