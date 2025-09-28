@@ -34,41 +34,93 @@ def tonghop_ketqua():
                         st.dataframe(df)
                         # Nếu là bảng giảng dạy, hiển thị bảng tổng hợp chi tiết HK1
                         if sheet_name == "output_giangday":
-                            def build_bang_giangday(df):
-                                df_view = df.copy()
-                                # Tạo cột 'Lớp // Môn'
-                                if 'ID_Môn' in df_view.columns and 'lop_hoc' in df_view.columns and 'mon_hoc' in df_view.columns:
-                                    df_view['Lớp // Môn'] = df_view['lop_hoc'].astype(str) + ' // ' + df_view['mon_hoc'].astype(str)
-                                elif 'Lớp' in df_view.columns and 'Môn' in df_view.columns:
-                                    df_view['Lớp // Môn'] = df_view['Lớp'].astype(str) + ' // ' + df_view['Môn'].astype(str)
-                                elif 'Lớp // Môn' not in df_view.columns:
-                                    df_view['Lớp // Môn'] = ''
-                                # Đổi tên cột cho đồng nhất
-                                rename_map = {
-                                    'tuan': 'Tuần đến Tuần',
-                                    'lop_hoc': 'Lớp học',
-                                    'mon_hoc': 'Môn học',
-                                    'QĐ thừa': 'QĐ Thừa',
-                                    'QĐ thiếu': 'QĐ Thiếu',
-                                    'tiet_lt': 'Tiết LT theo tuần',
-                                    'tiet_th': 'Tiết TH theo tuần',
-                                }
-                                df_view.rename(columns=rename_map, inplace=True)
-                                # Thêm cột Thứ tự
-                                df_view.insert(0, "Thứ tự", range(1, len(df_view) + 1))
-                                # Chọn các cột hiển thị (bỏ Tiết theo tuần)
-                                display_columns = [
-                                    'Thứ tự', 'Lớp học', 'Môn học', 'Tuần đến Tuần', 'Tiết',
-                                    'Tiết LT theo tuần', 'Tiết TH theo tuần', 'QĐ Thừa', 'QĐ Thiếu'
-                                ]
-                                for col in display_columns:
-                                    if col not in df_view.columns:
-                                        df_view[col] = 0
-                                # Hiển thị HK1
-                                df_hk1 = df_view.copy()
-                                st.markdown("**Bảng tổng hợp khối lượng giảng dạy**")
-                                st.dataframe(df_hk1[display_columns], use_container_width=True)
-                            build_bang_giangday(df)
+                            import numpy as np
+                            from itertools import zip_longest
+                            summary_df = df.copy()
+                            # Tính tổng QĐ thừa, QĐ thiếu nếu có các bảng kết quả chi tiết
+                            # (Ở đây chỉ lấy trực tiếp từ output_giangday)
+                            def calculate_display_tiet(row):
+                                if row.get('cach_ke') == 'Kê theo LT, TH chi tiết':
+                                    try:
+                                        tiet_lt_list = [int(x) for x in str(row.get('tiet_lt', '0')).split()]
+                                        tiet_th_list = [int(x) for x in str(row.get('tiet_th', '0')).split()]
+                                        tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
+                                        return ' '.join(map(str, tiet_sum_list))
+                                    except ValueError:
+                                        return ''
+                                else:
+                                    return row.get('tiet', '')
+                            def calculate_total_tiet(tiet_string):
+                                try:
+                                    return sum(int(t) for t in str(tiet_string).split())
+                                except (ValueError, TypeError):
+                                    return 0
+                            def get_semester(tuan_tuple):
+                                try:
+                                    if isinstance(tuan_tuple, tuple) and len(tuan_tuple) == 2:
+                                        avg_week = (tuan_tuple[0] + tuan_tuple[1]) / 2
+                                        return 1 if avg_week < 22 else 2
+                                except:
+                                    return 1
+                                return 1
+                            if not summary_df.empty:
+                                summary_df['Tiết theo tuần'] = summary_df.apply(calculate_display_tiet, axis=1)
+                                summary_df['Tiết'] = summary_df['Tiết theo tuần'].apply(calculate_total_tiet)
+                                summary_df['Học kỳ'] = summary_df['tuan'].apply(get_semester) if 'tuan' in summary_df.columns else 1
+                            summary_df.insert(0, "Thứ tự", range(1, len(summary_df) + 1))
+                            rename_map = {
+                                'lop_hoc': 'Lớp học', 'mon_hoc': 'Môn học', 'tuan': 'Tuần đến Tuần',
+                                'tiet_lt': 'Tiết LT theo tuần', 'tiet_th': 'Tiết TH theo tuần',
+                                'QĐ thừa': 'QĐ thừa', 'QĐ thiếu': 'QĐ thiếu'
+                            }
+                            summary_df.rename(columns=rename_map, inplace=True)
+                            cols_to_convert_to_list = ['Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần']
+                            for col in cols_to_convert_to_list:
+                                if col in summary_df.columns:
+                                    summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
+                            display_columns = [
+                                'Thứ tự', 'Lớp học', 'Môn học', 'Tuần đến Tuần', 'Tiết',
+                                'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần',
+                                'QĐ thừa', 'QĐ thiếu'
+                            ]
+                            final_columns_to_display = [col for col in display_columns if col in summary_df.columns]
+                            df_hk1 = summary_df[summary_df['Học kỳ'] == 1]
+                            df_hk2 = summary_df[summary_df['Học kỳ'] == 2]
+                            st.subheader("Học kỳ 1")
+                            if not df_hk1.empty:
+                                st.dataframe(df_hk1[final_columns_to_display], use_container_width=True)
+                            else:
+                                st.info("Không có dữ liệu cho Học kỳ 1.")
+                            st.subheader("Học kỳ 2")
+                            if not df_hk2.empty:
+                                st.dataframe(df_hk2[final_columns_to_display], use_container_width=True)
+                            else:
+                                st.info("Không có dữ liệu cho Học kỳ 2.")
+                            def display_totals(title, df):
+                                total_tiet_day = df['Tiết'].sum() if 'Tiết' in df else 0
+                                total_qd_thua = df['QĐ thừa'].sum() if 'QĐ thừa' in df else 0
+                                return total_tiet_day, total_qd_thua
+                            tiet_hk1, qd_thua_hk1 = display_totals("Tổng hợp Học kỳ 1", df_hk1)
+                            tiet_hk2, qd_thua_hk2 = display_totals("Tổng hợp Học kỳ 2", df_hk2)
+                            tiet_canam = tiet_hk1 + tiet_hk2
+                            qd_thua_canam = qd_thua_hk1 + qd_thua_hk2
+                            st.markdown("---")
+                            st.subheader("Tổng hợp khối lượng giảng dạy cả năm:")
+                            col1, col2, col3, col4, col5, col6 = st.columns(6)
+                            percent_hk1 = (tiet_hk1 / tiet_canam * 100) if tiet_canam else 0
+                            percent_hk2 = (tiet_hk2 / tiet_canam * 100) if tiet_canam else 0
+                            col1.metric("Thực dạy HK1", f"{tiet_hk1:,.0f}", delta=f"{percent_hk1:.1f}%", delta_color="normal")
+                            col2.metric("Thực dạy HK2", f"{tiet_hk2:,.0f}", delta=f"{percent_hk2:.1f}%", delta_color="normal")
+                            col3.metric("Thực dạy Cả năm", f"{tiet_canam:,.0f}", delta="100%", delta_color="normal")
+                            delta_hk1 = round(qd_thua_hk1 - tiet_hk1, 1)
+                            delta_hk2 = round(qd_thua_hk2 - tiet_hk2, 1)
+                            delta_canam = round(qd_thua_canam - tiet_canam, 1)
+                            color_hk1 = "inverse" if delta_hk1 < 0 else "normal"
+                            color_hk2 = "inverse" if delta_hk2 < 0 else "normal"
+                            color_canam = "inverse" if delta_canam < 0 else "normal"
+                            col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=delta_hk1)
+                            col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=delta_hk2)
+                            col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}", delta=delta_canam)
                         dfs.append(df)
                         found_any = True
             if dfs:
