@@ -1384,8 +1384,6 @@ with tabs[-1]:
         else:
             st.info("Không có dữ liệu cho Học kỳ 2.")
 
-        st.markdown("---")
-
         def display_totals(title, df):
             total_tiet_day = df['Tiết'].sum()
             total_qd_thua = df['QĐ thừa'].sum()
@@ -1404,9 +1402,15 @@ with tabs[-1]:
     col1.metric("Thực dạy HK1", f"{tiet_hk1:,.0f}")
     col2.metric("Thực dạy HK2", f"{tiet_hk2:,.0f}")
     col3.metric("Thực dạy Cả năm", f"{tiet_canam:,.0f}")
-    col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}")
-    col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}")
-    col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}")
+
+    # Color logic for Giờ QĐ metrics
+    color_hk1 = "green" if qd_thua_hk1 > tiet_hk1 else ("red" if qd_thua_hk1 < tiet_hk1 else None)
+    color_hk2 = "green" if qd_thua_hk2 > tiet_hk2 else ("red" if qd_thua_hk2 < tiet_hk2 else None)
+    color_canam = "green" if qd_thua_canam > tiet_canam else ("red" if qd_thua_canam < tiet_canam else None)
+
+    col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=None, delta_color=color_hk1)
+    col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=None, delta_color=color_hk2)
+    col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}", delta=None, delta_color=color_canam)
 
 # Outside the with tabs[-1]: block, at the same indentation as the if-statement
 if not st.session_state.mon_hoc_data:
