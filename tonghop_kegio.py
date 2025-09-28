@@ -15,12 +15,12 @@ def tonghop_ketqua():
     dfs = []
     col1, col2, col3 = st.columns(3)
     with col1:
-        load_clicked = st.button("Tải dữ liệu các bảng kê khai", use_container_width=True)
+        load_clicked = st.button("Xem kết quả dư giờ", use_container_width=True)
     with col2:
-        export_ready = st.session_state.get('export_ready', False)
+        export_ready = st.session_state.get('export_ready', use_container_width=True)
         excel_btn_placeholder = st.empty()
     with col3:
-        export_ready = st.session_state.get('export_ready', False)
+        export_ready = st.session_state.get('export_ready', use_container_width=True)
         pdf_btn_placeholder = st.empty()
 
     if load_clicked:
