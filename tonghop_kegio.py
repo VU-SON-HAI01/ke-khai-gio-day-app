@@ -56,19 +56,6 @@ def tonghop_ketqua():
                                     df_mon = df_gd[df_gd['ID_MÔN'] == mon]
                                     if df_mon.empty:
                                         continue
-                                    # Chuyển các trường số sang float để tính tổng đúng
-                                    for col in ['Tiết', 'Sĩ số', 'Tiết_LT', 'Tiết_TH', 'QĐ thừa', 'QĐ thiếu']:
-                                        if col in df_mon.columns:
-                                            def parse_float(val):
-                                                s = str(val).strip()
-                                                if s == '' or s.lower() == 'nan':
-                                                    return 0.0
-                                                # Nếu là số thực kiểu 1,3 hoặc 4,4 hoặc 8,8
-                                                try:
-                                                    return float(s.replace(',', '.'))
-                                                except Exception:
-                                                    return 0.0
-                                            df_mon[col] = df_mon[col].apply(parse_float)
                                     # Lấy Lớp // Môn
                                     lop_mon = ''
                                     if input_gd is not None and 'ID_MÔN' in input_gd.columns:
@@ -91,6 +78,14 @@ def tonghop_ketqua():
                                     tiet_th = df_mon['Tiết_TH'].sum() if 'Tiết_TH' in df_mon.columns else 0.0
                                     qd_thua = df_mon['QĐ thừa'].sum() if 'QĐ thừa' in df_mon.columns else 0.0
                                     qd_thieu = df_mon['QĐ thiếu'].sum() if 'QĐ thiếu' in df_mon.columns else 0.0
+                                    # Xác định học kỳ
+                                    try:
+                                        tuan_min_num = float(tuan_min)
+                                        tuan_max_num = float(tuan_max)
+                                        avg_tuan = (tuan_min_num + tuan_max_num) / 2
+                                        hoc_ky = 2 if avg_tuan > 22 else 1
+                                    except Exception:
+                                        hoc_ky = 1
                                     rows.append({
                                         'Lớp // Môn': lop_mon,
                                         'Tuần': tuan_str,
@@ -99,27 +94,31 @@ def tonghop_ketqua():
                                         'Tiết LT': tiet_lt,
                                         'Tiết TH': tiet_th,
                                         'QĐ thừa': qd_thua,
-                                        'QĐ Thiếu': qd_thieu
+                                        'QĐ Thiếu': qd_thieu,
+                                        'Học kỳ': hoc_ky
                                     })
                                 df_tonghop_mon = pd.DataFrame(rows)
-                                # Thêm dòng tổng cộng
-                                if not df_tonghop_mon.empty:
-                                    # Đảm bảo các trường tổng cũng là float
-                                    for col in ['Tiết', 'Tiết LT', 'Tiết TH', 'QĐ thừa', 'QĐ Thiếu']:
-                                        df_tonghop_mon[col] = pd.to_numeric(df_tonghop_mon[col], errors='coerce').fillna(0.0)
-                                    total_row = {
-                                        'Lớp // Môn': 'Tổng cộng',
-                                        'Tuần': '',
-                                        'Sĩ số': '',
-                                        'Tiết': df_tonghop_mon['Tiết'].sum(),
-                                        'Tiết LT': df_tonghop_mon['Tiết LT'].sum(),
-                                        'Tiết TH': df_tonghop_mon['Tiết TH'].sum(),
-                                        'QĐ thừa': df_tonghop_mon['QĐ thừa'].sum(),
-                                        'QĐ Thiếu': df_tonghop_mon['QĐ Thiếu'].sum()
-                                    }
-                                    df_tonghop_mon = pd.concat([df_tonghop_mon, pd.DataFrame([total_row])], ignore_index=True)
-                                st.markdown("**Bảng tổng hợp tiết giảng dạy quy đổi HK1**")
-                                st.dataframe(df_tonghop_mon, use_container_width=True)
+                                # Tách thành 2 bảng HK1 và HK2
+                                for hk in [1, 2]:
+                                    df_hk = df_tonghop_mon[df_tonghop_mon['Học kỳ'] == hk].copy()
+                                    if not df_hk.empty:
+                                        # Thêm dòng tổng cộng
+                                        for col in ['Tiết', 'Tiết LT', 'Tiết TH', 'QĐ thừa', 'QĐ Thiếu']:
+                                            df_hk[col] = pd.to_numeric(df_hk[col], errors='coerce').fillna(0.0)
+                                        total_row = {
+                                            'Lớp // Môn': 'Tổng cộng',
+                                            'Tuần': '',
+                                            'Sĩ số': '',
+                                            'Tiết': df_hk['Tiết'].sum(),
+                                            'Tiết LT': df_hk['Tiết LT'].sum(),
+                                            'Tiết TH': df_hk['Tiết TH'].sum(),
+                                            'QĐ thừa': df_hk['QĐ thừa'].sum(),
+                                            'QĐ Thiếu': df_hk['QĐ Thiếu'].sum(),
+                                            'Học kỳ': ''
+                                        }
+                                        df_hk = pd.concat([df_hk, pd.DataFrame([total_row])], ignore_index=True)
+                                        st.markdown(f"**Bảng tổng hợp tiết giảng dạy quy đổi HK{hk}**")
+                                        st.dataframe(df_hk.drop(columns=['Học kỳ']), use_container_width=True)
                         dfs.append(df)
                         found_any = True
             if dfs:
