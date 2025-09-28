@@ -110,6 +110,7 @@ def tonghop_ketqua():
                                 for hk in [1, 2]:
                                     df_hk = df_tonghop_mon[df_tonghop_mon['Học kỳ'] == hk].copy()
                                     if not df_hk.empty:
+                                        st.subheader('✍️ Bảng tổng hợp khối lượng dạy')
                                         for col in ['Tiết', 'Tiết LT', 'Tiết TH', 'QĐ thừa', 'QĐ Thiếu']:
                                             df_hk[col] = pd.to_numeric(df_hk[col], errors='coerce').fillna(0.0)
                                         total_row = {
@@ -124,9 +125,7 @@ def tonghop_ketqua():
                                             'Học kỳ': ''
                                         }
                                         df_hk = pd.concat([df_hk, pd.DataFrame([total_row])], ignore_index=True)
-                                        if hk == 1 or hk == 2:
-                                            st.subheader('✍️ Bảng tổng hợp khối lượng dạy')
-                                            
+
                                         st.markdown(f"**Bảng tổng hợp tiết giảng dạy quy đổi HK{hk}**")
                                         st.dataframe(df_hk.drop(columns=['Học kỳ']), use_container_width=True)
                                         if hk == 1:
