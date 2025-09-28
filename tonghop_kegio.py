@@ -173,9 +173,27 @@ def tonghop_ketqua():
                     # Debug
                     st.markdown(f"**[DEBUG] HK1 QĐ Thiếu:** {tiet_giangday_hk1_qdthieu}, **QĐ thừa:** {tiet_giangday_hk1_qdthua}")
                     st.markdown(f"**[DEBUG] HK2 QĐ Thiếu:** {tiet_giangday_hk2_qdthieu}, **QĐ thừa:** {tiet_giangday_hk2_qdthua}")
-                    ra_de_cham_thi_hk1 = dfs[1]['Tiết quy đổi HK1'].sum() if len(dfs) > 1 and 'Tiết quy đổi HK1' in dfs[1] else 0
-                    ra_de_cham_thi_hk2 = dfs[1]['Tiết quy đổi HK2'].sum() if len(dfs) > 1 and 'Tiết quy đổi HK2' in dfs[1] else 0
-                    giam_gio = dfs[2]['Số tiết giảm'].sum() if len(dfs) > 2 and 'Số tiết giảm' in dfs[2] else 0
+                    # Lấy giá trị từ bảng tổng hợp khối thi kết thúc
+                    ra_de_cham_thi_hk1 = 0
+                    ra_de_cham_thi_hk2 = 0
+                    if len(dfs) > 1:
+                        df_thi = dfs[1]
+                        # Ưu tiên cột 'Học kỳ 1 (Tiết)' và 'Học kỳ 2 (Tiết)', nếu không có thì fallback về 'Tiết quy đổi HK1/HK2'
+                        if 'Học kỳ 1 (Tiết)' in df_thi.columns:
+                            ra_de_cham_thi_hk1 = pd.to_numeric(df_thi['Học kỳ 1 (Tiết)'], errors='coerce').sum()
+                        elif 'Tiết quy đổi HK1' in df_thi.columns:
+                            ra_de_cham_thi_hk1 = pd.to_numeric(df_thi['Tiết quy đổi HK1'], errors='coerce').sum()
+                        if 'Học kỳ 2 (Tiết)' in df_thi.columns:
+                            ra_de_cham_thi_hk2 = pd.to_numeric(df_thi['Học kỳ 2 (Tiết)'], errors='coerce').sum()
+                        elif 'Tiết quy đổi HK2' in df_thi.columns:
+                            ra_de_cham_thi_hk2 = pd.to_numeric(df_thi['Tiết quy đổi HK2'], errors='coerce').sum()
+                    giam_gio = 0
+                    if len(dfs) > 2:
+                        df_giam = dfs[2]
+                        if 'Tổng tiết' in df_giam.columns:
+                            giam_gio = pd.to_numeric(df_giam['Tổng tiết'], errors='coerce').sum()
+                        elif 'Số tiết giảm' in df_giam.columns:
+                            giam_gio = pd.to_numeric(df_giam['Số tiết giảm'], errors='coerce').sum()
 
                     # Xử lý output_hoatdong để lấy các giá trị cho các dòng đặc biệt
                     hoatdong_nckh = 0
