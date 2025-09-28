@@ -15,7 +15,11 @@ def update_worksheet(spreadsheet, sheet_name, df):
         worksheet.clear()
     except gspread.WorksheetNotFound:
         worksheet = spreadsheet.add_worksheet(title=sheet_name, rows=1, cols=1)
-    df_str = df.astype(str).replace('nan', '')
+    # Đổi tên cột 'Tổng tiết' thành 'Giờ quy đổi' trước khi lưu
+    df_to_save = df.copy()
+    if 'Tổng tiết' in df_to_save.columns:
+        df_to_save = df_to_save.rename(columns={'Tổng tiết': 'Giờ quy đổi'})
+    df_str = df_to_save.astype(str).replace('nan', '')
     data_to_write = [df_str.columns.values.tolist()] + df_str.values.tolist()
     worksheet.update(data_to_write, 'A1')
 
@@ -311,10 +315,10 @@ if all_inputs:
         final_results = []
         for _, row in initial_df.iterrows():
             activity_name = row['Nội dung hoạt động']
-            tong_tiet = round(weekly_tiet_grid_adjusted[activity_name].sum(), 2)
+            gio_quydoi = round(weekly_tiet_grid_adjusted[activity_name].sum(), 2)
             so_tuan_active = (weekly_tiet_grid_adjusted[activity_name] > 0).sum()
-            tiet_tuan_avg = round((tong_tiet / so_tuan_active), 2) if so_tuan_active > 0 else 0
-            final_results.append({"Nội dung hoạt động": activity_name, "Từ Tuần - Đến Tuần": row['Từ Tuần - Đến Tuần'], "Số tuần": so_tuan_active, "% Giảm (gốc)": safe_percent_to_float(row['% Giảm (gốc)'])*100, "Tiết/Tuần (TB)": tiet_tuan_avg, "Tổng tiết": tong_tiet, "Mã hoạt động": row['Mã hoạt động'], "Ghi chú": row['Ghi chú']})
+            tiet_tuan_avg = round((gio_quydoi / so_tuan_active), 2) if so_tuan_active > 0 else 0
+            final_results.append({"Nội dung hoạt động": activity_name, "Từ Tuần - Đến Tuần": row['Từ Tuần - Đến Tuần'], "Số tuần": so_tuan_active, "% Giảm (gốc)": safe_percent_to_float(row['% Giảm (gốc)'])*100, "Tiết/Tuần (TB)": tiet_tuan_avg, "Giờ quy đổi": gio_quydoi, "Mã hoạt động": row['Mã hoạt động'], "Ghi chú": row['Ghi chú']})
         
         results_df = pd.DataFrame(final_results)
         st.session_state.results_df_giamgio = results_df
@@ -324,14 +328,14 @@ if st.session_state.giamgio_count > 0:
     with tabs[-1]:
         st.header("Bảng tổng hợp kết quả")
         if not results_df.empty:
-            display_columns = ["Nội dung hoạt động", "Từ Tuần - Đến Tuần", "Số tuần", "% Giảm (gốc)", "Tiết/Tuần (TB)", "Tổng tiết", "Ghi chú"]
-            st.dataframe(results_df[display_columns], column_config={"% Giảm (gốc)": st.column_config.NumberColumn(format="%.2f%%"), "Tiết/Tuần (TB)": st.column_config.NumberColumn(format="%.2f"), "Tổng tiết": st.column_config.NumberColumn(format="%.1f")}, hide_index=True, use_container_width=True)
-            
+            display_columns = ["Nội dung hoạt động", "Từ Tuần - Đến Tuần", "Số tuần", "% Giảm (gốc)", "Tiết/Tuần (TB)", "Giờ quy đổi", "Ghi chú"]
+            st.dataframe(results_df[display_columns], column_config={"% Giảm (gốc)": st.column_config.NumberColumn(format="%.2f%%"), "Tiết/Tuần (TB)": st.column_config.NumberColumn(format="%.2f"), "Giờ quy đổi": st.column_config.NumberColumn(format="%.1f")}, hide_index=True, use_container_width=True)
+
             st.header("Thống kê")
-            tong_quydoi = results_df["Tổng tiết"].sum()
-            kiemnhiem_ql_tiet = results_df[results_df["Mã hoạt động"].str.startswith("A", na=False)]["Tổng tiết"].sum()
-            doanthe_tiet = results_df[results_df["Mã hoạt động"].str.startswith("B", na=False)]["Tổng tiết"].sum()
-            
+            tong_quydoi = results_df["Giờ quy đổi"].sum()
+            kiemnhiem_ql_tiet = results_df[results_df["Mã hoạt động"].str.startswith("A", na=False)]["Giờ quy đổi"].sum()
+            doanthe_tiet = results_df[results_df["Mã hoạt động"].str.startswith("B", na=False)]["Giờ quy đổi"].sum()
+
             c1, c2, c3 = st.columns(3)
             with c1: st.metric("Tổng tiết giảm", f'{tong_quydoi:.1f}', f'{tong_quydoi*100/giochuan:.1f}%')
             with c2: st.metric("Kiêm nhiệm quản lý", f'{kiemnhiem_ql_tiet:.1f}', f'{kiemnhiem_ql_tiet*100/giochuan:.1f}%')
