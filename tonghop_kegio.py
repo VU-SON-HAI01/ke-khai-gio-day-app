@@ -9,6 +9,10 @@ def tonghop_ketqua():
     st.info("Trang này tổng hợp dữ liệu từ các trang kê khai và cho phép xuất ra PDF.")
 
     # Nút tải dữ liệu từ Google Sheet của user (các sheet có tên bắt đầu bằng 'output_')
+    import fun_to_excel
+    if 'export_ready' not in st.session_state:
+        st.session_state['export_ready'] = False
+    dfs = []
     if st.button("Tải dữ liệu các bảng kê khai"):
         spreadsheet = st.session_state.get('spreadsheet')
         if spreadsheet is None:
@@ -23,7 +27,6 @@ def tonghop_ketqua():
                 ("output_quydoigiam", "⚖️ Bảng tổng hợp Giảm trừ/Kiêm nhiệm"),
                 ("output_hoatdong", "🏃 Bảng tổng hợp Kê Hoạt động quy đổi khác")
             ]
-            dfs = []
             found_any = False
             for idx, (sheet_name, display_name) in enumerate(sheet_order):
                 ws = next((ws for ws in sheet_list if ws.title == sheet_name), None)
@@ -127,7 +130,6 @@ def tonghop_ketqua():
                                 for hk in [1, 2]:
                                     df_hk = df_tonghop_mon[df_tonghop_mon['Học kỳ'] == hk].copy()
                                     if not df_hk.empty:
-                                        
                                         for col in ['Tiết', 'Tiết LT', 'Tiết TH', 'QĐ thừa', 'QĐ Thiếu']:
                                             df_hk[col] = pd.to_numeric(df_hk[col], errors='coerce').fillna(0.0)
                                         total_row = {
@@ -142,28 +144,23 @@ def tonghop_ketqua():
                                             'Học kỳ': ''
                                         }
                                         df_hk = pd.concat([df_hk, pd.DataFrame([total_row])], ignore_index=True)
-
                                         st.markdown(f"**Bảng tổng hợp tiết giảng dạy quy đổi HK{hk}**")
                                         st.dataframe(df_hk.drop(columns=['Học kỳ']), use_container_width=True)
                                         if hk == 1:
                                             st.session_state['df_hk1'] = df_hk
                                         elif hk == 2:
                                             st.session_state['df_hk2'] = df_hk
-                        dfs.append(df)
-                        found_any = True
+                    dfs.append(df)
+                    found_any = True
             if dfs:
                 st.subheader(":blue[BẢNG TỔNG HỢP KHỐI LƯỢNG DƯ/THIẾU GIỜ]")
-                # Lấy giờ chuẩn từ session_state nếu có, mặc định 616
                 giochuan = st.session_state.get('giochuan', 616)
                 def build_bang_tonghop(dfs, giochuan=616):
                     import numpy as np
-                    # Lấy giá trị dòng Tổng cộng của bảng tổng hợp tiết giảng dạy HK1/HK2
                     tiet_giangday_hk1_qdthieu = 0
                     tiet_giangday_hk1_qdthua = 0
                     tiet_giangday_hk2_qdthieu = 0
                     tiet_giangday_hk2_qdthua = 0
-                    # Tìm bảng tổng hợp HK1/HK2 đã hiển thị trước đó
-                    # Giả sử đã lưu vào session_state khi hiển thị bảng HK1/HK2
                     df_hk1 = st.session_state.get('df_hk1')
                     df_hk2 = st.session_state.get('df_hk2')
                     if df_hk1 is not None and not df_hk1.empty:
@@ -176,7 +173,6 @@ def tonghop_ketqua():
                         if not row_total.empty:
                             tiet_giangday_hk2_qdthieu = row_total['QĐ Thiếu'].values[0]
                             tiet_giangday_hk2_qdthua = row_total['QĐ thừa'].values[0]
-                    # Nếu không có session_state thì fallback về sum cũ
                     if tiet_giangday_hk1_qdthieu == 0 and len(dfs) > 0 and 'QĐ Thiếu' in dfs[0]:
                         tiet_giangday_hk1_qdthieu = dfs[0]['QĐ Thiếu'].sum()
                     if tiet_giangday_hk1_qdthua == 0 and len(dfs) > 0 and 'QĐ thừa' in dfs[0]:
@@ -185,12 +181,10 @@ def tonghop_ketqua():
                         tiet_giangday_hk2_qdthieu = dfs[0]['QĐ Thiếu'].sum()
                     if tiet_giangday_hk2_qdthua == 0 and len(dfs) > 0 and 'QĐ thừa' in dfs[0]:
                         tiet_giangday_hk2_qdthua = dfs[0]['QĐ thừa'].sum()
-                    # Lấy giá trị từ bảng tổng hợp khối thi kết thúc
                     ra_de_cham_thi_hk1 = 0
                     ra_de_cham_thi_hk2 = 0
                     if len(dfs) > 1:
                         df_thi = dfs[1]
-                        # Ưu tiên cột 'Học kỳ 1 (Tiết)' và 'Học kỳ 2 (Tiết)', nếu không có thì fallback về 'Tiết quy đổi HK1/HK2'
                         if 'Học kỳ 1 (Tiết)' in df_thi.columns:
                             ra_de_cham_thi_hk1 = pd.to_numeric(df_thi['Học kỳ 1 (Tiết)'], errors='coerce').sum()
                         elif 'Tiết quy đổi HK1' in df_thi.columns:
@@ -206,29 +200,21 @@ def tonghop_ketqua():
                             giam_gio = pd.to_numeric(df_giam['Tổng tiết'], errors='coerce').sum()
                         elif 'Số tiết giảm' in df_giam.columns:
                             giam_gio = pd.to_numeric(df_giam['Số tiết giảm'], errors='coerce').sum()
-
-                    # Xử lý output_hoatdong để lấy các giá trị cho các dòng đặc biệt
                     hoatdong_nckh = 0
                     hoatdong_thuctap = 0
                     hoatdong_khac = 0
                     if len(dfs) > 3 and not dfs[3].empty:
                         df_hd = dfs[3]
-                        # Học tập, bồi dưỡng, NCKH: MÃ NCKH == 'NCKH'
                         if 'MÃ NCKH' in df_hd.columns and 'Giờ quy đổi' in df_hd.columns:
                             hoatdong_nckh = df_hd.loc[df_hd['MÃ NCKH'] == 'NCKH', 'Giờ quy đổi'].sum()
-                        # Thực tập tại doanh nghiệp: Mã HĐ == 'HD07'
                         if 'Mã HĐ' in df_hd.columns and 'Giờ quy đổi' in df_hd.columns:
                             hoatdong_thuctap = df_hd.loc[df_hd['Mã HĐ'] == 'HD07', 'Giờ quy đổi'].sum()
-                        # HD chuyên môn khác quy đổi: MÃ NCKH == 'BT'
                         if 'MÃ NCKH' in df_hd.columns and 'Giờ quy đổi' in df_hd.columns:
                             hoatdong_khac = df_hd.loc[df_hd['MÃ NCKH'] == 'BT', 'Giờ quy đổi'].sum()
-
                     tong_thuchien_du = tiet_giangday_hk1_qdthua + tiet_giangday_hk2_qdthua + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_nckh + hoatdong_thuctap + hoatdong_khac - giam_gio
                     tong_thuchien_thieu = tiet_giangday_hk1_qdthieu + tiet_giangday_hk2_qdthieu + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_nckh + hoatdong_thuctap + hoatdong_khac - giam_gio
                     du_gio = max(0, tong_thuchien_du - giochuan)
                     thieu_gio = max(0, giochuan - tong_thuchien_thieu)
-
-                    # Xác định chuẩn GV
                     chuangv = st.session_state.get('chuan_gv', 'CĐ')
                     if chuangv in ['CĐ', 'TC']:
                         giochuan = 594
@@ -236,42 +222,28 @@ def tonghop_ketqua():
                         giochuan = 616
                     else:
                         giochuan = 594
-
-                    # Định mức giảng dạy (hàng 1 và cột Định mức)
                     if chuangv in ['CĐ', 'CĐMC']:
                         dinhmuc_giangday = giochuan / 44 * 32
                     elif chuangv in ['TC', 'TCMC']:
                         dinhmuc_giangday = giochuan / 44 * 36
                     else:
                         dinhmuc_giangday = giochuan / 44 * 32
-
-                    # Định mức học tập, bồi dưỡng, NCKH
                     if chuangv in ['CĐ', 'CĐMC']:
                         dinhmuc_nckh = giochuan / 44 * 8
                     elif chuangv in ['TC', 'TCMC']:
                         dinhmuc_nckh = giochuan / 44 * 4
                     else:
                         dinhmuc_nckh = giochuan / 44 * 8
-
-                    # Định mức Thực tập tại doanh nghiệp: luôn = giochuan / 44 * 4
                     dinhmuc_thuctap = giochuan / 44 * 4
-
-                    # Tạo danh sách Định mức, tính tổng cộng cuối cùng sau khi tạo xong các giá trị
                     dinhmuc_list = [round(dinhmuc_giangday, 2), '', '', '', '', '', round(dinhmuc_nckh, 2), round(dinhmuc_thuctap, 2), '']
-                    # Tổng cộng cột Định mức (chỉ cộng các giá trị số, bỏ qua '')
                     dinhmuc_tongcong = sum([v for v in dinhmuc_list if isinstance(v, (int, float)) and v != ''])
                     dinhmuc_list.append(round(dinhmuc_tongcong, 2))
-
-                    # Tạo danh sách Quy đổi (Dư giờ) và Quy đổi (Thiếu giờ), tính tổng cộng cuối cùng
                     quydoi_du_list = ["", tiet_giangday_hk1_qdthua, tiet_giangday_hk2_qdthua, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac]
                     quydoi_thieu_list = ["", tiet_giangday_hk1_qdthieu, tiet_giangday_hk2_qdthieu, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac]
-
-                    # Tổng cộng các giá trị số phía trên (bỏ qua chuỗi rỗng đầu tiên)
                     quydoi_du_tongcong = sum([v for v in quydoi_du_list[1:] if isinstance(v, (int, float)) and v != ''])
                     quydoi_thieu_tongcong = sum([v for v in quydoi_thieu_list[1:] if isinstance(v, (int, float)) and v != ''])
                     quydoi_du_list.append(round(quydoi_du_tongcong, 2))
                     quydoi_thieu_list.append(round(quydoi_thieu_tongcong, 2))
-
                     muc_list = ["(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)", "(9)", ""]
                     noidung_list = [
                         "Định mức giảng dạy của GV",
@@ -293,35 +265,57 @@ def tonghop_ketqua():
                         "Quy đổi (Thiếu giờ)": quydoi_thieu_list
                     }
                     df_tonghop = pd.DataFrame(data)
-                    # Thay None thành chuỗi rỗng
                     df_tonghop = df_tonghop.where(pd.notnull(df_tonghop), '')
-                    # Thay tất cả giá trị 0 thành chuỗi rỗng (chỉ với các cột số)
                     def zero_to_blank(val):
                         if val == 0 or val == 0.0:
                             return ''
                         return val
                     df_tonghop = df_tonghop.applymap(zero_to_blank)
                     return df_tonghop
-
                 df_tonghop = build_bang_tonghop(dfs, giochuan)
                 st.dataframe(df_tonghop.style.format(precision=1).set_properties(**{'text-align': 'center'}), use_container_width=True)
                 st.session_state['df_all_tonghop'] = df_tonghop
+                st.session_state['export_ready'] = True
             if not found_any:
                 st.warning("Không có dữ liệu nào để tổng hợp từ các sheet 'output_'.")
         except Exception as e:
             st.error(f"Lỗi khi tải dữ liệu từ Google Sheet: {e}")
 
-    # Nút xuất PDF
-    if st.button("Xuất ra PDF"):
-        try:
-            from fun_to_pdf import export_to_pdf
-            df_all = st.session_state.get('df_all_tonghop')
-            if df_all is not None:
-                export_to_pdf(df_all)
-            else:
-                st.warning("Chưa có dữ liệu tổng hợp để xuất PDF.")
-        except ImportError:
-            st.error("Không tìm thấy hàm export_to_pdf trong fun_to_pdf.py. Hãy kiểm tra lại.")
+    # Chỉ hiển thị nút Xuất ra Excel và Xuất ra PDF khi đã tải dữ liệu
+    export_ready = st.session_state.get('export_ready', False)
+    if export_ready:
+        # Nút Xuất ra Excel
+        excel_tables = {}
+        df_all = st.session_state.get('df_all_tonghop')
+        if df_all is not None:
+            excel_tables['BẢNG TỔNG HỢP'] = df_all
+        sheet_names = ["output_giangday", "output_thiketthuc", "output_quydoigiam", "output_hoatdong"]
+        sheet_titles = ["BẢNG GIẢNG DẠY", "BẢNG THI KẾT THÚC", "BẢNG GIẢM TRỪ", "BẢNG HOẠT ĐỘNG"]
+        spreadsheet = st.session_state.get('spreadsheet')
+        if spreadsheet is not None:
+            for sname, stitle in zip(sheet_names, sheet_titles):
+                try:
+                    ws = next((ws for ws in spreadsheet.worksheets() if ws.title == sname), None)
+                    if ws is not None:
+                        df = pd.DataFrame(ws.get_all_records())
+                        if not df.empty:
+                            excel_tables[stitle] = df
+                except Exception:
+                    pass
+        excel_bytes = fun_to_excel.export_tables_to_excel(excel_tables)
+        st.download_button("📥 Xuất ra Excel", data=excel_bytes, file_name="bao_cao_tong_hop.xlsx")
+
+        # Nút xuất PDF
+        if st.button("Xuất ra PDF"):
+            try:
+                from fun_to_pdf import export_to_pdf
+                df_all = st.session_state.get('df_all_tonghop')
+                if df_all is not None:
+                    export_to_pdf(df_all)
+                else:
+                    st.warning("Chưa có dữ liệu tổng hợp để xuất PDF.")
+            except ImportError:
+                st.error("Không tìm thấy hàm export_to_pdf trong fun_to_pdf.py. Hãy kiểm tra lại.")
 
 def main():
     tonghop_ketqua()
