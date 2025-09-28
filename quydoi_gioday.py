@@ -1277,6 +1277,7 @@ with tabs[-1]:
     if st.session_state.mon_hoc_data:
         # Làm sạch dữ liệu: chỉ giữ lại dict, loại bỏ các trường phức tạp
         cleaned_data = []
+        st.write(st.session_state.mon_hoc_data)
         for item in st.session_state.mon_hoc_data:
             if isinstance(item, dict):
                 # Loại bỏ các trường lồng ghép/phức tạp nếu có
