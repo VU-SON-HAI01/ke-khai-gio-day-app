@@ -1417,96 +1417,89 @@ with tabs[-1]:
         if col in summary_df.columns:
             summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
 
-    # Chuẩn bị bảng tổng hợp mới theo yêu cầu
-        def format_tuan(tuan_val):
+    # Các hàm format & tiện ích tạo bảng tổng hợp (đặt ngoài vòng lặp khác để tránh indent lỗi)
+    def format_tuan(tuan_val):
+        if isinstance(tuan_val, str):
+            import re
+            match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
+            if match:
+                tuan_val = (int(match.group(1)), int(match.group(2)))
+            else:
+                tuan_val = (1, 12)
+        elif isinstance(tuan_val, list) and len(tuan_val) == 2:
+            tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
+        elif not (isinstance(tuan_val, tuple) and len(tuan_val) == 2):
+            tuan_val = (1, 12)
+        return f"{tuan_val[0]} - {tuan_val[1]}"
+
+    def format_tiet_theo_tuan(row):
+        cach_ke = str(row.get('cach_ke', 'Kê theo MĐ, MH'))
+        if cach_ke == 'Kê theo LT, TH chi tiết':
+            tiet_lt_raw = row.get('tiet_lt', '0')
+            tiet_th_raw = row.get('tiet_th', '0')
+            tiet_lt_list = [int(x) for x in str(tiet_lt_raw).split() if str(x).strip().isdigit()]
+            tiet_th_list = [int(x) for x in str(tiet_th_raw).split() if str(x).strip().isdigit()]
+            tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
+            return '/'.join(map(str, tiet_sum_list))
+        else:
+            tiet_raw = row.get('tiet', '')
+            if isinstance(tiet_raw, (list, tuple)):
+                tiet_list = [str(x) for x in tiet_raw]
+            else:
+                tiet_list = str(tiet_raw).split()
+            return '/'.join(tiet_list)
+
+    def get_result_value(res_df, col):
+        if not res_df.empty and col in res_df.columns:
+            return res_df[col].sum()
+        return 0
+
+    summary_rows = []
+    max_week_seen = 0
+    for i, item in enumerate(st.session_state.mon_hoc_data):
+        if not isinstance(item, dict):
+            continue
+        mon_hoc = item.get('mon_hoc', '')
+        lop_hoc = item.get('lop_hoc', '')
+        tiet_theo_tuan = format_tiet_theo_tuan(item)
+        res_df = st.session_state.results_data[i] if i < len(st.session_state.results_data) else pd.DataFrame()
+        tiet_day = get_result_value(res_df, 'Tiết')
+        qd_thua = get_result_value(res_df, 'QĐ thừa')
+        qd_thieu = get_result_value(res_df, 'QĐ thiếu')
+        if not res_df.empty and 'Tuần' in res_df.columns:
+            week_start = int(res_df['Tuần'].iloc[0])
+            week_end = int(res_df['Tuần'].iloc[-1])
+        else:
+            tuan_val = item.get('tuan', (1, 12))
             if isinstance(tuan_val, str):
                 import re
                 match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
                 if match:
-                    tuan_val = (int(match.group(1)), int(match.group(2)))
-                else:
-                    tuan_val = (1, 12)
-            elif isinstance(tuan_val, list) and len(tuan_val) == 2:
-                tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
-            elif not (isinstance(tuan_val, tuple) and len(tuan_val) == 2):
-                tuan_val = (1, 12)
-            return f"{tuan_val[0]} - {tuan_val[1]}"
-        
-        def format_tiet_theo_tuan(row):
-            cach_ke = str(row.get('cach_ke', 'Kê theo MĐ, MH'))
-            if cach_ke == 'Kê theo LT, TH chi tiết':
-                tiet_lt_raw = row.get('tiet_lt', '0')
-                tiet_th_raw = row.get('tiet_th', '0')
-                tiet_lt_list = [int(x) for x in str(tiet_lt_raw).split() if str(x).strip().isdigit()]
-                tiet_th_list = [int(x) for x in str(tiet_th_raw).split() if str(x).strip().isdigit()]
-                tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
-                return '/'.join(map(str, tiet_sum_list))
-            else:
-                tiet_raw = row.get('tiet', '')
-                if isinstance(tiet_raw, (list, tuple)):
-                    tiet_list = [str(x) for x in tiet_raw]
-                else:
-                    tiet_list = str(tiet_raw).split()
-                return '/'.join(tiet_list)
-        
-        # Lấy dữ liệu tổng cộng từ bảng kết quả tính toán
-        def get_result_value(res_df, col):
-            if not res_df.empty and col in res_df.columns:
-                return res_df[col].sum()
-            return 0
-        
-        summary_rows = []
-        max_week_seen = 0  # theo dõi tuần cao nhất đã thấy để phát hiện reset tuần HK2
-        for i, item in enumerate(st.session_state.mon_hoc_data):
-            if not isinstance(item, dict):
-                continue
-            mon_hoc = item.get('mon_hoc', '')
-            lop_hoc = item.get('lop_hoc', '')
-            tiet_theo_tuan = format_tiet_theo_tuan(item)
-            res_df = st.session_state.results_data[i] if i < len(st.session_state.results_data) else pd.DataFrame()
-            tiet_day = get_result_value(res_df, 'Tiết')
-            qd_thua = get_result_value(res_df, 'QĐ thừa')
-            qd_thieu = get_result_value(res_df, 'QĐ thiếu')
-            # Lấy tuần bắt đầu/kết thúc
-            if not res_df.empty and 'Tuần' in res_df.columns:
-                week_start = int(res_df['Tuần'].iloc[0])
-                week_end = int(res_df['Tuần'].iloc[-1])
-            else:
-                tuan_val = item.get('tuan', (1, 12))
-                if isinstance(tuan_val, str):
-                    import re
-                    match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
-                    if match:
-                        week_start, week_end = int(match.group(1)), int(match.group(2))
-                    else:
-                        week_start, week_end = 1, 12
-                elif isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
-                    week_start, week_end = int(tuan_val[0]), int(tuan_val[1])
+                    week_start, week_end = int(match.group(1)), int(match.group(2))
                 else:
                     week_start, week_end = 1, 12
-            tuan_str = f"{week_start} - {week_end}"
-
-            # Logic phân loại học kỳ: 
-            # 1) Nếu đã thấy tuần >=22 rồi mà dải tuần hiện tại quay về <=21 => HK2 (trường hợp đánh số tuần reset)
-            # 2) Ngược lại dùng ngưỡng trung bình tuần
-            if week_end > max_week_seen:
-                max_week_seen = week_end
-            if max_week_seen >= 22 and week_end <= 21:
-                hoc_ky = 2
+            elif isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
+                week_start, week_end = int(tuan_val[0]), int(tuan_val[1])
             else:
-                avg_week = (week_start + week_end) / 2
-                hoc_ky = 1 if avg_week < 22 else 2
-
-            summary_rows.append({
-                'Môn học': mon_hoc,
-                'Lớp học': lop_hoc,
-                'Tuần dạy': tuan_str,
-                'Tiết theo tuần': tiet_theo_tuan,
-                'Tiết dạy': tiet_day,
-                'Tiết QĐ thừa': qd_thua,
-                'Tiết QĐ thiếu': qd_thieu,
-                'Học kỳ': hoc_ky
-            })
+                week_start, week_end = 1, 12
+        tuan_str = f"{week_start} - {week_end}"
+        if week_end > max_week_seen:
+            max_week_seen = week_end
+        if max_week_seen >= 22 and week_end <= 21:
+            hoc_ky = 2
+        else:
+            avg_week = (week_start + week_end) / 2
+            hoc_ky = 1 if avg_week < 22 else 2
+        summary_rows.append({
+            'Môn học': mon_hoc,
+            'Lớp học': lop_hoc,
+            'Tuần dạy': tuan_str,
+            'Tiết theo tuần': tiet_theo_tuan,
+            'Tiết dạy': tiet_day,
+            'Tiết QĐ thừa': qd_thua,
+            'Tiết QĐ thiếu': qd_thieu,
+            'Học kỳ': hoc_ky
+        })
         
         summary_df_new = pd.DataFrame(summary_rows)
         display_columns_new = ['Môn học', 'Lớp học', 'Tuần dạy', 'Tiết theo tuần', 'Tiết dạy', 'Tiết QĐ thừa', 'Tiết QĐ thiếu']
