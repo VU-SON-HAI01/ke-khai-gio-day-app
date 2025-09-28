@@ -1372,23 +1372,42 @@ with tabs[-1]:
         df_hk1 = summary_df[summary_df['Học kỳ'] == 1]
         df_hk2 = summary_df[summary_df['Học kỳ'] == 2]
 
+        st.subheader("Học kỳ 1")
+        if not df_hk1.empty:
+            st.dataframe(df_hk1[final_columns_to_display])
+        else:
+            st.info("Không có dữ liệu cho Học kỳ 1.")
 
-        # Tổng hợp khối lượng giảng dạy cả năm: 6 metrics trên cùng 1 hàng
-        thuc_day_hk1 = df_hk1['Tiết'].sum() if not df_hk1.empty else 0
-        thuc_day_hk2 = df_hk2['Tiết'].sum() if not df_hk2.empty else 0
-        thuc_day_canam = thuc_day_hk1 + thuc_day_hk2
-        qd_hk1 = df_hk1['QĐ thừa'].sum() if not df_hk1.empty else 0
-        qd_hk2 = df_hk2['QĐ thừa'].sum() if not df_hk2.empty else 0
-        qd_canam = qd_hk1 + qd_hk2
+        st.subheader("Học kỳ 2")
+        if not df_hk2.empty:
+            st.dataframe(df_hk2[final_columns_to_display])
+        else:
+            st.info("Không có dữ liệu cho Học kỳ 2.")
 
-        st.subheader("Tổng hợp khối lượng giảng dạy cả năm:")
-        col1, col2, col3, col4, col5, col6 = st.columns(6)
-        col1.metric("Thực dạy HK1", f"{thuc_day_hk1:,.0f}")
-        col2.metric("Thực dạy HK2", f"{thuc_day_hk2:,.0f}")
-        col3.metric("Thực dạy Cả năm", f"{thuc_day_canam:,.0f}")
-        col4.metric("Giờ QĐ HK1", f"{qd_hk1:,.1f}")
-        col5.metric("Giờ QĐ HK2", f"{qd_hk2:,.1f}")
-        col6.metric("Giờ QĐ Cả năm", f"{qd_canam:,.1f}")
+        st.markdown("---")
 
-    else:
-        st.info("Chưa có dữ liệu môn học nào để tổng hợp.")
+        def display_totals(title, df):
+            total_tiet_day = df['Tiết'].sum()
+            total_qd_thua = df['QĐ thừa'].sum()
+            # total_qd_thieu = df['QĐ thiếu'].sum()  # Không dùng nữa
+            # Không hiển thị metric ở đây nữa, chỉ trả về số liệu
+            return total_tiet_day, total_qd_thua
+
+    tiet_hk1, qd_thua_hk1 = display_totals("Tổng hợp Học kỳ 1", df_hk1)
+    tiet_hk2, qd_thua_hk2 = display_totals("Tổng hợp Học kỳ 2", df_hk2)
+    tiet_canam = tiet_hk1 + tiet_hk2
+    qd_thua_canam = qd_thua_hk1 + qd_thua_hk2
+
+    st.markdown("---")
+    st.subheader("Tổng hợp khối lượng giảng dạy cả năm:")
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1.metric("Thực dạy HK1", f"{tiet_hk1:,.0f}")
+    col2.metric("Thực dạy HK2", f"{tiet_hk2:,.0f}")
+    col3.metric("Thực dạy Cả năm", f"{tiet_canam:,.0f}")
+    col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}")
+    col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}")
+    col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}")
+
+# Outside the with tabs[-1]: block, at the same indentation as the if-statement
+if not st.session_state.mon_hoc_data:
+    st.info("Chưa có dữ liệu môn học nào để tổng hợp.")
