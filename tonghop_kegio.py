@@ -144,14 +144,14 @@ def tonghop_ketqua():
                     if len(dfs) > 3 and not dfs[3].empty:
                         df_hd = dfs[3]
                         # Học tập, bồi dưỡng, NCKH: MÃ NCKH == 'NCKH'
-                        if 'MÃ NCKH' in df_hd.columns and 'Tiết quy đổi' in df_hd.columns:
-                            hoatdong_nckh = df_hd.loc[df_hd['MÃ NCKH'] == 'NCKH', 'Tiết quy đổi'].sum()
+                        if 'MÃ NCKH' in df_hd.columns and 'Giờ quy đổi' in df_hd.columns:
+                            hoatdong_nckh = df_hd.loc[df_hd['MÃ NCKH'] == 'NCKH', 'Giờ quy đổi'].sum()
                         # Thực tập tại doanh nghiệp: Mã HĐ == 'HD07'
-                        if 'Mã HĐ' in df_hd.columns and 'Tiết quy đổi' in df_hd.columns:
-                            hoatdong_thuctap = df_hd.loc[df_hd['Mã HĐ'] == 'HD07', 'Tiết quy đổi'].sum()
+                        if 'Mã HĐ' in df_hd.columns and 'Giờ quy đổi' in df_hd.columns:
+                            hoatdong_thuctap = df_hd.loc[df_hd['Mã HĐ'] == 'HD07', 'Giờ quy đổi'].sum()
                         # HD chuyên môn khác quy đổi: MÃ NCKH == 'BT'
-                        if 'MÃ NCKH' in df_hd.columns and 'Tiết quy đổi' in df_hd.columns:
-                            hoatdong_khac = df_hd.loc[df_hd['MÃ NCKH'] == 'BT', 'Tiết quy đổi'].sum()
+                        if 'MÃ NCKH' in df_hd.columns and 'Giờ quy đổi' in df_hd.columns:
+                            hoatdong_khac = df_hd.loc[df_hd['MÃ NCKH'] == 'BT', 'Giờ quy đổi'].sum()
                         # Hiển thị debug từng giá trị
                         st.markdown(f"**[DEBUG] Tổng Học tập, bồi dưỡng, NCKH (MÃ NCKH='NCKH'):** {hoatdong_nckh}")
                         st.markdown(f"**[DEBUG] Tổng Thực tập tại doanh nghiệp (Mã HĐ='HD07'):** {hoatdong_thuctap}")
