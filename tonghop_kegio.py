@@ -28,7 +28,20 @@ def tonghop_ketqua():
             for idx, (sheet_name, display_name) in enumerate(sheet_order):
                 ws = next((ws for ws in sheet_list if ws.title == sheet_name), None)
                 if ws is not None:
-                    df = pd.DataFrame(ws.get_all_records())
+                    df_raw = ws.get_all_records()
+                    # Nếu là output_giangday thì chuyển đổi các trường số có thể có dấu phẩy thành float ngay khi load
+                    if sheet_name == "output_giangday" and df_raw:
+                        # Xác định các cột số cần chuyển
+                        float_cols = ['Tiết', 'Sĩ số', 'Tiết_LT', 'Tiết_TH', 'HS TC/CĐ', 'HS_SS_LT', 'HS_SS_TH', 'QĐ thừa', 'QĐ thiếu']
+                        for row in df_raw:
+                            for col in float_cols:
+                                if col in row and isinstance(row[col], str):
+                                    val = row[col].replace(',', '.').strip()
+                                    try:
+                                        row[col] = float(val)
+                                    except Exception:
+                                        row[col] = 0.0
+                    df = pd.DataFrame(df_raw)
                     if not df.empty:
                         st.subheader(display_name)
                         st.dataframe(df)
