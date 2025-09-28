@@ -8,39 +8,34 @@ def tonghop_ketqua():
     st.title("Báo cáo tổng hợp dư giờ/thiếu giờ")
     st.info("Trang này tổng hợp dữ liệu từ các trang kê khai và cho phép xuất ra PDF.")
 
-    # Nút tải dữ liệu từ các trang kê khai
+    # Nút tải dữ liệu từ Google Sheet của user (các sheet có tên bắt đầu bằng 'output_')
     if st.button("Tải dữ liệu các bảng kê khai"):
-        data_gioday = st.session_state.get('data_gioday')
-        data_thiketthuc = st.session_state.get('data_thiketthuc')
-        data_giamgio = st.session_state.get('data_giamgio')
-        data_hoatdong = st.session_state.get('data_hoatdong')
-
-        # Hiển thị từng bảng nếu có dữ liệu
-        if data_gioday is not None:
-            st.subheader("Kê giờ dạy ✍️")
-            st.dataframe(pd.DataFrame(data_gioday))
-        if data_thiketthuc is not None:
-            st.subheader("Kê Thi kết thúc 📝")
-            st.dataframe(pd.DataFrame(data_thiketthuc))
-        if data_giamgio is not None:
-            st.subheader("Kê Giảm trừ/Kiêm nhiệm ⚖️")
-            st.dataframe(pd.DataFrame(data_giamgio))
-        if data_hoatdong is not None:
-            st.subheader("Kê Hoạt động khác 🏃")
-            st.dataframe(pd.DataFrame(data_hoatdong))
-
-        # Tổng hợp dữ liệu (ví dụ: gộp các bảng lại)
-        dfs = []
-        for d in [data_gioday, data_thiketthuc, data_giamgio, data_hoatdong]:
-            if d is not None:
-                dfs.append(pd.DataFrame(d))
-        if dfs:
-            df_all = pd.concat(dfs, ignore_index=True)
-            st.subheader(":orange[Tổng hợp tất cả]")
-            st.dataframe(df_all)
-            st.session_state['df_all_tonghop'] = df_all
-        else:
-            st.warning("Chưa có dữ liệu nào để tổng hợp.")
+        spreadsheet = st.session_state.get('spreadsheet')
+        if spreadsheet is None:
+            st.error("Không tìm thấy file Google Sheet của bạn trong session_state. Hãy đăng nhập lại hoặc liên hệ Admin.")
+            return
+        try:
+            sheet_list = spreadsheet.worksheets()
+            output_sheets = [ws for ws in sheet_list if ws.title.startswith('output_')]
+            if not output_sheets:
+                st.warning("Không tìm thấy sheet nào có tên bắt đầu bằng 'output_'.")
+                return
+            dfs = []
+            for ws in output_sheets:
+                df = pd.DataFrame(ws.get_all_records())
+                if not df.empty:
+                    st.subheader(f"{ws.title}")
+                    st.dataframe(df)
+                    dfs.append(df)
+            if dfs:
+                df_all = pd.concat(dfs, ignore_index=True)
+                st.subheader(":orange[Tổng hợp tất cả]")
+                st.dataframe(df_all)
+                st.session_state['df_all_tonghop'] = df_all
+            else:
+                st.warning("Không có dữ liệu nào để tổng hợp từ các sheet 'output_'.")
+        except Exception as e:
+            st.error(f"Lỗi khi tải dữ liệu từ Google Sheet: {e}")
 
     # Nút xuất PDF
     if st.button("Xuất ra PDF"):
