@@ -220,6 +220,21 @@ def tonghop_ketqua():
                     du_gio = max(0, tong_thuchien_du - giochuan)
                     thieu_gio = max(0, giochuan - tong_thuchien_thieu)
 
+                    # Xác định chuẩn GV
+                    chuangv = st.session_state.get('chuan_gv', 'CĐ')
+                    if chuangv in ['CĐ', 'TC']:
+                        giochuan = 594
+                    elif chuangv in ['CĐMC', 'TCMC']:
+                        giochuan = 616
+                    else:
+                        giochuan = 594
+                    # Định mức học tập, bồi dưỡng, NCKH
+                    if chuangv in ['CĐ', 'CĐMC']:
+                        dinhmuc_nckh = giochuan / 44 * 8
+                    elif chuangv in ['TC', 'TCMC']:
+                        dinhmuc_nckh = giochuan / 44 * 4
+                    else:
+                        dinhmuc_nckh = giochuan / 44 * 8
                     data = {
                         "MỤC": ["(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)", "(9)", "Tổng cộng"],
                         "NỘI DUNG QUY ĐỔI": [
@@ -234,7 +249,7 @@ def tonghop_ketqua():
                             "HD chuyên môn khác quy đổi",
                             ""
                         ],
-                        "Định Mức": [giochuan, '', '', '', '', '', '', '', '', giochuan],
+                        "Định Mức": [giochuan, '', '', '', '', '', round(dinhmuc_nckh, 2), '', '', giochuan],
                         "Quy đổi (Dư giờ)": ["", tiet_giangday_hk1_qdthua, tiet_giangday_hk2_qdthua, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, du_gio],
                         "Quy đổi (Thiếu giờ)": ["", tiet_giangday_hk1_qdthieu, tiet_giangday_hk2_qdthieu, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, thieu_gio]
                     }
