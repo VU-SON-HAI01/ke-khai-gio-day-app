@@ -264,20 +264,22 @@ def tonghop_ketqua():
                     quydoi_du_list.append(round(quydoi_du_tongcong, 2))
                     quydoi_thieu_list.append(round(quydoi_thieu_tongcong, 2))
 
+                    muc_list = ["(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)", "(9)", ""]
+                    noidung_list = [
+                        "Định mức giảng dạy của GV",
+                        "Tiết giảng dạy quy đổi (HK1)",
+                        "Tiết giảng dạy quy đổi (HK2)",
+                        "Ra đề, Coi thi, Chấm thi (HK1)",
+                        "Ra đề, Coi thi, Chấm thi (HK2)",
+                        "Giảm giờ Kiêm nhiệm QLý,GVCN...",
+                        "Học tập, bồi dưỡng,NCKH",
+                        "Thực tập tại doanh nghiệp",
+                        "HD chuyên môn khác quy đổi",
+                        "Tổng cộng"
+                    ]
                     data = {
-                        "MỤC": ["(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)", "(9)", "Tổng cộng"],
-                        "NỘI DUNG QUY ĐỔI": [
-                            "Định mức giảng dạy của GV",
-                            "Tiết giảng dạy quy đổi (HK1)",
-                            "Tiết giảng dạy quy đổi (HK2)",
-                            "Ra đề, Coi thi, Chấm thi (HK1)",
-                            "Ra đề, Coi thi, Chấm thi (HK2)",
-                            "Giảm giờ Kiêm nhiệm QLý,GVCN...",
-                            "Học tập, bồi dưỡng,NCKH",
-                            "Thực tập tại doanh nghiệp",
-                            "HD chuyên môn khác quy đổi",
-                            ""
-                        ],
+                        "MỤC": muc_list,
+                        "NỘI DUNG QUY ĐỔI": noidung_list,
                         "Định Mức": dinhmuc_list,
                         "Quy đổi (Dư giờ)": quydoi_du_list,
                         "Quy đổi (Thiếu giờ)": quydoi_thieu_list
