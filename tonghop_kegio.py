@@ -123,6 +123,11 @@ def tonghop_ketqua():
                                         df_hk = pd.concat([df_hk, pd.DataFrame([total_row])], ignore_index=True)
                                         st.markdown(f"**Bảng tổng hợp tiết giảng dạy quy đổi HK{hk}**")
                                         st.dataframe(df_hk.drop(columns=['Học kỳ']), use_container_width=True)
+                                        # Lưu vào session_state để build_bang_tonghop lấy đúng bảng
+                                        if hk == 1:
+                                            st.session_state['df_hk1'] = df_hk
+                                        elif hk == 2:
+                                            st.session_state['df_hk2'] = df_hk
                         dfs.append(df)
                         found_any = True
             if dfs:
