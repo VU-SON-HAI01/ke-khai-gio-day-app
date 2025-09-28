@@ -35,106 +35,73 @@ def tonghop_ketqua():
                         # Nếu là bảng giảng dạy, hiển thị bảng tổng hợp chi tiết HK1
                         if sheet_name == "output_giangday":
                             import numpy as np
-                            from itertools import zip_longest
                             df_gd = df.copy()
-                            # Gộp mỗi môn thành 1 dòng (group theo Lớp học + Môn học)
-                            def calculate_display_tiet(row):
-                                if row.get('cach_ke') == 'Kê theo LT, TH chi tiết':
-                                    try:
-                                        tiet_lt_list = [int(x) for x in str(row.get('tiet_lt', '0')).split()]
-                                        tiet_th_list = [int(x) for x in str(row.get('tiet_th', '0')).split()]
-                                        tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
-                                        return ' '.join(map(str, tiet_sum_list))
-                                    except ValueError:
-                                        return ''
-                                else:
-                                    return row.get('tiet', '')
-                            def calculate_total_tiet(tiet_string):
-                                try:
-                                    return sum(int(t) for t in str(tiet_string).split())
-                                except (ValueError, TypeError):
-                                    return 0
-                            def get_semester(tuan_tuple):
-                                try:
-                                    if isinstance(tuan_tuple, tuple) and len(tuan_tuple) == 2:
-                                        avg_week = (tuan_tuple[0] + tuan_tuple[1]) / 2
-                                        return 1 if avg_week < 22 else 2
-                                except:
-                                    return 1
-                                return 1
-                            # Xử lý cột Học kỳ
-                            if 'tuan' in df_gd.columns:
-                                df_gd['Học kỳ'] = df_gd['tuan'].apply(get_semester)
+                            # Lấy dữ liệu ánh xạ Lớp // Môn từ input_giangday
+                            input_gd = None
+                            try:
+                                input_gd_ws = next((ws for ws in sheet_list if ws.title == 'input_giangday'), None)
+                                if input_gd_ws is not None:
+                                    input_gd = pd.DataFrame(input_gd_ws.get_all_records())
+                            except Exception:
+                                input_gd = None
+                            # Gom theo ID_MÔN
+                            if 'ID_MÔN' not in df_gd.columns:
+                                st.warning('Không tìm thấy cột ID_MÔN trong dữ liệu output_giangday.')
                             else:
-                                df_gd['Học kỳ'] = 1
-                            # Gộp theo Lớp học + Môn học + Học kỳ
-                            group_cols = []
-                            if 'lop_hoc' in df_gd.columns and 'mon_hoc' in df_gd.columns:
-                                group_cols = ['lop_hoc', 'mon_hoc', 'Học kỳ']
-                            elif 'Lớp học' in df_gd.columns and 'Môn học' in df_gd.columns:
-                                group_cols = ['Lớp học', 'Môn học', 'Học kỳ']
-                            else:
-                                group_cols = ['Học kỳ']
-                            agg_dict = {
-                                'tiet_lt': lambda x: ' '.join(str(i) for i in np.sum([np.array(list(map(int, str(xx).split()))) for xx in x if str(xx).strip() != '' and str(xx) != 'nan'], axis=0)) if len(x) > 0 else '',
-                                'tiet_th': lambda x: ' '.join(str(i) for i in np.sum([np.array(list(map(int, str(xx).split()))) for xx in x if str(xx).strip() != '' and str(xx) != 'nan'], axis=0)) if len(x) > 0 else '',
-                                'tiet': lambda x: ' '.join(str(i) for i in np.sum([np.array(list(map(int, str(xx).split()))) for xx in x if str(xx).strip() != '' and str(xx) != 'nan'], axis=0)) if len(x) > 0 else '',
-                                'QĐ thừa': 'sum',
-                                'QĐ thiếu': 'sum',
-                                'tuan': 'first',
-                                'cach_ke': 'first'
-                            }
-                            # Chỉ giữ các cột có trong df_gd
-                            agg_dict = {k: v for k, v in agg_dict.items() if k in df_gd.columns}
-                            df_gd_grouped = df_gd.groupby(group_cols, as_index=False).agg(agg_dict)
-                            # Tính lại các trường tổng hợp
-                            df_gd_grouped['Tiết theo tuần'] = df_gd_grouped.apply(calculate_display_tiet, axis=1)
-                            df_gd_grouped['Tiết'] = df_gd_grouped['Tiết theo tuần'].apply(calculate_total_tiet)
-                            # Đổi tên cột cho đồng nhất
-                            rename_map = {
-                                'lop_hoc': 'Lớp học', 'mon_hoc': 'Môn học', 'tuan': 'Tuần đến Tuần',
-                                'tiet_lt': 'Tiết LT theo tuần', 'tiet_th': 'Tiết TH theo tuần',
-                                'QĐ thừa': 'QĐ thừa', 'QĐ thiếu': 'QĐ thiếu'
-                            }
-                            df_gd_grouped.rename(columns=rename_map, inplace=True)
-                            df_gd_grouped.insert(0, "Thứ tự", range(1, len(df_gd_grouped) + 1))
-                            display_columns = [
-                                'Thứ tự', 'Lớp học', 'Môn học', 'Học kỳ', 'Tuần đến Tuần', 'Tiết',
-                                'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần',
-                                'QĐ thừa', 'QĐ thiếu'
-                            ]
-                            final_columns_to_display = [col for col in display_columns if col in df_gd_grouped.columns]
-                            # Hiển thị từng học kỳ
-                            for hk in [1, 2]:
-                                st.subheader(f"Học kỳ {hk}")
-                                df_hk = df_gd_grouped[df_gd_grouped['Học kỳ'] == hk]
-                                if not df_hk.empty:
-                                    st.dataframe(df_hk[final_columns_to_display], use_container_width=True)
-                                else:
-                                    st.info(f"Không có dữ liệu cho Học kỳ {hk}.")
-                            # Tổng hợp số liệu cho metric
-                            def display_totals(df):
-                                total_tiet_day = df['Tiết'].sum() if 'Tiết' in df else 0
-                                total_qd_thua = df['QĐ thừa'].sum() if 'QĐ thừa' in df else 0
-                                return total_tiet_day, total_qd_thua
-                            tiet_hk1, qd_thua_hk1 = display_totals(df_gd_grouped[df_gd_grouped['Học kỳ'] == 1])
-                            tiet_hk2, qd_thua_hk2 = display_totals(df_gd_grouped[df_gd_grouped['Học kỳ'] == 2])
-                            tiet_canam = tiet_hk1 + tiet_hk2
-                            qd_thua_canam = qd_thua_hk1 + qd_thua_hk2
-                            st.markdown("---")
-                            st.subheader("Tổng hợp khối lượng giảng dạy cả năm:")
-                            col1, col2, col3, col4, col5, col6 = st.columns(6)
-                            percent_hk1 = (tiet_hk1 / tiet_canam * 100) if tiet_canam else 0
-                            percent_hk2 = (tiet_hk2 / tiet_canam * 100) if tiet_canam else 0
-                            col1.metric("Thực dạy HK1", f"{tiet_hk1:,.0f}", delta=f"{percent_hk1:.1f}%", delta_color="normal")
-                            col2.metric("Thực dạy HK2", f"{tiet_hk2:,.0f}", delta=f"{percent_hk2:.1f}%", delta_color="normal")
-                            col3.metric("Thực dạy Cả năm", f"{tiet_canam:,.0f}", delta="100%", delta_color="normal")
-                            delta_hk1 = round(qd_thua_hk1 - tiet_hk1, 1)
-                            delta_hk2 = round(qd_thua_hk2 - tiet_hk2, 1)
-                            delta_canam = round(qd_thua_canam - tiet_canam, 1)
-                            col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=delta_hk1)
-                            col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=delta_hk2)
-                            col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}", delta=delta_canam)
+                                mon_list = df_gd['ID_MÔN'].unique()
+                                rows = []
+                                for mon in mon_list:
+                                    df_mon = df_gd[df_gd['ID_MÔN'] == mon]
+                                    if df_mon.empty:
+                                        continue
+                                    # Lấy Lớp // Môn
+                                    lop_mon = ''
+                                    if input_gd is not None and 'ID_MÔN' in input_gd.columns:
+                                        row_map = input_gd[input_gd['ID_MÔN'] == mon]
+                                        if not row_map.empty:
+                                            lop = row_map.iloc[0]['lop_hoc'] if 'lop_hoc' in row_map.columns else ''
+                                            mon_name = row_map.iloc[0]['mon_hoc'] if 'mon_hoc' in row_map.columns else ''
+                                            lop_mon = f"{lop} // {mon_name}"
+                                    if not lop_mon:
+                                        lop_mon = mon
+                                    # Tuần: T{min} - T{max}
+                                    tuan_min = df_mon['Tuần'].iloc[0] if 'Tuần' in df_mon.columns else ''
+                                    tuan_max = df_mon['Tuần'].iloc[-1] if 'Tuần' in df_mon.columns else ''
+                                    tuan_str = f"T{tuan_min} - T{tuan_max}" if tuan_min != '' and tuan_max != '' else ''
+                                    # Sĩ số: lấy hàng cuối cùng
+                                    si_so = df_mon['Sĩ số'].iloc[-1] if 'Sĩ số' in df_mon.columns else ''
+                                    # Tổng các trường
+                                    tiet = df_mon['Tiết'].sum() if 'Tiết' in df_mon.columns else 0
+                                    tiet_lt = df_mon['Tiết_LT'].sum() if 'Tiết_LT' in df_mon.columns else 0
+                                    tiet_th = df_mon['Tiết_TH'].sum() if 'Tiết_TH' in df_mon.columns else 0
+                                    qd_thua = df_mon['QĐ thừa'].sum() if 'QĐ thừa' in df_mon.columns else 0
+                                    qd_thieu = df_mon['QĐ thiếu'].sum() if 'QĐ thiếu' in df_mon.columns else 0
+                                    rows.append({
+                                        'Lớp // Môn': lop_mon,
+                                        'Tuần': tuan_str,
+                                        'Sĩ số': si_so,
+                                        'Tiết': tiet,
+                                        'Tiết LT': tiet_lt,
+                                        'Tiết TH': tiet_th,
+                                        'QĐ thừa': qd_thua,
+                                        'QĐ Thiếu': qd_thieu
+                                    })
+                                df_tonghop_mon = pd.DataFrame(rows)
+                                # Thêm dòng tổng cộng
+                                if not df_tonghop_mon.empty:
+                                    total_row = {
+                                        'Lớp // Môn': 'Tổng cộng',
+                                        'Tuần': '',
+                                        'Sĩ số': '',
+                                        'Tiết': df_tonghop_mon['Tiết'].sum(),
+                                        'Tiết LT': df_tonghop_mon['Tiết LT'].sum(),
+                                        'Tiết TH': df_tonghop_mon['Tiết TH'].sum(),
+                                        'QĐ thừa': df_tonghop_mon['QĐ thừa'].sum(),
+                                        'QĐ Thiếu': df_tonghop_mon['QĐ Thiếu'].sum()
+                                    }
+                                    df_tonghop_mon = pd.concat([df_tonghop_mon, pd.DataFrame([total_row])], ignore_index=True)
+                                st.markdown("**Bảng tổng hợp tiết giảng dạy quy đổi HK1**")
+                                st.dataframe(df_tonghop_mon, use_container_width=True)
                         dfs.append(df)
                         found_any = True
             if dfs:
