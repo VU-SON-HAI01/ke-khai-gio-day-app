@@ -1402,17 +1402,17 @@ with tabs[-1]:
     # Delta for Thực dạy: % of Cả năm, always green
     percent_hk1 = (tiet_hk1 / tiet_canam * 100) if tiet_canam else 0
     percent_hk2 = (tiet_hk2 / tiet_canam * 100) if tiet_canam else 0
-    col1.metric("Thực dạy HK1", f"{tiet_hk1:,.0f}", delta=f"{percent_hk1:.1f}%", delta_color="green")
-    col2.metric("Thực dạy HK2", f"{tiet_hk2:,.0f}", delta=f"{percent_hk2:.1f}%", delta_color="green")
-    col3.metric("Thực dạy Cả năm", f"{tiet_canam:,.0f}", delta="100%", delta_color="green")
+    col1.metric("Thực dạy HK1", f"{tiet_hk1:,.0f}", delta=f"{percent_hk1:.1f}%", delta_color="inverse")
+    col2.metric("Thực dạy HK2", f"{tiet_hk2:,.0f}", delta=f"{percent_hk2:.1f}%", delta_color="inverse")
+    col3.metric("Thực dạy Cả năm", f"{tiet_canam:,.0f}", delta="100%", delta_color="inverse")
 
     # Color logic for Giờ QĐ metrics, show delta as difference, green if >0, red if <0
     delta_hk1 = qd_thua_hk1 - tiet_hk1
     delta_hk2 = qd_thua_hk2 - tiet_hk2
     delta_canam = qd_thua_canam - tiet_canam
-    color_hk1 = "red" if delta_hk1 > 0 else ("off" if delta_hk1 < 0 else "green")
-    color_hk2 = "red" if delta_hk2 > 0 else ("off" if delta_hk2 < 0 else "green")
-    color_canam = "red" if delta_canam > 0 else ("off" if delta_canam < 0 else "green")
+    color_hk1 = "inverse" if delta_hk1 > 0 else ("off" if delta_hk1 < 0 else "normal")
+    color_hk2 = "inverse" if delta_hk2 > 0 else ("off" if delta_hk2 < 0 else "normal")
+    color_canam = "inverse" if delta_canam > 0 else ("off" if delta_canam < 0 else "normal")
 
     col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=f"{delta_hk1:,.1f}", delta_color=color_hk1)
     col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=f"{delta_hk2:,.1f}", delta_color=color_hk2)
