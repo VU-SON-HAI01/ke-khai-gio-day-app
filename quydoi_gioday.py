@@ -822,10 +822,25 @@ def save_all_data():
                     if not mon_info.empty:
                         mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
             data_to_save['Mã_Môn_Ngành'] = mamon_nganh
-            # Chuyển mọi trường về kiểu đơn giản (str, int, float, bool)
-            for k, v in list(data_to_save.items()):
-                if isinstance(v, (list, tuple, dict)):
-                    data_to_save[k] = str(v)
+            # Chuyển mọi trường về kiểu đơn giản (str, int, float, bool) kể cả lồng sâu
+            def flatten_and_stringify_dict(d):
+                out = {}
+                for k, v in d.items():
+                    if isinstance(v, dict):
+                        out[k] = str(flatten_and_stringify_dict(v))
+                    elif isinstance(v, (list, tuple)):
+                        out[k] = str([str(x) if not isinstance(x, (dict, list, tuple)) else str(x) for x in v])
+                    else:
+                        try:
+                            # Nếu là kiểu đơn giản, giữ nguyên
+                            if isinstance(v, (str, int, float, bool)) or v is None:
+                                out[k] = v
+                            else:
+                                out[k] = str(v)
+                        except Exception:
+                            out[k] = str(v)
+                return out
+            data_to_save = flatten_and_stringify_dict(data_to_save)
             input_list.append(data_to_save)
             if not result_data.empty:
                 result_data = result_data.copy()
