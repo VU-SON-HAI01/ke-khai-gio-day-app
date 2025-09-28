@@ -95,6 +95,10 @@ def tonghop_ketqua():
                                                df_hk1['QĐ Thừa'].sum(),
                                                df_hk1['QĐ Thiếu'].sum(),
                                                '']
+                                    st.write("display_columns:", display_columns)
+                                    st.write("df_hk1 columns:", df_hk1.columns)
+                                    st.write("sum_row:", sum_row)
+                                    st.write("len(sum_row):", len(sum_row), "len(df_hk1.columns):", len(df_hk1.columns))
                                     df_hk1.loc[len(df_hk1)] = sum_row
                                     def highlight_total(s):
                                         return ['font-weight: bold; color: blue' if s.name == len(df_hk1)-1 else '' for _ in s]
@@ -110,6 +114,10 @@ def tonghop_ketqua():
                                                df_hk2['QĐ Thừa'].sum(),
                                                df_hk2['QĐ Thiếu'].sum(),
                                                '']
+                                    st.write("display_columns:", display_columns)
+                                    st.write("df_hk2 columns:", df_hk2.columns)
+                                    st.write("sum_row:", sum_row)
+                                    st.write("len(sum_row):", len(sum_row), "len(df_hk2.columns):", len(df_hk2.columns))
                                     df_hk2.loc[len(df_hk2)] = sum_row
                                     def highlight_total2(s):
                                         return ['font-weight: bold; color: blue' if s.name == len(df_hk2)-1 else '' for _ in s]
