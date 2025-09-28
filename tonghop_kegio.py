@@ -37,10 +37,11 @@ def tonghop_ketqua():
                         if sheet_name == "output_hoatdong":
                             st.markdown("**[DEBUG] Bảng dữ liệu gốc output_hoatdong:**")
                             st.dataframe(df, use_container_width=True)
-                        # Nếu là bảng giảng dạy, chỉ lưu bảng tổng hợp HK1/HK2 vào session_state, không hiển thị bảng chi tiết
+                        # Nếu là bảng giảng dạy, hiển thị bảng tổng hợp chi tiết HK1
                         if sheet_name == "output_giangday":
                             import numpy as np
                             df_gd = df.copy()
+                            # Lấy dữ liệu ánh xạ Lớp // Môn từ input_giangday
                             input_gd = None
                             try:
                                 input_gd_ws = next((ws for ws in sheet_list if ws.title == 'input_giangday'), None)
@@ -48,13 +49,17 @@ def tonghop_ketqua():
                                     input_gd = pd.DataFrame(input_gd_ws.get_all_records())
                             except Exception:
                                 input_gd = None
-                            if 'ID_MÔN' in df_gd.columns:
+                            # Gom theo ID_MÔN
+                            if 'ID_MÔN' not in df_gd.columns:
+                                st.warning('Không tìm thấy cột ID_MÔN trong dữ liệu output_giangday.')
+                            else:
                                 mon_list = df_gd['ID_MÔN'].unique()
                                 rows = []
                                 for mon in mon_list:
                                     df_mon = df_gd[df_gd['ID_MÔN'] == mon]
                                     if df_mon.empty:
                                         continue
+                                    # Lấy Lớp // Môn
                                     lop_mon = ''
                                     if input_gd is not None and 'ID_MÔN' in input_gd.columns:
                                         row_map = input_gd[input_gd['ID_MÔN'] == mon]
@@ -64,15 +69,19 @@ def tonghop_ketqua():
                                             lop_mon = f"{lop} // {mon_name}"
                                     if not lop_mon:
                                         lop_mon = mon
+                                    # Tuần: T{min} - T{max}
                                     tuan_min = df_mon['Tuần'].iloc[0] if 'Tuần' in df_mon.columns else ''
                                     tuan_max = df_mon['Tuần'].iloc[-1] if 'Tuần' in df_mon.columns else ''
                                     tuan_str = f"T{tuan_min} - T{tuan_max}" if tuan_min != '' and tuan_max != '' else ''
+                                    # Sĩ số: lấy hàng cuối cùng
                                     si_so = df_mon['Sĩ số'].iloc[-1] if 'Sĩ số' in df_mon.columns else ''
+                                    # Tổng các trường
                                     tiet = df_mon['Tiết'].sum() if 'Tiết' in df_mon.columns else 0.0
                                     tiet_lt = df_mon['Tiết_LT'].sum() if 'Tiết_LT' in df_mon.columns else 0.0
                                     tiet_th = df_mon['Tiết_TH'].sum() if 'Tiết_TH' in df_mon.columns else 0.0
                                     qd_thua = df_mon['QĐ thừa'].sum() if 'QĐ thừa' in df_mon.columns else 0.0
                                     qd_thieu = df_mon['QĐ thiếu'].sum() if 'QĐ thiếu' in df_mon.columns else 0.0
+                                    # Xác định học kỳ
                                     try:
                                         tuan_min_num = float(tuan_min)
                                         tuan_max_num = float(tuan_max)
@@ -92,9 +101,11 @@ def tonghop_ketqua():
                                         'Học kỳ': hoc_ky
                                     })
                                 df_tonghop_mon = pd.DataFrame(rows)
+                                # Tách thành 2 bảng HK1 và HK2
                                 for hk in [1, 2]:
                                     df_hk = df_tonghop_mon[df_tonghop_mon['Học kỳ'] == hk].copy()
                                     if not df_hk.empty:
+                                        # Thêm dòng tổng cộng
                                         for col in ['Tiết', 'Tiết LT', 'Tiết TH', 'QĐ thừa', 'QĐ Thiếu']:
                                             df_hk[col] = pd.to_numeric(df_hk[col], errors='coerce').fillna(0.0)
                                         total_row = {
@@ -109,7 +120,9 @@ def tonghop_ketqua():
                                             'Học kỳ': ''
                                         }
                                         df_hk = pd.concat([df_hk, pd.DataFrame([total_row])], ignore_index=True)
-                                        # Không hiển thị bảng chi tiết, chỉ lưu vào session_state
+                                        st.markdown(f"**Bảng tổng hợp tiết giảng dạy quy đổi HK{hk}**")
+                                        st.dataframe(df_hk.drop(columns=['Học kỳ']), use_container_width=True)
+                                        # Lưu vào session_state để build_bang_tonghop lấy đúng bảng
                                         if hk == 1:
                                             st.session_state['df_hk1'] = df_hk
                                         elif hk == 2:
