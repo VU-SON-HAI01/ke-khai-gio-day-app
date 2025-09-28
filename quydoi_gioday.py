@@ -1412,9 +1412,9 @@ with tabs[-1]:
     delta_canam = round(qd_thua_canam - tiet_canam, 1)
 
     # Chuẩn thực tế Streamlit: normal=green, off=gray, inverse=red
-    color_hk1 = "normal" if delta_hk1 > 0 else ("inverse" if delta_hk1 < 0 else "off")
-    color_hk2 = "normal" if delta_hk2 > 0 else ("inverse" if delta_hk2 < 0 else "off")
-    color_canam = "normal" if delta_canam > 0 else ("inverse" if delta_canam < 0 else "off")
+    color_hk1 = "inverse" if delta_hk1 < 0 else "normal"
+    color_hk2 = "inverse" if delta_hk2 < 0 else "normal"
+    color_canam = "inverse" if delta_canam < 0 else "normal"
 
     col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=delta_hk1, delta_color=color_hk1)
     col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=delta_hk2, delta_color=color_hk2)
