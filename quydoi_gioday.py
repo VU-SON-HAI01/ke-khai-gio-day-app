@@ -1277,7 +1277,6 @@ with tabs[-1]:
     if st.session_state.mon_hoc_data:
         # Làm sạch dữ liệu: chỉ giữ lại dict, loại bỏ các trường phức tạp
         cleaned_data = []
-        st.write(st.session_state.mon_hoc_data)
         for item in st.session_state.mon_hoc_data:
             if isinstance(item, dict):
                 # Loại bỏ các trường lồng ghép/phức tạp nếu có
@@ -1445,35 +1444,47 @@ with tabs[-1]:
             lop_hoc = item.get('lop_hoc', '')
             tiet_theo_tuan = format_tiet_theo_tuan(item)
             res_df = st.session_state.results_data[i] if i < len(st.session_state.results_data) else pd.DataFrame()
-            st.write(f"Bảng kết quả tính toán - Môn {i+1}")
-            st.dataframe(res_df)
             tiet_day = get_result_value(res_df, 'Tiết')
             qd_thua = get_result_value(res_df, 'QĐ thừa')
             qd_thieu = get_result_value(res_df, 'QĐ thiếu')
             # Lấy tuần bắt đầu/kết thúc từ bảng kết quả tính toán
-            st.write(i)
             if not res_df.empty and 'Tuần' in res_df.columns:
                 week_start = res_df['Tuần'].iloc[0]
                 week_end = res_df['Tuần'].iloc[-1]
-                st.write(week_start, week_end)
+                tuan_tuple = (int(week_start), int(week_end))
                 tuan_str = f"{week_start} - {week_end}"
-                try:
-                    avg_week = (int(week_start) + int(week_end)) / 2
-                    hoc_ky = 1 if avg_week < 22 else 2
-                except:
-                    hoc_ky = 1
             else:
-                tuan_str = format_tuan(item.get('tuan', (1, 12)))
                 # Fallback: lấy từ dữ liệu đầu vào nếu không có bảng kết quả
-                try:
-                    parts = [int(x.strip()) for x in tuan_str.split('-')]
-                    if len(parts) == 2:
-                        avg_week = (parts[0] + parts[1]) / 2
-                        hoc_ky = 1 if avg_week < 22 else 2
+                tuan_val = item.get('tuan', (1, 12))
+                if isinstance(tuan_val, str):
+                    import re
+                    match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
+                    if match:
+                        tuan_tuple = (int(match.group(1)), int(match.group(2)))
                     else:
-                        hoc_ky = 1
+                        tuan_tuple = (1, 12)
+                elif isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
+                    tuan_tuple = (int(tuan_val[0]), int(tuan_val[1]))
+                else:
+                    tuan_tuple = (1, 12)
+                tuan_str = f"{tuan_tuple[0]} - {tuan_tuple[1]}"
+            # Áp dụng get_semester
+            def get_semester(tuan_tuple):
+                try:
+                    if isinstance(tuan_tuple, str):
+                        import re
+                        match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_tuple)
+                        if match:
+                            tuan_tuple = (int(match.group(1)), int(match.group(2)))
+                    elif isinstance(tuan_tuple, list) and len(tuan_tuple) == 2:
+                        tuan_tuple = (int(tuan_tuple[0]), int(tuan_tuple[1]))
+                    if isinstance(tuan_tuple, tuple) and len(tuan_tuple) == 2:
+                        avg_week = (tuan_tuple[0] + tuan_tuple[1]) / 2
+                        return 1 if avg_week < 22 else 2
                 except:
-                    hoc_ky = 1
+                    return 1
+                return 1
+            hoc_ky = get_semester(tuan_tuple)
             summary_rows.append({
                 'Môn học': mon_hoc,
                 'Lớp học': lop_hoc,
