@@ -1403,14 +1403,29 @@ with tabs[-1]:
     col2.metric("Thực dạy HK2", f"{tiet_hk2:,.0f}")
     col3.metric("Thực dạy Cả năm", f"{tiet_canam:,.0f}")
 
-    # Color logic for Giờ QĐ metrics
-    color_hk1 = "green" if qd_thua_hk1 > tiet_hk1 else ("red" if qd_thua_hk1 < tiet_hk1 else None)
-    color_hk2 = "green" if qd_thua_hk2 > tiet_hk2 else ("red" if qd_thua_hk2 < tiet_hk2 else None)
-    color_canam = "green" if qd_thua_canam > tiet_canam else ("red" if qd_thua_canam < tiet_canam else None)
+    # Color logic for Giờ QĐ metrics, show delta as difference
+    delta_hk1 = qd_thua_hk1 - tiet_hk1
+    delta_hk2 = qd_thua_hk2 - tiet_hk2
+    delta_canam = qd_thua_canam - tiet_canam
+    color_hk1 = "normal"
+    color_hk2 = "normal"
+    color_canam = "normal"
+    if delta_hk1 > 0:
+        color_hk1 = "inverse"
+    elif delta_hk1 < 0:
+        color_hk1 = "off"
+    if delta_hk2 > 0:
+        color_hk2 = "inverse"
+    elif delta_hk2 < 0:
+        color_hk2 = "off"
+    if delta_canam > 0:
+        color_canam = "inverse"
+    elif delta_canam < 0:
+        color_canam = "off"
 
-    col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=None, delta_color=color_hk1)
-    col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=None, delta_color=color_hk2)
-    col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}", delta=None, delta_color=color_canam)
+    col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=f"{delta_hk1:,.1f}", delta_color=color_hk1)
+    col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=f"{delta_hk2:,.1f}", delta_color=color_hk2)
+    col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}", delta=f"{delta_canam:,.1f}", delta_color=color_canam)
 
 # Outside the with tabs[-1]: block, at the same indentation as the if-statement
 if not st.session_state.mon_hoc_data:
