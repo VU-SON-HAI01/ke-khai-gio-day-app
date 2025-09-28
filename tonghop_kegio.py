@@ -44,11 +44,27 @@ def tonghop_ketqua():
                                 for col in ["Mã HĐ", "Mã NCKH", "activity_index"]:
                                     if col in df_display.columns:
                                         df_display = df_display.drop(columns=[col])
+                                # Thêm dòng Tổng cộng vào cuối bảng
+                                if "Giờ quy đổi" in df_display.columns:
+                                    tongcong = df_display["Giờ quy đổi"].apply(pd.to_numeric, errors='coerce').sum()
+                                    total_row = {col: '' for col in df_display.columns}
+                                    if "Nội dung hoạt động" in df_display.columns:
+                                        total_row["Nội dung hoạt động"] = "Tổng cộng"
+                                    total_row["Giờ quy đổi"] = tongcong
+                                    df_display = pd.concat([df_display, pd.DataFrame([total_row])], ignore_index=True)
                             elif sheet_name == "output_hoatdong":
                                 # Ẩn cả "Mã NCKH" và "MÃ NCKH" nếu có
                                 for col in ["Mã HĐ", "Mã NCKH", "MÃ NCKH", "activity_index"]:
                                     if col in df_display.columns:
                                         df_display = df_display.drop(columns=[col])
+                                # Thêm dòng Tổng cộng vào cuối bảng
+                                if "Giờ quy đổi" in df_display.columns:
+                                    tongcong = df_display["Giờ quy đổi"].apply(pd.to_numeric, errors='coerce').sum()
+                                    total_row = {col: '' for col in df_display.columns}
+                                    if "Hoạt động quy đổi" in df_display.columns:
+                                        total_row["Hoạt động quy đổi"] = "Tổng cộng"
+                                    total_row["Giờ quy đổi"] = tongcong
+                                    df_display = pd.concat([df_display, pd.DataFrame([total_row])], ignore_index=True)
                             st.dataframe(df_display)
                         # Nếu là bảng giảng dạy, chỉ tạo bảng tổng hợp HK1/HK2 mà không hiển thị bảng gốc
                         if sheet_name == "output_giangday":
