@@ -228,6 +228,15 @@ def tonghop_ketqua():
                         giochuan = 616
                     else:
                         giochuan = 594
+
+                    # Định mức giảng dạy (hàng 1 và cột Định mức)
+                    if chuangv in ['CĐ', 'CĐMC']:
+                        dinhmuc_giangday = giochuan / 44 * 32
+                    elif chuangv in ['TC', 'TCMC']:
+                        dinhmuc_giangday = giochuan / 44 * 36
+                    else:
+                        dinhmuc_giangday = giochuan / 44 * 32
+
                     # Định mức học tập, bồi dưỡng, NCKH
                     if chuangv in ['CĐ', 'CĐMC']:
                         dinhmuc_nckh = giochuan / 44 * 8
@@ -235,6 +244,16 @@ def tonghop_ketqua():
                         dinhmuc_nckh = giochuan / 44 * 4
                     else:
                         dinhmuc_nckh = giochuan / 44 * 8
+
+                    # Định mức Thực tập tại doanh nghiệp: luôn = giochuan / 44 * 4
+                    dinhmuc_thuctap = giochuan / 44 * 4
+
+                    # Tạo danh sách Định mức, tính tổng cộng cuối cùng sau khi tạo xong các giá trị
+                    dinhmuc_list = [round(dinhmuc_giangday, 2), '', '', '', '', '', round(dinhmuc_nckh, 2), round(dinhmuc_thuctap, 2), '']
+                    # Tổng cộng cột Định mức (chỉ cộng các giá trị số, bỏ qua '')
+                    dinhmuc_tongcong = sum([v for v in dinhmuc_list if isinstance(v, (int, float)) and v != ''])
+                    dinhmuc_list.append(round(dinhmuc_tongcong, 2))
+
                     data = {
                         "MỤC": ["(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)", "(9)", "Tổng cộng"],
                         "NỘI DUNG QUY ĐỔI": [
@@ -249,7 +268,7 @@ def tonghop_ketqua():
                             "HD chuyên môn khác quy đổi",
                             ""
                         ],
-                        "Định Mức": [giochuan, '', '', '', '', '', round(dinhmuc_nckh, 2), '', '', giochuan],
+                        "Định Mức": dinhmuc_list,
                         "Quy đổi (Dư giờ)": ["", tiet_giangday_hk1_qdthua, tiet_giangday_hk2_qdthua, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, du_gio],
                         "Quy đổi (Thiếu giờ)": ["", tiet_giangday_hk1_qdthieu, tiet_giangday_hk2_qdthieu, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, thieu_gio]
                     }
