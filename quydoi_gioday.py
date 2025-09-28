@@ -1416,10 +1416,9 @@ with tabs[-1]:
     color_hk2 = "normal" if delta_hk2 > 0 else ("inverse" if delta_hk2 < 0 else "off")
     color_canam = "normal" if delta_canam > 0 else ("inverse" if delta_canam < 0 else "off")
 
-    col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=f"{delta_hk1:,.1f}", delta_color=color_hk1)
-    col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=f"{delta_hk2:,.1f}", delta_color=color_hk2)
-    col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}", delta=f"{delta_canam:,.1f}", delta_color=color_canam)
-
+    col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=delta_hk1, delta_color=color_hk1)
+    col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=delta_hk2, delta_color=color_hk2)
+    col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}", delta=delta_canam, delta_color=color_canam)
 # Outside the with tabs[-1]: block, at the same indentation as the if-statement
 if not st.session_state.mon_hoc_data:
     st.info("Chưa có dữ liệu môn học nào để tổng hợp.")
