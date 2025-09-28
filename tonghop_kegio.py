@@ -54,6 +54,11 @@ def tonghop_ketqua():
                                     df_mon = df_gd[df_gd['ID_MÔN'] == mon]
                                     if df_mon.empty:
                                         continue
+                                    # Chuyển các trường số sang float để tính tổng đúng
+                                    for col in ['Tiết', 'Sĩ số', 'Tiết_LT', 'Tiết_TH', 'QĐ thừa', 'QĐ thiếu']:
+                                        if col in df_mon.columns:
+                                            # Nếu là số dạng float hoặc string float, chuyển đúng về float
+                                            df_mon[col] = df_mon[col].apply(lambda x: float(str(x).replace(',', '.')) if str(x).replace('.', '', 1).replace(',', '', 1).isdigit() else 0.0)
                                     # Lấy Lớp // Môn
                                     lop_mon = ''
                                     if input_gd is not None and 'ID_MÔN' in input_gd.columns:
@@ -71,11 +76,11 @@ def tonghop_ketqua():
                                     # Sĩ số: lấy hàng cuối cùng
                                     si_so = df_mon['Sĩ số'].iloc[-1] if 'Sĩ số' in df_mon.columns else ''
                                     # Tổng các trường
-                                    tiet = df_mon['Tiết'].sum() if 'Tiết' in df_mon.columns else 0
-                                    tiet_lt = df_mon['Tiết_LT'].sum() if 'Tiết_LT' in df_mon.columns else 0
-                                    tiet_th = df_mon['Tiết_TH'].sum() if 'Tiết_TH' in df_mon.columns else 0
-                                    qd_thua = df_mon['QĐ thừa'].sum() if 'QĐ thừa' in df_mon.columns else 0
-                                    qd_thieu = df_mon['QĐ thiếu'].sum() if 'QĐ thiếu' in df_mon.columns else 0
+                                    tiet = df_mon['Tiết'].sum() if 'Tiết' in df_mon.columns else 0.0
+                                    tiet_lt = df_mon['Tiết_LT'].sum() if 'Tiết_LT' in df_mon.columns else 0.0
+                                    tiet_th = df_mon['Tiết_TH'].sum() if 'Tiết_TH' in df_mon.columns else 0.0
+                                    qd_thua = df_mon['QĐ thừa'].sum() if 'QĐ thừa' in df_mon.columns else 0.0
+                                    qd_thieu = df_mon['QĐ thiếu'].sum() if 'QĐ thiếu' in df_mon.columns else 0.0
                                     rows.append({
                                         'Lớp // Môn': lop_mon,
                                         'Tuần': tuan_str,
@@ -89,6 +94,9 @@ def tonghop_ketqua():
                                 df_tonghop_mon = pd.DataFrame(rows)
                                 # Thêm dòng tổng cộng
                                 if not df_tonghop_mon.empty:
+                                    # Đảm bảo các trường tổng cũng là float
+                                    for col in ['Tiết', 'Tiết LT', 'Tiết TH', 'QĐ thừa', 'QĐ Thiếu']:
+                                        df_tonghop_mon[col] = pd.to_numeric(df_tonghop_mon[col], errors='coerce').fillna(0.0)
                                     total_row = {
                                         'Lớp // Môn': 'Tổng cộng',
                                         'Tuần': '',
