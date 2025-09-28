@@ -31,16 +31,24 @@ def tonghop_ketqua():
                     df_raw = ws.get_all_records()
                     # Nếu là output_giangday thì chuyển đổi các trường số có thể có dấu phẩy thành float ngay khi load
                     if sheet_name == "output_giangday" and df_raw:
-                        # Xác định các cột số cần chuyển
                         float_cols = ['Tiết', 'Sĩ số', 'Tiết_LT', 'Tiết_TH', 'HS TC/CĐ', 'HS_SS_LT', 'HS_SS_TH', 'QĐ thừa', 'QĐ thiếu']
                         for row in df_raw:
                             for col in float_cols:
-                                if col in row and isinstance(row[col], str):
-                                    val = row[col].replace(',', '.').strip()
-                                    try:
-                                        row[col] = float(val)
-                                    except Exception:
+                                if col in row:
+                                    val = row[col]
+                                    if isinstance(val, (int, float)):
+                                        continue
+                                    s = str(val).strip()
+                                    if s == '' or s.lower() == 'nan':
                                         row[col] = 0.0
+                                    else:
+                                        try:
+                                            # Chỉ chuyển nếu là số thực hợp lệ, không ghép chuỗi
+                                            if ',' in s and '.' not in s:
+                                                s = s.replace(',', '.')
+                                            row[col] = float(s)
+                                        except Exception:
+                                            row[col] = 0.0
                     df = pd.DataFrame(df_raw)
                     if not df.empty:
                         st.subheader(display_name)
