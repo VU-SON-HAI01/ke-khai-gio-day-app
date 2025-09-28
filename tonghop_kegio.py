@@ -124,8 +124,9 @@ def tonghop_ketqua():
                                             'Học kỳ': ''
                                         }
                                         df_hk = pd.concat([df_hk, pd.DataFrame([total_row])], ignore_index=True)
-                                        if hk == 1:
-                                            st.markdown('✍️ Bảng tổng hợp khối lượng dạy')
+                                        if hk == 1 or hk == 2:
+                                            st.subheader('✍️ Bảng tổng hợp khối lượng dạy')
+                                            
                                         st.markdown(f"**Bảng tổng hợp tiết giảng dạy quy đổi HK{hk}**")
                                         st.dataframe(df_hk.drop(columns=['Học kỳ']), use_container_width=True)
                                         if hk == 1:
