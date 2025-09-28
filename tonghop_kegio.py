@@ -131,6 +131,12 @@ def tonghop_ketqua():
                 giochuan = st.session_state.get('giochuan', 616)
                 def build_bang_tonghop(dfs, giochuan=616):
                     import numpy as np
+                    # Debug cột 'Tiết quy đổi HK1' trong dfs[0]
+                    if len(dfs) > 0:
+                        st.markdown(f"**[DEBUG] Các cột trong dfs[0]:** {list(dfs[0].columns)}")
+                        if 'Tiết quy đổi HK1' in dfs[0]:
+                            st.markdown(f"**[DEBUG] Giá trị 'Tiết quy đổi HK1':** {dfs[0]['Tiết quy đổi HK1'].tolist()}")
+                            st.markdown(f"**[DEBUG] Kiểu dữ liệu 'Tiết quy đổi HK1':** {dfs[0]['Tiết quy đổi HK1'].dtype}")
                     tiet_giangday_hk1 = dfs[0]['Tiết quy đổi HK1'].sum() if len(dfs) > 0 and 'Tiết quy đổi HK1' in dfs[0] else 0
                     tiet_giangday_hk2 = dfs[0]['Tiết quy đổi HK2'].sum() if len(dfs) > 0 and 'Tiết quy đổi HK2' in dfs[0] else 0
                     ra_de_cham_thi_hk1 = dfs[1]['Tiết quy đổi HK1'].sum() if len(dfs) > 1 and 'Tiết quy đổi HK1' in dfs[1] else 0
