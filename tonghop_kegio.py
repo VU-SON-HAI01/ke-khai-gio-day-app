@@ -43,10 +43,13 @@ def tonghop_ketqua():
                                         row[col] = 0.0
                                     else:
                                         try:
-                                            # Chỉ chuyển nếu là số thực hợp lệ, không ghép chuỗi
+                                            # Nếu là số thực kiểu 1,30 hoặc 4,40 hoặc 8,80 thì giữ đúng 2 chữ số thập phân
                                             if ',' in s and '.' not in s:
-                                                s = s.replace(',', '.')
-                                            row[col] = float(s)
+                                                # Đảm bảo chỉ có 1 dấu phẩy, và phía sau đúng 2 số
+                                                parts = s.split(',')
+                                                if len(parts) == 2 and len(parts[1]) == 2:
+                                                    s = parts[0] + '.' + parts[1]
+                                            row[col] = round(float(s), 2)
                                         except Exception:
                                             row[col] = 0.0
                     df = pd.DataFrame(df_raw)
