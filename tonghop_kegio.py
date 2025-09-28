@@ -13,7 +13,17 @@ def tonghop_ketqua():
     if 'export_ready' not in st.session_state:
         st.session_state['export_ready'] = False
     dfs = []
-    if st.button("Tải dữ liệu các bảng kê khai"):
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        load_clicked = st.button("Tải dữ liệu các bảng kê khai", use_container_width=True)
+    with col2:
+        export_ready = st.session_state.get('export_ready', False)
+        excel_btn_placeholder = st.empty()
+    with col3:
+        export_ready = st.session_state.get('export_ready', False)
+        pdf_btn_placeholder = st.empty()
+
+    if load_clicked:
         spreadsheet = st.session_state.get('spreadsheet')
         if spreadsheet is None:
             st.error("Không tìm thấy file Google Sheet của bạn trong session_state. Hãy đăng nhập lại hoặc liên hệ Admin.")
@@ -284,7 +294,6 @@ def tonghop_ketqua():
     # Chỉ hiển thị nút Xuất ra Excel và Xuất ra PDF khi đã tải dữ liệu
     export_ready = st.session_state.get('export_ready', False)
     if export_ready:
-        # Nút Xuất ra Excel
         excel_tables = {}
         df_all = st.session_state.get('df_all_tonghop')
         if df_all is not None:
@@ -303,19 +312,19 @@ def tonghop_ketqua():
                 except Exception:
                     pass
         excel_bytes = fun_to_excel.export_tables_to_excel(excel_tables)
-        st.download_button("📥 Xuất ra Excel", data=excel_bytes, file_name="bao_cao_tong_hop.xlsx")
-
-        # Nút xuất PDF
-        if st.button("Xuất ra PDF"):
-            try:
-                from fun_to_pdf import export_to_pdf
-                df_all = st.session_state.get('df_all_tonghop')
-                if df_all is not None:
-                    export_to_pdf(df_all)
-                else:
-                    st.warning("Chưa có dữ liệu tổng hợp để xuất PDF.")
-            except ImportError:
-                st.error("Không tìm thấy hàm export_to_pdf trong fun_to_pdf.py. Hãy kiểm tra lại.")
+        with col2:
+            excel_btn_placeholder.download_button("📥 Xuất ra Excel", data=excel_bytes, file_name="bao_cao_tong_hop.xlsx", use_container_width=True)
+        with col3:
+            if pdf_btn_placeholder.button("Xuất ra PDF", use_container_width=True):
+                try:
+                    from fun_to_pdf import export_to_pdf
+                    df_all = st.session_state.get('df_all_tonghop')
+                    if df_all is not None:
+                        export_to_pdf(df_all)
+                    else:
+                        st.warning("Chưa có dữ liệu tổng hợp để xuất PDF.")
+                except ImportError:
+                    st.error("Không tìm thấy hàm export_to_pdf trong fun_to_pdf.py. Hãy kiểm tra lại.")
 
 def main():
     tonghop_ketqua()
