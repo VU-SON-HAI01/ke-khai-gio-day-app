@@ -57,8 +57,16 @@ def tonghop_ketqua():
                                     # Chuyển các trường số sang float để tính tổng đúng
                                     for col in ['Tiết', 'Sĩ số', 'Tiết_LT', 'Tiết_TH', 'QĐ thừa', 'QĐ thiếu']:
                                         if col in df_mon.columns:
-                                            # Nếu là số dạng float hoặc string float, chuyển đúng về float
-                                            df_mon[col] = df_mon[col].apply(lambda x: float(str(x).replace(',', '.')) if str(x).replace('.', '', 1).replace(',', '', 1).isdigit() else 0.0)
+                                            def parse_float(val):
+                                                s = str(val).strip()
+                                                if s == '' or s.lower() == 'nan':
+                                                    return 0.0
+                                                # Nếu là số thực kiểu 1,3 hoặc 4,4 hoặc 8,8
+                                                try:
+                                                    return float(s.replace(',', '.'))
+                                                except Exception:
+                                                    return 0.0
+                                            df_mon[col] = df_mon[col].apply(parse_float)
                                     # Lấy Lớp // Môn
                                     lop_mon = ''
                                     if input_gd is not None and 'ID_MÔN' in input_gd.columns:
