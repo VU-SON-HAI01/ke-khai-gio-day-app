@@ -17,10 +17,10 @@ def tonghop_ketqua():
     with col1:
         load_clicked = st.button("Xem kết quả dư giờ", use_container_width=True)
     with col2:
-        export_ready = st.session_state.get('export_ready', use_container_width=True)
+        export_ready = st.session_state.get('export_ready', False)
         excel_btn_placeholder = st.empty()
     with col3:
-        export_ready = st.session_state.get('export_ready', use_container_width=True)
+        export_ready = st.session_state.get('export_ready', False)
         pdf_btn_placeholder = st.empty()
 
     if load_clicked:
