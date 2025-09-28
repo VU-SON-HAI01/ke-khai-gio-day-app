@@ -675,58 +675,68 @@ def load_all_mon_data():
         return
     # Lặp qua từng dòng, mỗi dòng là một môn/tab riêng biệt
     for idx, row in input_data_all.iterrows():
-            input_data = row.copy()
-            # --- CHUẨN HÓA CÁC TRƯỜNG ---
-            # Tuần
-            tuan_val = input_data.get('tuan', (1, 12))
-            if isinstance(tuan_val, str):
-                import re
-                match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
-                if match:
-                    tuan_val = (int(match.group(1)), int(match.group(2)))
-                else:
-                    tuan_val = (1, 12)
-            elif isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
-                try:
-                    tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
-                except Exception:
-                    tuan_val = (1, 12)
+        input_data = row.copy()
+        # --- CHUẨN HÓA CÁC TRƯỜNG ---
+        # Tuần
+        tuan_val = input_data.get('tuan', (1, 12))
+        if isinstance(tuan_val, str):
+            import re
+            match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
+            if match:
+                tuan_val = (int(match.group(1)), int(match.group(2)))
             else:
                 tuan_val = (1, 12)
-            input_data['tuan'] = tuan_val
-            # Khoa
-            khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
-            input_data['khoa'] = str(input_data.get('khoa', khoa_options[0]))
-            if input_data['khoa'] not in khoa_options:
-                input_data['khoa'] = khoa_options[0]
-            # Lớp học
-            input_data['lop_hoc'] = str(input_data.get('lop_hoc', ''))
-            # Môn học
-            input_data['mon_hoc'] = str(input_data.get('mon_hoc', ''))
-            # Cách kê
-            cach_ke_options = ['Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết']
-            input_data['cach_ke'] = str(input_data.get('cach_ke', cach_ke_options[0]))
-            if input_data['cach_ke'] not in cach_ke_options:
-                input_data['cach_ke'] = cach_ke_options[0]
-            # Tiết
-            tiet_val = input_data.get('tiet', '')
-            if isinstance(tiet_val, (list, tuple)):
-                tiet_val = ' '.join(str(x) for x in tiet_val)
-            input_data['tiet'] = str(tiet_val)
-            # Tiết LT
-            tiet_lt_val = input_data.get('tiet_lt', '0')
-            if isinstance(tiet_lt_val, (list, tuple)):
-                tiet_lt_val = ' '.join(str(x) for x in tiet_lt_val)
-            input_data['tiet_lt'] = str(tiet_lt_val)
-            # Tiết TH
-            tiet_th_val = input_data.get('tiet_th', '0')
-            if isinstance(tiet_th_val, (list, tuple)):
-                tiet_th_val = ' '.join(str(x) for x in tiet_th_val)
-            input_data['tiet_th'] = str(tiet_th_val)
-            # --- KẾT THÚC CHUẨN HÓA ---
-            input_data['index'] = len(st.session_state.mon_hoc_data)
-            st.session_state.mon_hoc_data.append(input_data)
-            st.session_state.results_data.append(pd.DataFrame())
+        elif isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
+            try:
+                tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
+            except Exception:
+                tuan_val = (1, 12)
+        else:
+            tuan_val = (1, 12)
+        input_data['tuan'] = tuan_val
+        # Khoa
+        khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
+        input_data['khoa'] = str(input_data.get('khoa', khoa_options[0]))
+        if input_data['khoa'] not in khoa_options:
+            input_data['khoa'] = khoa_options[0]
+        # Lớp học
+        input_data['lop_hoc'] = str(input_data.get('lop_hoc', ''))
+        # Môn học
+        input_data['mon_hoc'] = str(input_data.get('mon_hoc', ''))
+        # Cách kê
+        cach_ke_options = ['Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết']
+        input_data['cach_ke'] = str(input_data.get('cach_ke', cach_ke_options[0]))
+        if input_data['cach_ke'] not in cach_ke_options:
+            input_data['cach_ke'] = cach_ke_options[0]
+        # Tiết
+        tiet_val = input_data.get('tiet', '')
+        if isinstance(tiet_val, (list, tuple)):
+            tiet_val = ' '.join(str(x) for x in tiet_val)
+        input_data['tiet'] = str(tiet_val)
+        # Tiết LT
+        tiet_lt_val = input_data.get('tiet_lt', '0')
+        if isinstance(tiet_lt_val, (list, tuple)):
+            tiet_lt_val = ' '.join(str(x) for x in tiet_lt_val)
+        input_data['tiet_lt'] = str(tiet_lt_val)
+        # Tiết TH
+        tiet_th_val = input_data.get('tiet_th', '0')
+        if isinstance(tiet_th_val, (list, tuple)):
+            tiet_th_val = ' '.join(str(x) for x in tiet_th_val)
+        input_data['tiet_th'] = str(tiet_th_val)
+        # --- KẾT THÚC CHUẨN HÓA ---
+        input_data['index'] = len(st.session_state.mon_hoc_data)
+        st.session_state.mon_hoc_data.append(input_data)
+        st.session_state.results_data.append(pd.DataFrame())
+        # --- CẬP NHẬT GIÁ TRỊ WIDGET ---
+        i = input_data['index']
+        st.session_state[f"widget_khoa_{i}"] = input_data['khoa']
+        st.session_state[f"widget_lop_hoc_{i}"] = input_data['lop_hoc']
+        st.session_state[f"widget_mon_hoc_{i}"] = input_data['mon_hoc']
+        st.session_state[f"widget_tuan_{i}"] = input_data['tuan']
+        st.session_state[f"widget_cach_ke_{i}"] = input_data['cach_ke']
+        st.session_state[f"widget_tiet_{i}"] = input_data['tiet']
+        st.session_state[f"widget_tiet_lt_{i}"] = input_data['tiet_lt']
+        st.session_state[f"widget_tiet_th_{i}"] = input_data['tiet_th']
 # --- CALLBACKS CHO CÁC NÚT ---
 def add_mon_hoc():
     st.session_state.mon_hoc_data.append(get_default_input_dict())
@@ -856,31 +866,6 @@ def save_all_data():
             save_data_to_sheet('output_giangday', output_df)
     st.success("Đã lưu thành công tất cả dữ liệu!")
 
-# Add a reset button to reload data from Google Sheets and update widgets
-if st.button("Reset dữ liệu"):
-    # Load data from Google Sheets
-    gc = gspread.service_account()  # Ensure credentials are set up
-    sh = gc.open("Your Google Sheet Name")  # Replace with your Google Sheet name
-    worksheet = sh.worksheet("input_giangday")
-    data = worksheet.get_all_records()
-
-    # Update session state with the loaded data
-    st.session_state.mon_hoc_data = data
-
-    # Reset widgets to reflect the loaded data
-    for i, row in enumerate(data):
-        st.session_state[f"widget_khoa_{i}"] = row.get('khoa', '')
-        st.session_state[f"widget_lop_hoc_{i}"] = row.get('lop_hoc', '')
-        st.session_state[f"widget_mon_hoc_{i}"] = row.get('mon_hoc', '')
-        st.session_state[f"widget_tuan_{i}"] = row.get('tuan', (1, 12))
-        st.session_state[f"widget_cach_ke_{i}"] = row.get('cach_ke', 'Kê theo MĐ, MH')
-        st.session_state[f"widget_tiet_{i}"] = row.get('tiet', '')
-        st.session_state[f"widget_tiet_lt_{i}"] = row.get('tiet_lt', '')
-        st.session_state[f"widget_tiet_th_{i}"] = row.get('tiet_th', '')
-
-    # Rerun the page to reflect the updated state
-    st.experimental_rerun()
-
 # --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
 if 'mon_hoc_data' not in st.session_state:
     load_all_mon_data()
@@ -892,7 +877,7 @@ with cols[0]:
 with cols[1]:
     st.button("➖ Xóa môn", on_click=remove_mon_hoc, use_container_width=True, disabled=len(st.session_state.mon_hoc_data) <= 1)
 with cols[2]:
-    st.button("🔄 Reset dữ liệu", on_click=lambda: reload_data_from_google_sheet(), use_container_width=True, help="Tải lại toàn bộ dữ liệu từ Google Sheet")
+    st.button("🔄 Reset dữ liệu", on_click=load_all_mon_data, use_container_width=True, help="Tải lại toàn bộ dữ liệu từ Google Sheet")
 with cols[3]:
     st.button("💾 Lưu tất cả", on_click=save_all_data, use_container_width=True, type="primary")
 
