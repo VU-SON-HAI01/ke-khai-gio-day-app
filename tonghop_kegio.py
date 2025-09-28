@@ -31,11 +31,14 @@ def tonghop_ketqua():
                     df_raw = ws.get_all_records()
                     df = pd.DataFrame(df_raw)
                     if not df.empty:
-                        # Nếu là bảng output_hoatdong, hiển thị rõ bảng này trước khi tổng hợp
-                        st.subheader(display_name)
-                        if sheet_name == "output_hoatdong":
-                            st.markdown("**[DEBUG] Bảng dữ liệu gốc output_hoatdong:**")
-                            st.dataframe(df, use_container_width=True)
+                        # Chỉ ẩn bảng output_giangday, các bảng khác vẫn hiển thị
+                        if sheet_name != "output_giangday":
+                            st.subheader(display_name)
+                            st.dataframe(df)
+                            # Nếu là bảng output_hoatdong, hiển thị rõ bảng này trước khi tổng hợp
+                            if sheet_name == "output_hoatdong":
+                                st.markdown("**[DEBUG] Bảng dữ liệu gốc output_hoatdong:**")
+                                st.dataframe(df, use_container_width=True)
                         # Nếu là bảng giảng dạy, chỉ tạo bảng tổng hợp HK1/HK2 mà không hiển thị bảng gốc
                         if sheet_name == "output_giangday":
                             import numpy as np
