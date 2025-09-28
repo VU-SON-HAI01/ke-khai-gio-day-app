@@ -1289,6 +1289,7 @@ with tabs[-1]:
         summary_df = pd.DataFrame(cleaned_data)
         qd_thua_totals = []
         qd_thieu_totals = []
+        st.write(st.session_state.results_data)
         for res_df in st.session_state.results_data:
             if not res_df.empty:
                 qd_thua_totals.append(pd.to_numeric(res_df['QĐ thừa'], errors='coerce').sum())
