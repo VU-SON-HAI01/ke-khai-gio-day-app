@@ -137,6 +137,7 @@ def tonghop_ketqua():
                     hoatdong_nckh = 0
                     hoatdong_thuctap = 0
                     hoatdong_khac = 0
+                    st.write(df_hd)
                     if len(dfs) > 3 and not dfs[3].empty:
                         df_hd = dfs[3]
                         # Học tập, bồi dưỡng, NCKH: MÃ NCKH == 'NCKH'
