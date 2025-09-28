@@ -35,40 +35,46 @@ def tonghop_ketqua():
                         dfs.append(df)
                         found_any = True
             if dfs:
-                # Tạo bảng tổng hợp theo mẫu hình ảnh
                 st.subheader(":blue[BẢNG TỔNG HỢP KHỐI LƯỢNG DƯ/THIẾU GIỜ]")
-                # Chuẩn bị dữ liệu mẫu, bạn có thể thay đổi logic tổng hợp thực tế ở đây
-                # Giả sử dfs[0] là giangday, dfs[1] là thiketthuc, dfs[2] là quydoigiam, dfs[3] là hoatdong
-                # Dưới đây là ví dụ tạo bảng tổng hợp, bạn cần điều chỉnh lại cho đúng dữ liệu thực tế
-                data = {
-                    "MỤC": ["(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)", "(9)", "Tổng cộng"],
-                    "NỘI DUNG QUY ĐỔI": [
-                        "Định mức giảng dạy của GV",
-                        "Tiết giảng dạy quy đổi (HK1)",
-                        "Tiết giảng dạy quy đổi (HK2)",
-                        "Ra đề, Coi thi, Chấm thi (HK1)",
-                        "Ra đề, Coi thi, Chấm thi (HK2)",
-                        "Giảm giờ Kiêm nhiệm QLý,GVCN...",
-                        "Học tập, bồi dưỡng,NCKH",
-                        "Thực tập tại doanh nghiệp",
-                        "HD chuyên môn khác quy đổi",
-                        ""
-                    ],
-                    "Định Mức": [448.0, None, None, None, None, None, 112.0, 56.0, None, 616.0],
-                    "GIỜ GV ĐÃ THỰC HIỆN": [
-                        "",  # Định mức không có giờ thực hiện
-                        None, None, None, None, None, None, None, None, None
-                    ],
-                    "Khi Dư giờ": [
-                        "", 153.7, None, None, None, None, None, None, None, 153.7
-                    ],
-                    "Khi Thiếu giờ": [
-                        "", 167.8, None, None, None, None, None, None, None, 167.8
-                    ]
-                }
-                # Tạo DataFrame
-                df_tonghop = pd.DataFrame(data)
-                # Hiển thị bảng với style
+                # Lấy giờ chuẩn từ session_state nếu có, mặc định 616
+                giochuan = st.session_state.get('giochuan', 616)
+                def build_bang_tonghop(dfs, giochuan=616):
+                    # TODO: Bổ sung logic tổng hợp thực tế từ các bảng dfs
+                    # Hiện tại chỉ là mẫu, sẽ cập nhật dần
+                    import numpy as np
+                    tiet_giangday_hk1 = dfs[0]['Tiết quy đổi HK1'].sum() if len(dfs) > 0 and 'Tiết quy đổi HK1' in dfs[0] else 0
+                    tiet_giangday_hk2 = dfs[0]['Tiết quy đổi HK2'].sum() if len(dfs) > 0 and 'Tiết quy đổi HK2' in dfs[0] else 0
+                    ra_de_cham_thi_hk1 = dfs[1]['Tiết quy đổi HK1'].sum() if len(dfs) > 1 and 'Tiết quy đổi HK1' in dfs[1] else 0
+                    ra_de_cham_thi_hk2 = dfs[1]['Tiết quy đổi HK2'].sum() if len(dfs) > 1 and 'Tiết quy đổi HK2' in dfs[1] else 0
+                    giam_gio = dfs[2]['Số tiết giảm'].sum() if len(dfs) > 2 and 'Số tiết giảm' in dfs[2] else 0
+                    hoatdong_khac = dfs[3]['Tiết quy đổi'].sum() if len(dfs) > 3 and 'Tiết quy đổi' in dfs[3] else 0
+
+                    tong_thuchien = tiet_giangday_hk1 + tiet_giangday_hk2 + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_khac - giam_gio
+                    du_gio = max(0, tong_thuchien - giochuan)
+                    thieu_gio = max(0, giochuan - tong_thuchien)
+
+                    data = {
+                        "MỤC": ["(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)", "(9)", "Tổng cộng"],
+                        "NỘI DUNG QUY ĐỔI": [
+                            "Định mức giảng dạy của GV",
+                            "Tiết giảng dạy quy đổi (HK1)",
+                            "Tiết giảng dạy quy đổi (HK2)",
+                            "Ra đề, Coi thi, Chấm thi (HK1)",
+                            "Ra đề, Coi thi, Chấm thi (HK2)",
+                            "Giảm giờ Kiêm nhiệm QLý,GVCN...",
+                            "Học tập, bồi dưỡng,NCKH",
+                            "Thực tập tại doanh nghiệp",
+                            "HD chuyên môn khác quy đổi",
+                            ""
+                        ],
+                        "Định Mức": [giochuan, None, None, None, None, None, None, None, None, giochuan],
+                        "Khi Dư giờ": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, None, None, hoatdong_khac, du_gio],
+                        "Khi Thiếu giờ": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, None, None, hoatdong_khac, thieu_gio]
+                    }
+                    df_tonghop = pd.DataFrame(data)
+                    return df_tonghop
+
+                df_tonghop = build_bang_tonghop(dfs, giochuan)
                 st.dataframe(df_tonghop.style.format(precision=1).set_properties(**{'text-align': 'center'}), use_container_width=True)
                 st.session_state['df_all_tonghop'] = df_tonghop
             if not found_any:
