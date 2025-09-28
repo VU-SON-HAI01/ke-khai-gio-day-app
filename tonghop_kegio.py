@@ -34,11 +34,21 @@ def tonghop_ketqua():
                         # Chỉ ẩn bảng output_giangday, các bảng khác vẫn hiển thị
                         if sheet_name != "output_giangday":
                             st.subheader(display_name)
-                            st.dataframe(df)
-                            # Nếu là bảng output_hoatdong, hiển thị rõ bảng này trước khi tổng hợp
-                            if sheet_name == "output_hoatdong":
-                                st.markdown("**[DEBUG] Bảng dữ liệu gốc output_hoatdong:**")
-                                st.dataframe(df, use_container_width=True)
+                            # Ẩn các cột theo yêu cầu từng bảng
+                            df_display = df.copy()
+                            if sheet_name == "output_thiketthuc":
+                                for col in ["Mã HĐ", "Mã NCKH"]:
+                                    if col in df_display.columns:
+                                        df_display = df_display.drop(columns=[col])
+                            elif sheet_name == "output_quydoigiam":
+                                for col in ["Mã HĐ", "Mã NCKH", "activity_index"]:
+                                    if col in df_display.columns:
+                                        df_display = df_display.drop(columns=[col])
+                            elif sheet_name == "output_hoatdong":
+                                for col in ["Mã HĐ", "Mã NCKH", "activity_index"]:
+                                    if col in df_display.columns:
+                                        df_display = df_display.drop(columns=[col])
+                            st.dataframe(df_display)
                         # Nếu là bảng giảng dạy, chỉ tạo bảng tổng hợp HK1/HK2 mà không hiển thị bảng gốc
                         if sheet_name == "output_giangday":
                             import numpy as np
