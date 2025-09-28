@@ -822,6 +822,10 @@ def save_all_data():
                     if not mon_info.empty:
                         mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
             data_to_save['Mã_Môn_Ngành'] = mamon_nganh
+            # Chuyển mọi trường về kiểu đơn giản (str, int, float, bool)
+            for k, v in list(data_to_save.items()):
+                if isinstance(v, (list, tuple, dict)):
+                    data_to_save[k] = str(v)
             input_list.append(data_to_save)
             if not result_data.empty:
                 result_data = result_data.copy()
