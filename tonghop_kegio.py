@@ -132,9 +132,24 @@ def tonghop_ketqua():
                     ra_de_cham_thi_hk1 = dfs[1]['Tiết quy đổi HK1'].sum() if len(dfs) > 1 and 'Tiết quy đổi HK1' in dfs[1] else 0
                     ra_de_cham_thi_hk2 = dfs[1]['Tiết quy đổi HK2'].sum() if len(dfs) > 1 and 'Tiết quy đổi HK2' in dfs[1] else 0
                     giam_gio = dfs[2]['Số tiết giảm'].sum() if len(dfs) > 2 and 'Số tiết giảm' in dfs[2] else 0
-                    hoatdong_khac = dfs[3]['Tiết quy đổi'].sum() if len(dfs) > 3 and 'Tiết quy đổi' in dfs[3] else 0
 
-                    tong_thuchien = tiet_giangday_hk1 + tiet_giangday_hk2 + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_khac - giam_gio
+                    # Xử lý output_hoatdong để lấy các giá trị cho các dòng đặc biệt
+                    hoatdong_nckh = 0
+                    hoatdong_thuctap = 0
+                    hoatdong_khac = 0
+                    if len(dfs) > 3 and not dfs[3].empty:
+                        df_hd = dfs[3]
+                        # Học tập, bồi dưỡng, NCKH: MÃ NCKH == 'NCKH'
+                        if 'MÃ NCKH' in df_hd.columns and 'Tiết quy đổi' in df_hd.columns:
+                            hoatdong_nckh = df_hd.loc[df_hd['MÃ NCKH'] == 'NCKH', 'Tiết quy đổi'].sum()
+                        # Thực tập tại doanh nghiệp: Mã HĐ == 'HD07'
+                        if 'Mã HĐ' in df_hd.columns and 'Tiết quy đổi' in df_hd.columns:
+                            hoatdong_thuctap = df_hd.loc[df_hd['Mã HĐ'] == 'HD07', 'Tiết quy đổi'].sum()
+                        # HD chuyên môn khác quy đổi: MÃ NCKH == 'BT'
+                        if 'MÃ NCKH' in df_hd.columns and 'Tiết quy đổi' in df_hd.columns:
+                            hoatdong_khac = df_hd.loc[df_hd['MÃ NCKH'] == 'BT', 'Tiết quy đổi'].sum()
+
+                    tong_thuchien = tiet_giangday_hk1 + tiet_giangday_hk2 + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_nckh + hoatdong_thuctap + hoatdong_khac - giam_gio
                     du_gio = max(0, tong_thuchien - giochuan)
                     thieu_gio = max(0, giochuan - tong_thuchien)
 
@@ -153,8 +168,8 @@ def tonghop_ketqua():
                             ""
                         ],
                         "Định Mức": [giochuan, '', '', '', '', '', '', '', '', giochuan],
-                        "Quy đổi (Dư giờ)": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, '', '', hoatdong_khac, du_gio],
-                        "Quy đổi (Thiếu giờ)": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, '', '', hoatdong_khac, thieu_gio]
+                        "Quy đổi (Dư giờ)": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, du_gio],
+                        "Quy đổi (Thiếu giờ)": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, thieu_gio]
                     }
                     df_tonghop = pd.DataFrame(data)
                     # Thay None thành chuỗi rỗng
