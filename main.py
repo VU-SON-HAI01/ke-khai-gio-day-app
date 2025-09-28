@@ -507,7 +507,7 @@ else:
                     st.Page("quydoi_giamgio.py", title="Kê Giảm trừ/Kiêm nhiệm", icon="⚖️"),
                     st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃")
                 ],
-                "Báo cáo": [st.Page("fun_to_pdf.py", title="Tổng hợp & Xuất file", icon="📄")],
+                "Báo cáo": [st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")],
                 "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")]
             }
             pg = st.navigation(pages)
