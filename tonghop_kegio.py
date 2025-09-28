@@ -36,9 +36,8 @@ def tonghop_ketqua():
                         if sheet_name == "output_giangday":
                             import numpy as np
                             from itertools import zip_longest
-                            summary_df = df.copy()
-                            # Tính tổng QĐ thừa, QĐ thiếu nếu có các bảng kết quả chi tiết
-                            # (Ở đây chỉ lấy trực tiếp từ output_giangday)
+                            df_gd = df.copy()
+                            # Gộp mỗi môn thành 1 dòng (group theo Lớp học + Môn học)
                             def calculate_display_tiet(row):
                                 if row.get('cach_ke') == 'Kê theo LT, TH chi tiết':
                                     try:
@@ -63,45 +62,63 @@ def tonghop_ketqua():
                                 except:
                                     return 1
                                 return 1
-                            if not summary_df.empty:
-                                summary_df['Tiết theo tuần'] = summary_df.apply(calculate_display_tiet, axis=1)
-                                summary_df['Tiết'] = summary_df['Tiết theo tuần'].apply(calculate_total_tiet)
-                                summary_df['Học kỳ'] = summary_df['tuan'].apply(get_semester) if 'tuan' in summary_df.columns else 1
-                            summary_df.insert(0, "Thứ tự", range(1, len(summary_df) + 1))
+                            # Xử lý cột Học kỳ
+                            if 'tuan' in df_gd.columns:
+                                df_gd['Học kỳ'] = df_gd['tuan'].apply(get_semester)
+                            else:
+                                df_gd['Học kỳ'] = 1
+                            # Gộp theo Lớp học + Môn học + Học kỳ
+                            group_cols = []
+                            if 'lop_hoc' in df_gd.columns and 'mon_hoc' in df_gd.columns:
+                                group_cols = ['lop_hoc', 'mon_hoc', 'Học kỳ']
+                            elif 'Lớp học' in df_gd.columns and 'Môn học' in df_gd.columns:
+                                group_cols = ['Lớp học', 'Môn học', 'Học kỳ']
+                            else:
+                                group_cols = ['Học kỳ']
+                            agg_dict = {
+                                'tiet_lt': lambda x: ' '.join(str(i) for i in np.sum([np.array(list(map(int, str(xx).split()))) for xx in x if str(xx).strip() != '' and str(xx) != 'nan'], axis=0)) if len(x) > 0 else '',
+                                'tiet_th': lambda x: ' '.join(str(i) for i in np.sum([np.array(list(map(int, str(xx).split()))) for xx in x if str(xx).strip() != '' and str(xx) != 'nan'], axis=0)) if len(x) > 0 else '',
+                                'tiet': lambda x: ' '.join(str(i) for i in np.sum([np.array(list(map(int, str(xx).split()))) for xx in x if str(xx).strip() != '' and str(xx) != 'nan'], axis=0)) if len(x) > 0 else '',
+                                'QĐ thừa': 'sum',
+                                'QĐ thiếu': 'sum',
+                                'tuan': 'first',
+                                'cach_ke': 'first'
+                            }
+                            # Chỉ giữ các cột có trong df_gd
+                            agg_dict = {k: v for k, v in agg_dict.items() if k in df_gd.columns}
+                            df_gd_grouped = df_gd.groupby(group_cols, as_index=False).agg(agg_dict)
+                            # Tính lại các trường tổng hợp
+                            df_gd_grouped['Tiết theo tuần'] = df_gd_grouped.apply(calculate_display_tiet, axis=1)
+                            df_gd_grouped['Tiết'] = df_gd_grouped['Tiết theo tuần'].apply(calculate_total_tiet)
+                            # Đổi tên cột cho đồng nhất
                             rename_map = {
                                 'lop_hoc': 'Lớp học', 'mon_hoc': 'Môn học', 'tuan': 'Tuần đến Tuần',
                                 'tiet_lt': 'Tiết LT theo tuần', 'tiet_th': 'Tiết TH theo tuần',
                                 'QĐ thừa': 'QĐ thừa', 'QĐ thiếu': 'QĐ thiếu'
                             }
-                            summary_df.rename(columns=rename_map, inplace=True)
-                            cols_to_convert_to_list = ['Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần']
-                            for col in cols_to_convert_to_list:
-                                if col in summary_df.columns:
-                                    summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
+                            df_gd_grouped.rename(columns=rename_map, inplace=True)
+                            df_gd_grouped.insert(0, "Thứ tự", range(1, len(df_gd_grouped) + 1))
                             display_columns = [
-                                'Thứ tự', 'Lớp học', 'Môn học', 'Tuần đến Tuần', 'Tiết',
+                                'Thứ tự', 'Lớp học', 'Môn học', 'Học kỳ', 'Tuần đến Tuần', 'Tiết',
                                 'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần',
                                 'QĐ thừa', 'QĐ thiếu'
                             ]
-                            final_columns_to_display = [col for col in display_columns if col in summary_df.columns]
-                            df_hk1 = summary_df[summary_df['Học kỳ'] == 1]
-                            df_hk2 = summary_df[summary_df['Học kỳ'] == 2]
-                            st.subheader("Học kỳ 1")
-                            if not df_hk1.empty:
-                                st.dataframe(df_hk1[final_columns_to_display], use_container_width=True)
-                            else:
-                                st.info("Không có dữ liệu cho Học kỳ 1.")
-                            st.subheader("Học kỳ 2")
-                            if not df_hk2.empty:
-                                st.dataframe(df_hk2[final_columns_to_display], use_container_width=True)
-                            else:
-                                st.info("Không có dữ liệu cho Học kỳ 2.")
-                            def display_totals(title, df):
+                            final_columns_to_display = [col for col in display_columns if col in df_gd_grouped.columns]
+                            # Hiển thị từng học kỳ
+                            for hk in [1, 2]:
+                                st.subheader(f"Học kỳ {hk}")
+                                df_hk = df_gd_grouped[df_gd_grouped['Học kỳ'] == hk]
+                                if not df_hk.empty:
+                                    st.dataframe(df_hk[final_columns_to_display], use_container_width=True)
+                                else:
+                                    st.info(f"Không có dữ liệu cho Học kỳ {hk}.")
+                            # Tổng hợp số liệu cho metric
+                            def display_totals(df):
                                 total_tiet_day = df['Tiết'].sum() if 'Tiết' in df else 0
                                 total_qd_thua = df['QĐ thừa'].sum() if 'QĐ thừa' in df else 0
                                 return total_tiet_day, total_qd_thua
-                            tiet_hk1, qd_thua_hk1 = display_totals("Tổng hợp Học kỳ 1", df_hk1)
-                            tiet_hk2, qd_thua_hk2 = display_totals("Tổng hợp Học kỳ 2", df_hk2)
+                            tiet_hk1, qd_thua_hk1 = display_totals(df_gd_grouped[df_gd_grouped['Học kỳ'] == 1])
+                            tiet_hk2, qd_thua_hk2 = display_totals(df_gd_grouped[df_gd_grouped['Học kỳ'] == 2])
                             tiet_canam = tiet_hk1 + tiet_hk2
                             qd_thua_canam = qd_thua_hk1 + qd_thua_hk2
                             st.markdown("---")
@@ -115,9 +132,6 @@ def tonghop_ketqua():
                             delta_hk1 = round(qd_thua_hk1 - tiet_hk1, 1)
                             delta_hk2 = round(qd_thua_hk2 - tiet_hk2, 1)
                             delta_canam = round(qd_thua_canam - tiet_canam, 1)
-                            color_hk1 = "inverse" if delta_hk1 < 0 else "normal"
-                            color_hk2 = "inverse" if delta_hk2 < 0 else "normal"
-                            color_canam = "inverse" if delta_canam < 0 else "normal"
                             col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=delta_hk1)
                             col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=delta_hk2)
                             col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}", delta=delta_canam)
