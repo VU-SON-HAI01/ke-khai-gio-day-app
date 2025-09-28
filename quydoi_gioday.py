@@ -1407,9 +1407,9 @@ with tabs[-1]:
     col3.metric("Thực dạy Cả năm", f"{tiet_canam:,.0f}", delta="100%", delta_color="normal")
 
     # Color logic for Giờ QĐ metrics, show delta as difference, green if >0, red if <0
-    delta_hk1 = qd_thua_hk1 - tiet_hk1
-    delta_hk2 = qd_thua_hk2 - tiet_hk2
-    delta_canam = qd_thua_canam - tiet_canam
+    delta_hk1 = round(qd_thua_hk1 - tiet_hk1, 1)
+    delta_hk2 = round(qd_thua_hk2 - tiet_hk2, 1)
+    delta_canam = round(qd_thua_canam - tiet_canam, 1)
 
     # Chuẩn thực tế Streamlit: normal=green, off=gray, inverse=red
     color_hk1 = "normal" if delta_hk1 > 0 else ("inverse" if delta_hk1 < 0 else "off")
