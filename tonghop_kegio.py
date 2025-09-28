@@ -45,7 +45,8 @@ def tonghop_ketqua():
                                     if col in df_display.columns:
                                         df_display = df_display.drop(columns=[col])
                             elif sheet_name == "output_hoatdong":
-                                for col in ["Mã HĐ", "Mã NCKH", "activity_index"]:
+                                # Ẩn cả "Mã NCKH" và "MÃ NCKH" nếu có
+                                for col in ["Mã HĐ", "Mã NCKH", "MÃ NCKH", "activity_index"]:
                                     if col in df_display.columns:
                                         df_display = df_display.drop(columns=[col])
                             st.dataframe(df_display)
@@ -137,12 +138,6 @@ def tonghop_ketqua():
                 giochuan = st.session_state.get('giochuan', 616)
                 def build_bang_tonghop(dfs, giochuan=616):
                     import numpy as np
-                    # Debug cột 'Tiết quy đổi HK1' trong dfs[0]
-                    if len(dfs) > 0:
-                        st.markdown(f"**[DEBUG] Các cột trong dfs[0]:** {list(dfs[0].columns)}")
-                        if 'Tiết quy đổi HK1' in dfs[0]:
-                            st.markdown(f"**[DEBUG] Giá trị 'Tiết quy đổi HK1':** {dfs[0]['Tiết quy đổi HK1'].tolist()}")
-                            st.markdown(f"**[DEBUG] Kiểu dữ liệu 'Tiết quy đổi HK1':** {dfs[0]['Tiết quy đổi HK1'].dtype}")
                     # Lấy giá trị dòng Tổng cộng của bảng tổng hợp tiết giảng dạy HK1/HK2
                     tiet_giangday_hk1_qdthieu = 0
                     tiet_giangday_hk1_qdthua = 0
@@ -171,9 +166,6 @@ def tonghop_ketqua():
                         tiet_giangday_hk2_qdthieu = dfs[0]['QĐ Thiếu'].sum()
                     if tiet_giangday_hk2_qdthua == 0 and len(dfs) > 0 and 'QĐ thừa' in dfs[0]:
                         tiet_giangday_hk2_qdthua = dfs[0]['QĐ thừa'].sum()
-                    # Debug
-                    st.markdown(f"**[DEBUG] HK1 QĐ Thiếu:** {tiet_giangday_hk1_qdthieu}, **QĐ thừa:** {tiet_giangday_hk1_qdthua}")
-                    st.markdown(f"**[DEBUG] HK2 QĐ Thiếu:** {tiet_giangday_hk2_qdthieu}, **QĐ thừa:** {tiet_giangday_hk2_qdthua}")
                     # Lấy giá trị từ bảng tổng hợp khối thi kết thúc
                     ra_de_cham_thi_hk1 = 0
                     ra_de_cham_thi_hk2 = 0
@@ -211,10 +203,6 @@ def tonghop_ketqua():
                         # HD chuyên môn khác quy đổi: MÃ NCKH == 'BT'
                         if 'MÃ NCKH' in df_hd.columns and 'Giờ quy đổi' in df_hd.columns:
                             hoatdong_khac = df_hd.loc[df_hd['MÃ NCKH'] == 'BT', 'Giờ quy đổi'].sum()
-                        # Hiển thị debug từng giá trị
-                        st.markdown(f"**[DEBUG] Tổng Học tập, bồi dưỡng, NCKH (MÃ NCKH='NCKH'):** {hoatdong_nckh}")
-                        st.markdown(f"**[DEBUG] Tổng Thực tập tại doanh nghiệp (Mã HĐ='HD07'):** {hoatdong_thuctap}")
-                        st.markdown(f"**[DEBUG] Tổng HD chuyên môn khác quy đổi (MÃ NCKH='BT'):** {hoatdong_khac}")
 
                     tong_thuchien_du = tiet_giangday_hk1_qdthua + tiet_giangday_hk2_qdthua + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_nckh + hoatdong_thuctap + hoatdong_khac - giam_gio
                     tong_thuchien_thieu = tiet_giangday_hk1_qdthieu + tiet_giangday_hk2_qdthieu + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_nckh + hoatdong_thuctap + hoatdong_khac - giam_gio
