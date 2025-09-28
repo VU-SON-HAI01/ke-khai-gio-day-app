@@ -1402,9 +1402,9 @@ with tabs[-1]:
     # Delta for Thực dạy: % of Cả năm, always green
     percent_hk1 = (tiet_hk1 / tiet_canam * 100) if tiet_canam else 0
     percent_hk2 = (tiet_hk2 / tiet_canam * 100) if tiet_canam else 0
-    col1.metric("Thực dạy HK1", f"{tiet_hk1:,.0f}", delta=f"{percent_hk1:.1f}%", delta_color="inverse")
-    col2.metric("Thực dạy HK2", f"{tiet_hk2:,.0f}", delta=f"{percent_hk2:.1f}%", delta_color="inverse")
-    col3.metric("Thực dạy Cả năm", f"{tiet_canam:,.0f}", delta="100%", delta_color="inverse")
+    col1.metric("Thực dạy HK1", f"{tiet_hk1:,.0f}", delta=f"{percent_hk1:.1f}%", delta_color="off")
+    col2.metric("Thực dạy HK2", f"{tiet_hk2:,.0f}", delta=f"{percent_hk2:.1f}%", delta_color="off")
+    col3.metric("Thực dạy Cả năm", f"{tiet_canam:,.0f}", delta="100%", delta_color="off")
 
     # Color logic for Giờ QĐ metrics, show delta as difference, green if >0, red if <0
     delta_hk1 = qd_thua_hk1 - tiet_hk1
