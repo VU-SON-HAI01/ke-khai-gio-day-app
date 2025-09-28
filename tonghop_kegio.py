@@ -137,8 +137,37 @@ def tonghop_ketqua():
                         if 'Tiết quy đổi HK1' in dfs[0]:
                             st.markdown(f"**[DEBUG] Giá trị 'Tiết quy đổi HK1':** {dfs[0]['Tiết quy đổi HK1'].tolist()}")
                             st.markdown(f"**[DEBUG] Kiểu dữ liệu 'Tiết quy đổi HK1':** {dfs[0]['Tiết quy đổi HK1'].dtype}")
-                    tiet_giangday_hk1 = dfs[0]['Tiết quy đổi HK1'].sum() if len(dfs) > 0 and 'Tiết quy đổi HK1' in dfs[0] else 0
-                    tiet_giangday_hk2 = dfs[0]['Tiết quy đổi HK2'].sum() if len(dfs) > 0 and 'Tiết quy đổi HK2' in dfs[0] else 0
+                    # Lấy giá trị dòng Tổng cộng của bảng tổng hợp tiết giảng dạy HK1/HK2
+                    tiet_giangday_hk1_qdthieu = 0
+                    tiet_giangday_hk1_qdthua = 0
+                    tiet_giangday_hk2_qdthieu = 0
+                    tiet_giangday_hk2_qdthua = 0
+                    # Tìm bảng tổng hợp HK1/HK2 đã hiển thị trước đó
+                    # Giả sử đã lưu vào session_state khi hiển thị bảng HK1/HK2
+                    df_hk1 = st.session_state.get('df_hk1')
+                    df_hk2 = st.session_state.get('df_hk2')
+                    if df_hk1 is not None and not df_hk1.empty:
+                        row_total = df_hk1[df_hk1['Lớp // Môn'] == 'Tổng cộng']
+                        if not row_total.empty:
+                            tiet_giangday_hk1_qdthieu = row_total['QĐ Thiếu'].values[0]
+                            tiet_giangday_hk1_qdthua = row_total['QĐ thừa'].values[0]
+                    if df_hk2 is not None and not df_hk2.empty:
+                        row_total = df_hk2[df_hk2['Lớp // Môn'] == 'Tổng cộng']
+                        if not row_total.empty:
+                            tiet_giangday_hk2_qdthieu = row_total['QĐ Thiếu'].values[0]
+                            tiet_giangday_hk2_qdthua = row_total['QĐ thừa'].values[0]
+                    # Nếu không có session_state thì fallback về sum cũ
+                    if tiet_giangday_hk1_qdthieu == 0 and len(dfs) > 0 and 'QĐ Thiếu' in dfs[0]:
+                        tiet_giangday_hk1_qdthieu = dfs[0]['QĐ Thiếu'].sum()
+                    if tiet_giangday_hk1_qdthua == 0 and len(dfs) > 0 and 'QĐ thừa' in dfs[0]:
+                        tiet_giangday_hk1_qdthua = dfs[0]['QĐ thừa'].sum()
+                    if tiet_giangday_hk2_qdthieu == 0 and len(dfs) > 0 and 'QĐ Thiếu' in dfs[0]:
+                        tiet_giangday_hk2_qdthieu = dfs[0]['QĐ Thiếu'].sum()
+                    if tiet_giangday_hk2_qdthua == 0 and len(dfs) > 0 and 'QĐ thừa' in dfs[0]:
+                        tiet_giangday_hk2_qdthua = dfs[0]['QĐ thừa'].sum()
+                    # Debug
+                    st.markdown(f"**[DEBUG] HK1 QĐ Thiếu:** {tiet_giangday_hk1_qdthieu}, **QĐ thừa:** {tiet_giangday_hk1_qdthua}")
+                    st.markdown(f"**[DEBUG] HK2 QĐ Thiếu:** {tiet_giangday_hk2_qdthieu}, **QĐ thừa:** {tiet_giangday_hk2_qdthua}")
                     ra_de_cham_thi_hk1 = dfs[1]['Tiết quy đổi HK1'].sum() if len(dfs) > 1 and 'Tiết quy đổi HK1' in dfs[1] else 0
                     ra_de_cham_thi_hk2 = dfs[1]['Tiết quy đổi HK2'].sum() if len(dfs) > 1 and 'Tiết quy đổi HK2' in dfs[1] else 0
                     giam_gio = dfs[2]['Số tiết giảm'].sum() if len(dfs) > 2 and 'Số tiết giảm' in dfs[2] else 0
@@ -163,9 +192,10 @@ def tonghop_ketqua():
                         st.markdown(f"**[DEBUG] Tổng Thực tập tại doanh nghiệp (Mã HĐ='HD07'):** {hoatdong_thuctap}")
                         st.markdown(f"**[DEBUG] Tổng HD chuyên môn khác quy đổi (MÃ NCKH='BT'):** {hoatdong_khac}")
 
-                    tong_thuchien = tiet_giangday_hk1 + tiet_giangday_hk2 + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_nckh + hoatdong_thuctap + hoatdong_khac - giam_gio
-                    du_gio = max(0, tong_thuchien - giochuan)
-                    thieu_gio = max(0, giochuan - tong_thuchien)
+                    tong_thuchien_du = tiet_giangday_hk1_qdthua + tiet_giangday_hk2_qdthua + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_nckh + hoatdong_thuctap + hoatdong_khac - giam_gio
+                    tong_thuchien_thieu = tiet_giangday_hk1_qdthieu + tiet_giangday_hk2_qdthieu + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_nckh + hoatdong_thuctap + hoatdong_khac - giam_gio
+                    du_gio = max(0, tong_thuchien_du - giochuan)
+                    thieu_gio = max(0, giochuan - tong_thuchien_thieu)
 
                     data = {
                         "MỤC": ["(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)", "(9)", "Tổng cộng"],
@@ -182,8 +212,8 @@ def tonghop_ketqua():
                             ""
                         ],
                         "Định Mức": [giochuan, '', '', '', '', '', '', '', '', giochuan],
-                        "Quy đổi (Dư giờ)": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, du_gio],
-                        "Quy đổi (Thiếu giờ)": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, thieu_gio]
+                        "Quy đổi (Dư giờ)": ["", tiet_giangday_hk1_qdthua, tiet_giangday_hk2_qdthua, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, du_gio],
+                        "Quy đổi (Thiếu giờ)": ["", tiet_giangday_hk1_qdthieu, tiet_giangday_hk2_qdthieu, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, thieu_gio]
                     }
                     df_tonghop = pd.DataFrame(data)
                     # Thay None thành chuỗi rỗng
