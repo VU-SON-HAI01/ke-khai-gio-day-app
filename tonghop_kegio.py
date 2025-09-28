@@ -29,24 +29,7 @@ def tonghop_ketqua():
                 ws = next((ws for ws in sheet_list if ws.title == sheet_name), None)
                 if ws is not None:
                     df_raw = ws.get_all_records()
-                    # Nếu là output_giangday thì chuyển đổi các trường số có thể có dấu phẩy thành float ngay khi load
-                    if sheet_name == "output_giangday" and df_raw:
-                        float_cols = ['Tiết', 'Sĩ số', 'Tiết_LT', 'Tiết_TH', 'HS TC/CĐ', 'HS_SS_LT', 'HS_SS_TH', 'QĐ thừa', 'QĐ thiếu']
-                        for row in df_raw:
-                            for col in float_cols:
-                                if col in row:
-                                    val = row[col]
-                                    # Luôn chuyển mọi số thập phân tiếng Việt (dấu phẩy) sang float Python (dấu chấm)
-                                    s = str(val).strip()
-                                    if s == '' or s.lower() == 'nan':
-                                        row[col] = 0.0
-                                    else:
-                                        try:
-                                            # Chuyển mọi dấu phẩy thành dấu chấm (kể cả 1,3; 1,30; 4,40; 8,80)
-                                            s = s.replace(',', '.')
-                                            row[col] = float(s)
-                                        except Exception:
-                                            row[col] = 0.0
+                    # Không cần chuyển đổi số thập phân, Google Sheet đã dùng dấu chấm chuẩn quốc tế
                     df = pd.DataFrame(df_raw)
                     if not df.empty:
                         st.subheader(display_name)
