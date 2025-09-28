@@ -16,23 +16,30 @@ def tonghop_ketqua():
             return
         try:
             sheet_list = spreadsheet.worksheets()
-            output_sheets = [ws for ws in sheet_list if ws.title.startswith('output_')]
-            if not output_sheets:
-                st.warning("Không tìm thấy sheet nào có tên bắt đầu bằng 'output_'.")
-                return
+            # Định nghĩa thứ tự và tên hiển thị
+            sheet_order = [
+                ("output_giangday", "✍️ Bảng tổng hợp khối lượng dạy"),
+                ("output_thiketthuc", "📝 Bảng tổng hợp khối thi kết thúc"),
+                ("output_quydoigiam", "⚖️ Bảng tổng hợp Giảm trừ/Kiêm nhiệm"),
+                ("output_hoatdong", "🏃 Bảng tổng hợp Kê Hoạt động quy đổi khác")
+            ]
             dfs = []
-            for ws in output_sheets:
-                df = pd.DataFrame(ws.get_all_records())
-                if not df.empty:
-                    st.subheader(f"{ws.title}")
-                    st.dataframe(df)
-                    dfs.append(df)
+            found_any = False
+            for sheet_name, display_name in sheet_order:
+                ws = next((ws for ws in sheet_list if ws.title == sheet_name), None)
+                if ws is not None:
+                    df = pd.DataFrame(ws.get_all_records())
+                    if not df.empty:
+                        st.subheader(display_name)
+                        st.dataframe(df)
+                        dfs.append(df)
+                        found_any = True
             if dfs:
                 df_all = pd.concat(dfs, ignore_index=True)
                 st.subheader(":orange[Tổng hợp tất cả]")
                 st.dataframe(df_all)
                 st.session_state['df_all_tonghop'] = df_all
-            else:
+            if not found_any:
                 st.warning("Không có dữ liệu nào để tổng hợp từ các sheet 'output_'.")
         except Exception as e:
             st.error(f"Lỗi khi tải dữ liệu từ Google Sheet: {e}")
