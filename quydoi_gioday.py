@@ -1410,9 +1410,11 @@ with tabs[-1]:
     delta_hk1 = qd_thua_hk1 - tiet_hk1
     delta_hk2 = qd_thua_hk2 - tiet_hk2
     delta_canam = qd_thua_canam - tiet_canam
-    color_hk1 = "inverse" if delta_hk1 > 0 else ("off" if delta_hk1 < 0 else "normal")
-    color_hk2 = "inverse" if delta_hk2 > 0 else ("off" if delta_hk2 < 0 else "normal")
-    color_canam = "inverse" if delta_canam > 0 else ("off" if delta_canam < 0 else "normal")
+
+    # Đúng chuẩn Streamlit: >0 là 'off' (green), <0 là 'inverse' (red), 0 là 'normal'
+    color_hk1 = "off" if delta_hk1 > 0 else ("inverse" if delta_hk1 < 0 else "normal")
+    color_hk2 = "off" if delta_hk2 > 0 else ("inverse" if delta_hk2 < 0 else "normal")
+    color_canam = "off" if delta_canam > 0 else ("inverse" if delta_canam < 0 else "normal")
 
     col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=f"{delta_hk1:,.1f}", delta_color=color_hk1)
     col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=f"{delta_hk2:,.1f}", delta_color=color_hk2)
