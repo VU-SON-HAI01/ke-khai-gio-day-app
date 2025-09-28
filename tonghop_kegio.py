@@ -254,6 +254,16 @@ def tonghop_ketqua():
                     dinhmuc_tongcong = sum([v for v in dinhmuc_list if isinstance(v, (int, float)) and v != ''])
                     dinhmuc_list.append(round(dinhmuc_tongcong, 2))
 
+                    # Tạo danh sách Quy đổi (Dư giờ) và Quy đổi (Thiếu giờ), tính tổng cộng cuối cùng
+                    quydoi_du_list = ["", tiet_giangday_hk1_qdthua, tiet_giangday_hk2_qdthua, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac]
+                    quydoi_thieu_list = ["", tiet_giangday_hk1_qdthieu, tiet_giangday_hk2_qdthieu, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac]
+
+                    # Tổng cộng các giá trị số phía trên (bỏ qua chuỗi rỗng đầu tiên)
+                    quydoi_du_tongcong = sum([v for v in quydoi_du_list[1:] if isinstance(v, (int, float)) and v != ''])
+                    quydoi_thieu_tongcong = sum([v for v in quydoi_thieu_list[1:] if isinstance(v, (int, float)) and v != ''])
+                    quydoi_du_list.append(round(quydoi_du_tongcong, 2))
+                    quydoi_thieu_list.append(round(quydoi_thieu_tongcong, 2))
+
                     data = {
                         "MỤC": ["(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)", "(9)", "Tổng cộng"],
                         "NỘI DUNG QUY ĐỔI": [
@@ -269,12 +279,18 @@ def tonghop_ketqua():
                             ""
                         ],
                         "Định Mức": dinhmuc_list,
-                        "Quy đổi (Dư giờ)": ["", tiet_giangday_hk1_qdthua, tiet_giangday_hk2_qdthua, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, du_gio],
-                        "Quy đổi (Thiếu giờ)": ["", tiet_giangday_hk1_qdthieu, tiet_giangday_hk2_qdthieu, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, hoatdong_nckh, hoatdong_thuctap, hoatdong_khac, thieu_gio]
+                        "Quy đổi (Dư giờ)": quydoi_du_list,
+                        "Quy đổi (Thiếu giờ)": quydoi_thieu_list
                     }
                     df_tonghop = pd.DataFrame(data)
                     # Thay None thành chuỗi rỗng
                     df_tonghop = df_tonghop.where(pd.notnull(df_tonghop), '')
+                    # Thay tất cả giá trị 0 thành chuỗi rỗng (chỉ với các cột số)
+                    def zero_to_blank(val):
+                        if val == 0 or val == 0.0:
+                            return ''
+                        return val
+                    df_tonghop = df_tonghop.applymap(zero_to_blank)
                     return df_tonghop
 
                 df_tonghop = build_bang_tonghop(dfs, giochuan)
