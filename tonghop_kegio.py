@@ -36,24 +36,15 @@ def tonghop_ketqua():
                             for col in float_cols:
                                 if col in row:
                                     val = row[col]
-                                    if isinstance(val, (int, float)):
-                                        row[col] = float(val)
-                                        continue
+                                    # Luôn chuyển mọi số thập phân tiếng Việt (dấu phẩy) sang float Python (dấu chấm)
                                     s = str(val).strip()
                                     if s == '' or s.lower() == 'nan':
                                         row[col] = 0.0
                                     else:
                                         try:
-                                            # Nếu là số thực kiểu 1,30 hoặc 4,40 hoặc 8,80 thì giữ đúng 2 chữ số thập phân
-                                            if ',' in s and '.' not in s:
-                                                parts = s.split(',')
-                                                if len(parts) == 2 and len(parts[1]) == 2:
-                                                    s = parts[0] + '.' + parts[1]
-                                            # Nếu là số nguyên hoặc số thực dạng text (ví dụ "4", "4.4", "8.80")
-                                            if s.replace('.', '', 1).isdigit():
-                                                row[col] = float(s)
-                                            else:
-                                                row[col] = 0.0
+                                            # Chuyển mọi dấu phẩy thành dấu chấm (kể cả 1,3; 1,30; 4,40; 8,80)
+                                            s = s.replace(',', '.')
+                                            row[col] = float(s)
                                         except Exception:
                                             row[col] = 0.0
                     df = pd.DataFrame(df_raw)
