@@ -856,6 +856,31 @@ def save_all_data():
             save_data_to_sheet('output_giangday', output_df)
     st.success("Đã lưu thành công tất cả dữ liệu!")
 
+# Add a reset button to reload data from Google Sheets and update widgets
+if st.button("Reset dữ liệu"):
+    # Load data from Google Sheets
+    gc = gspread.service_account()  # Ensure credentials are set up
+    sh = gc.open("Your Google Sheet Name")  # Replace with your Google Sheet name
+    worksheet = sh.worksheet("input_giangday")
+    data = worksheet.get_all_records()
+
+    # Update session state with the loaded data
+    st.session_state.mon_hoc_data = data
+
+    # Reset widgets to reflect the loaded data
+    for i, row in enumerate(data):
+        st.session_state[f"widget_khoa_{i}"] = row.get('khoa', '')
+        st.session_state[f"widget_lop_hoc_{i}"] = row.get('lop_hoc', '')
+        st.session_state[f"widget_mon_hoc_{i}"] = row.get('mon_hoc', '')
+        st.session_state[f"widget_tuan_{i}"] = row.get('tuan', (1, 12))
+        st.session_state[f"widget_cach_ke_{i}"] = row.get('cach_ke', 'Kê theo MĐ, MH')
+        st.session_state[f"widget_tiet_{i}"] = row.get('tiet', '')
+        st.session_state[f"widget_tiet_lt_{i}"] = row.get('tiet_lt', '')
+        st.session_state[f"widget_tiet_th_{i}"] = row.get('tiet_th', '')
+
+    # Rerun the page to reflect the updated state
+    st.experimental_rerun()
+
 # --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
 if 'mon_hoc_data' not in st.session_state:
     load_all_mon_data()
