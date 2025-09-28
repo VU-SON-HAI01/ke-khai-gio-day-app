@@ -126,8 +126,6 @@ def tonghop_ketqua():
                 # Lấy giờ chuẩn từ session_state nếu có, mặc định 616
                 giochuan = st.session_state.get('giochuan', 616)
                 def build_bang_tonghop(dfs, giochuan=616):
-                    # TODO: Bổ sung logic tổng hợp thực tế từ các bảng dfs
-                    # Hiện tại chỉ là mẫu, sẽ cập nhật dần
                     import numpy as np
                     tiet_giangday_hk1 = dfs[0]['Tiết quy đổi HK1'].sum() if len(dfs) > 0 and 'Tiết quy đổi HK1' in dfs[0] else 0
                     tiet_giangday_hk2 = dfs[0]['Tiết quy đổi HK2'].sum() if len(dfs) > 0 and 'Tiết quy đổi HK2' in dfs[0] else 0
@@ -154,11 +152,13 @@ def tonghop_ketqua():
                             "HD chuyên môn khác quy đổi",
                             ""
                         ],
-                        "Định Mức": [giochuan, None, None, None, None, None, None, None, None, giochuan],
-                        "Khi Dư giờ": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, None, None, hoatdong_khac, du_gio],
-                        "Khi Thiếu giờ": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, None, None, hoatdong_khac, thieu_gio]
+                        "Định Mức": [giochuan, '', '', '', '', '', '', '', '', giochuan],
+                        "Quy đổi (Dư giờ)": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, '', '', hoatdong_khac, du_gio],
+                        "Quy đổi (Thiếu giờ)": ["", tiet_giangday_hk1, tiet_giangday_hk2, ra_de_cham_thi_hk1, ra_de_cham_thi_hk2, giam_gio, '', '', hoatdong_khac, thieu_gio]
                     }
                     df_tonghop = pd.DataFrame(data)
+                    # Thay None thành chuỗi rỗng
+                    df_tonghop = df_tonghop.where(pd.notnull(df_tonghop), '')
                     return df_tonghop
 
                 df_tonghop = build_bang_tonghop(dfs, giochuan)
