@@ -12,6 +12,5 @@ def export_tables_to_excel(table_dict):
             # Đảm bảo tên sheet không quá dài
             safe_sheet = str(sheet_name)[:31]
             df.to_excel(writer, sheet_name=safe_sheet, index=False)
-        writer.save()
     output.seek(0)
     return output.getvalue()
