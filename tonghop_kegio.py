@@ -152,6 +152,10 @@ def tonghop_ketqua():
                         # HD chuyên môn khác quy đổi: MÃ NCKH == 'BT'
                         if 'MÃ NCKH' in df_hd.columns and 'Tiết quy đổi' in df_hd.columns:
                             hoatdong_khac = df_hd.loc[df_hd['MÃ NCKH'] == 'BT', 'Tiết quy đổi'].sum()
+                        # Hiển thị debug từng giá trị
+                        st.markdown(f"**[DEBUG] Tổng Học tập, bồi dưỡng, NCKH (MÃ NCKH='NCKH'):** {hoatdong_nckh}")
+                        st.markdown(f"**[DEBUG] Tổng Thực tập tại doanh nghiệp (Mã HĐ='HD07'):** {hoatdong_thuctap}")
+                        st.markdown(f"**[DEBUG] Tổng HD chuyên môn khác quy đổi (MÃ NCKH='BT'):** {hoatdong_khac}")
 
                     tong_thuchien = tiet_giangday_hk1 + tiet_giangday_hk2 + ra_de_cham_thi_hk1 + ra_de_cham_thi_hk2 + hoatdong_nckh + hoatdong_thuctap + hoatdong_khac - giam_gio
                     du_gio = max(0, tong_thuchien - giochuan)
