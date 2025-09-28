@@ -34,6 +34,10 @@ def tonghop_ketqua():
                     if not df.empty:
                         st.subheader(display_name)
                         st.dataframe(df)
+                        # Nếu là bảng output_hoatdong, hiển thị rõ bảng này trước khi tổng hợp
+                        if sheet_name == "output_hoatdong":
+                            st.markdown("**[DEBUG] Bảng dữ liệu gốc output_hoatdong:**")
+                            st.dataframe(df, use_container_width=True)
                         # Nếu là bảng giảng dạy, hiển thị bảng tổng hợp chi tiết HK1
                         if sheet_name == "output_giangday":
                             import numpy as np
@@ -137,7 +141,6 @@ def tonghop_ketqua():
                     hoatdong_nckh = 0
                     hoatdong_thuctap = 0
                     hoatdong_khac = 0
-                    st.write(df_hd)
                     if len(dfs) > 3 and not dfs[3].empty:
                         df_hd = dfs[3]
                         # Học tập, bồi dưỡng, NCKH: MÃ NCKH == 'NCKH'
