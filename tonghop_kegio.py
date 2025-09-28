@@ -25,13 +25,45 @@ def tonghop_ketqua():
             ]
             dfs = []
             found_any = False
-            for sheet_name, display_name in sheet_order:
+            for idx, (sheet_name, display_name) in enumerate(sheet_order):
                 ws = next((ws for ws in sheet_list if ws.title == sheet_name), None)
                 if ws is not None:
                     df = pd.DataFrame(ws.get_all_records())
                     if not df.empty:
                         st.subheader(display_name)
                         st.dataframe(df)
+                        # Nếu là bảng giảng dạy, hiển thị bảng tổng hợp chi tiết HK1
+                        if sheet_name == "output_giangday":
+                            def build_bang_giangday(df):
+                                # Giả sử df có các cột: ID_Môn, lop_hoc, mon_hoc, Tuần, Sĩ số, Tiết, Tiết LT, Tiết TH, QĐ Thừa, QĐ Thiếu
+                                df_view = df.copy()
+                                # Nếu có cột ID_Môn, lop_hoc, mon_hoc thì tạo cột 'Lớp // Môn'
+                                if 'ID_Môn' in df_view.columns and 'lop_hoc' in df_view.columns and 'mon_hoc' in df_view.columns:
+                                    df_view['Lớp // Môn'] = df_view['lop_hoc'].astype(str) + ' // ' + df_view['mon_hoc'].astype(str)
+                                elif 'Lớp' in df_view.columns and 'Môn' in df_view.columns:
+                                    df_view['Lớp // Môn'] = df_view['Lớp'].astype(str) + ' // ' + df_view['Môn'].astype(str)
+                                elif 'Lớp // Môn' not in df_view.columns:
+                                    df_view['Lớp // Môn'] = ''
+                                # Chỉ lấy các cột đúng thứ tự
+                                col_order = ['Lớp // Môn', 'Tuần', 'Sĩ số', 'Tiết', 'Tiết LT', 'Tiết TH', 'QĐ Thừa', 'QĐ Thiếu']
+                                for col in col_order:
+                                    if col not in df_view.columns:
+                                        df_view[col] = 0
+                                df_view = df_view[col_order]
+                                # Tính tổng cho từng cột số
+                                sum_row = ['Tổng cộng', '', '',
+                                           df_view['Tiết'].sum(),
+                                           df_view['Tiết LT'].sum(),
+                                           df_view['Tiết TH'].sum(),
+                                           df_view['QĐ Thừa'].sum(),
+                                           df_view['QĐ Thiếu'].sum()]
+                                df_view.loc[len(df_view)] = sum_row
+                                # Định dạng màu cho dòng tổng
+                                def highlight_total(s):
+                                    return ['font-weight: bold; color: blue' if s.name == len(df_view)-1 else '' for _ in s]
+                                st.markdown("**I.1.Bảng tổng hợp tiết giảng dạy quy đổi HK1- Mục (2)**")
+                                st.dataframe(df_view.style.apply(highlight_total, axis=1), use_container_width=True)
+                            build_bang_giangday(df)
                         dfs.append(df)
                         found_any = True
             if dfs:
