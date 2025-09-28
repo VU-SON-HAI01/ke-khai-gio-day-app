@@ -892,7 +892,7 @@ with cols[0]:
 with cols[1]:
     st.button("➖ Xóa môn", on_click=remove_mon_hoc, use_container_width=True, disabled=len(st.session_state.mon_hoc_data) <= 1)
 with cols[2]:
-    st.button("🔄 Reset dữ liệu", on_click=load_all_mon_data, use_container_width=True, help="Tải lại toàn bộ dữ liệu từ Google Sheet")
+    st.button("🔄 Reset dữ liệu", on_click=lambda: reload_data_from_google_sheet(), use_container_width=True, help="Tải lại toàn bộ dữ liệu từ Google Sheet")
 with cols[3]:
     st.button("💾 Lưu tất cả", on_click=save_all_data, use_container_width=True, type="primary")
 
