@@ -1226,24 +1226,20 @@ for i, tab in enumerate(tabs[:-1]):
         tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
         so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
         so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
-        if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
-            so_tiet_dem_duoc = len(arr_tiet)
-            if so_tiet_dem_duoc != so_tuan_thuc_te:
-                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
-                is_input_valid = False
-            elif kieu_tinh_mdmh == 'LTTH':
-                validation_placeholder.error("Lỗi: Môn học này yêu cầu kê khai tiết LT, TH chi tiết.")
-                is_input_valid = False
-        else:
+        so_tiet_dem_duoc = len(arr_tiet)
+        if so_tiet_dem_duoc != so_tuan_thuc_te:
+            validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
+            is_input_valid = False
+        if kieu_tinh_mdmh == 'LTTH':
             so_tiet_lt_dem_duoc = len(arr_tiet_lt)
             so_tiet_th_dem_duoc = len(arr_tiet_th)
-            if kieu_tinh_mdmh != 'LTTH':
-                df_result = pd.DataFrame()
-                summary = {"error": "Môn học này không yêu cầu kê khai tiết LT, TH chi tiết."}
-                is_input_valid = False
-            elif so_tuan_thuc_te != so_tiet_th_dem_duoc:
+            if so_tuan_thuc_te != so_tiet_th_dem_duoc:
                 validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết TH ({so_tiet_th_dem_duoc}).")
                 is_input_valid = False
+        elif kieu_tinh_mdmh not in ['LT', 'TH']:
+            df_result = pd.DataFrame()
+            summary = {"error": "Loại kê khai không hợp lệ."}
+            is_input_valid = False
 
 
         # Nếu dữ liệu không hợp lệ, hiển thị hướng dẫn cho người dùng
