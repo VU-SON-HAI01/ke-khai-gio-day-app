@@ -480,11 +480,24 @@ else:
                     st.stop()
 
         if st.session_state.get('initialized'):
+            # Lấy tên khoa/phòng/trung tâm từ df_khoa dựa vào ký tự đầu của magv (đặt ngoài sidebar cho gọn)
+            ten_khoa = st.session_state.get('ten_khoa', '')
+            magv = st.session_state.get('magv', '')
+            df_khoa = st.session_state.get('df_khoa', pd.DataFrame())
+
+            if magv and isinstance(df_khoa, pd.DataFrame) and not df_khoa.empty:
+                ma_khoa = str(magv)[0]
+                row = df_khoa[df_khoa['Mã_khoa'].astype(str) == ma_khoa]
+                if not row.empty:
+                    ten_khoa = row.iloc[0]['Khoa/Phòng/Trung tâm']
+            # Gán lại vào session_state để các file khác dùng chung
+            st.session_state.ten_khoa = ten_khoa
+
             with st.sidebar:
                 st.header(":green[THÔNG TIN GIÁO VIÊN]")
                 st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
                 st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
-                st.write(f"**Khoa/Phòng:** :green[{st.session_state.ten_khoa}]")
+                st.write(f"**Khoa/Phòng:** :green[{ten_khoa}]")
                 st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
                 st.write(f"**Chuẩn GV:** :green[{st.session_state.chuangv}]")
                 st.divider()
