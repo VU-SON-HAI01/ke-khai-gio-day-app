@@ -1078,61 +1078,58 @@ for i, tab in enumerate(tabs[:-1]):
             st.session_state.mon_hoc_data[i]['cach_ke'] = 'Kê theo MĐ, MH'
 
         # Điều chỉnh nhập số tiết theo kiểu môn học
+        # Chỉ cho phép 1 widget nhập số tiết mỗi tuần xuất hiện tại 1 thời điểm
         if kieu_tinh_mdmh == 'LT':
-            # Chỉ nhập 1 input, tự động gán vào tiết LT, TH = 0, dùng key riêng biệt
-            tiet_value_lt = st.text_input(
+            tiet_value = st.text_input(
                 "Nhập số tiết mỗi tuần",
                 value=current_input.get('tiet_lt', DEFAULT_TIET_STRING),
                 key=f"widget_tiet_lt_{i}",
                 on_change=update_tab_state,
                 args=('tiet_lt', i)
             )
-            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value_lt
-            st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_value_lt
+            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
+            st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_value
             st.session_state.mon_hoc_data[i]['tiet_th'] = '0'
         elif kieu_tinh_mdmh == 'TH':
-            # Chỉ nhập 1 input, tự động gán vào tiết TH, LT = 0, dùng key riêng biệt
-            tiet_value_th = st.text_input(
+            tiet_value = st.text_input(
                 "Nhập số tiết mỗi tuần",
                 value=current_input.get('tiet_th', DEFAULT_TIET_STRING),
                 key=f"widget_tiet_th_{i}",
                 on_change=update_tab_state,
                 args=('tiet_th', i)
             )
-            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value_th
+            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
             st.session_state.mon_hoc_data[i]['tiet_lt'] = '0'
-            st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
+            st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value
+        elif current_input.get('cach_ke') == 'Kê theo MĐ, MH':
+            tiet_value = st.text_input(
+                "Nhập số tiết mỗi tuần",
+                value=current_input.get('tiet', DEFAULT_TIET_STRING),
+                key=f"widget_tiet_{i}",
+                on_change=update_tab_state,
+                args=('tiet', i)
+            )
+            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
         else:
-            # Chỉ hiển thị widget phù hợp, không trùng key với LT/TH
-            if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
-                tiet_value = st.text_input(
-                    "Nhập số tiết mỗi tuần",
-                    value=current_input.get('tiet', DEFAULT_TIET_STRING),
-                    key=f"widget_tiet_{i}",
+            c1, c2 = st.columns(2)
+            with c1:
+                tiet_value_lt = st.text_input(
+                    "Nhập số tiết Lý thuyết mỗi tuần",
+                    value=current_input.get('tiet_lt', '0'),
+                    key=f"widget_tiet_lt_{i}",
                     on_change=update_tab_state,
-                    args=('tiet', i)
+                    args=('tiet_lt', i)
                 )
-                st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
-            else:
-                c1, c2 = st.columns(2)
-                with c1:
-                    tiet_value_lt = st.text_input(
-                        "Nhập số tiết Lý thuyết mỗi tuần",
-                        value=current_input.get('tiet_lt', '0'),
-                        key=f"widget_tiet_lt_{i}",
-                        on_change=update_tab_state,
-                        args=('tiet_lt', i)
-                    )
-                    st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_value_lt
-                with c2:
-                    tiet_value_th = st.text_input(
-                        "Nhập số tiết Thực hành mỗi tuần",
-                        value=current_input.get('tiet_th', '0'),
-                        key=f"widget_tiet_th_{i}",
-                        on_change=update_tab_state,
-                        args=('tiet_th', i)
-                    )
-                    st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
+                st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_value_lt
+            with c2:
+                tiet_value_th = st.text_input(
+                    "Nhập số tiết Thực hành mỗi tuần",
+                    value=current_input.get('tiet_th', '0'),
+                    key=f"widget_tiet_th_{i}",
+                    on_change=update_tab_state,
+                    args=('tiet_th', i)
+                )
+                st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
         
         arr_tiet_lt = []
         arr_tiet_th = []
