@@ -1079,29 +1079,29 @@ for i, tab in enumerate(tabs[:-1]):
 
         # Điều chỉnh nhập số tiết theo kiểu môn học
         if kieu_tinh_mdmh == 'LT':
-            # Chỉ nhập 1 input, tự động gán vào tiết LT, TH = 0
-            tiet_value = st.text_input(
+            # Chỉ nhập 1 input, tự động gán vào tiết LT, TH = 0, dùng key riêng biệt
+            tiet_value_lt = st.text_input(
                 "Nhập số tiết mỗi tuần",
-                value=current_input.get('tiet', DEFAULT_TIET_STRING),
-                key=f"widget_tiet_{i}",
+                value=current_input.get('tiet_lt', DEFAULT_TIET_STRING),
+                key=f"widget_tiet_lt_{i}",
                 on_change=update_tab_state,
-                args=('tiet', i)
+                args=('tiet_lt', i)
             )
-            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
-            st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_value
+            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value_lt
+            st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_value_lt
             st.session_state.mon_hoc_data[i]['tiet_th'] = '0'
         elif kieu_tinh_mdmh == 'TH':
-            # Chỉ nhập 1 input, tự động gán vào tiết TH, LT = 0
-            tiet_value = st.text_input(
+            # Chỉ nhập 1 input, tự động gán vào tiết TH, LT = 0, dùng key riêng biệt
+            tiet_value_th = st.text_input(
                 "Nhập số tiết mỗi tuần",
-                value=current_input.get('tiet', DEFAULT_TIET_STRING),
-                key=f"widget_tiet_{i}",
+                value=current_input.get('tiet_th', DEFAULT_TIET_STRING),
+                key=f"widget_tiet_th_{i}",
                 on_change=update_tab_state,
-                args=('tiet', i)
+                args=('tiet_th', i)
             )
-            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
+            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value_th
             st.session_state.mon_hoc_data[i]['tiet_lt'] = '0'
-            st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value
+            st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
         else:
             # Giữ nguyên logic cũ
             if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
