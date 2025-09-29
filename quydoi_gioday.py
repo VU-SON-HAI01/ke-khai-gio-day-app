@@ -1122,60 +1122,54 @@ for i, tab in enumerate(tabs[:-1]):
         else:
             # Cách kê LT, TH chi tiết: nhập Tổng tiết (col 1), nhập Tiết TH (col 2), Tiết LT (col 3) tự động tính
             c1, c2, c3 = st.columns(3)
+            tiet_value = st.session_state.get(f"widget_tiet_{i}", current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8"))
+            tiet_value_th = st.session_state.get(f"widget_tiet_th_{i}", current_input.get('tiet_th', ''))
             with c1:
                 tiet_value = st.text_input(
                     "Nhập số tiết mỗi tuần",
-                    value=current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8"),
+                    value=tiet_value,
                     key=f"widget_tiet_{i}",
-                        c1, c2, c3 = st.columns(3)
-                        tiet_value = st.session_state.get(f"widget_tiet_{i}", current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8"))
-                        tiet_value_th = st.session_state.get(f"widget_tiet_th_{i}", current_input.get('tiet_th', ''))
-                        with c1:
-                            tiet_value = st.text_input(
-                                "Nhập số tiết mỗi tuần",
-                                value=tiet_value,
-                                key=f"widget_tiet_{i}",
-                                on_change=update_tab_state,
-                                args=('tiet', i)
-                            )
-                            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
-                        with c2:
-                            tiet_value_th = st.text_input(
-                                "Nhập số tiết Thực hành mỗi tuần",
-                                value=tiet_value_th,
-                                key=f"widget_tiet_th_{i}",
-                                on_change=update_tab_state,
-                                args=('tiet_th', i)
-                            )
-                            st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
-                        tiet_list = [int(x) for x in str(tiet_value).split() if x]
-                        tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
-                        so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
-                        so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
-                        if len(tiet_list) != so_tuan_thuc_te:
-                            validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({len(tiet_list)}).")
-                            is_input_valid = False
-                        tiet_th_list = [int(x) for x in str(tiet_value_th).split() if x]
-                        if not tiet_th_list:
-                            tiet_th_list = [0] * so_tuan_thuc_te
-                        elif len(tiet_th_list) < so_tuan_thuc_te:
-                            tiet_th_list = tiet_th_list + [0] * (so_tuan_thuc_te - len(tiet_th_list))
-                        elif len(tiet_th_list) > so_tuan_thuc_te:
-                            tiet_th_list = tiet_th_list[:so_tuan_thuc_te]
-                        tiet_lt_list = []
-                        for idx in range(so_tuan_thuc_te):
-                            t = tiet_list[idx] if idx < len(tiet_list) else 0
-                            th = tiet_th_list[idx] if idx < len(tiet_th_list) else 0
-                            tiet_lt_list.append(str(max(t - th, 0)))
-                        tiet_lt_str = ' '.join(tiet_lt_list)
-                        st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_lt_str
-                        with c3:
-                            st.text_input(
-                                "Nhập số tiết Lý thuyết mỗi tuần (tự động)",
-                                value=tiet_lt_str,
-                                key=f"widget_tiet_lt_{i}_auto",
-                                disabled=True
-                            )
+                    on_change=update_tab_state,
+                    args=('tiet', i)
+                )
+                st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
+            with c2:
+                tiet_value_th = st.text_input(
+                    "Nhập số tiết Thực hành mỗi tuần",
+                    value=tiet_value_th,
+                    key=f"widget_tiet_th_{i}",
+                    on_change=update_tab_state,
+                    args=('tiet_th', i)
+                )
+                st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
+            tiet_list = [int(x) for x in str(tiet_value).split() if x]
+            tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
+            so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
+            so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
+            if len(tiet_list) != so_tuan_thuc_te:
+                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({len(tiet_list)}).")
+                is_input_valid = False
+            tiet_th_list = [int(x) for x in str(tiet_value_th).split() if x]
+            if not tiet_th_list:
+                tiet_th_list = [0] * so_tuan_thuc_te
+            elif len(tiet_th_list) < so_tuan_thuc_te:
+                tiet_th_list = tiet_th_list + [0] * (so_tuan_thuc_te - len(tiet_th_list))
+            elif len(tiet_th_list) > so_tuan_thuc_te:
+                tiet_th_list = tiet_th_list[:so_tuan_thuc_te]
+            tiet_lt_list = []
+            for idx in range(so_tuan_thuc_te):
+                t = tiet_list[idx] if idx < len(tiet_list) else 0
+                th = tiet_th_list[idx] if idx < len(tiet_th_list) else 0
+                tiet_lt_list.append(str(max(t - th, 0)))
+            tiet_lt_str = ' '.join(tiet_lt_list)
+            st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_lt_str
+            with c3:
+                st.text_input(
+                    "Nhập số tiết Lý thuyết mỗi tuần (tự động)",
+                    value=tiet_lt_str,
+                    key=f"widget_tiet_lt_{i}_auto",
+                    disabled=True
+                )
 
         if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
             arr_tiet = [int(x) for x in str(current_input.get('tiet', '')).split() if x]
@@ -1208,6 +1202,12 @@ for i, tab in enumerate(tabs[:-1]):
         # Xác định chuẩn GV cho từng tab
         danh_sach_mamon_tab = []
         if current_input.get('mon_hoc') and source_df is not None and not source_df.empty:
+            dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON']
+            if not dsmon_code.empty:
+                dsmon_code = dsmon_code.iloc[0]
+                mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == current_input.get('mon_hoc'))]
+                if not mon_info.empty:
+                    # Sử dụng Mã_môn_ngành thay vì Mã_môn
             dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON']
             if not dsmon_code.empty:
                 dsmon_code = dsmon_code.iloc[0]
