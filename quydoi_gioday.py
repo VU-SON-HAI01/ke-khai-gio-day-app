@@ -864,6 +864,32 @@ def save_all_data():
         if output_list:
             output_df = pd.concat(output_list, ignore_index=True)
             save_data_to_sheet('output_giangday', output_df)
+    # --- Lưu thêm thông tin giáo viên ---
+    # Lấy thông tin từ session_state
+    magv = st.session_state.get('magv', '')
+    tengv = st.session_state.get('tengv', '')
+    ten_khoa = st.session_state.get('ten_khoa', '')
+    chuan_gv = st.session_state.get('chuan_gv', 'CĐ')
+    gio_chuan = st.session_state.get('giochuan', '')
+    thongtin_giamgio = ''
+
+    # Lấy thông tin teacher_info từ session_state nếu có
+    teacher_info = st.session_state.get('teacher_info', {})
+    chucvu_hientai = teacher_info.get('Chức vụ_HT', '') if teacher_info else ''
+    chucvu_quakhu = teacher_info.get('Chức vụ_QK', '') if teacher_info else ''
+
+    thongtin_gv_dict = {
+        'Mã_gv': magv,
+        'Tên_gv': tengv,
+        'chucvu_hientai': chucvu_hientai,
+        'chucvu_quakhu': chucvu_quakhu,
+        'khoa': ten_khoa,
+        'chuan_gv': chuan_gv,
+        'gio_chuan': gio_chuan,
+        'thongtin_giamgio': thongtin_giamgio
+    }
+    thongtin_gv_df = pd.DataFrame([thongtin_gv_dict])
+    save_data_to_sheet('thongtin_gv', thongtin_gv_df)
     st.success("Đã lưu thành công tất cả dữ liệu!")
 
 # --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---

@@ -212,7 +212,8 @@ def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_ba
         'df_loptach': 'DSLOP_TACH',
         'df_lopsc': 'DSLOP_SC',
         'df_quydoi_hd': 'QUYDOI_HD',
-        'df_quydoi_hd_them': 'QUYDOIKHAC'
+        'df_quydoi_hd_them': 'QUYDOIKHAC',
+        'df_giochuan': 'GIO_CHUAN'
     }
 
     total_items = len(local_parquet_templates) + len(sheets_to_load)
@@ -458,10 +459,18 @@ else:
                         st.session_state.tengv = teacher_info.get('Tên giảng viên')
                         st.session_state.ten_khoa = teacher_info.get('ten_khoa')
                         st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
-                        giochuan_map = {'Cao đẳng': 594, 'Cao đẳng (MC)': 616, 'Trung cấp': 594, 'Trung cấp (MC)': 616}
-                        st.session_state.giochuan = giochuan_map.get(st.session_state.chuangv, 594)
+                        # Ánh xạ giờ chuẩn từ df_giochuan nếu có
+                        df_giochuan = all_base_data.get('df_giochuan', pd.DataFrame())
+                        giochuan_value = 594
+                        if isinstance(df_giochuan, pd.DataFrame) and not df_giochuan.empty:
+                            row = df_giochuan[df_giochuan['Chuẩn_gv'].astype(str).str.lower() == str(st.session_state.chuangv).lower()]
+                            if not row.empty:
+                                giochuan_value = row.iloc[0].get('Giờ_chuẩn', 594)
+                        st.session_state.giochuan = giochuan_value
+                        # Đảm bảo teacher_info luôn có trong session_state
+                        st.session_state.teacher_info = teacher_info
                         st.session_state.initialized = True
-                        st.rerun() 
+                        st.rerun()
                     else:
                         st.error(f"Đã xác thực nhưng không tìm thấy thông tin chi tiết cho Mã GV: {magv} trong dữ liệu cục bộ.")
                         st.stop()
