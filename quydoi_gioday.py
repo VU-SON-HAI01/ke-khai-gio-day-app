@@ -1083,9 +1083,12 @@ for i, tab in enumerate(tabs[:-1]):
         # Chỉ cho phép 1 widget nhập số tiết mỗi tuần xuất hiện tại 1 thời điểm
         if kieu_tinh_mdmh == 'LT':
             tiet_default = current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8")
+            tiet_lt_value = current_input.get('tiet_lt', '')
+            if not tiet_lt_value or tiet_lt_value == '0':
+                tiet_lt_value = tiet_default
             tiet_value = st.text_input(
                 "Nhập số tiết mỗi tuần",
-                value=current_input.get('tiet_lt', tiet_default),
+                value=tiet_lt_value,
                 key=f"widget_tiet_lt_{i}",
                 on_change=update_tab_state,
                 args=('tiet_lt', i)
@@ -1095,9 +1098,12 @@ for i, tab in enumerate(tabs[:-1]):
             st.session_state.mon_hoc_data[i]['tiet_th'] = '0'
         elif kieu_tinh_mdmh == 'TH':
             tiet_default = current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8")
+            tiet_th_value = current_input.get('tiet_th', '')
+            if not tiet_th_value or tiet_th_value == '0':
+                tiet_th_value = tiet_default
             tiet_value = st.text_input(
                 "Nhập số tiết mỗi tuần",
-                value=current_input.get('tiet_th', tiet_default),
+                value=tiet_th_value,
                 key=f"widget_tiet_th_{i}",
                 on_change=update_tab_state,
                 args=('tiet_th', i)
