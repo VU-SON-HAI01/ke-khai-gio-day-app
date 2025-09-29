@@ -1233,11 +1233,10 @@ for i, tab in enumerate(tabs[:-1]):
         if so_tiet_dem_duoc != so_tuan_thuc_te:
             validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
             is_input_valid = False
-        if kieu_tinh_mdmh == 'LTTH':
-            so_tiet_lt_dem_duoc = len(arr_tiet_lt)
-            so_tiet_th_dem_duoc = len(arr_tiet_th)
-            if so_tuan_thuc_te != so_tiet_th_dem_duoc:
-                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết TH ({so_tiet_th_dem_duoc}).")
+        if kieu_tinh_mdmh == '':
+            so_tiet_dem_duoc = len(arr_tiet)
+            if so_tuan_thuc_te != so_tiet_dem_duoc:
+                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
                 is_input_valid = False
         elif kieu_tinh_mdmh not in ['LT', 'TH']:
             df_result = pd.DataFrame()
