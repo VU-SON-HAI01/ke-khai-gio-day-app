@@ -1136,17 +1136,33 @@ for i, tab in enumerate(tabs[:-1]):
             with c2:
                 tiet_value_th = st.text_input(
                     "Nhập số tiết Thực hành mỗi tuần",
-                    value=current_input.get('tiet_th', '0'),
+                    value=current_input.get('tiet_th', ''),
                     key=f"widget_tiet_th_{i}",
                     on_change=update_tab_state,
                     args=('tiet_th', i)
                 )
                 st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
-            # Tính tiết LT = Tổng tiết - Tiết TH (theo từng tuần)
+            # Tính tiết LT = Tổng tiết - Tiết TH (theo từng tuần), tự động bổ sung 0 nếu thiếu
             tiet_list = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet', '')).split() if x]
-            tiet_th_list = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet_th', '0')).split() if x]
+            # Lấy số tuần thực tế để chuẩn hóa độ dài
+            tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
+            so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
+            so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
+            # Validation: số tiết mỗi tuần phải khớp số tuần thực tế
+            if len(tiet_list) != so_tuan_thuc_te:
+                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({len(tiet_list)}).")
+                is_input_valid = False
+            tiet_th_list = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet_th', '')).split() if x]
+            # Nếu rỗng thì toàn bộ là 0, nếu thiếu thì bổ sung 0 cho đủ số tuần thực tế
+            if not tiet_th_list:
+                tiet_th_list = [0] * so_tuan_thuc_te
+            elif len(tiet_th_list) < so_tuan_thuc_te:
+                tiet_th_list = tiet_th_list + [0] * (so_tuan_thuc_te - len(tiet_th_list))
+            elif len(tiet_th_list) > so_tuan_thuc_te:
+                tiet_th_list = tiet_th_list[:so_tuan_thuc_te]
+            # Tính tiết LT
             tiet_lt_list = []
-            for idx in range(max(len(tiet_list), len(tiet_th_list))):
+            for idx in range(so_tuan_thuc_te):
                 t = tiet_list[idx] if idx < len(tiet_list) else 0
                 th = tiet_th_list[idx] if idx < len(tiet_th_list) else 0
                 tiet_lt_list.append(str(max(t - th, 0)))
