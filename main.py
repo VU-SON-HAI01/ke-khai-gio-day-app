@@ -487,7 +487,9 @@ else:
 
             if magv and isinstance(df_khoa, pd.DataFrame) and not df_khoa.empty:
                 ma_khoa = str(magv)[0]
-                row = df_khoa[df_khoa['Mã_khoa'].astype(str) == ma_khoa]
+                # Đưa cả 2 về str để so sánh an toàn
+                df_khoa['Mã_khoa'] = df_khoa['Mã_khoa'].astype(str)
+                row = df_khoa[df_khoa['Mã_khoa'] == str(ma_khoa)]
                 if not row.empty:
                     ten_khoa = row.iloc[0]['Khoa/Phòng/Trung tâm']
             # Gán lại vào session_state để các file khác dùng chung
