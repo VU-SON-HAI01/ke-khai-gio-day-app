@@ -1140,8 +1140,7 @@ for i, tab in enumerate(tabs[:-1]):
                     value=current_input.get('tiet_th', ''),
                     key=f"widget_tiet_th_{i}",
                     on_change=update_tab_state,
-                    args=('tiet_th', i),
-                    kwargs={"force_rerun": True}
+                    args=('tiet_th', i)
                 )
                 st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
             # Tính tiết LT = Tổng tiết - Tiết TH (theo từng tuần), tự động bổ sung 0 nếu thiếu
