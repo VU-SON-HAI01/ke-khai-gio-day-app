@@ -1144,7 +1144,7 @@ for i, tab in enumerate(tabs[:-1]):
                 )
                 st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
             # Tính tiết LT = Tổng tiết - Tiết TH (theo từng tuần), tự động bổ sung 0 nếu thiếu
-            tiet_list = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet', '')).split() if x]
+            tiet_list = [int(x) for x in str(tiet_value).split() if x]
             # Lấy số tuần thực tế để chuẩn hóa độ dài
             tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
             so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
@@ -1154,6 +1154,7 @@ for i, tab in enumerate(tabs[:-1]):
                 validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({len(tiet_list)}).")
                 is_input_valid = False
             tiet_th_list = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet_th', '')).split() if x]
+            tiet_th_list = [int(x) for x in str(tiet_value_th).split() if x]
             # Nếu rỗng thì toàn bộ là 0, nếu thiếu thì bổ sung 0 cho đủ số tuần thực tế
             if not tiet_th_list:
                 tiet_th_list = [0] * so_tuan_thuc_te
