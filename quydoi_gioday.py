@@ -490,8 +490,9 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         arr_tiet_lt = np.zeros_like(arr_tiet)
         arr_tiet_th = arr_tiet
     elif kieu_tinh_mdmh == 'LTTH':
-        arr_tiet = arr_tiet_lt + arr_tiet_th
-        # Có thể dùng so_tiet_lt_dem_duoc, so_tiet_th_dem_duoc ở đây nếu cần
+        # arr_tiet_th lấy từ input, arr_tiet lấy từ input, arr_tiet_lt = arr_tiet - arr_tiet_th
+        arr_tiet_lt = arr_tiet - arr_tiet_th
+        # arr_tiet và arr_tiet_th đã lấy từ input widget, arr_tiet_lt tính lại như trên
     else:
         return pd.DataFrame(), {"error": "Loại kê khai không hợp lệ."}
     
@@ -1184,6 +1185,7 @@ for i, tab in enumerate(tabs[:-1]):
         if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
             arr_tiet = [int(x) for x in str(current_input.get('tiet', '')).split() if x]
         else:
+            arr_tiet = [int(x) for x in str(current_input.get('tiet', '')).split() if x]
             arr_tiet_lt = [int(x) for x in str(current_input.get('tiet_lt', '0')).split() if x]
             arr_tiet_th = [int(x) for x in str(current_input.get('tiet_th', '0')).split() if x]
         # Đảm bảo chỉ có 1 widget nhập số tiết mỗi tuần xuất hiện cho mỗi trường hợp
@@ -1227,6 +1229,7 @@ for i, tab in enumerate(tabs[:-1]):
         so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
         so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
         so_tiet_dem_duoc = len(arr_tiet)
+        st.write(arr_tiet)
         if so_tiet_dem_duoc != so_tuan_thuc_te:
             validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
             is_input_valid = False
@@ -1251,6 +1254,7 @@ for i, tab in enumerate(tabs[:-1]):
             if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
                 arr_tiet = xu_ly_tuan_tet(arr_tiet, tuanbatdau, tuanketthuc, df_ngaytuan_g)
             else:
+                arr_tiet = xu_ly_tuan_tet(arr_tiet, tuanbatdau, tuanketthuc, df_ngaytuan_g)
                 arr_tiet_lt = xu_ly_tuan_tet(arr_tiet_lt, tuanbatdau, tuanketthuc, df_ngaytuan_g)
                 arr_tiet_th = xu_ly_tuan_tet(arr_tiet_th, tuanbatdau, tuanketthuc, df_ngaytuan_g)
 
