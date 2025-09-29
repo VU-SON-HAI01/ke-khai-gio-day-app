@@ -292,7 +292,12 @@ def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
     teacher_row = df_giaovien[df_giaovien['Magv'].astype(str) == str(magv)]
     if not teacher_row.empty:
         info = teacher_row.iloc[0].to_dict()
-        khoa_row = df_khoa[df_khoa['Mã'] == str(magv)[0]]
+        # Sử dụng đúng tên cột 'Mã_khoa' thay vì 'Mã'
+        if 'Mã_khoa' in df_khoa.columns:
+            df_khoa['Mã_khoa'] = df_khoa['Mã_khoa'].astype(str)
+            khoa_row = df_khoa[df_khoa['Mã_khoa'] == str(magv)[0]]
+        else:
+            khoa_row = pd.DataFrame()  # fallback nếu không có cột này
         info['ten_khoa'] = khoa_row['Khoa/Phòng/Trung tâm'].iloc[0] if not khoa_row.empty else "Không rõ"
         return info
     return None
