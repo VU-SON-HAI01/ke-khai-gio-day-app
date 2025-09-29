@@ -619,7 +619,9 @@ def get_default_input_dict():
     if df_lop_g is not None and not df_lop_g.empty:
         filtered_lops = df_lop_g[df_lop_g['Mã_lớp'].astype(str).str.startswith('48', na=False)]['Lớp']
         default_lop = filtered_lops.iloc[0] if not filtered_lops.empty else df_lop_g['Lớp'].iloc[0]
-    return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': DEFAULT_TIET_STRING, 'tiet_lt': '0', 'tiet_th': '0', 'index': len(st.session_state.get('mon_hoc_data', []))}
+    # Nếu là môn đầu tiên thì gán giá trị mặc định tiết mỗi tuần đặc biệt
+    tiet_default = "4 4 4 4 4 4 4 4 4 8 8 8"
+    return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': tiet_default, 'tiet_lt': '0', 'tiet_th': '0', 'index': len(st.session_state.get('mon_hoc_data', []))}
 
 def load_data_from_sheet(worksheet_name):
     try:
