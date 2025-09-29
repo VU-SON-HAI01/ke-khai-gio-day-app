@@ -1123,7 +1123,7 @@ for i, tab in enumerate(tabs[:-1]):
             st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
         else:
             # Cách kê LT, TH chi tiết: nhập Tổng tiết (col 1), nhập Tiết TH (col 2), Tiết LT (col 3) tự động tính
-            c1, c2 = st.columns(2)
+            c1, c2, c3 = st.columns(3)
             with c1:
                 tiet_value = st.text_input(
                     "Nhập số tiết mỗi tuần",
@@ -1168,7 +1168,13 @@ for i, tab in enumerate(tabs[:-1]):
                 tiet_lt_list.append(str(max(t - th, 0)))
             tiet_lt_str = ' '.join(tiet_lt_list)
             st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_lt_str
-            st.markdown(f"<span style='color: #aaa'>Nhập số tiết Lý thuyết mỗi tuần (tự động):</span> <b>{tiet_lt_str}</b>", unsafe_allow_html=True)
+            with c3:
+                st.text_input(
+                    "Nhập số tiết Lý thuyết mỗi tuần (tự động)",
+                    value=tiet_lt_str,
+                    key=f"widget_tiet_lt_{i}_auto",
+                    disabled=True
+                )
         
         arr_tiet_lt = []
         arr_tiet_th = []
