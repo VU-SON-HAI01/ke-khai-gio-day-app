@@ -1050,21 +1050,86 @@ for i, tab in enumerate(tabs[:-1]):
             if not mon_info.empty:
                 kieu_tinh_mdmh = mon_info['Tính MĐ/MH'].iloc[0]
 
-        options = []
-        if kieu_tinh_mdmh == 'LTTH':
+        # Điều chỉnh lựa chọn phương pháp kê khai
+        radio_disabled = False
+        if kieu_tinh_mdmh == 'LT':
+            options = ('Kê theo MĐ, MH',)
+            radio_disabled = True
+        elif kieu_tinh_mdmh == 'TH':
+            options = ('Kê theo MĐ, MH',)
+            radio_disabled = True
+        elif kieu_tinh_mdmh == 'LTTH':
             options = ('Kê theo LT, TH chi tiết', 'Kê theo MĐ, MH')
         else:
             options = ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết')
 
-        st.radio(
+        selected_cach_ke = st.radio(
             "Chọn phương pháp kê khai",
             options,
             index=0,
             key=f"widget_cach_ke_{i}",
             on_change=update_tab_state,
             args=('cach_ke', i),
-            horizontal=True
+            horizontal=True,
+            disabled=radio_disabled
         )
+        # Nếu bị khóa, luôn gán giá trị đúng vào session_state
+        if radio_disabled:
+            st.session_state.mon_hoc_data[i]['cach_ke'] = 'Kê theo MĐ, MH'
+
+        # Điều chỉnh nhập số tiết theo kiểu môn học
+        if kieu_tinh_mdmh == 'LT':
+            # Chỉ nhập tiết LT, tiết TH = 0
+            tiet_lt = st.text_input(
+                "Nhập số tiết mỗi tuần (Lý thuyết)",
+                value=current_input.get('tiet_lt', '0'),
+                key=f"widget_tiet_lt_{i}",
+                on_change=update_tab_state,
+                args=('tiet_lt', i)
+            )
+            st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_lt
+            st.session_state.mon_hoc_data[i]['tiet_th'] = '0'
+            st.session_state.mon_hoc_data[i]['tiet'] = tiet_lt
+        elif kieu_tinh_mdmh == 'TH':
+            # Chỉ nhập tiết TH, tiết LT = 0
+            tiet_th = st.text_input(
+                "Nhập số tiết mỗi tuần (Thực hành)",
+                value=current_input.get('tiet_th', '0'),
+                key=f"widget_tiet_th_{i}",
+                on_change=update_tab_state,
+                args=('tiet_th', i)
+            )
+            st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_th
+            st.session_state.mon_hoc_data[i]['tiet_lt'] = '0'
+            st.session_state.mon_hoc_data[i]['tiet'] = tiet_th
+        else:
+            # Giữ nguyên logic cũ
+            if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
+                st.text_input(
+                    "Nhập số tiết mỗi tuần",
+                    value=current_input.get('tiet', DEFAULT_TIET_STRING),
+                    key=f"widget_tiet_{i}",
+                    on_change=update_tab_state,
+                    args=('tiet', i)
+                )
+            else:
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.text_input(
+                        "Nhập số tiết Lý thuyết mỗi tuần",
+                        value=current_input.get('tiet_lt', '0'),
+                        key=f"widget_tiet_lt_{i}",
+                        on_change=update_tab_state,
+                        args=('tiet_lt', i)
+                    )
+                with c2:
+                    st.text_input(
+                        "Nhập số tiết Thực hành mỗi tuần",
+                        value=current_input.get('tiet_th', '0'),
+                        key=f"widget_tiet_th_{i}",
+                        on_change=update_tab_state,
+                        args=('tiet_th', i)
+                    )
 
         arr_tiet_lt = []
         arr_tiet_th = []
