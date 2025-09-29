@@ -1140,7 +1140,8 @@ for i, tab in enumerate(tabs[:-1]):
                     value=current_input.get('tiet_th', ''),
                     key=f"widget_tiet_th_{i}",
                     on_change=update_tab_state,
-                    args=('tiet_th', i)
+                    args=('tiet_th', i),
+                    kwargs={"force_rerun": True}
                 )
                 st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
             # Tính tiết LT = Tổng tiết - Tiết TH (theo từng tuần), tự động bổ sung 0 nếu thiếu
@@ -1229,7 +1230,6 @@ for i, tab in enumerate(tabs[:-1]):
         so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
         so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
         so_tiet_dem_duoc = len(arr_tiet)
-        st.write(arr_tiet)
         if so_tiet_dem_duoc != so_tuan_thuc_te:
             validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
             is_input_valid = False
