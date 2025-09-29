@@ -1122,16 +1122,17 @@ for i, tab in enumerate(tabs[:-1]):
             )
             st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
         else:
+            # Cách kê LT, TH chi tiết: nhập Tổng tiết (col 1), nhập Tiết TH (col 2), Tiết LT (col 3) tự động tính
             c1, c2 = st.columns(2)
             with c1:
-                tiet_value_lt = st.text_input(
-                    "Nhập số tiết Lý thuyết mỗi tuần",
-                    value=current_input.get('tiet_lt', '0'),
-                    key=f"widget_tiet_lt_{i}",
+                tiet_value = st.text_input(
+                    "Nhập số tiết mỗi tuần",
+                    value=current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8"),
+                    key=f"widget_tiet_{i}",
                     on_change=update_tab_state,
-                    args=('tiet_lt', i)
+                    args=('tiet', i)
                 )
-                st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_value_lt
+                st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
             with c2:
                 tiet_value_th = st.text_input(
                     "Nhập số tiết Thực hành mỗi tuần",
@@ -1141,6 +1142,17 @@ for i, tab in enumerate(tabs[:-1]):
                     args=('tiet_th', i)
                 )
                 st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
+            # Tính tiết LT = Tổng tiết - Tiết TH (theo từng tuần)
+            tiet_list = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet', '')).split() if x]
+            tiet_th_list = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet_th', '0')).split() if x]
+            tiet_lt_list = []
+            for idx in range(max(len(tiet_list), len(tiet_th_list))):
+                t = tiet_list[idx] if idx < len(tiet_list) else 0
+                th = tiet_th_list[idx] if idx < len(tiet_th_list) else 0
+                tiet_lt_list.append(str(max(t - th, 0)))
+            tiet_lt_str = ' '.join(tiet_lt_list)
+            st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_lt_str
+            st.markdown(f"<span style='color: #aaa'>Nhập số tiết Lý thuyết mỗi tuần (tự động):</span> <b>{tiet_lt_str}</b>", unsafe_allow_html=True)
         
         arr_tiet_lt = []
         arr_tiet_th = []
