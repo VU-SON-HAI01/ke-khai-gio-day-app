@@ -1141,33 +1141,7 @@ for i, tab in enumerate(tabs[:-1]):
         else:
             arr_tiet_lt = [int(x) for x in str(current_input.get('tiet_lt', '0')).split() if x]
             arr_tiet_th = [int(x) for x in str(current_input.get('tiet_th', '0')).split() if x]
-
-        if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
-            st.text_input(
-                "Nhập số tiết mỗi tuần",
-                value=current_input.get('tiet', DEFAULT_TIET_STRING),
-                key=f"widget_tiet_{i}",
-                on_change=update_tab_state,
-                args=('tiet', i)
-            )
-        else:
-            c1, c2 = st.columns(2)
-            with c1:
-                st.text_input(
-                    "Nhập số tiết Lý thuyết mỗi tuần",
-                    value=current_input.get('tiet_lt', '0'),
-                    key=f"widget_tiet_lt_{i}",
-                    on_change=update_tab_state,
-                    args=('tiet_lt', i)
-                )
-            with c2:
-                st.text_input(
-                    "Nhập số tiết Thực hành mỗi tuần",
-                    value=current_input.get('tiet_th', '0'),
-                    key=f"widget_tiet_th_{i}",
-                    on_change=update_tab_state,
-                    args=('tiet_th', i)
-                )
+        # Đảm bảo chỉ có 1 widget nhập số tiết mỗi tuần xuất hiện cho mỗi trường hợp
 
         validation_placeholder = st.empty()
         is_input_valid = True
