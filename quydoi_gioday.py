@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from typing import Optional
 import gspread
 from gspread_dataframe import set_with_dataframe
 import ast
@@ -474,26 +475,25 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         arr_tiet_lt = np.array([int(x) for x in str(tiet_lt_nhap).split()]) if tiet_lt_nhap and tiet_lt_nhap.strip() else np.array([], dtype=int)
         arr_tiet_th = np.array([int(x) for x in str(tiet_th_nhap).split()]) if tiet_th_nhap and tiet_th_nhap.strip() else np.array([], dtype=int)
         arr_tiet = np.array([int(x) for x in str(tiet_nhap).split()]) if tiet_nhap and tiet_nhap.strip() else np.array([], dtype=int)
+        so_tiet_lt_dem_duoc = len(arr_tiet_lt)
+        so_tiet_th_dem_duoc = len(arr_tiet_th)
     except (ValueError, TypeError):
         return pd.DataFrame(), {"error": "Định dạng số tiết không hợp lệ. Vui lòng chỉ nhập số và dấu cách."}
 
-    if kieu_ke_khai == 'Kê theo MĐ, MH':
-        if len(locdulieu_info) != len(arr_tiet): 
-            return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})."}
-        if kieu_tinh_mdmh == 'LT':
-            arr_tiet_lt = arr_tiet
-            arr_tiet_th = np.zeros_like(arr_tiet)
-        elif kieu_tinh_mdmh == 'TH':
-            arr_tiet_lt = np.zeros_like(arr_tiet)
-            arr_tiet_th = arr_tiet
-        else:
-            return pd.DataFrame(), {"error": "Môn học này yêu cầu kê khai tiết LT, TH chi tiết."}
-    else:
-        if kieu_tinh_mdmh != 'LTTH':
-             return pd.DataFrame(), {"error": "Môn học này không yêu cầu kê khai tiết LT, TH chi tiết."}
-        if len(locdulieu_info) != len(arr_tiet_lt) or len(locdulieu_info) != len(arr_tiet_th):
-            return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc})."}
+    # Gom logic kiểm tra số tiết về một chỗ
+    if len(locdulieu_info) != len(arr_tiet):
+        return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})."}
+    if kieu_tinh_mdmh == 'LT':
+        arr_tiet_lt = arr_tiet
+        arr_tiet_th = np.zeros_like(arr_tiet)
+    elif kieu_tinh_mdmh == 'TH':
+        arr_tiet_lt = np.zeros_like(arr_tiet)
+        arr_tiet_th = arr_tiet
+    elif kieu_tinh_mdmh == 'LTTH':
         arr_tiet = arr_tiet_lt + arr_tiet_th
+        # Có thể dùng so_tiet_lt_dem_duoc, so_tiet_th_dem_duoc ở đây nếu cần
+    else:
+        return pd.DataFrame(), {"error": "Loại kê khai không hợp lệ."}
     
     # ...existing code...
     if 'Tháng' not in locdulieu_info.columns:
@@ -1241,8 +1241,8 @@ for i, tab in enumerate(tabs[:-1]):
                 df_result = pd.DataFrame()
                 summary = {"error": "Môn học này không yêu cầu kê khai tiết LT, TH chi tiết."}
                 is_input_valid = False
-            elif so_tuan_thuc_te != so_tiet_lt_dem_duoc or so_tuan_thuc_te != so_tiet_th_dem_duoc:
-                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết LT ({so_tiet_lt_dem_duoc}) hoặc TH ({so_tiet_th_dem_duoc}).")
+            elif so_tuan_thuc_te != so_tiet_th_dem_duoc:
+                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết TH ({so_tiet_th_dem_duoc}).")
                 is_input_valid = False
 
 
