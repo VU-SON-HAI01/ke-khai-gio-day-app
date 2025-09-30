@@ -369,22 +369,24 @@ else:
     
     # --- PHÂN QUYỀN VÀ HIỂN THỊ GIAO DIỆN ---
     if user_email == ADMIN_EMAIL:
-        # Giao diện của Admin (giữ nguyên, không thay đổi)
-        with st.sidebar:
-            st.header(f"Xin chào, {user_info.get('name', '')}!")
-            if st.button("Đăng xuất", use_container_width=True):
-                st.session_state.clear()
-                st.rerun()
-
-        sa_gspread_client, sa_drive_service = connect_as_service_account()
-        admin_gspread_client, admin_drive_service = connect_as_user(st.session_state.token)
-
-        if not sa_gspread_client or not admin_drive_service:
-            st.error("Lỗi kết nối tới Google API. Vui lòng thử lại.")
-            st.stop()
-            
-        st.subheader("👨‍💻 Bảng điều khiển của Admin")
-        main_page()
+        # Giao diện của Admin sử dụng navigation giống user, có thêm trang Quản trị
+        pages = {
+            "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
+            "Kê khai": [
+                st.Page("quydoi_gioday.py", title="Kê giờ dạy", icon="✍️"),
+                st.Page("quydoi_thiketthuc.py", title="Kê Thi kết thúc", icon="📝"),
+                st.Page("quydoi_giamgio.py", title="Kê Giảm trừ/Kiêm nhiệm", icon="⚖️"),
+                st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃")
+            ],
+            "Báo cáo": [
+                st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")
+            ],
+            "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")],
+            "Quản trị": [st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")]
+        }
+        pg = st.navigation(pages)
+        pg.run()
+        # Các chức năng quản trị khác vẫn giữ lại dưới dạng expander nếu muốn
         with st.expander("Tạo người dùng hàng loạt từ file Excel", expanded=True):
             uploaded_file = st.file_uploader(
                 "Chọn file Excel của bạn",
@@ -393,6 +395,8 @@ else:
             )
             if uploaded_file is not None:
                 if st.button("🚀 Bắt đầu xử lý hàng loạt"):
+                    sa_gspread_client, sa_drive_service = connect_as_service_account()
+                    admin_gspread_client, admin_drive_service = connect_as_user(st.session_state.token)
                     query = f"mimeType='application/vnd.google-apps.folder' and name='{TARGET_FOLDER_NAME}' and 'me' in owners"
                     response = admin_drive_service.files().list(q=query, fields='files(id)').execute()
                     folders = response.get('files', [])
@@ -401,28 +405,24 @@ else:
                     else:
                         folder_id = folders[0].get('id')
                         bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file)
-        
         st.divider()
-
         with st.expander("Cập nhật Email cho Giáo viên"):
             try:
+                sa_gspread_client, sa_drive_service = connect_as_service_account()
                 mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
                 records = mapping_sheet.get_all_records()
                 df_map = pd.DataFrame(records)
-
                 if not df_map.empty:
                     magv_list = df_map['magv'].astype(str).tolist()
                     selected_magv = st.selectbox("Chọn Mã giáo viên để cập nhật", options=[""] + magv_list)
-
                     if selected_magv:
                         user_data = df_map[df_map['magv'].astype(str) == selected_magv]
                         old_email = user_data.iloc[0]['email']
-                        
                         st.text_input("Email cũ", value=old_email, disabled=True)
                         new_email = st.text_input("Nhập Email mới", key=f"new_email_{selected_magv}")
-
                         if st.button("Cập nhật Email"):
                             if new_email and new_email != old_email:
+                                admin_gspread_client, admin_drive_service = connect_as_user(st.session_state.token)
                                 with st.spinner("Đang cập nhật..."):
                                     success, message = update_user_email(admin_drive_service, sa_gspread_client,
                                                                          selected_magv, old_email, new_email)
