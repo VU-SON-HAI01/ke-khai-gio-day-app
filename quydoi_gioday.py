@@ -8,9 +8,7 @@ import ast
 import re
 from itertools import zip_longest
 # --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
-if "widget_mon_hoc_0" not in st.session_state:
-    st.session_state["widget_mon_hoc_0"] = "Giá trị mặc định"
-st.text_input("Môn học", key="widget_mon_hoc_0")
+
 def xu_ly_tuan_tet(arr, tuanbatdau, tuanketthuc, df_ngaytuan_g):
     """
     Loại bỏ các tuần trùng với tuần nghỉ Tết khỏi mảng arr.
@@ -906,6 +904,8 @@ def save_all_data():
     thongtin_gv_df = pd.DataFrame([thongtin_gv_dict])
     save_data_to_sheet('thongtin_gv', thongtin_gv_df)
     st.success("Đã lưu thành công tất cả dữ liệu!")
+    # Sau khi lưu, tự động reload lại dữ liệu từ Google Sheet để đồng bộ widget
+    load_all_mon_data()
 
 # --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
 if 'mon_hoc_data' not in st.session_state:
