@@ -1,7 +1,3 @@
-if "widget_mon_hoc_0" not in st.session_state:
-    st.session_state["widget_mon_hoc_0"] = "Giá trị mặc định"
-st.text_input("Môn học", key="widget_mon_hoc_0")
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -12,6 +8,9 @@ import ast
 import re
 from itertools import zip_longest
 # --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
+if "widget_mon_hoc_0" not in st.session_state:
+    st.session_state["widget_mon_hoc_0"] = "Giá trị mặc định"
+st.text_input("Môn học", key="widget_mon_hoc_0")
 def xu_ly_tuan_tet(arr, tuanbatdau, tuanketthuc, df_ngaytuan_g):
     """
     Loại bỏ các tuần trùng với tuần nghỉ Tết khỏi mảng arr.
