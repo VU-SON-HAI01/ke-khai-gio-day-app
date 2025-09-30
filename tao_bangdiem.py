@@ -23,64 +23,8 @@ def find_student_data_in_sheet(worksheet):
     header_row_index = -1
     name_col_index = -1
     dob_col_index = -1
-    header_content = []
-
-    # --- SỬA LỖI TẠI ĐÂY: Tìm header dựa vào 'STT' ở cột A hoặc B ---
-    # 1. Tìm dòng header bằng cách quét cột A và B để tìm "STT"
-    for i, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10, values_only=True), 1):
-        # Lấy giá trị cột A và B, chuyển về chữ thường và xóa khoảng trắng
-        col_a_val = str(row[0]).lower().strip() if len(row) > 0 and row[0] is not None else ''
-        col_b_val = str(row[1]).lower().strip() if len(row) > 1 and row[1] is not None else ''
-        
-        # Nếu tìm thấy "stt" trong một trong hai cột thì đây là dòng header
-        if 'stt' in col_a_val or 'stt' in col_b_val:
-            header_row_index = i
-            header_content = [str(cell).lower().strip() if cell is not None else '' for cell in row]
-            break
-
-    if header_row_index == -1:
-        st.warning(f"Không thể tìm thấy dòng tiêu đề (header) chứa 'STT' trong sheet '{worksheet.title}'.")
-        return None # Không tìm thấy header
-
-    # 2. Xác định vị trí các cột cần thiết (linh hoạt, không phân biệt hoa thường, ưu tiên 'Họ đệm' nếu có)
-    try:
-        # Tìm cột "Họ đệm" hoặc "Họ và Tên"
-        ten_dem_col_index = None
-        for idx, col in enumerate(header_content):
-            if col in ["họ đệm", "họ dem"]:
-                ten_dem_col_index = idx + 1
-                break
-        if ten_dem_col_index is None:
-            for idx, col in enumerate(header_content):
-                if col in ["họ và tên", "ho va ten"]:
-                    ten_dem_col_index = idx + 1
-                    break
-        if ten_dem_col_index is None:
-            raise ValueError("Họ đệm hoặc Họ và Tên")
-
-        # Giả sử sau cột này là cột "Tên" (nếu cần)
-        ten_col_index = ten_dem_col_index + 1
-
-        # Tìm cột "Năm sinh" hoặc "Ngày sinh"
-        dob_col_index = None
-        for idx, col in enumerate(header_content):
-            if col in ["năm sinh", "nam sinh"]:
-                dob_col_index = idx + 1
-                break
-        if dob_col_index is None:
-            for idx, col in enumerate(header_content):
-                if col in ["ngày sinh", "ngay sinh"]:
-                    dob_col_index = idx + 1
-                    break
-        if dob_col_index is None:
-            raise ValueError("Năm sinh hoặc Ngày sinh")
-    except ValueError as e:
-        st.error(f"Trong sheet '{worksheet.title}', đã tìm thấy dòng tiêu đề ở dòng {header_row_index} nhưng thiếu cột bắt buộc. Lỗi: không tìm thấy cột '{e.args[0]}'.")
-        return None
-    # --- KẾT THÚC SỬA LỖI ---
-    
-    # 3. Trích xuất dữ liệu với logic dừng và chuẩn hóa (giữ nguyên)
     student_data = []
+    found_end_row = False
     # Bắt đầu đọc từ dòng ngay sau header
     for row in worksheet.iter_rows(min_row=header_row_index + 1, values_only=True):
         ten_dem_cell = row[ten_dem_col_index - 1]
@@ -88,9 +32,9 @@ def find_student_data_in_sheet(worksheet):
         dob_cell = row[dob_col_index - 1]
 
         # --- LOGIC DỪNG ĐÃ CẬP NHẬT ---
-        # Dừng lại nếu cột TÊN là số hoặc rỗng
         ten_is_empty_or_number = (ten_cell is None or str(ten_cell).strip() == '' or isinstance(ten_cell, (int, float)))
         if ten_is_empty_or_number:
+            found_end_row = True
             break
 
         # --- CHUẨN HÓA DỮ LIỆU ---
@@ -113,6 +57,9 @@ def find_student_data_in_sheet(worksheet):
             "TÊN": ten_str,
             "NGÀY SINH": formatted_dob
         })
+
+    if not found_end_row:
+        st.warning(f"Không tìm thấy dòng cuối dữ liệu (không có dòng nào mà cột 'Tên' rỗng, None hoặc là số) trong sheet '{worksheet.title}'.")
 
     return pd.DataFrame(student_data)
 
