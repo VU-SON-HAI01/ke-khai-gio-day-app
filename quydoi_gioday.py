@@ -1,3 +1,6 @@
+if "widget_mon_hoc_0" not in st.session_state:
+    st.session_state["widget_mon_hoc_0"] = "Giá trị mặc định"
+st.text_input("Môn học", key="widget_mon_hoc_0")
 
 import streamlit as st
 import pandas as pd
@@ -958,7 +961,11 @@ for i, tab in enumerate(tabs[:-1]):
         st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
 
         def update_tab_state(key, index):
-            st.session_state.mon_hoc_data[index][key] = st.session_state[f"widget_{key}_{index}"]
+            widget_key = f"widget_{key}_{index}"
+            if widget_key not in st.session_state:
+                st.warning("Phiên làm việc đã hết hạn hoặc dữ liệu bị mất. Vui lòng đăng nhập lại và tải lại dữ liệu.")
+                st.stop()
+            st.session_state.mon_hoc_data[index][key] = st.session_state[widget_key]
 
         current_input = st.session_state.mon_hoc_data[i]
 
