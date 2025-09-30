@@ -25,19 +25,59 @@ def find_student_data_in_sheet(worksheet):
     dob_col_index = -1
     student_data = []
     found_end_row = False
-    # Bắt đầu đọc từ dòng ngay sau header
+
+    # 1. Tìm dòng header
+    for i, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10, values_only=True), 1):
+        col_a_val = str(row[0]).lower().strip() if len(row) > 0 and row[0] is not None else ''
+        col_b_val = str(row[1]).lower().strip() if len(row) > 1 and row[1] is not None else ''
+        if 'stt' in col_a_val or 'stt' in col_b_val:
+            header_row_index = i
+            header_content = [str(cell).lower().strip() if cell is not None else '' for cell in row]
+            break
+    if header_row_index == -1:
+        st.warning(f"Không thể tìm thấy dòng tiêu đề (header) chứa 'STT' trong sheet '{worksheet.title}'.")
+        return None
+
+    # 2. Xác định vị trí các cột cần thiết
+    ten_dem_col_index = None
+    for idx, col in enumerate(header_content):
+        if col in ["họ đệm", "họ dem"]:
+            ten_dem_col_index = idx + 1
+            break
+    if ten_dem_col_index is None:
+        for idx, col in enumerate(header_content):
+            if col in ["họ và tên", "ho va ten"]:
+                ten_dem_col_index = idx + 1
+                break
+    if ten_dem_col_index is None:
+        st.error(f"Trong sheet '{worksheet.title}', đã tìm thấy dòng tiêu đề ở dòng {header_row_index} nhưng thiếu cột bắt buộc. Lỗi: không tìm thấy cột 'Họ đệm' hoặc 'Họ và Tên'.")
+        return None
+    ten_col_index = ten_dem_col_index + 1
+    dob_col_index = None
+    for idx, col in enumerate(header_content):
+        if col in ["năm sinh", "nam sinh"]:
+            dob_col_index = idx + 1
+            break
+    if dob_col_index is None:
+        for idx, col in enumerate(header_content):
+            if col in ["ngày sinh", "ngay sinh"]:
+                dob_col_index = idx + 1
+                break
+    if dob_col_index is None:
+        st.error(f"Trong sheet '{worksheet.title}', đã tìm thấy dòng tiêu đề ở dòng {header_row_index} nhưng thiếu cột bắt buộc. Lỗi: không tìm thấy cột 'Năm sinh' hoặc 'Ngày sinh'.")
+        return None
+
+    # 3. Đọc dữ liệu
     for row in worksheet.iter_rows(min_row=header_row_index + 1, values_only=True):
         ten_dem_cell = row[ten_dem_col_index - 1]
         ten_cell = row[ten_col_index - 1]
         dob_cell = row[dob_col_index - 1]
 
-        # --- LOGIC DỪNG ĐÃ CẬP NHẬT ---
         ten_is_empty_or_number = (ten_cell is None or str(ten_cell).strip() == '' or isinstance(ten_cell, (int, float)))
         if ten_is_empty_or_number:
             found_end_row = True
             break
 
-        # --- CHUẨN HÓA DỮ LIỆU ---
         ten_dem_str = re.sub(r'\s+', ' ', str(ten_dem_cell or '')).strip()
         ten_str = re.sub(r'\s+', ' ', str(ten_cell or '')).strip()
 
