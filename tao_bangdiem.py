@@ -42,10 +42,11 @@ def find_student_data_in_sheet(worksheet):
         st.warning(f"Không thể tìm thấy dòng tiêu đề (header) chứa 'STT' trong sheet '{worksheet.title}'.")
         return None # Không tìm thấy header
 
-    # 2. Từ dòng header đã tìm được, xác định vị trí các cột cần thiết
+    # 2. Từ dòng header đã tìm được, xác định vị trí các cột cần thiết (dùng 'Tên đệm' thay cho 'Họ và tên')
     try:
-        name_col_index = header_content.index('họ và tên') + 1
-        last_name_col_index = name_col_index + 1
+        ten_dem_col_index = header_content.index('tên đệm') + 1
+        # Giả sử sau 'Tên đệm' là cột 'Tên' (nếu cần), hoặc bạn có thể điều chỉnh lại logic này nếu cấu trúc khác
+        ten_col_index = ten_dem_col_index + 1
         dob_col_index = header_content.index('năm sinh') + 1
     except ValueError as e:
         st.error(f"Trong sheet '{worksheet.title}', đã tìm thấy dòng tiêu đề ở dòng {header_row_index} nhưng thiếu cột bắt buộc. Lỗi: không tìm thấy cột '{e.args[0]}'.")
@@ -56,22 +57,20 @@ def find_student_data_in_sheet(worksheet):
     student_data = []
     # Bắt đầu đọc từ dòng ngay sau header
     for row in worksheet.iter_rows(min_row=header_row_index + 1, values_only=True):
-        first_name_cell = row[name_col_index - 1]
-        last_name_cell = row[last_name_col_index - 1]
+        ten_dem_cell = row[ten_dem_col_index - 1]
+        ten_cell = row[ten_col_index - 1]
         dob_cell = row[dob_col_index - 1]
 
         # --- LOGIC DỪNG ĐÃ CẬP NHẬT ---
-        first_name_is_empty = (first_name_cell is None or str(first_name_cell).strip() == '' or
-                               isinstance(first_name_cell, (int, float)))
-        last_name_is_empty = (last_name_cell is None or str(last_name_cell).strip() == '' or
-                              isinstance(last_name_cell, (int, float)))
+        ten_dem_is_empty = (ten_dem_cell is None or str(ten_dem_cell).strip() == '' or isinstance(ten_dem_cell, (int, float)))
+        ten_is_empty = (ten_cell is None or str(ten_cell).strip() == '' or isinstance(ten_cell, (int, float)))
 
-        if first_name_is_empty and last_name_is_empty:
+        if ten_dem_is_empty and ten_is_empty:
             break
-            
+
         # --- CHUẨN HÓA DỮ LIỆU ---
-        first_name_str = re.sub(r'\s+', ' ', str(first_name_cell or '')).strip()
-        last_name_str = re.sub(r'\s+', ' ', str(last_name_cell or '')).strip()
+        ten_dem_str = re.sub(r'\s+', ' ', str(ten_dem_cell or '')).strip()
+        ten_str = re.sub(r'\s+', ' ', str(ten_cell or '')).strip()
 
         formatted_dob = ''
         if dob_cell is not None:
@@ -83,10 +82,10 @@ def find_student_data_in_sheet(worksheet):
                     formatted_dob = str(dob_cell).strip()
             except Exception:
                 formatted_dob = str(dob_cell).strip()
-        
+
         student_data.append({
-            "HỌ": first_name_str,
-            "TÊN": last_name_str,
+            "TÊN ĐỆM": ten_dem_str,
+            "TÊN": ten_str,
             "NGÀY SINH": formatted_dob
         })
 
