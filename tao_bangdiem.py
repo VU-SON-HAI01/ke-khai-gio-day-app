@@ -294,7 +294,7 @@ def process_excel_files(template_file, data_file, danh_muc_file, hoc_ky, nam_hoc
         for i, student_row in df_sheet_data.iterrows():
             current_row_index = QT_START_ROW + i
             output_sheet_qt.cell(row=current_row_index, column=1).value = i + 1
-            output_sheet_qt.cell(row=current_row_index, column=3).value = student_row["HỌ"]
+            output_sheet_qt.cell(row=current_row_index, column=3).value = student_row["TÊN ĐỆM"]
             output_sheet_qt.cell(row=current_row_index, column=4).value = student_row["TÊN"]
             output_sheet_qt.cell(row=current_row_index, column=5).value = student_row["NGÀY SINH"]
 
