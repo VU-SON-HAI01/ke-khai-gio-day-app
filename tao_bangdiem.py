@@ -42,12 +42,38 @@ def find_student_data_in_sheet(worksheet):
         st.warning(f"Không thể tìm thấy dòng tiêu đề (header) chứa 'STT' trong sheet '{worksheet.title}'.")
         return None # Không tìm thấy header
 
-    # 2. Từ dòng header đã tìm được, xác định vị trí các cột cần thiết (dùng 'Tên đệm' thay cho 'Họ và tên')
+    # 2. Xác định vị trí các cột cần thiết (linh hoạt, không phân biệt hoa thường, ưu tiên 'Họ đệm' nếu có)
     try:
-        ten_dem_col_index = header_content.index('Họ đệm') + 1
-        # Giả sử sau 'Tên đệm' là cột 'Tên' (nếu cần), hoặc bạn có thể điều chỉnh lại logic này nếu cấu trúc khác
+        # Tìm cột "Họ đệm" hoặc "Họ và Tên"
+        ten_dem_col_index = None
+        for idx, col in enumerate(header_content):
+            if col in ["họ đệm", "họ dem"]:
+                ten_dem_col_index = idx + 1
+                break
+        if ten_dem_col_index is None:
+            for idx, col in enumerate(header_content):
+                if col in ["họ và tên", "ho va ten"]:
+                    ten_dem_col_index = idx + 1
+                    break
+        if ten_dem_col_index is None:
+            raise ValueError("Họ đệm hoặc Họ và Tên")
+
+        # Giả sử sau cột này là cột "Tên" (nếu cần)
         ten_col_index = ten_dem_col_index + 1
-        dob_col_index = header_content.index('Năm sinh') + 1
+
+        # Tìm cột "Năm sinh" hoặc "Ngày sinh"
+        dob_col_index = None
+        for idx, col in enumerate(header_content):
+            if col in ["năm sinh", "nam sinh"]:
+                dob_col_index = idx + 1
+                break
+        if dob_col_index is None:
+            for idx, col in enumerate(header_content):
+                if col in ["ngày sinh", "ngay sinh"]:
+                    dob_col_index = idx + 1
+                    break
+        if dob_col_index is None:
+            raise ValueError("Năm sinh hoặc Ngày sinh")
     except ValueError as e:
         st.error(f"Trong sheet '{worksheet.title}', đã tìm thấy dòng tiêu đề ở dòng {header_row_index} nhưng thiếu cột bắt buộc. Lỗi: không tìm thấy cột '{e.args[0]}'.")
         return None
