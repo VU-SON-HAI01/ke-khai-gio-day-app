@@ -44,7 +44,7 @@ def find_student_data_in_sheet(worksheet):
 
     # 2. Từ dòng header đã tìm được, xác định vị trí các cột cần thiết (dùng 'Tên đệm' thay cho 'Họ và tên')
     try:
-        ten_dem_col_index = header_content.index('Tên đệm') + 1
+        ten_dem_col_index = header_content.index('Họ đệm') + 1
         # Giả sử sau 'Tên đệm' là cột 'Tên' (nếu cần), hoặc bạn có thể điều chỉnh lại logic này nếu cấu trúc khác
         ten_col_index = ten_dem_col_index + 1
         dob_col_index = header_content.index('năm sinh') + 1
