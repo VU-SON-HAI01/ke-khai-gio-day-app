@@ -47,7 +47,7 @@ def find_student_data_in_sheet(worksheet):
         ten_dem_col_index = header_content.index('Họ đệm') + 1
         # Giả sử sau 'Tên đệm' là cột 'Tên' (nếu cần), hoặc bạn có thể điều chỉnh lại logic này nếu cấu trúc khác
         ten_col_index = ten_dem_col_index + 1
-        dob_col_index = header_content.index('năm sinh') + 1
+        dob_col_index = header_content.index('Năm sinh') + 1
     except ValueError as e:
         st.error(f"Trong sheet '{worksheet.title}', đã tìm thấy dòng tiêu đề ở dòng {header_row_index} nhưng thiếu cột bắt buộc. Lỗi: không tìm thấy cột '{e.args[0]}'.")
         return None
