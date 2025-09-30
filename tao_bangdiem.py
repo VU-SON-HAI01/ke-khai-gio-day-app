@@ -88,10 +88,9 @@ def find_student_data_in_sheet(worksheet):
         dob_cell = row[dob_col_index - 1]
 
         # --- LOGIC DỪNG ĐÃ CẬP NHẬT ---
-        ten_dem_is_empty = (ten_dem_cell is None or str(ten_dem_cell).strip() == '' or isinstance(ten_dem_cell, (int, float)))
-        ten_is_empty = (ten_cell is None or str(ten_cell).strip() == '' or isinstance(ten_cell, (int, float)))
-
-        if ten_dem_is_empty and ten_is_empty:
+        # Dừng lại nếu cột TÊN là số hoặc rỗng
+        ten_is_empty_or_number = (ten_cell is None or str(ten_cell).strip() == '' or isinstance(ten_cell, (int, float)))
+        if ten_is_empty_or_number:
             break
 
         # --- CHUẨN HÓA DỮ LIỆU ---
