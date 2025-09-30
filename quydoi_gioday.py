@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,6 +9,18 @@ import ast
 import re
 from itertools import zip_longest
 # --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
+def xu_ly_tuan_tet(arr, tuanbatdau, tuanketthuc, df_ngaytuan_g):
+    """
+    Loại bỏ các tuần trùng với tuần nghỉ Tết khỏi mảng arr.
+    arr: list các tuần (int)
+    tuanbatdau, tuanketthuc: tuần bắt đầu và kết thúc (int)
+    df_ngaytuan_g: DataFrame chứa thông tin các tuần nghỉ Tết (có cột 'Tuan_Tet')
+    """
+    if df_ngaytuan_g is None or 'Tuan_Tet' not in df_ngaytuan_g.columns:
+        return arr
+    tuan_tet = df_ngaytuan_g['Tuan_Tet'].dropna().astype(int).tolist()
+    arr_khong_tet = [t for t in arr if t not in tuan_tet and tuanbatdau <= t <= tuanketthuc]
+    return arr_khong_tet
 def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
     """
     Đếm số tuần TẾT dựa vào cột Tuần_Tết nếu có, ánh xạ sang cột Tuần.
@@ -1208,7 +1221,7 @@ for i, tab in enumerate(tabs[:-1]):
                 mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == current_input.get('mon_hoc'))]
                 if not mon_info.empty:
                     # Sử dụng Mã_môn_ngành thay vì Mã_môn
-            dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON']
+                    dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON']
             if not dsmon_code.empty:
                 dsmon_code = dsmon_code.iloc[0]
                 mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == current_input.get('mon_hoc'))]

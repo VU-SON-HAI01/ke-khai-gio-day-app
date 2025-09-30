@@ -121,8 +121,9 @@ def find_student_data_in_sheet(worksheet):
         })
         i += 1
 
-    if not found_end_row:
-        st.warning(f"Không tìm thấy 2 dòng liên tiếp cuối dữ liệu (2 dòng tiếp theo cột 'Tên' đều rỗng/None/số hoặc 1 dòng là số, dòng sau là rỗng) trong sheet '{worksheet.title}'.")
+    # Chỉ cảnh báo nếu không có dữ liệu học sinh nào được trích xuất
+    if not found_end_row and len(student_data) == 0:
+        st.warning(f"Không tìm thấy dữ liệu học sinh hợp lệ trong sheet '{worksheet.title}'.")
 
     return pd.DataFrame(student_data)
 
