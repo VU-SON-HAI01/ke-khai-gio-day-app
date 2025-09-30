@@ -68,22 +68,37 @@ def find_student_data_in_sheet(worksheet):
         return None
 
     # 3. Đọc dữ liệu
-    empty_ten_count = 0
-    for row in worksheet.iter_rows(min_row=header_row_index + 1, values_only=True):
+    # Dừng lại nếu 2 dòng liên tiếp tiếp theo (cột 'TÊN') đều rỗng/None hoặc là số, hoặc 1 dòng là số và dòng sau là rỗng
+    rows = list(worksheet.iter_rows(min_row=header_row_index + 1, values_only=True))
+    i = 0
+    while i < len(rows):
+        row = rows[i]
         ten_dem_cell = row[ten_dem_col_index - 1]
         ten_cell = row[ten_col_index - 1]
         dob_cell = row[dob_col_index - 1]
 
-        ten_is_empty_or_number = (ten_cell is None or str(ten_cell).strip() == '' or isinstance(ten_cell, (int, float)))
-        if ten_is_empty_or_number:
-            empty_ten_count += 1
-            if empty_ten_count == 2:
+        # Kiểm tra điều kiện dừng: 2 dòng tiếp theo cột 'TÊN' đều rỗng/None/number hoặc 1 dòng là số, dòng sau là rỗng
+        stop = False
+        if i + 1 < len(rows):
+            next_row1 = rows[i]
+            next_row2 = rows[i + 1]
+            ten1 = next_row1[ten_col_index - 1]
+            ten2 = next_row2[ten_col_index - 1]
+            ten1_empty_or_number = (ten1 is None or str(ten1).strip() == '' or isinstance(ten1, (int, float)))
+            ten2_empty_or_number = (ten2 is None or str(ten2).strip() == '' or isinstance(ten2, (int, float)))
+            # Dừng nếu cả hai đều rỗng/None/number
+            if ten1_empty_or_number and ten2_empty_or_number:
                 found_end_row = True
                 break
-            else:
-                continue
-        else:
-            empty_ten_count = 0
+            # Dừng nếu dòng 1 là số, dòng 2 là rỗng
+            if (isinstance(ten1, (int, float)) and (ten2 is None or str(ten2).strip() == '')):
+                found_end_row = True
+                break
+
+        # Nếu dòng hiện tại là rỗng/None/number thì bỏ qua
+        if ten_cell is None or str(ten_cell).strip() == '' or isinstance(ten_cell, (int, float)):
+            i += 1
+            continue
 
         ten_dem_str = re.sub(r'\s+', ' ', str(ten_dem_cell or '')).strip()
         ten_str = re.sub(r'\s+', ' ', str(ten_cell or '')).strip()
@@ -104,9 +119,10 @@ def find_student_data_in_sheet(worksheet):
             "TÊN": ten_str,
             "NGÀY SINH": formatted_dob
         })
+        i += 1
 
     if not found_end_row:
-        st.warning(f"Không tìm thấy 2 dòng liên tiếp cuối dữ liệu (không có 2 dòng liên tiếp mà cột 'Tên' rỗng, None hoặc là số) trong sheet '{worksheet.title}'.")
+        st.warning(f"Không tìm thấy 2 dòng liên tiếp cuối dữ liệu (2 dòng tiếp theo cột 'Tên' đều rỗng/None/số hoặc 1 dòng là số, dòng sau là rỗng) trong sheet '{worksheet.title}'.")
 
     return pd.DataFrame(student_data)
 
