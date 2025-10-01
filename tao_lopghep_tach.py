@@ -332,32 +332,21 @@ tenlop_options = df_lop['Lớp'].unique().tolist()
 selected_classes = st.multiselect("Chọn lớp đơn", tenlop_options)
 
 if selected_classes:
-    st.write("Các lớp vừa chọn:", selected_classes)
-    if st.button("Ghép lớp", key="taolopghep"):
+    if st.button("Thêm lớp ghép", key="taolopghep"):
         info = get_ghép_lớp_info(selected_classes, df_lop)
-        # Thêm chuyển đổi sang tên nhóm
         ten_nhom = convert_lopghep_to_lopghep_t(info['Lớp_tên_full'])
-        st.success("Đã tạo lớp ghép thành công!")
-        st.markdown(f"- **Lớp_tên_full:** {info['Lớp_tên_full']}")
-        st.markdown(f"- **Lớp_mã_full:** `{info['Lớp_mã_full']}`")
-        st.markdown(f"- **Mã_lớp:** `{info['Mã_lớp']}`")
-        st.markdown(f"- **Tên lớp (dạng nhóm):** {ten_nhom}")
-        siso_show = {k: v for k, v in info.items() if k.startswith("Tháng")}
-        if siso_show:
-            st.write("**Sĩ số theo tháng của lớp ghép:**")
-            st.dataframe(pd.DataFrame([siso_show]))
-        else:
-            st.warning("Không có dữ liệu sĩ số để tổng hợp.")
-
-        # 2. Lưu lên Google Sheet
-        if st.button("Lưu lớp ghép lên Google Sheet", key="luulopghep"):
-            try:
-                client = get_gspread_client()
-                spreadsheet = client.open_by_url(GSHEET_URL)
-                save_lop_ghep_to_gsheet(info, spreadsheet)
-                st.success("Đã lưu lớp ghép lên Google Sheet thành công!")
-            except Exception as e:
-                st.error(f"Lỗi khi lưu lên Google Sheet: {e}")
+        info_with_nhom = info.copy()
+        info_with_nhom['Tên lớp (dạng nhóm)'] = ten_nhom
+        df_preview = pd.DataFrame([info_with_nhom])
+        st.write("### Xem trước dữ liệu lớp ghép vừa tạo (có cả tên nhóm):")
+        st.dataframe(df_preview)
+        try:
+            client = get_gspread_client()
+            spreadsheet = client.open_by_url(GSHEET_URL)
+            save_lop_ghep_to_gsheet(info, spreadsheet)
+            st.success("Đã lưu lớp ghép lên Google Sheet thành công!")
+        except Exception as e:
+            st.error(f"Lỗi khi lưu lên Google Sheet: {e}")
 else:
     st.info("Vui lòng chọn ít nhất 2 lớp đơn để ghép.")
 
