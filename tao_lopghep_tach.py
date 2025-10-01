@@ -100,6 +100,48 @@ def get_ghép_lớp_info(selected_classes, df_lop):
     }
 
 def convert_lopghep_to_lopghep_t(tenlop_list):
+    import re
+    if isinstance(tenlop_list, str):
+        input_value = tenlop_list
+    else:
+        input_value = "+".join(tenlop_list)
+
+    # --- Các quy tắc đã được gộp nhóm sẵn (không cần chuyển đổi thêm) ---
+    # 1. KhóaTrìnhĐộ.(Ngành+Ngành) -> 49T.(KTDN+HAN1)
+    match1 = re.match(r'^(\d{2}[A-ZĐ])\.\((.+)\)$', input_value)
+    if match1:
+        nganh_parts_str = match1.group(2)
+        nganh_list = [n.strip() for n in nganh_parts_str.split('+')]
+        if all(re.fullmatch(r'[A-ZĐ0-9]+', n) for n in nganh_list):
+            return input_value
+    # 2. Khóa(TrìnhĐộ+TrìnhĐộ).Ngành -> 50(C+T).CGKL
+    match2 = re.match(r'^(\d{2})\(([A-ZĐ]+(?:\+[A-ZĐ]+)*)\)\.([A-ZĐ]+)(\d*|[A-Z])?$', input_value)
+    if match2:
+        trinh_do_parts_str = match2.group(2)
+        trinh_do_list = [t.strip() for t in trinh_do_parts_str.split('+')]
+        if all(re.fullmatch(r'[A-ZĐ]', t) for t in trinh_do_list):
+            return input_value
+    # 3. Khóa.(TrìnhĐộ.Ngành+TrìnhĐộ.Ngành) -> 50.(C.CNTT+T.CGKL)
+    match3 = re.match(r'^(\d{2})\.\((.+)\)(\d*|[A-Z])?$', input_value)
+    if match3:
+        class_parts_str = match3.group(2)
+        class_items = [c.strip() for c in class_parts_str.split('+')]
+        is_valid_match3 = True
+        for item in class_items:
+            item_match = re.match(r'^([A-ZĐ])\.([A-ZĐ0-9]+)$', item)
+            if not item_match:
+                is_valid_match3 = False
+                break
+        if is_valid_match3:
+            return input_value
+    # 4. (KhóaTrìnhĐộ+KhóaTrìnhĐộ).Ngành -> (49C+50C).CGKL
+    match4 = re.match(r'^\((.+)\)\.([A-ZĐ]+)(\d*|[A-Z])?$', input_value)
+    if match4:
+        khoa_trinh_do_parts_str = match4.group(1)
+        khoa_trinh_do_list = [ktd.strip() for ktd in khoa_trinh_do_parts_str.split('+')]
+        if all(re.fullmatch(r'\d{2}[A-ZĐ]', ktd) for ktd in khoa_trinh_do_list):
+            return input_value
+
     # --- Các quy tắc cần gộp nhóm từ dạng chưa gộp ---
     if '+' in input_value:
         parts = input_value.split('+')
@@ -166,6 +208,7 @@ def convert_lopghep_to_lopghep_t(tenlop_list):
                 inner_part = f"{item['trinh_do']}.{item['nganh_full']}" if item['trinh_do'] else f".{item['nganh_full']}"
                 extracted_inner_parts.append(inner_part)
             return f"{common_khoa}({' + '.join(extracted_inner_parts)})"
+        return input_value
     """
     Hàm chuyển đổi danh sách tên lớp truyền thống thành tên lớp ghép tắt (dạng nhóm), theo logic hoàn chỉnh từ fun_lopghep.py
     """
