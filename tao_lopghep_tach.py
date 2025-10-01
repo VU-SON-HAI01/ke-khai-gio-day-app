@@ -330,8 +330,21 @@ if selected_classes:
         info_with_nhom = info.copy()
         info_with_nhom['Tên lớp (dạng nhóm)'] = ten_nhom
         df_preview = pd.DataFrame([info_with_nhom])
-        st.write("### Xem trước dữ liệu lớp ghép vừa tạo (có cả tên nhóm):")
-        st.dataframe(df_preview)
+        # Ẩn các cột không cần hiển thị
+        cols_to_hide = ['Tên lớp (dạng nhóm)', 'Lớp_tên_full', 'Lớp_mã_full']
+        cols_to_show = [col for col in df_preview.columns if col not in cols_to_hide]
+        # Đổi tên cột tháng theo quy tắc năm học
+        from datetime import datetime
+        now = datetime.now()
+        year_now = now.year
+        month_rename = {}
+        for m in range(8, 13):
+            month_rename[f'Tháng {m}'] = f'T{m}/{year_now-1}'
+        for m in range(1, 8):
+            month_rename[f'Tháng {m}'] = f'T{m}/{year_now}'
+        df_show = df_preview[cols_to_show].rename(columns=month_rename)
+        st.write("### Xem trước dữ liệu lớp ghép vừa tạo:")
+        st.dataframe(df_show)
         try:
             spreadsheet = st.session_state['spreadsheet']
             save_lop_ghep_to_gsheet(info, spreadsheet)
@@ -371,8 +384,19 @@ if ten_lop_ghep_text:
             preview_rows.append({**info_with_nhom})
     if info_list:
         df_preview = pd.DataFrame(preview_rows)
-        st.write("### Xem trước dữ liệu lớp ghép sẽ tạo (có cả tên nhóm):")
-        st.dataframe(df_preview)
+        cols_to_hide = ['Tên lớp (dạng nhóm)', 'Lớp_tên_full', 'Lớp_mã_full']
+        cols_to_show = [col for col in df_preview.columns if col not in cols_to_hide]
+        from datetime import datetime
+        now = datetime.now()
+        year_now = now.year
+        month_rename = {}
+        for m in range(8, 13):
+            month_rename[f'Tháng {m}'] = f'T{m}/{year_now-1}'
+        for m in range(1, 8):
+            month_rename[f'Tháng {m}'] = f'T{m}/{year_now}'
+        df_show = df_preview[cols_to_show].rename(columns=month_rename)
+        st.write("### Xem trước dữ liệu lớp ghép sẽ tạo:")
+        st.dataframe(df_show)
         if st.button("Lưu tất cả lớp ghép này lên Google Sheet", key="luualllopghep"):
             try:
                 spreadsheet = st.session_state['spreadsheet']
