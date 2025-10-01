@@ -100,6 +100,72 @@ def get_ghép_lớp_info(selected_classes, df_lop):
     }
 
 def convert_lopghep_to_lopghep_t(tenlop_list):
+    # --- Các quy tắc cần gộp nhóm từ dạng chưa gộp ---
+    if '+' in input_value:
+        parts = input_value.split('+')
+        if not parts or len(parts) < 2:
+            return input_value
+        part_regex = re.compile(r'^(\d+)([A-ZĐ])?\.(.+)$')
+        nganh_detail_regex = re.compile(r'^([A-ZĐ]+)(\d*|[A-Z])?$')
+        parsed_items = []
+        for part in parts:
+            match_part = part_regex.match(part)
+            if not match_part:
+                return input_value
+            khoa = match_part.group(1)
+            trinh_do = match_part.group(2)
+            nganh_full = match_part.group(3)
+            match_nganh_detail = nganh_detail_regex.match(nganh_full)
+            if not match_nganh_detail:
+                return input_value
+            parsed_items.append({
+                'khoa': khoa,
+                'trinh_do': trinh_do,
+                'nganh_full': nganh_full,
+                'nganh_base': match_nganh_detail.group(1),
+                'nganh_suffix': match_nganh_detail.group(2) if match_nganh_detail.group(2) else ""
+            })
+        # Quy tắc: Gom nhóm cùng khóa, cùng trình độ, ngành khác nhau: 48C.KĐT+48C.CNOT1 -> 48C.(KĐT+CNOT1)
+        common_khoa = parsed_items[0]['khoa']
+        common_trinh_do = parsed_items[0]['trinh_do']
+        is_common_khoa = all(item['khoa'] == common_khoa for item in parsed_items)
+        is_common_trinh_do = all(item['trinh_do'] == common_trinh_do for item in parsed_items)
+        if is_common_khoa and is_common_trinh_do:
+            nganh_list = [item['nganh_full'] for item in parsed_items]
+            return f"{common_khoa}{common_trinh_do}.({' + '.join(nganh_list)})"
+        # Quy tắc: KhoaTrinhDo.Nganh(Suffix+Suffix)
+        common_nganh_base = parsed_items[0]['nganh_base']
+        is_common_khoa_trinh_do_nganh_base = all(
+            item['khoa'] == common_khoa and
+            item['trinh_do'] == common_trinh_do and
+            item['nganh_base'] == common_nganh_base
+            for item in parsed_items
+        ) and (common_trinh_do is not None)
+        suffixes = [item['nganh_suffix'] for item in parsed_items]
+        has_multiple_suffixes = len(set(suffixes)) > 1
+        if is_common_khoa_trinh_do_nganh_base and has_multiple_suffixes:
+            return f"{common_khoa}{common_trinh_do}.{common_nganh_base}({' + '.join(suffixes)})"
+        # Quy tắc: (KhoaTrinhDo+KhoaTrinhDo).Nganh
+        common_nganh_full = parsed_items[0]['nganh_full']
+        is_common_nganh_full = all(item['nganh_full'] == common_nganh_full for item in parsed_items)
+        if is_common_nganh_full:
+            extracted_prefix_parts = []
+            all_have_trinh_do = all(item['trinh_do'] is not None for item in parsed_items)
+            if all_have_trinh_do:
+                extracted_prefix_parts = [f"{item['khoa']}{item['trinh_do']}" for item in parsed_items]
+                return f"({' + '.join(extracted_prefix_parts)}).{common_nganh_full}"
+            is_common_trinh_do = all(item['trinh_do'] == parsed_items[0]['trinh_do'] for item in parsed_items)
+            if is_common_trinh_do and parsed_items[0]['trinh_do'] is not None:
+                extracted_khoa_parts = [item['khoa'] for item in parsed_items]
+                return f"({' + '.join(extracted_khoa_parts)}){parsed_items[0]['trinh_do']}.{common_nganh_full}"
+        # Quy tắc: Khoa(TrinhDo.Nganh+...) nếu cùng khóa
+        is_common_khoa = all(item['khoa'] == common_khoa for item in parsed_items)
+        if is_common_khoa:
+            extracted_inner_parts = []
+            for item in parsed_items:
+                inner_part = f"{item['trinh_do']}.{item['nganh_full']}" if item['trinh_do'] else f".{item['nganh_full']}"
+                extracted_inner_parts.append(inner_part)
+            return f"{common_khoa}({' + '.join(extracted_inner_parts)})"
     """
     Hàm chuyển đổi danh sách tên lớp truyền thống thành tên lớp ghép tắt (dạng nhóm), theo logic hoàn chỉnh từ fun_lopghep.py
     """
