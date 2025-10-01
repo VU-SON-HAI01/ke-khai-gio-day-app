@@ -1,3 +1,18 @@
+# === HÀM CHUYỂN ĐỔI TÊN LỚP GHÉP (TẮT <=> FULL) ===
+import itertools
+def convert_lopghep_to_lopghep_t(input_str):
+    """
+    Chuyển đổi chuỗi lớp học có chứa ngoặc đơn hoặc dấu '+' thành dạng gộp nhóm (tên tắt).
+    """
+    import re
+    # ...existing code...
+
+def parse_merged_name_to_individual_names(merged_name):
+    """
+    Chuyển tên lớp ghép tắt (dạng nhóm) về danh sách tên lớp truyền thống.
+    """
+    import re
+    # ...existing code...
 import streamlit as st
 import pandas as pd
 import re
@@ -113,6 +128,7 @@ def convert_lopghep_to_lopghep_t(tenlop_list):
 st.title("Tạo và lưu lớp ghép lên Google Sheet")
 
 
+# --- GIAO DIỆN STREAMLIT ---
 # 1. Lấy dữ liệu lớp đơn
 df_lop = get_mockup_lop()
 st.session_state['df_lop'] = df_lop
@@ -125,11 +141,13 @@ if selected_classes:
     st.write("Các lớp vừa chọn:", selected_classes)
     if st.button("Ghép lớp", key="taolopghep"):
         info = get_ghép_lớp_info(selected_classes, df_lop)
+        # Thêm chuyển đổi sang tên nhóm
+        ten_nhom = convert_lopghep_to_lopghep_t(info['Lớp_tên_full'])
         st.success("Đã tạo lớp ghép thành công!")
         st.markdown(f"- **Lớp_tên_full:** {info['Lớp_tên_full']}")
         st.markdown(f"- **Lớp_mã_full:** `{info['Lớp_mã_full']}`")
         st.markdown(f"- **Mã_lớp:** `{info['Mã_lớp']}`")
-        st.markdown(f"- **Tên lớp (dạng nhóm):** {info['Tên lớp']}")
+        st.markdown(f"- **Tên lớp (dạng nhóm):** {ten_nhom}")
         siso_show = {k: v for k, v in info.items() if k.startswith("Tháng")}
         if siso_show:
             st.write("**Sĩ số theo tháng của lớp ghép:**")
@@ -157,14 +175,29 @@ df_preview = None
 if ten_lop_ghep_text:
     ten_lop_ghep_lines = [line.strip() for line in ten_lop_ghep_text.splitlines() if line.strip()]
     info_list = []
+    preview_rows = []
     for line in ten_lop_ghep_lines:
         tenlop_list = [x.strip() for x in line.split('+') if x.strip()]
         if len(tenlop_list) >= 2:
             info = get_ghép_lớp_info(tenlop_list, df_lop)
-            info_list.append(info)
+            # Thêm tên nhóm cho preview
+            ten_nhom = convert_lopghep_to_lopghep_t(info['Lớp_tên_full'])
+            info_with_nhom = info.copy()
+            info_with_nhom['Tên lớp (dạng nhóm)'] = ten_nhom
+            info_list.append(info_with_nhom)
+            preview_rows.append({**info_with_nhom})
+        elif len(tenlop_list) == 1:
+            # Nếu là tên nhóm, chuyển về danh sách lớp đơn lẻ
+            ten_lop_full_list = parse_merged_name_to_individual_names(tenlop_list[0])
+            info = get_ghép_lớp_info(ten_lop_full_list, df_lop)
+            ten_nhom = convert_lopghep_to_lopghep_t(info['Lớp_tên_full'])
+            info_with_nhom = info.copy()
+            info_with_nhom['Tên lớp (dạng nhóm)'] = ten_nhom
+            info_list.append(info_with_nhom)
+            preview_rows.append({**info_with_nhom})
     if info_list:
-        df_preview = pd.DataFrame(info_list)
-        st.write("### Xem trước dữ liệu lớp ghép sẽ tạo:")
+        df_preview = pd.DataFrame(preview_rows)
+        st.write("### Xem trước dữ liệu lớp ghép sẽ tạo (có cả tên nhóm):")
         st.dataframe(df_preview)
         if st.button("Lưu tất cả lớp ghép này lên Google Sheet", key="luualllopghep"):
             try:
