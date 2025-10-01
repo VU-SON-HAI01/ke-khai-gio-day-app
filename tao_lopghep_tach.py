@@ -19,19 +19,11 @@ import re
 import gspread
 from google.oauth2.service_account import Credentials
 
-# === CONFIG GOOGLE SERVICE ACCOUNT ===
-# Bạn cần file service_account.json và chia sẻ quyền edit cho email service account lên Google Sheet!
-GSHEET_CREDENTIALS = "service_account.json"      # Thay bằng đường dẫn file json của bạn
-GSHEET_URL = "https://docs.google.com/spreadsheets/d/..."    # Thay bằng link google sheet của bạn
+
+# === CONFIG GOOGLE SHEET (dùng chung session_state như quydoi_gioday.py) ===
 WS_NAME = "DSLOP_GHEP"
 
-# --- Hàm kết nối google sheet ---
-@st.cache_resource
-def get_gspread_client():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_file(GSHEET_CREDENTIALS, scopes=scope)
-    client = gspread.authorize(creds)
-    return client
+
 
 # --- HÀM LƯU DỮ LIỆU LỚP GHÉP LÊN GOOGLE SHEET ---
 def save_lop_ghep_to_gsheet(info, spreadsheet):
@@ -341,8 +333,7 @@ if selected_classes:
         st.write("### Xem trước dữ liệu lớp ghép vừa tạo (có cả tên nhóm):")
         st.dataframe(df_preview)
         try:
-            client = get_gspread_client()
-            spreadsheet = client.open_by_url(GSHEET_URL)
+            spreadsheet = st.session_state['spreadsheet']
             save_lop_ghep_to_gsheet(info, spreadsheet)
             st.success("Đã lưu lớp ghép lên Google Sheet thành công!")
         except Exception as e:
@@ -384,8 +375,7 @@ if ten_lop_ghep_text:
         st.dataframe(df_preview)
         if st.button("Lưu tất cả lớp ghép này lên Google Sheet", key="luualllopghep"):
             try:
-                client = get_gspread_client()
-                spreadsheet = client.open_by_url(GSHEET_URL)
+                spreadsheet = st.session_state['spreadsheet']
                 for info in info_list:
                     save_lop_ghep_to_gsheet(info, spreadsheet)
                 st.success("Đã lưu tất cả lớp ghép lên Google Sheet thành công!")
@@ -395,8 +385,7 @@ if ten_lop_ghep_text:
 st.header("2. Xem sheet lớp ghép (Google Sheet)")
 if st.button("Tải lại sheet lớp ghép"):
     try:
-        client = get_gspread_client()
-        spreadsheet = client.open_by_url(GSHEET_URL)
+        spreadsheet = st.session_state['spreadsheet']
         worksheet = spreadsheet.worksheet(WS_NAME)
         records = worksheet.get_all_records()
         if records:
