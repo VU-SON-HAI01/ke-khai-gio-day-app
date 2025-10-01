@@ -112,6 +112,7 @@ def convert_lopghep_to_lopghep_t(tenlop_list):
 
 st.title("Tạo và lưu lớp ghép lên Google Sheet")
 
+
 # 1. Lấy dữ liệu lớp đơn
 df_lop = get_mockup_lop()
 st.session_state['df_lop'] = df_lop
@@ -147,6 +148,33 @@ if selected_classes:
                 st.error(f"Lỗi khi lưu lên Google Sheet: {e}")
 else:
     st.info("Vui lòng chọn ít nhất 2 lớp đơn để ghép.")
+
+# 2. Tạo lớp ghép bằng tên lớp ghép
+st.header("2. Tạo lớp ghép bằng tên lớp ghép")
+ten_lop_ghep_text = st.text_area("Nhập tên lớp ghép (mỗi dòng là một nhóm lớp, các lớp cách nhau bằng dấu '+'):", height=120, help="Ví dụ: 48C.CNOT1+48C.CNOT2\n48C.KTOT1+48C.KTOT2")
+
+df_preview = None
+if ten_lop_ghep_text:
+    ten_lop_ghep_lines = [line.strip() for line in ten_lop_ghep_text.splitlines() if line.strip()]
+    info_list = []
+    for line in ten_lop_ghep_lines:
+        tenlop_list = [x.strip() for x in line.split('+') if x.strip()]
+        if len(tenlop_list) >= 2:
+            info = get_ghép_lớp_info(tenlop_list, df_lop)
+            info_list.append(info)
+    if info_list:
+        df_preview = pd.DataFrame(info_list)
+        st.write("### Xem trước dữ liệu lớp ghép sẽ tạo:")
+        st.dataframe(df_preview)
+        if st.button("Lưu tất cả lớp ghép này lên Google Sheet", key="luualllopghep"):
+            try:
+                client = get_gspread_client()
+                spreadsheet = client.open_by_url(GSHEET_URL)
+                for info in info_list:
+                    save_lop_ghep_to_gsheet(info, spreadsheet)
+                st.success("Đã lưu tất cả lớp ghép lên Google Sheet thành công!")
+            except Exception as e:
+                st.error(f"Lỗi khi lưu lên Google Sheet: {e}")
 
 st.header("2. Xem sheet lớp ghép (Google Sheet)")
 if st.button("Tải lại sheet lớp ghép"):
