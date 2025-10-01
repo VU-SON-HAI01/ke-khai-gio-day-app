@@ -100,28 +100,113 @@ def get_ghép_lớp_info(selected_classes, df_lop):
     }
 
 def convert_lopghep_to_lopghep_t(tenlop_list):
-    regex = re.compile(r"^(\d{2})([A-ZĐ])\.([A-ZĐ]+)(\d*|\(A\d+\)?)$")
-    parsed = []
-    for name in tenlop_list:
-        m = regex.fullmatch(name)
-        if m:
-            khoa, trinhdo, nganh, stt = m.groups()
-            parsed.append({'khoa': khoa, 'trinhdo': trinhdo, 'nganh': nganh, 'stt': stt})
-        else:
-            return "+".join(tenlop_list)
-    nganh_set = set(x['nganh'] for x in parsed)
-    stt_set = set(x['stt'] for x in parsed)
-    trinhdo_set = set(x['trinhdo'] for x in parsed)
-    khoa_set = set(x['khoa'] for x in parsed)
-    if len(trinhdo_set) == 1 and len(nganh_set) == 1 and len(khoa_set) > 1:
-        return f"({' + '.join(sorted(khoa_set, reverse=True))}){list(trinhdo_set)[0]}.{list(nganh_set)[0]}"
-    if len(khoa_set) == 1 and len(nganh_set) == 1 and len(trinhdo_set) > 1:
-        return f"{list(khoa_set)[0]}({' + '.join(sorted(trinhdo_set))}).{list(nganh_set)[0]}"
-    if len(khoa_set) == 1 and len(trinhdo_set) == 1 and len(nganh_set) == 1 and len(stt_set) > 1:
-        return f"{list(khoa_set)[0]}{list(trinhdo_set)[0]}.{list(nganh_set)[0]}({' + '.join(sorted(stt_set))})"
-    if len(khoa_set) == 1 and len(trinhdo_set) == 1 and len(nganh_set) == 1 and len(stt_set) == 1:
-        return tenlop_list[0]
-    return "+".join(tenlop_list)
+    """
+    Hàm chuyển đổi danh sách tên lớp truyền thống thành tên lớp ghép tắt (dạng nhóm), theo logic hoàn chỉnh từ fun_lopghep.py
+    """
+    import re
+    if isinstance(tenlop_list, str):
+        input_value = tenlop_list
+    else:
+        input_value = "+".join(tenlop_list)
+
+    # --- Các quy tắc đã được gộp nhóm sẵn (không cần chuyển đổi thêm) ---
+    # 1. KhóaTrìnhĐộ.(Ngành+Ngành) -> 49T.(KTDN+HAN1)
+    match1 = re.match(r'^(\d{2}[A-ZĐ])\.\((.+)\)$', input_value)
+    if match1:
+        nganh_parts_str = match1.group(2)
+        nganh_list = [n.strip() for n in nganh_parts_str.split('+')]
+        if all(re.fullmatch(r'[A-ZĐ0-9]+', n) for n in nganh_list):
+            return input_value
+    # 2. Khóa(TrìnhĐộ+TrìnhĐộ).Ngành -> 50(C+T).CGKL
+    match2 = re.match(r'^(\d{2})\(([A-ZĐ]+(?:\+[A-ZĐ]+)*)\)\.([A-ZĐ]+)(\d*|[A-Z])?$', input_value)
+    if match2:
+        trinh_do_parts_str = match2.group(2)
+        trinh_do_list = [t.strip() for t in trinh_do_parts_str.split('+')]
+        if all(re.fullmatch(r'[A-ZĐ]', t) for t in trinh_do_list):
+            return input_value
+    # 3. Khóa.(TrìnhĐộ.Ngành+TrìnhĐộ.Ngành) -> 50.(C.CNTT+T.CGKL)
+    match3 = re.match(r'^(\d{2})\.\((.+)\)(\d*|[A-Z])?$', input_value)
+    if match3:
+        class_parts_str = match3.group(2)
+        class_items = [c.strip() for c in class_parts_str.split('+')]
+        is_valid_match3 = True
+        for item in class_items:
+            item_match = re.match(r'^([A-ZĐ])\.([A-ZĐ0-9]+)$', item)
+            if not item_match:
+                is_valid_match3 = False
+                break
+        if is_valid_match3:
+            return input_value
+    # 4. (KhóaTrìnhĐộ+KhóaTrìnhĐộ).Ngành -> (49C+50C).CGKL
+    match4 = re.match(r'^\((.+)\)\.([A-ZĐ]+)(\d*|[A-Z])?$', input_value)
+    if match4:
+        khoa_trinh_do_parts_str = match4.group(1)
+        khoa_trinh_do_list = [ktd.strip() for ktd in khoa_trinh_do_parts_str.split('+')]
+        if all(re.fullmatch(r'\d{2}[A-ZĐ]', ktd) for ktd in khoa_trinh_do_list):
+            return input_value
+
+    # --- Các quy tắc cần gộp nhóm từ dạng chưa gộp ---
+    if '+' in input_value:
+        parts = input_value.split('+')
+        if not parts or len(parts) < 2:
+            return input_value
+        part_regex = re.compile(r'^(\d+)([A-ZĐ])?\.(.+)$')
+        nganh_detail_regex = re.compile(r'^([A-ZĐ]+)(\d*|[A-Z])?$')
+        parsed_items = []
+        for part in parts:
+            match_part = part_regex.match(part)
+            if not match_part:
+                return input_value
+            khoa = match_part.group(1)
+            trinh_do = match_part.group(2)
+            nganh_full = match_part.group(3)
+            match_nganh_detail = nganh_detail_regex.match(nganh_full)
+            if not match_nganh_detail:
+                return input_value
+            parsed_items.append({
+                'khoa': khoa,
+                'trinh_do': trinh_do,
+                'nganh_full': nganh_full,
+                'nganh_base': match_nganh_detail.group(1),
+                'nganh_suffix': match_nganh_detail.group(2) if match_nganh_detail.group(2) else ""
+            })
+        # Quy tắc: KhoaTrinhDo.Nganh(Suffix+Suffix)
+        common_khoa = parsed_items[0]['khoa']
+        common_trinh_do = parsed_items[0]['trinh_do']
+        common_nganh_base = parsed_items[0]['nganh_base']
+        is_common_khoa_trinh_do_nganh_base = all(
+            item['khoa'] == common_khoa and
+            item['trinh_do'] == common_trinh_do and
+            item['nganh_base'] == common_nganh_base
+            for item in parsed_items
+        ) and (common_trinh_do is not None)
+        suffixes = [item['nganh_suffix'] for item in parsed_items]
+        has_multiple_suffixes = len(set(suffixes)) > 1
+        if is_common_khoa_trinh_do_nganh_base and has_multiple_suffixes:
+            return f"{common_khoa}{common_trinh_do}.{common_nganh_base}({' + '.join(suffixes)})"
+        # Quy tắc: (KhoaTrinhDo+KhoaTrinhDo).Nganh
+        common_nganh_full = parsed_items[0]['nganh_full']
+        is_common_nganh_full = all(item['nganh_full'] == common_nganh_full for item in parsed_items)
+        if is_common_nganh_full:
+            extracted_prefix_parts = []
+            all_have_trinh_do = all(item['trinh_do'] is not None for item in parsed_items)
+            if all_have_trinh_do:
+                extracted_prefix_parts = [f"{item['khoa']}{item['trinh_do']}" for item in parsed_items]
+                return f"({' + '.join(extracted_prefix_parts)}).{common_nganh_full}"
+            is_common_trinh_do = all(item['trinh_do'] == parsed_items[0]['trinh_do'] for item in parsed_items)
+            if is_common_trinh_do and parsed_items[0]['trinh_do'] is not None:
+                extracted_khoa_parts = [item['khoa'] for item in parsed_items]
+                return f"({' + '.join(extracted_khoa_parts)}){parsed_items[0]['trinh_do']}.{common_nganh_full}"
+        # Quy tắc: Khoa(TrinhDo.Nganh+...) nếu cùng khóa
+        common_khoa = parsed_items[0]['khoa']
+        is_common_khoa = all(item['khoa'] == common_khoa for item in parsed_items)
+        if is_common_khoa:
+            extracted_inner_parts = []
+            for item in parsed_items:
+                inner_part = f"{item['trinh_do']}.{item['nganh_full']}" if item['trinh_do'] else f".{item['nganh_full']}"
+                extracted_inner_parts.append(inner_part)
+            return f"{common_khoa}({' + '.join(extracted_inner_parts)})"
+    return input_value
 
 # === GIAO DIỆN STREAMLIT ===
 
