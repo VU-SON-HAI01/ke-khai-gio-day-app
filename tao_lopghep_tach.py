@@ -1,3 +1,5 @@
+from fun_lopghep import transform_and_sort_lopghep
+import hashlib
 # === HÀM CHUYỂN ĐỔI TÊN LỚP GHÉP (TẮT <=> FULL) ===
 import itertools
 def convert_lopghep_to_lopghep_t(input_str):
@@ -62,24 +64,44 @@ def get_mockup_lop():
 month_names = [f"Tháng {i}" for i in list(range(8,13))+list(range(1,8))]
 
 # ==== HÀM XỬ LÝ GHÉP LỚP ====
+
+# Hàm sinh mã lớp ghép ngắn từ Lớp_mã_full (2 ký tự hash md5)
+def generate_short_code(ms_cu: str) -> str:
+    # ms_cu là chuỗi mã lớp ghép đã chuẩn hóa (ví dụ: 481060_481022_481021)
+    parts = ms_cu.split('_')
+    if not parts or len(parts[0]) < 5:
+        raise ValueError("Chuỗi mã số cũ không hợp lệ.")
+    prefix = parts[0][:5]
+    hash_md5 = hashlib.md5(ms_cu.encode()).hexdigest()
+    code = ''
+    for ch in hash_md5:
+        if ch.isalpha():
+            code += ch.upper()
+        elif ch.isdigit():
+            code += chr(ord('A') + int(ch))
+        if len(code) == 2:
+            break
+    if len(code) < 2:
+        code += 'AA'
+    return f"{prefix}{code}"
+
 def get_ghép_lớp_info(selected_classes, df_lop):
-    # 1. Ánh xạ tên → mã lớp
-    class_info_list = []
-    for tenlop in selected_classes:
-        row = df_lop[df_lop['Lớp'] == tenlop]
-        if not row.empty:
-            malop = str(row['Mã_lớp'].iloc[0])
-            class_info_list.append({'tenlop': tenlop, 'malop': malop})
+    # Sử dụng đúng quy tắc sắp xếp từ fun_lopghep.py
+    lopghep_str = '+'.join(selected_classes)
+    lopghep_xep, lopghep_maxep, lopghep_chinh, lopghep_machinh = transform_and_sort_lopghep(lopghep_str)
+    # Lấy lại danh sách tên lớp và mã lớp đã chuẩn hóa
+    tenlop_sorted = lopghep_xep.split('+') if lopghep_xep else []
+    malop_sorted = lopghep_maxep.split('_') if lopghep_maxep else []
+    lop_ten_full = lopghep_xep
+    lop_ma_full = lopghep_maxep
+    # Sinh mã lớp ghép mới dạng 48106AB (5 ký tự đầu + 2 ký tự hash)
     try:
-        class_info_list_sorted = sorted(class_info_list, key=lambda x: int(''.join(filter(str.isdigit, x['malop']))), reverse=True)
-    except:
-        class_info_list_sorted = class_info_list
-    lop_ten_full = "+".join([x['tenlop'] for x in class_info_list_sorted])
-    lop_ma_full = "_".join([x['malop'] for x in class_info_list_sorted])
-    ma_lop_tat = class_info_list_sorted[0]['malop'] if class_info_list_sorted else ""
-    lop_ten_group = convert_lopghep_to_lopghep_t([x['tenlop'] for x in class_info_list_sorted])
+        ma_lop_tat = generate_short_code(lop_ma_full)
+    except Exception:
+        ma_lop_tat = malop_sorted[0] if malop_sorted else ""
+    lop_ten_group = convert_lopghep_to_lopghep_t(tenlop_sorted)
     siso_dict = {}
-    filtered_siso = df_lop[df_lop['Lớp'].isin([x['tenlop'] for x in class_info_list_sorted])]
+    filtered_siso = df_lop[df_lop['Lớp'].isin(tenlop_sorted)]
     for thang in month_names:
         if thang in filtered_siso.columns:
             siso_dict[thang] = int(filtered_siso[thang].sum())
