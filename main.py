@@ -539,7 +539,10 @@ else:
                 "Báo cáo": [
                     st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")
                 ],
-                "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")]
+                "Trợ giúp": [
+                    st.Page("huongdan.py", title="Hướng dẫn", icon="❓"),
+                    st.Page("tao_lopghep_tach.py", title="Tạo lớp ghép hoặc chia ca", icon="🧩")
+                ]
             }
             # Thêm trang admin nếu là admin
             if user_email == ADMIN_EMAIL:
