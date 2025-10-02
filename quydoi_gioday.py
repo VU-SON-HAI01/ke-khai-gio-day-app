@@ -1069,15 +1069,7 @@ for i, tab in enumerate(tabs[:-1]):
             if not mon_info.empty:
                 kieu_tinh_mdmh = mon_info['Tính MĐ/MH'].iloc[0]
 
-        # Điều chỉnh lựa chọn phương pháp kê khai
         radio_disabled = False
-        if kieu_tinh_mdmh == 'LT':
-            options = ('Kê theo MĐ, MH',)
-            radio_disabled = True
-        elif kieu_tinh_mdmh == 'TH':
-            options = ('Kê theo MĐ, MH',)
-            radio_disabled = True
-        elif kieu_tinh_mdmh == 'LTTH':
         # Đơn giản hóa: Radio chỉ để hiển thị, không chọn được
         if kieu_tinh_mdmh in ['LT', 'TH']:
             st.radio(
