@@ -501,6 +501,14 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     except (ValueError, TypeError):
         return pd.DataFrame(), {"error": "Định dạng số tiết không hợp lệ. Vui lòng chỉ nhập số và dấu cách."}
 
+    # ...existing code...
+
+    # Đảm bảo luôn có return ở cuối hàm
+    if 'df_result' in locals() and 'summary' in locals():
+        return df_result, summary
+    else:
+        return pd.DataFrame(), {"error": "Không xác định được kết quả tính toán. Vui lòng kiểm tra lại dữ liệu đầu vào."}
+
     # Gom logic kiểm tra số tiết về một chỗ
     if len(locdulieu_info) != len(arr_tiet):
         return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})."}
