@@ -8,19 +8,6 @@ import ast
 import re
 from itertools import zip_longest
 # --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
-
-def xu_ly_tuan_tet(arr, tuanbatdau, tuanketthuc, df_ngaytuan_g):
-    """
-    Loại bỏ các tuần trùng với tuần nghỉ Tết khỏi mảng arr.
-    arr: list các tuần (int)
-    tuanbatdau, tuanketthuc: tuần bắt đầu và kết thúc (int)
-    df_ngaytuan_g: DataFrame chứa thông tin các tuần nghỉ Tết (có cột 'Tuan_Tet')
-    """
-    if df_ngaytuan_g is None or 'Tuan_Tet' not in df_ngaytuan_g.columns:
-        return arr
-    tuan_tet = df_ngaytuan_g['Tuan_Tet'].dropna().astype(int).tolist()
-    arr_khong_tet = [t for t in arr if t not in tuan_tet and tuanbatdau <= t <= tuanketthuc]
-    return arr_khong_tet
 def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
     """
     Đếm số tuần TẾT dựa vào cột Tuần_Tết nếu có, ánh xạ sang cột Tuần.
@@ -430,7 +417,6 @@ KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách'
 
 def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g):
     """Hàm xử lý chính, tính toán quy đổi giờ giảng."""
-    st.write('DEBUG: Bắt đầu process_mon_data')
     lop_chon = input_data.get('lop_hoc')
     mon_chon = input_data.get('mon_hoc')
     tuandentuan = input_data.get('tuan')
@@ -438,16 +424,10 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     tiet_nhap = input_data.get('tiet', "0")
     tiet_lt_nhap = input_data.get('tiet_lt', "0")
     tiet_th_nhap = input_data.get('tiet_th', "0")
-    st.write(f'DEBUG: lop_chon={lop_chon}, mon_chon={mon_chon}, tuandentuan={tuandentuan}, kieu_ke_khai={kieu_ke_khai}')
 
-    if not lop_chon:
-        st.write('DEBUG: Thiếu lớp học')
-        return pd.DataFrame(), {"error": "Vui lòng chọn một Lớp học."}
-    if not mon_chon:
-        st.write('DEBUG: Thiếu môn học')
-        return pd.DataFrame(), {"error": "Vui lòng chọn một Môn học."}
+    if not lop_chon: return pd.DataFrame(), {"error": "Vui lòng chọn một Lớp học."}
+    if not mon_chon: return pd.DataFrame(), {"error": "Vui lòng chọn một Môn học."}
     if not isinstance(tuandentuan, (list, tuple)) or len(tuandentuan) != 2:
-        st.write('DEBUG: Phạm vi tuần không hợp lệ')
         return pd.DataFrame(), {"error": "Phạm vi tuần không hợp lệ."}
 
     # Lấy DataFrame tương ứng với Khóa/Hệ đã chọn
@@ -461,32 +441,25 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         'Sơ cấp + VHPT': df_lopsc_g
     }
     source_df = df_lop_mapping.get(selected_khoa)
-    st.write(f'DEBUG: selected_khoa={selected_khoa}, source_df empty={source_df is None or source_df.empty}')
+    
     malop_info = source_df[source_df['Lớp'] == lop_chon] if source_df is not None else pd.DataFrame()
-    if malop_info.empty:
-        st.write(f'DEBUG: Không tìm thấy thông tin cho lớp {lop_chon}')
-        return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'."}
+    if malop_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'."}
+    
     malop = malop_info['Mã_lớp'].iloc[0]
+    
     dsmon_code = malop_info['Mã_DSMON'].iloc[0]
     mon_info_source = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
-    st.write(f'DEBUG: dsmon_code={dsmon_code}, mon_info_source empty={mon_info_source.empty}')
-    if mon_info_source.empty:
-        st.write(f'DEBUG: Không tìm thấy môn {mon_chon}')
-        return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'."}
+    if mon_info_source.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'."}
+
     mamon_info = mon_info_source[mon_info_source['Môn_học'] == mon_chon]
-    if mamon_info.empty:
-        st.write(f'DEBUG: Không tìm thấy thông tin cho môn {mon_chon}')
-        return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
+    if mamon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
 
     is_heavy_duty = mamon_info['Nặng_nhọc'].iloc[0] == 'NN'
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
-    st.write(f'DEBUG: is_heavy_duty={is_heavy_duty}, kieu_tinh_mdmh={kieu_tinh_mdmh}')
     
     tuanbatdau, tuanketthuc = tuandentuan
-    st.write(f'DEBUG: tuanbatdau={tuanbatdau}, tuanketthuc={tuanketthuc}')
     # Lọc tuần theo khoảng đã chọn
     locdulieu_info = df_ngaytuan_g[(df_ngaytuan_g['Tuần'] >= tuanbatdau) & (df_ngaytuan_g['Tuần'] <= tuanketthuc)].copy()
-    st.write(f'DEBUG: locdulieu_info shape={locdulieu_info.shape}')
     # Loại trừ tuần TẾT nếu có cột Tuần_Tết
     if 'Tuần_Tết' in locdulieu_info.columns:
         tuan_tet_mask = locdulieu_info['Tuần_Tết'].astype(str).str.upper().str.contains('TẾT')
@@ -497,38 +470,18 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
             locdulieu_info = locdulieu_info[~locdulieu_info['Ghi chú'].astype(str).str.upper().str.contains('TẾT')].copy()
         elif 'TẾT' in locdulieu_info.columns:
             locdulieu_info = locdulieu_info[~locdulieu_info['TẾT'].astype(str).str.upper().str.contains('TẾT')].copy()
-    st.write(f'DEBUG: locdulieu_info after TET shape={locdulieu_info.shape}')
     
     try:
+        arr_tiet_lt = np.array([int(x) for x in str(tiet_lt_nhap).split()]) if tiet_lt_nhap and tiet_lt_nhap.strip() else np.array([], dtype=int)
+        arr_tiet_th = np.array([int(x) for x in str(tiet_th_nhap).split()]) if tiet_th_nhap and tiet_th_nhap.strip() else np.array([], dtype=int)
         arr_tiet = np.array([int(x) for x in str(tiet_nhap).split()]) if tiet_nhap and tiet_nhap.strip() else np.array([], dtype=int)
-        st.write(f'DEBUG: arr_tiet={arr_tiet}')
-        # Logic chuyển đổi cho từng trường hợp
-        if kieu_tinh_mdmh == 'LT':
-            arr_tiet_lt = arr_tiet.copy()
-            arr_tiet_th = np.zeros_like(arr_tiet)
-        elif kieu_tinh_mdmh == 'TH':
-            arr_tiet_th = arr_tiet.copy()
-            arr_tiet_lt = np.zeros_like(arr_tiet)
-        else:
-            arr_tiet_lt = np.array([int(x) for x in str(tiet_lt_nhap).split()]) if tiet_lt_nhap and tiet_lt_nhap.strip() else np.array([], dtype=int)
-            arr_tiet_th = np.array([int(x) for x in str(tiet_th_nhap).split()]) if tiet_th_nhap and tiet_th_nhap.strip() else np.array([], dtype=int)
-        st.write(f'DEBUG: arr_tiet_lt={arr_tiet_lt}, arr_tiet_th={arr_tiet_th}')
         so_tiet_lt_dem_duoc = len(arr_tiet_lt)
         so_tiet_th_dem_duoc = len(arr_tiet_th)
     except (ValueError, TypeError):
-        st.write('DEBUG: Định dạng số tiết không hợp lệ')
         return pd.DataFrame(), {"error": "Định dạng số tiết không hợp lệ. Vui lòng chỉ nhập số và dấu cách."}
-
-
-    # Đảm bảo luôn có return ở cuối hàm
-    if 'df_result' in locals() and 'summary' in locals():
-        return df_result, summary
-    else:
-        return pd.DataFrame(), {"error": "Không xác định được kết quả tính toán. Vui lòng kiểm tra lại dữ liệu đầu vào."}
 
     # Gom logic kiểm tra số tiết về một chỗ
     if len(locdulieu_info) != len(arr_tiet):
-        st.write(f'DEBUG: Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})')
         return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})."}
     if kieu_tinh_mdmh == 'LT':
         arr_tiet_lt = arr_tiet
@@ -537,9 +490,9 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         arr_tiet_lt = np.zeros_like(arr_tiet)
         arr_tiet_th = arr_tiet
     elif kieu_tinh_mdmh == 'LTTH':
-        # arr_tiet_th lấy từ input, arr_tiet và arr_tiet_th đã lấy từ input, arr_tiet_lt = arr_tiet - arr_tiet_th
+        # arr_tiet_th lấy từ input, arr_tiet lấy từ input, arr_tiet_lt = arr_tiet - arr_tiet_th
         arr_tiet_lt = arr_tiet - arr_tiet_th
-        # arr_tiet và arr_tiet_th đã lấy từ input, arr_tiet_lt tính lại như trên
+        # arr_tiet và arr_tiet_th đã lấy từ input widget, arr_tiet_lt tính lại như trên
     else:
         return pd.DataFrame(), {"error": "Loại kê khai không hợp lệ."}
     
@@ -553,17 +506,13 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
                 break
         if not found:
             return pd.DataFrame(), {"error": "Không tìm thấy cột 'Tháng' trong dữ liệu tuần/ngày. Vui lòng kiểm tra lại file nguồn."}
-    st.write('DEBUG: locdulieu_info columns =', locdulieu_info.columns)
     df_result = locdulieu_info[['Tuần', 'Từ ngày đến ngày']].copy()
-    st.write('DEBUG: locdulieu_info columns =', locdulieu_info.columns)
     df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
-    st.write('DEBUG: df_result columns =', df_result.columns)
-    st.write('DEBUG: df_result shape =', df_result.shape)
-    st.write('DEBUG: df_result sample =', df_result.head())
     
     # Thêm cột Tháng vào df_result
     week_to_month = dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Tháng']))
     df_result['Tháng'] = df_result['Tuần'].map(week_to_month)
+    
     # LOGIC MỚI: TÌM SĨ SỐ THEO MÃ LỚP VÀ THÁNG
     siso_list = []
     for month in df_result['Tháng']:
@@ -610,7 +559,59 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     df_result["QĐ thiếu"] = df_result["HS TC/CĐ"] * ((df_result["Tiết_LT"] * df_result["HS_SS_LT_tron"]) + (df_result["HS_SS_TH_tron"] * df_result["Tiết_TH"]))
 
     rounding_map = {"Sĩ số": 0, "Tiết": 1, "HS_SS_LT": 1, "HS_SS_TH": 1, "QĐ thừa": 1, "QĐ thiếu": 1, "HS TC/CĐ": 2, "Tiết_LT": 1, "Tiết_TH": 1}
-    # Đảm bảo chỉ render widget nhập số tiết 1 lần duy nhất cho mỗi i
+    for col, decimals in rounding_map.items():
+        if col in df_result.columns:
+            df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0).round(decimals)
+
+    df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
+    final_columns = ["Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "QĐ thiếu"]
+    df_final = df_result[[col for col in final_columns if col in df_result.columns]]
+    
+    siso_by_week = pd.DataFrame({
+        'Tuần': df_result['Tuần'],
+        'Sĩ số': df_result['Sĩ số']
+    })
+    
+    mon_info_filtered = mon_info_source[mon_info_source['Môn_học'] == mon_chon]
+
+    processing_log = {
+        'lop_chon': lop_chon,
+        'mon_chon': mon_chon,
+        'malop': malop,
+        'selected_khoa': selected_khoa,
+        'tuandentuan': tuandentuan,
+        'siso_per_month_df': siso_by_week,
+        'malop_info_df': malop_info,
+        'mon_info_filtered_df': mon_info_filtered
+    }
+    st.session_state[f'processing_log_{input_data.get("index")}'] = processing_log
+    
+    summary_info = {"mamon": mamon_info['Mã_môn'].iloc[0], "heso_tccd": df_final['HS TC/CĐ'].mean()}
+    
+    return df_final, summary_info
+
+def xu_ly_tuan_tet(arr_tiet, tuanbatdau, tuanketthuc, df_ngaytuan_g):
+    """
+    Hàm xử lý số tiết theo tuần, tự động gán số tiết = 0 cho tuần TẾT.
+    arr_tiet: mảng số tiết nhập vào (list hoặc np.array)
+    tuanbatdau, tuanketthuc: tuần bắt đầu và kết thúc
+    df_ngaytuan_g: DataFrame chứa thông tin tuần, có cột 'Ghi chú' hoặc 'TẾT'
+    """
+    arr_tiet = list(arr_tiet)
+    tuan_range = range(tuanbatdau, tuanketthuc+1)
+    arr_tiet_new = []
+    for idx, tuan in enumerate(tuan_range):
+        # Kiểm tra tuần TẾT
+        ghi_chu = ''
+        if 'Ghi chú' in df_ngaytuan_g.columns:
+            ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'Ghi chú'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
+        elif 'TẾT' in df_ngaytuan_g.columns:
+            ghi_chu = str(df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan, 'TẾT'].values[0]) if not df_ngaytuan_g.loc[df_ngaytuan_g['Tuần'] == tuan].empty else ''
+        if 'TẾT' in ghi_chu.upper():
+            arr_tiet_new.append(0)
+        else:
+            arr_tiet_new.append(arr_tiet[idx] if idx < len(arr_tiet) else 0)
+    return np.array(arr_tiet_new)
 
 # --- CÁC HÀM HỖ TRỢ KHÁC ---
 def get_default_input_dict():
@@ -893,8 +894,6 @@ def save_all_data():
     thongtin_gv_df = pd.DataFrame([thongtin_gv_dict])
     save_data_to_sheet('thongtin_gv', thongtin_gv_df)
     st.success("Đã lưu thành công tất cả dữ liệu!")
-    # Sau khi lưu, tự động reload lại dữ liệu từ Google Sheet để đồng bộ widget
-    load_all_mon_data()
 
 # --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
 if 'mon_hoc_data' not in st.session_state:
@@ -949,11 +948,7 @@ for i, tab in enumerate(tabs[:-1]):
         st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
 
         def update_tab_state(key, index):
-            widget_key = f"widget_{key}_{index}"
-            if widget_key not in st.session_state:
-                st.warning("Phiên làm việc đã hết hạn hoặc dữ liệu bị mất. Vui lòng đăng nhập lại và tải lại dữ liệu.")
-                st.stop()
-            st.session_state.mon_hoc_data[index][key] = st.session_state[widget_key]
+            st.session_state.mon_hoc_data[index][key] = st.session_state[f"widget_{key}_{index}"]
 
         current_input = st.session_state.mon_hoc_data[i]
 
@@ -1058,17 +1053,66 @@ for i, tab in enumerate(tabs[:-1]):
             if not mon_info.empty:
                 kieu_tinh_mdmh = mon_info['Tính MĐ/MH'].iloc[0]
 
+        # Điều chỉnh lựa chọn phương pháp kê khai
         radio_disabled = False
-        # Đơn giản hóa: Radio chỉ để hiển thị, không chọn được
-        if kieu_tinh_mdmh in ['LT', 'TH']:
-            st.radio(
-                "Chọn phương pháp kê khai",
-                ('Kê theo MĐ, MH',),
-                index=0,
-                key=f"widget_cach_ke_{i}",
-                horizontal=True,
-                disabled=True
+        if kieu_tinh_mdmh == 'LT':
+            options = ('Kê theo MĐ, MH',)
+            radio_disabled = True
+        elif kieu_tinh_mdmh == 'TH':
+            options = ('Kê theo MĐ, MH',)
+            radio_disabled = True
+        elif kieu_tinh_mdmh == 'LTTH':
+            options = ('Kê theo LT, TH chi tiết', 'Kê theo MĐ, MH')
+        else:
+            options = ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết')
+
+        selected_cach_ke = st.radio(
+            "Chọn phương pháp kê khai",
+            options,
+            index=0,
+            key=f"widget_cach_ke_{i}",
+            on_change=update_tab_state,
+            args=('cach_ke', i),
+            horizontal=True,
+            disabled=radio_disabled
+        )
+        # Nếu bị khóa, luôn gán giá trị đúng vào session_state
+        if radio_disabled:
+            st.session_state.mon_hoc_data[i]['cach_ke'] = 'Kê theo MĐ, MH'
+
+        # Điều chỉnh nhập số tiết theo kiểu môn học
+        # Chỉ cho phép 1 widget nhập số tiết mỗi tuần xuất hiện tại 1 thời điểm
+        if kieu_tinh_mdmh == 'LT':
+            tiet_default = current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8")
+            tiet_lt_value = current_input.get('tiet_lt', '')
+            if not tiet_lt_value or tiet_lt_value == '0':
+                tiet_lt_value = tiet_default
+            tiet_value = st.text_input(
+                "Nhập số tiết mỗi tuần",
+                value=tiet_lt_value,
+                key=f"widget_tiet_lt_{i}",
+                on_change=update_tab_state,
+                args=('tiet_lt', i)
             )
+            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
+            st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_value
+            st.session_state.mon_hoc_data[i]['tiet_th'] = '0'
+        elif kieu_tinh_mdmh == 'TH':
+            tiet_default = current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8")
+            tiet_th_value = current_input.get('tiet_th', '')
+            if not tiet_th_value or tiet_th_value == '0':
+                tiet_th_value = tiet_default
+            tiet_value = st.text_input(
+                "Nhập số tiết mỗi tuần",
+                value=tiet_th_value,
+                key=f"widget_tiet_th_{i}",
+                on_change=update_tab_state,
+                args=('tiet_th', i)
+            )
+            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
+            st.session_state.mon_hoc_data[i]['tiet_lt'] = '0'
+            st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value
+        elif current_input.get('cach_ke') == 'Kê theo MĐ, MH':
             tiet_default = current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8")
             tiet_value = st.text_input(
                 "Nhập số tiết mỗi tuần",
@@ -1078,24 +1122,13 @@ for i, tab in enumerate(tabs[:-1]):
                 args=('tiet', i)
             )
             st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
-            st.session_state.mon_hoc_data[i]['tiet_th'] = ''
-            st.session_state.mon_hoc_data[i]['tiet_lt'] = ''
         else:
-            st.radio(
-                "Chọn phương pháp kê khai",
-                ('Kê theo LT, TH chi tiết',),
-                index=0,
-                key=f"widget_cach_ke_{i}",
-                horizontal=True,
-                disabled=True
-            )
+            # Cách kê LT, TH chi tiết: nhập Tổng tiết (col 1), nhập Tiết TH (col 2), Tiết LT (col 3) tự động tính
             c1, c2, c3 = st.columns(3)
-            tiet_value = st.session_state.get(f"widget_tiet_{i}", current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8"))
-            tiet_value_th = st.session_state.get(f"widget_tiet_th_{i}", current_input.get('tiet_th', ''))
             with c1:
                 tiet_value = st.text_input(
                     "Nhập số tiết mỗi tuần",
-                    value=tiet_value,
+                    value=current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8"),
                     key=f"widget_tiet_{i}",
                     on_change=update_tab_state,
                     args=('tiet', i)
@@ -1104,23 +1137,32 @@ for i, tab in enumerate(tabs[:-1]):
             with c2:
                 tiet_value_th = st.text_input(
                     "Nhập số tiết Thực hành mỗi tuần",
-                    value=tiet_value_th,
+                    value=current_input.get('tiet_th', ''),
                     key=f"widget_tiet_th_{i}",
                     on_change=update_tab_state,
                     args=('tiet_th', i)
                 )
                 st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
+            # Tính tiết LT = Tổng tiết - Tiết TH (theo từng tuần), tự động bổ sung 0 nếu thiếu
             tiet_list = [int(x) for x in str(tiet_value).split() if x]
+            # Lấy số tuần thực tế để chuẩn hóa độ dài
             tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
             so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
             so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
+            # Validation: số tiết mỗi tuần phải khớp số tuần thực tế
+            if len(tiet_list) != so_tuan_thuc_te:
+                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({len(tiet_list)}).")
+                is_input_valid = False
+            tiet_th_list = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet_th', '')).split() if x]
             tiet_th_list = [int(x) for x in str(tiet_value_th).split() if x]
+            # Nếu rỗng thì toàn bộ là 0, nếu thiếu thì bổ sung 0 cho đủ số tuần thực tế
             if not tiet_th_list:
                 tiet_th_list = [0] * so_tuan_thuc_te
             elif len(tiet_th_list) < so_tuan_thuc_te:
                 tiet_th_list = tiet_th_list + [0] * (so_tuan_thuc_te - len(tiet_th_list))
             elif len(tiet_th_list) > so_tuan_thuc_te:
                 tiet_th_list = tiet_th_list[:so_tuan_thuc_te]
+            # Tính tiết LT
             tiet_lt_list = []
             for idx in range(so_tuan_thuc_te):
                 t = tiet_list[idx] if idx < len(tiet_list) else 0
@@ -1135,6 +1177,11 @@ for i, tab in enumerate(tabs[:-1]):
                     key=f"widget_tiet_lt_{i}_auto",
                     disabled=True
                 )
+        
+        arr_tiet_lt = []
+        arr_tiet_th = []
+        arr_tiet = []
+        locdulieu_info = pd.DataFrame()
 
         if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
             arr_tiet = [int(x) for x in str(current_input.get('tiet', '')).split() if x]
@@ -1173,12 +1220,6 @@ for i, tab in enumerate(tabs[:-1]):
                 mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == current_input.get('mon_hoc'))]
                 if not mon_info.empty:
                     # Sử dụng Mã_môn_ngành thay vì Mã_môn
-                    dsmon_code = source_df[source_df['Lớp'] == current_input.get('lop_hoc')]['Mã_DSMON']
-            if not dsmon_code.empty:
-                dsmon_code = dsmon_code.iloc[0]
-                mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == current_input.get('mon_hoc'))]
-                if not mon_info.empty:
-                    # Sử dụng Mã_môn_ngành thay vì Mã_môn
                     mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
                     danh_sach_mamon_tab.append(mamon_nganh)
         chuangv_tab = st.session_state.chuan_gv
@@ -1194,7 +1235,6 @@ for i, tab in enumerate(tabs[:-1]):
             is_input_valid = False
         if kieu_tinh_mdmh == '':
             so_tiet_dem_duoc = len(arr_tiet)
-
             if so_tuan_thuc_te != so_tiet_dem_duoc:
                 validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
                 is_input_valid = False
@@ -1217,23 +1257,7 @@ for i, tab in enumerate(tabs[:-1]):
                 arr_tiet_lt = xu_ly_tuan_tet(arr_tiet_lt, tuanbatdau, tuanketthuc, df_ngaytuan_g)
                 arr_tiet_th = xu_ly_tuan_tet(arr_tiet_th, tuanbatdau, tuanketthuc, df_ngaytuan_g)
 
-            import traceback
-            st.write("DEBUG: current_input =", current_input)
-            st.write("DEBUG: chuangv_tab =", chuangv_tab)
-            st.write("DEBUG: arr_tiet =", arr_tiet)
-            if 'arr_tiet_lt' in locals():
-                st.write("DEBUG: arr_tiet_lt =", arr_tiet_lt)
-            if 'arr_tiet_th' in locals():
-                st.write("DEBUG: arr_tiet_th =", arr_tiet_th)
-
-            try:
-                df_result, summary = process_mon_data(current_input, chuangv_tab, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
-                st.write("DEBUG: df_result head =", df_result.head() if hasattr(df_result, 'head') else df_result)
-                st.write("DEBUG: summary =", summary)
-            except Exception as e:
-                st.error(f"DEBUG: Exception in process_mon_data: {e}")
-                st.error(traceback.format_exc())
-                raise
+            df_result, summary = process_mon_data(current_input, chuangv_tab, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
             # Sau khi có df_result, xử lý hiển thị tuần TẾT và lọc theo tuần đã chọn
             if df_result is not None and not df_result.empty:
                 tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
