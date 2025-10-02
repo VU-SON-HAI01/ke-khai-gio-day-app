@@ -485,9 +485,17 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
             locdulieu_info = locdulieu_info[~locdulieu_info['TẾT'].astype(str).str.upper().str.contains('TẾT')].copy()
     
     try:
-        arr_tiet_lt = np.array([int(x) for x in str(tiet_lt_nhap).split()]) if tiet_lt_nhap and tiet_lt_nhap.strip() else np.array([], dtype=int)
-        arr_tiet_th = np.array([int(x) for x in str(tiet_th_nhap).split()]) if tiet_th_nhap and tiet_th_nhap.strip() else np.array([], dtype=int)
         arr_tiet = np.array([int(x) for x in str(tiet_nhap).split()]) if tiet_nhap and tiet_nhap.strip() else np.array([], dtype=int)
+        # Logic chuyển đổi cho từng trường hợp
+        if kieu_tinh_mdmh == 'LT':
+            arr_tiet_lt = arr_tiet.copy()
+            arr_tiet_th = np.zeros_like(arr_tiet)
+        elif kieu_tinh_mdmh == 'TH':
+            arr_tiet_th = arr_tiet.copy()
+            arr_tiet_lt = np.zeros_like(arr_tiet)
+        else:
+            arr_tiet_lt = np.array([int(x) for x in str(tiet_lt_nhap).split()]) if tiet_lt_nhap and tiet_lt_nhap.strip() else np.array([], dtype=int)
+            arr_tiet_th = np.array([int(x) for x in str(tiet_th_nhap).split()]) if tiet_th_nhap and tiet_th_nhap.strip() else np.array([], dtype=int)
         so_tiet_lt_dem_duoc = len(arr_tiet_lt)
         so_tiet_th_dem_duoc = len(arr_tiet_th)
     except (ValueError, TypeError):
