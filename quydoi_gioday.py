@@ -519,7 +519,6 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         st.write('DEBUG: Định dạng số tiết không hợp lệ')
         return pd.DataFrame(), {"error": "Định dạng số tiết không hợp lệ. Vui lòng chỉ nhập số và dấu cách."}
 
-    # ...existing code...
 
     # Đảm bảo luôn có return ở cuối hàm
     if 'df_result' in locals() and 'summary' in locals():
@@ -554,6 +553,7 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
                 break
         if not found:
             return pd.DataFrame(), {"error": "Không tìm thấy cột 'Tháng' trong dữ liệu tuần/ngày. Vui lòng kiểm tra lại file nguồn."}
+    st.write('DEBUG: locdulieu_info columns =', locdulieu_info.columns)
     df_result = locdulieu_info[['Tuần', 'Từ ngày đến ngày']].copy()
     st.write('DEBUG: locdulieu_info columns =', locdulieu_info.columns)
     df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
