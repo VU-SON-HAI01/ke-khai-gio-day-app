@@ -1195,7 +1195,9 @@ for i, tab in enumerate(tabs[:-1]):
             arr_tiet = [int(x) for x in str(current_input.get('tiet', '')).split() if x]
         else:
             arr_tiet = [int(x) for x in str(current_input.get('tiet', '')).split() if x]
-            arr_tiet_lt = [int(x) for x in str(current_input.get('tiet_lt', '0')).split() if x]
+            # arr_tiet_lt lấy từ widget_tiet_lt_{i}_auto nếu có, đảm bảo luôn đồng bộ với input tự động
+            tiet_lt_auto = st.session_state.get(f"widget_tiet_lt_{i}_auto", current_input.get('tiet_lt', '0'))
+            arr_tiet_lt = [int(x) for x in str(tiet_lt_auto).split() if x]
             arr_tiet_th = [int(x) for x in str(current_input.get('tiet_th', '0')).split() if x]
         # Đảm bảo chỉ có 1 widget nhập số tiết mỗi tuần xuất hiện cho mỗi trường hợp
 
