@@ -430,6 +430,7 @@ KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách'
 
 def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g):
     """Hàm xử lý chính, tính toán quy đổi giờ giảng."""
+    st.write('DEBUG: Bắt đầu process_mon_data')
     lop_chon = input_data.get('lop_hoc')
     mon_chon = input_data.get('mon_hoc')
     tuandentuan = input_data.get('tuan')
@@ -437,10 +438,16 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     tiet_nhap = input_data.get('tiet', "0")
     tiet_lt_nhap = input_data.get('tiet_lt', "0")
     tiet_th_nhap = input_data.get('tiet_th', "0")
+    st.write(f'DEBUG: lop_chon={lop_chon}, mon_chon={mon_chon}, tuandentuan={tuandentuan}, kieu_ke_khai={kieu_ke_khai}')
 
-    if not lop_chon: return pd.DataFrame(), {"error": "Vui lòng chọn một Lớp học."}
-    if not mon_chon: return pd.DataFrame(), {"error": "Vui lòng chọn một Môn học."}
+    if not lop_chon:
+        st.write('DEBUG: Thiếu lớp học')
+        return pd.DataFrame(), {"error": "Vui lòng chọn một Lớp học."}
+    if not mon_chon:
+        st.write('DEBUG: Thiếu môn học')
+        return pd.DataFrame(), {"error": "Vui lòng chọn một Môn học."}
     if not isinstance(tuandentuan, (list, tuple)) or len(tuandentuan) != 2:
+        st.write('DEBUG: Phạm vi tuần không hợp lệ')
         return pd.DataFrame(), {"error": "Phạm vi tuần không hợp lệ."}
 
     # Lấy DataFrame tương ứng với Khóa/Hệ đã chọn
@@ -454,25 +461,32 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         'Sơ cấp + VHPT': df_lopsc_g
     }
     source_df = df_lop_mapping.get(selected_khoa)
-    
+    st.write(f'DEBUG: selected_khoa={selected_khoa}, source_df empty={source_df is None or source_df.empty}')
     malop_info = source_df[source_df['Lớp'] == lop_chon] if source_df is not None else pd.DataFrame()
-    if malop_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'."}
-    
+    if malop_info.empty:
+        st.write(f'DEBUG: Không tìm thấy thông tin cho lớp {lop_chon}')
+        return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'."}
     malop = malop_info['Mã_lớp'].iloc[0]
-    
     dsmon_code = malop_info['Mã_DSMON'].iloc[0]
     mon_info_source = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
-    if mon_info_source.empty: return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'."}
-
+    st.write(f'DEBUG: dsmon_code={dsmon_code}, mon_info_source empty={mon_info_source.empty}')
+    if mon_info_source.empty:
+        st.write(f'DEBUG: Không tìm thấy môn {mon_chon}')
+        return pd.DataFrame(), {"error": f"Không tìm thấy môn '{mon_chon}'."}
     mamon_info = mon_info_source[mon_info_source['Môn_học'] == mon_chon]
-    if mamon_info.empty: return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
+    if mamon_info.empty:
+        st.write(f'DEBUG: Không tìm thấy thông tin cho môn {mon_chon}')
+        return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
 
     is_heavy_duty = mamon_info['Nặng_nhọc'].iloc[0] == 'NN'
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
+    st.write(f'DEBUG: is_heavy_duty={is_heavy_duty}, kieu_tinh_mdmh={kieu_tinh_mdmh}')
     
     tuanbatdau, tuanketthuc = tuandentuan
+    st.write(f'DEBUG: tuanbatdau={tuanbatdau}, tuanketthuc={tuanketthuc}')
     # Lọc tuần theo khoảng đã chọn
     locdulieu_info = df_ngaytuan_g[(df_ngaytuan_g['Tuần'] >= tuanbatdau) & (df_ngaytuan_g['Tuần'] <= tuanketthuc)].copy()
+    st.write(f'DEBUG: locdulieu_info shape={locdulieu_info.shape}')
     # Loại trừ tuần TẾT nếu có cột Tuần_Tết
     if 'Tuần_Tết' in locdulieu_info.columns:
         tuan_tet_mask = locdulieu_info['Tuần_Tết'].astype(str).str.upper().str.contains('TẾT')
@@ -483,9 +497,11 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
             locdulieu_info = locdulieu_info[~locdulieu_info['Ghi chú'].astype(str).str.upper().str.contains('TẾT')].copy()
         elif 'TẾT' in locdulieu_info.columns:
             locdulieu_info = locdulieu_info[~locdulieu_info['TẾT'].astype(str).str.upper().str.contains('TẾT')].copy()
+    st.write(f'DEBUG: locdulieu_info after TET shape={locdulieu_info.shape}')
     
     try:
         arr_tiet = np.array([int(x) for x in str(tiet_nhap).split()]) if tiet_nhap and tiet_nhap.strip() else np.array([], dtype=int)
+        st.write(f'DEBUG: arr_tiet={arr_tiet}')
         # Logic chuyển đổi cho từng trường hợp
         if kieu_tinh_mdmh == 'LT':
             arr_tiet_lt = arr_tiet.copy()
@@ -496,9 +512,11 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         else:
             arr_tiet_lt = np.array([int(x) for x in str(tiet_lt_nhap).split()]) if tiet_lt_nhap and tiet_lt_nhap.strip() else np.array([], dtype=int)
             arr_tiet_th = np.array([int(x) for x in str(tiet_th_nhap).split()]) if tiet_th_nhap and tiet_th_nhap.strip() else np.array([], dtype=int)
+        st.write(f'DEBUG: arr_tiet_lt={arr_tiet_lt}, arr_tiet_th={arr_tiet_th}')
         so_tiet_lt_dem_duoc = len(arr_tiet_lt)
         so_tiet_th_dem_duoc = len(arr_tiet_th)
     except (ValueError, TypeError):
+        st.write('DEBUG: Định dạng số tiết không hợp lệ')
         return pd.DataFrame(), {"error": "Định dạng số tiết không hợp lệ. Vui lòng chỉ nhập số và dấu cách."}
 
     # ...existing code...
@@ -511,6 +529,7 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
 
     # Gom logic kiểm tra số tiết về một chỗ
     if len(locdulieu_info) != len(arr_tiet):
+        st.write(f'DEBUG: Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})')
         return pd.DataFrame(), {"error": f"Số tuần đã chọn ({len(locdulieu_info)}) không khớp với số tiết đã nhập ({len(arr_tiet)})."}
     if kieu_tinh_mdmh == 'LT':
         arr_tiet_lt = arr_tiet
