@@ -1076,6 +1076,9 @@ for i, tab in enumerate(tabs[:-1]):
             horizontal=True,
             disabled=radio_disabled
         )
+        # Khi chuyển chế độ kê khai, trigger cập nhật lại bảng kết quả
+        if st.session_state.get(f"widget_cach_ke_{i}") != current_input.get('cach_ke'):
+            update_tab_state('cach_ke', i)
         # Nếu bị khóa, luôn gán giá trị đúng vào session_state
         if radio_disabled:
             st.session_state.mon_hoc_data[i]['cach_ke'] = 'Kê theo MĐ, MH'
