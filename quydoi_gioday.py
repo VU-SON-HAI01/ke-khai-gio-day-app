@@ -1090,12 +1090,13 @@ for i, tab in enumerate(tabs[:-1]):
             tiet_lt_value = current_input.get('tiet_lt', '')
             if not tiet_lt_value or tiet_lt_value == '0':
                 tiet_lt_value = tiet_default
+            def update_tiet_lt_tab():
+                update_tab_state('tiet_lt', i)
             tiet_value = st.text_input(
                 "Nhập số tiết mỗi tuần",
                 value=tiet_lt_value,
                 key=f"widget_tiet_lt_{i}",
-                on_change=update_tab_state,
-                args=('tiet_lt', i)
+                on_change=update_tiet_lt_tab
             )
             st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
             st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_value
@@ -1105,24 +1106,26 @@ for i, tab in enumerate(tabs[:-1]):
             tiet_th_value = current_input.get('tiet_th', '')
             if not tiet_th_value or tiet_th_value == '0':
                 tiet_th_value = tiet_default
+            def update_tiet_th_tab():
+                update_tab_state('tiet_th', i)
             tiet_value = st.text_input(
                 "Nhập số tiết mỗi tuần",
                 value=tiet_th_value,
                 key=f"widget_tiet_th_{i}",
-                on_change=update_tab_state,
-                args=('tiet_th', i)
+                on_change=update_tiet_th_tab
             )
             st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
             st.session_state.mon_hoc_data[i]['tiet_lt'] = '0'
             st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value
         elif current_input.get('cach_ke') == 'Kê theo MĐ, MH':
             tiet_default = current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8")
+            def update_tiet_tab():
+                update_tab_state('tiet', i)
             tiet_value = st.text_input(
                 "Nhập số tiết mỗi tuần",
                 value=tiet_default,
                 key=f"widget_tiet_{i}",
-                on_change=update_tab_state,
-                args=('tiet', i)
+                on_change=update_tiet_tab
             )
             st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
         else:
@@ -1157,6 +1160,8 @@ for i, tab in enumerate(tabs[:-1]):
                 current_input['tiet_th'] = tiet_value_th
                 current_input['tiet_lt'] = tiet_lt_str
                 st.session_state[f"widget_tiet_lt_{i}_auto"] = tiet_lt_str
+                # Trigger cập nhật bảng kết quả ngay sau khi tính lại LT
+                update_tab_state('tiet', i)
 
             # Nếu vừa chuyển từ chế độ khác sang LT, TH chi tiết, reset tiet_th mặc định là 0 cho đúng số tuần
             if current_input.get('cach_ke') == 'Kê theo LT, TH chi tiết' and (not current_input.get('tiet_th') or current_input.get('tiet_th') == '0'):
