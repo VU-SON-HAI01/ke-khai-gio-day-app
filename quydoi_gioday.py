@@ -555,6 +555,7 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         if not found:
             return pd.DataFrame(), {"error": "Không tìm thấy cột 'Tháng' trong dữ liệu tuần/ngày. Vui lòng kiểm tra lại file nguồn."}
     df_result = locdulieu_info[['Tuần', 'Từ ngày đến ngày']].copy()
+    st.write('DEBUG: locdulieu_info columns =', locdulieu_info.columns)
     df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
     st.write('DEBUG: df_result columns =', df_result.columns)
     st.write('DEBUG: df_result shape =', df_result.shape)
@@ -563,7 +564,6 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     # Thêm cột Tháng vào df_result
     week_to_month = dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Tháng']))
     df_result['Tháng'] = df_result['Tuần'].map(week_to_month)
-    
     # LOGIC MỚI: TÌM SĨ SỐ THEO MÃ LỚP VÀ THÁNG
     siso_list = []
     for month in df_result['Tháng']:
@@ -1194,6 +1194,7 @@ for i, tab in enumerate(tabs[:-1]):
             is_input_valid = False
         if kieu_tinh_mdmh == '':
             so_tiet_dem_duoc = len(arr_tiet)
+
             if so_tuan_thuc_te != so_tiet_dem_duoc:
                 validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({so_tiet_dem_duoc}).")
                 is_input_valid = False
