@@ -1078,57 +1078,16 @@ for i, tab in enumerate(tabs[:-1]):
             options = ('Kê theo MĐ, MH',)
             radio_disabled = True
         elif kieu_tinh_mdmh == 'LTTH':
-            options = ('Kê theo LT, TH chi tiết', 'Kê theo MĐ, MH')
-        else:
-            options = ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết')
-
-        selected_cach_ke = st.radio(
-            "Chọn phương pháp kê khai",
-            options,
-            index=0,
-            key=f"widget_cach_ke_{i}",
-            on_change=update_tab_state,
-            args=('cach_ke', i),
-            horizontal=True,
-            disabled=radio_disabled
-        )
-        # Nếu bị khóa, luôn gán giá trị đúng vào session_state
-        if radio_disabled:
-            st.session_state.mon_hoc_data[i]['cach_ke'] = 'Kê theo MĐ, MH'
-
-        # Điều chỉnh nhập số tiết theo kiểu môn học
-        # Chỉ cho phép 1 widget nhập số tiết mỗi tuần xuất hiện tại 1 thời điểm
-        if kieu_tinh_mdmh == 'LT':
-            tiet_default = current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8")
-            tiet_lt_value = current_input.get('tiet_lt', '')
-            if not tiet_lt_value or tiet_lt_value == '0':
-                tiet_lt_value = tiet_default
-            tiet_value = st.text_input(
-                "Nhập số tiết mỗi tuần",
-                value=tiet_lt_value,
-                key=f"widget_tiet_lt_{i}",
-                on_change=update_tab_state,
-                args=('tiet_lt', i)
+        # Đơn giản hóa: Radio chỉ để hiển thị, không chọn được
+        if kieu_tinh_mdmh in ['LT', 'TH']:
+            st.radio(
+                "Chọn phương pháp kê khai",
+                ('Kê theo MĐ, MH',),
+                index=0,
+                key=f"widget_cach_ke_{i}",
+                horizontal=True,
+                disabled=True
             )
-            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
-            st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_value
-            st.session_state.mon_hoc_data[i]['tiet_th'] = '0'
-        elif kieu_tinh_mdmh == 'TH':
-            tiet_default = current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8")
-            tiet_th_value = current_input.get('tiet_th', '')
-            if not tiet_th_value or tiet_th_value == '0':
-                tiet_th_value = tiet_default
-            tiet_value = st.text_input(
-                "Nhập số tiết mỗi tuần",
-                value=tiet_th_value,
-                key=f"widget_tiet_th_{i}",
-                on_change=update_tab_state,
-                args=('tiet_th', i)
-            )
-            st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
-            st.session_state.mon_hoc_data[i]['tiet_lt'] = '0'
-            st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value
-        elif current_input.get('cach_ke') == 'Kê theo MĐ, MH':
             tiet_default = current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8")
             tiet_value = st.text_input(
                 "Nhập số tiết mỗi tuần",
@@ -1138,8 +1097,17 @@ for i, tab in enumerate(tabs[:-1]):
                 args=('tiet', i)
             )
             st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
+            st.session_state.mon_hoc_data[i]['tiet_th'] = ''
+            st.session_state.mon_hoc_data[i]['tiet_lt'] = ''
         else:
-            # Cách kê LT, TH chi tiết: nhập Tổng tiết (col 1), nhập Tiết TH (col 2), Tiết LT (col 3) tự động tính
+            st.radio(
+                "Chọn phương pháp kê khai",
+                ('Kê theo LT, TH chi tiết',),
+                index=0,
+                key=f"widget_cach_ke_{i}",
+                horizontal=True,
+                disabled=True
+            )
             c1, c2, c3 = st.columns(3)
             tiet_value = st.session_state.get(f"widget_tiet_{i}", current_input.get('tiet', "4 4 4 4 4 4 4 4 4 8 8 8"))
             tiet_value_th = st.session_state.get(f"widget_tiet_th_{i}", current_input.get('tiet_th', ''))
@@ -1165,9 +1133,6 @@ for i, tab in enumerate(tabs[:-1]):
             tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
             so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
             so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
-            if len(tiet_list) != so_tuan_thuc_te:
-                validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({len(tiet_list)}).")
-                is_input_valid = False
             tiet_th_list = [int(x) for x in str(tiet_value_th).split() if x]
             if not tiet_th_list:
                 tiet_th_list = [0] * so_tuan_thuc_te
