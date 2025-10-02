@@ -556,6 +556,9 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
             return pd.DataFrame(), {"error": "Không tìm thấy cột 'Tháng' trong dữ liệu tuần/ngày. Vui lòng kiểm tra lại file nguồn."}
     df_result = locdulieu_info[['Tuần', 'Từ ngày đến ngày']].copy()
     df_result.rename(columns={'Từ ngày đến ngày': 'Ngày'}, inplace=True)
+    st.write('DEBUG: df_result columns =', df_result.columns)
+    st.write('DEBUG: df_result shape =', df_result.shape)
+    st.write('DEBUG: df_result sample =', df_result.head())
     
     # Thêm cột Tháng vào df_result
     week_to_month = dict(zip(df_ngaytuan_g['Tuần'], df_ngaytuan_g['Tháng']))
