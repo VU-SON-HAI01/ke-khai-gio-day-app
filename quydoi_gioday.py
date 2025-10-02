@@ -511,9 +511,9 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         arr_tiet_lt = np.zeros_like(arr_tiet)
         arr_tiet_th = arr_tiet
     elif kieu_tinh_mdmh == 'LTTH':
-        # arr_tiet_th lấy từ input, arr_tiet lấy từ input, arr_tiet_lt = arr_tiet - arr_tiet_th
+        # arr_tiet_th lấy từ input, arr_tiet và arr_tiet_th đã lấy từ input, arr_tiet_lt = arr_tiet - arr_tiet_th
         arr_tiet_lt = arr_tiet - arr_tiet_th
-        # arr_tiet và arr_tiet_th đã lấy từ input widget, arr_tiet_lt tính lại như trên
+        # arr_tiet và arr_tiet_th đã lấy từ input, arr_tiet_lt tính lại như trên
     else:
         return pd.DataFrame(), {"error": "Loại kê khai không hợp lệ."}
     
