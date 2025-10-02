@@ -1186,7 +1186,23 @@ for i, tab in enumerate(tabs[:-1]):
                 arr_tiet_lt = xu_ly_tuan_tet(arr_tiet_lt, tuanbatdau, tuanketthuc, df_ngaytuan_g)
                 arr_tiet_th = xu_ly_tuan_tet(arr_tiet_th, tuanbatdau, tuanketthuc, df_ngaytuan_g)
 
-            df_result, summary = process_mon_data(current_input, chuangv_tab, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
+            import traceback
+            st.write("DEBUG: current_input =", current_input)
+            st.write("DEBUG: chuangv_tab =", chuangv_tab)
+            st.write("DEBUG: arr_tiet =", arr_tiet)
+            if 'arr_tiet_lt' in locals():
+                st.write("DEBUG: arr_tiet_lt =", arr_tiet_lt)
+            if 'arr_tiet_th' in locals():
+                st.write("DEBUG: arr_tiet_th =", arr_tiet_th)
+
+            try:
+                df_result, summary = process_mon_data(current_input, chuangv_tab, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
+                st.write("DEBUG: df_result head =", df_result.head() if hasattr(df_result, 'head') else df_result)
+                st.write("DEBUG: summary =", summary)
+            except Exception as e:
+                st.error(f"DEBUG: Exception in process_mon_data: {e}")
+                st.error(traceback.format_exc())
+                raise
             # Sau khi có df_result, xử lý hiển thị tuần TẾT và lọc theo tuần đã chọn
             if df_result is not None and not df_result.empty:
                 tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
