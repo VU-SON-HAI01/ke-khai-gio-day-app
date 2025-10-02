@@ -1125,6 +1125,17 @@ for i, tab in enumerate(tabs[:-1]):
         else:
             # Cách kê LT, TH chi tiết: nhập Tổng tiết (col 1), nhập Tiết TH (col 2), Tiết LT (col 3) tự động tính
             c1, c2, c3 = st.columns(3)
+            tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
+            so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
+            so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
+
+            # Nếu vừa chuyển từ chế độ khác sang LT, TH chi tiết, reset tiet_th mặc định là 0 cho đúng số tuần
+            if current_input.get('cach_ke') == 'Kê theo LT, TH chi tiết' and (not current_input.get('tiet_th') or current_input.get('tiet_th') == '0'):
+                tiet_th_default = ' '.join(['0'] * so_tuan_thuc_te)
+                st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_th_default
+                current_input['tiet_th'] = tiet_th_default
+            # Nếu vừa chuyển về Kê theo MĐ, MH thì reset LT/TH về 0 ở đoạn dưới (đã có)
+
             with c1:
                 tiet_value = st.text_input(
                     "Nhập số tiết mỗi tuần",
@@ -1141,11 +1152,7 @@ for i, tab in enumerate(tabs[:-1]):
                     on_change=update_tab_state,
                     args=('tiet_th', i)
                 )
-            # Tính tiết LT = Tổng tiết - Tiết TH (theo từng tuần), tự động bổ sung 0 nếu thiếu
             tiet_list = [int(x) for x in str(tiet_value).split() if x]
-            tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
-            so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)
-            so_tuan_thuc_te = tuanketthuc - tuanbatdau + 1 - so_tuan_tet
             # Validation: số tiết mỗi tuần phải khớp số tuần thực tế
             if len(tiet_list) != so_tuan_thuc_te:
                 validation_placeholder.error(f"Lỗi: Số tuần dạy thực tế ({so_tuan_thuc_te}, đã loại trừ {so_tuan_tet} tuần TẾT) không khớp với số tiết đã nhập ({len(tiet_list)}).")
