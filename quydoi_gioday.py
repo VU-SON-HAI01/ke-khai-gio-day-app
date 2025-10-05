@@ -1299,7 +1299,7 @@ for i, tab in enumerate(tabs[:-1]):
                 st.session_state.mon_hoc_data[i]['tiet_th'] = '0'
                 update_tab_state('tiet_lt', i)
             tiet_value = st.text_input(
-                "Nhập số tiết mỗi tuần",
+                "Nhập số tiết mỗi tuần(Phân cách giữa các tuần bằng dấu cách)",
                 value=tiet_lt_value,
                 key=f"widget_tiet_lt_{i}",
                 on_change=update_tiet_lt_tab
