@@ -41,6 +41,15 @@ def get_arr_tiet_from_state(mon_state):
             ten_loai_mon = ''
             if 'Ngành' in mon_info_row:
                 nganh = mon_info_row['Ngành']
+                nganh_str = str(nganh)
+                # Thay thế từng cụm ký tự trong chuỗi ngành
+                nganh_str = nganh_str.replace('SC_NGHIỆP VỤ SƯ PHẠM', 'NGHIỆP VỤ SƯ PHẠM')
+                nganh_str = nganh_str.replace('CĐ', 'CAO ĐẲNG')
+                nganh_str = nganh_str.replace('TC', 'TRUNG CẤP')
+                nganh_str = nganh_str.replace('SC', 'SƠ CẤP')
+                nganh = nganh_str
+
+
             loai_mon = mon_info_row['MH/MĐ'] if 'MH/MĐ' in mon_info_row else ''
             if 'MH' in loai_mon:
                 ten_loai_mon = "Môn học"
@@ -58,7 +67,7 @@ def get_arr_tiet_from_state(mon_state):
         thongtinchung_monhoc = ''
         if not mon_info.empty:
             thongtinchung_monhoc = tao_thongtinchung_monhoc(mon_info.iloc[0])
-        st.info(f"Mã môn học: {thongtinchung_monhoc}")
+        st.info(f"Thông tin môn: {thongtinchung_monhoc}")
         if not kieu_tinh_mdmh:
             if 'MH' in mamon_nganh and 'MĐ' not in mamon_nganh:
                 arr_tiet_lt = arr_tiet
