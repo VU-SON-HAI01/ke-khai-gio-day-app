@@ -53,21 +53,27 @@ def get_arr_tiet_from_state(mon_state):
             loai_mon = mon_info_row['MH/MĐ'] if 'MH/MĐ' in mon_info_row else ''
             if 'MH' in loai_mon:
                 ten_loai_mon = "Môn học"
+                lythuyet_thuchanh = "Lý thuyết"
             elif 'MĐ' in loai_mon:
                 ten_loai_mon = "Mô đun"
+                lythuyet_thuchanh = "Thực hành"
             elif 'VH' in loai_mon:
-                ten_loai_mon = 'Văn hóa phổ thông'
+                ten_loai_mon = "Văn hóa phổ thông"
+                lythuyet_thuchanh = "Không xác định"
             elif 'MC' in loai_mon:
-                ten_loai_mon = 'Môn chung'
+                ten_loai_mon = "Môn chung"
+                lythuyet_thuchanh = "Nếu là GD Thể chất hoặc GDQP và an ninh thì là Thực hành, các môn khác là Lý thuyết"
             else:
                 ten_loai_mon = "Không xác định"
             thongtinchung_monhoc = f"{nganh} - {ten_loai_mon}"
-            return thongtinchung_monhoc
+            return thongtinchung_monhoc, lythuyet_thuchanh
         # Lấy dòng đầu tiên nếu có
         thongtinchung_monhoc = ''
         if not mon_info.empty:
-            thongtinchung_monhoc = tao_thongtinchung_monhoc(mon_info.iloc[0])
+            thongtinchung_monhoc, lythuyet_thuchanh = tao_thongtinchung_monhoc(mon_info.iloc[0])
+
         st.info(f"Thông tin môn: {thongtinchung_monhoc}")
+        st.info(f"Phần mềm sẽ tự động chuyển Tiết dạy sang giờ dạy {lythuyet_thuchanh}")
         if not kieu_tinh_mdmh:
             if 'MH' in mamon_nganh and 'MĐ' not in mamon_nganh:
                 arr_tiet_lt = arr_tiet
