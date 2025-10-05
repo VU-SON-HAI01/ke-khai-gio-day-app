@@ -1,3 +1,117 @@
+###########################
+# HELPER VÀ GIAO DIỆN CHUẨN HOÁ
+###########################
+def get_arr_tiet_from_state(mon_state):
+    cach_ke = mon_state.get('cach_ke', '')
+    if cach_ke == 'Kê theo MĐ, MH':
+        arr_tiet = [int(x) for x in str(mon_state.get('tiet', '')).split() if x]
+        arr_tiet_lt, arr_tiet_th = [], []
+    else:
+        arr_tiet = [int(x) for x in str(mon_state.get('tiet', '')).split() if x]
+        arr_tiet_lt = [int(x) for x in str(mon_state.get('tiet_lt', '0')).split() if x]
+        arr_tiet_th = [int(x) for x in str(mon_state.get('tiet_th', '0')).split() if x]
+    return arr_tiet, arr_tiet_lt, arr_tiet_th
+
+def update_mon_hoc_state(i, key, value):
+    st.session_state.mon_hoc_data[i][key] = value
+
+def render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df_mon_g):
+    mon_state = st.session_state.mon_hoc_data[i]
+    # Chọn Khóa/Hệ
+    khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
+    selected_khoa = st.selectbox(
+        "Chọn Khóa/Hệ",
+        options=khoa_options,
+        index=khoa_options.index(mon_state.get('khoa', khoa_options[0])),
+        key=f"widget_khoa_{i}",
+        on_change=update_mon_hoc_state,
+        args=(i, 'khoa', st.session_state.get(f"widget_khoa_{i}"))
+    )
+    # Chọn lớp học
+    df_lop_mapping = {
+        'Khóa 48': df_lop_g,
+        'Khóa 49': df_lop_g,
+        'Khóa 50': df_lop_g,
+        'Lớp ghép': df_lopghep_g,
+        'Lớp tách': df_loptach_g,
+        'Sơ cấp + VHPT': df_lopsc_g
+    }
+    source_df = df_lop_mapping.get(selected_khoa)
+    filtered_lop_options = source_df['Lớp'].tolist() if source_df is not None and not source_df.empty else []
+    if mon_state.get('lop_hoc') not in filtered_lop_options:
+        mon_state['lop_hoc'] = filtered_lop_options[0] if filtered_lop_options else ''
+    lop_hoc_index = filtered_lop_options.index(mon_state.get('lop_hoc')) if mon_state.get('lop_hoc') in filtered_lop_options else 0
+    st.selectbox(
+        "Chọn Lớp học",
+        options=filtered_lop_options,
+        index=lop_hoc_index,
+        key=f"widget_lop_hoc_{i}",
+        on_change=update_mon_hoc_state,
+        args=(i, 'lop_hoc', st.session_state.get(f"widget_lop_hoc_{i}"))
+    )
+    # Chọn môn học
+    dsmon_options = []
+    df_dsmon_loc = pd.DataFrame()
+    if mon_state.get('lop_hoc') and source_df is not None and not source_df.empty:
+        dsmon_code = source_df[source_df['Lớp'] == mon_state.get('lop_hoc')]['Mã_DSMON']
+        if not dsmon_code.empty:
+            dsmon_code = dsmon_code.iloc[0]
+            if not pd.isna(dsmon_code) and df_mon_g is not None and not df_mon_g.empty:
+                if 'Mã_ngành' in df_mon_g.columns and 'Môn_học' in df_mon_g.columns:
+                    df_dsmon_loc = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
+                    dsmon_options = df_dsmon_loc['Môn_học'].dropna().astype(str).tolist()
+    if mon_state.get('mon_hoc') not in dsmon_options:
+        mon_state['mon_hoc'] = dsmon_options[0] if dsmon_options else ''
+    mon_hoc_index = dsmon_options.index(mon_state.get('mon_hoc')) if mon_state.get('mon_hoc') in dsmon_options else 0
+    st.selectbox(
+        "Chọn Môn học",
+        options=dsmon_options,
+        index=mon_hoc_index,
+        key=f"widget_mon_hoc_{i}",
+        on_change=update_mon_hoc_state,
+        args=(i, 'mon_hoc', st.session_state.get(f"widget_mon_hoc_{i}"))
+    )
+    # Chọn tuần
+    tuan_value = mon_state.get('tuan', (1, 12))
+    if not isinstance(tuan_value, (list, tuple)) or len(tuan_value) != 2:
+        tuan_value = (1, 12)
+    st.slider(
+        "Chọn Tuần giảng dạy",
+        1, 50,
+        value=tuan_value,
+        key=f"widget_tuan_{i}",
+        on_change=update_mon_hoc_state,
+        args=(i, 'tuan', st.session_state.get(f"widget_tuan_{i}"))
+    )
+    # Chọn phương pháp kê khai
+    kieu_tinh_mdmh = ''
+    if mon_state.get('mon_hoc') and not df_dsmon_loc.empty and 'Tính MĐ/MH' in df_dsmon_loc.columns:
+        mon_info = df_dsmon_loc[df_dsmon_loc['Môn_học'] == mon_state.get('mon_hoc')]
+        if not mon_info.empty:
+            kieu_tinh_mdmh = mon_info['Tính MĐ/MH'].iloc[0]
+    radio_disabled = False
+    if kieu_tinh_mdmh == 'LT':
+        options = ('Kê theo MĐ, MH',)
+        radio_disabled = True
+    elif kieu_tinh_mdmh == 'TH':
+        options = ('Kê theo MĐ, MH',)
+        radio_disabled = True
+    elif kieu_tinh_mdmh == 'LTTH':
+        options = ('Kê theo LT, TH chi tiết', 'Kê theo MĐ, MH')
+    else:
+        options = ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết')
+    st.radio(
+        "Chọn phương pháp kê khai",
+        options,
+        index=0,
+        key=f"widget_cach_ke_{i}",
+        on_change=update_mon_hoc_state,
+        args=(i, 'cach_ke', st.session_state.get(f"widget_cach_ke_{i}")),
+        horizontal=True,
+        disabled=radio_disabled
+    )
+    # Các input tiết sẽ gom lại ở 1 hàm riêng nếu cần
+    # ...
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -222,15 +336,21 @@ def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
                             args=('cach_ke', i),
                             horizontal=True
                         )
-                        arr_tiet_lt = []
-                        arr_tiet_th = []
-                        arr_tiet = []
-                        locdulieu_info = pd.DataFrame()
-                        if current_input.get('cach_ke') == 'Kê theo MĐ, MH':
-                            arr_tiet = [int(x) for x in str(current_input.get('tiet', '')).split() if x]
+                        # Sử dụng session_state để lưu trữ arr_tiet, arr_tiet_lt, arr_tiet_th, phân biệt theo cách kê
+                        cach_ke = st.session_state.mon_hoc_data[i].get('cach_ke', '')
+                        if cach_ke == 'Kê theo MĐ, MH':
+                            arr_tiet = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet', '')).split() if x]
+                            arr_tiet_lt = []
+                            arr_tiet_th = []
                         else:
-                            arr_tiet_lt = [int(x) for x in str(current_input.get('tiet_lt', '0')).split() if x]
-                            arr_tiet_th = [int(x) for x in str(current_input.get('tiet_th', '0')).split() if x]
+                            arr_tiet = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet', '')).split() if x]
+                            arr_tiet_lt = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet_lt', '0')).split() if x]
+                            arr_tiet_th = [int(x) for x in str(st.session_state.mon_hoc_data[i].get('tiet_th', '0')).split() if x]
+                        # Lưu lại vào session_state để các bước sau dùng lại nếu cần
+                        st.session_state.mon_hoc_data[i]['arr_tiet'] = arr_tiet
+                        st.session_state.mon_hoc_data[i]['arr_tiet_lt'] = arr_tiet_lt
+                        st.session_state.mon_hoc_data[i]['arr_tiet_th'] = arr_tiet_th
+                        locdulieu_info = pd.DataFrame()
 
         # Xác định loại môn
     if 'MC' in ma_mon_upper:
@@ -492,9 +612,8 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
     elif kieu_tinh_mdmh == 'LTTH':
         # arr_tiet_th lấy từ input, arr_tiet lấy từ input, arr_tiet_lt = arr_tiet - arr_tiet_th
         arr_tiet_lt = arr_tiet - arr_tiet_th
-        # arr_tiet và arr_tiet_th đã lấy từ input widget, arr_tiet_lt tính lại như trên
     else:
-        return pd.DataFrame(), {"error": "Loại kê khai không hợp lệ."}
+        arr_tiet_lt = arr_tiet - arr_tiet_th
     
     # ...existing code...
     if 'Tháng' not in locdulieu_info.columns:
