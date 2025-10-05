@@ -38,22 +38,21 @@ def get_arr_tiet_from_state(mon_state):
                             # Tạo thongtinchung_monhoc từ mon_info
         def tao_thongtinchung_monhoc(mon_info_row):
             nganh = ''
-            ten_mon = ''
+            ten_loai_mon = ''
             if 'Ngành' in mon_info_row:
                 nganh = mon_info_row['Ngành']
-            loai_mon = str(mon_info_row['Mã_môn_ngành']).upper() if 'Mã_môn_ngành' in mon_info_row else ''
-            ten_mh = mon_info_row['Môn_học'] if 'Môn_học' in mon_info_row else ''
+            loai_mon = mon_info_row['MH/MĐ'] if 'MH/MĐ' in mon_info_row else ''
             if 'MH' in loai_mon:
-                ten_mon = ten_mh
+                ten_loai_mon = "Môn học"
             elif 'MĐ' in loai_mon:
-                ten_mon = 'MĐ'
+                ten_loai_mon = "Môđun"
             elif 'VH' in loai_mon:
-                ten_mon = 'Văn hóa phổ thông'
+                ten_loai_mon = 'Văn hóa phổ thông'
             elif 'MC' in loai_mon:
-                ten_mon = 'Môn chung'
+                ten_loai_mon = 'Môn chung'
             else:
-                ten_mon = ten_mh
-            thongtinchung_monhoc = f"{nganh} - {ten_mon}"
+                ten_loai_mon = ten_mh
+            thongtinchung_monhoc = f"{nganh} - {ten_loai_mon}"
             return thongtinchung_monhoc
         # Lấy dòng đầu tiên nếu có
         thongtinchung_monhoc = ''
