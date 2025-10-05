@@ -45,13 +45,13 @@ def get_arr_tiet_from_state(mon_state):
             if 'MH' in loai_mon:
                 ten_loai_mon = "Môn học"
             elif 'MĐ' in loai_mon:
-                ten_loai_mon = "Môđun"
+                ten_loai_mon = "Mô đun"
             elif 'VH' in loai_mon:
                 ten_loai_mon = 'Văn hóa phổ thông'
             elif 'MC' in loai_mon:
                 ten_loai_mon = 'Môn chung'
             else:
-                ten_loai_mon = ten_mh
+                ten_loai_mon = "Không xác định"
             thongtinchung_monhoc = f"{nganh} - {ten_loai_mon}"
             return thongtinchung_monhoc
         # Lấy dòng đầu tiên nếu có
