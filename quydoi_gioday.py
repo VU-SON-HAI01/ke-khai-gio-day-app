@@ -1363,13 +1363,15 @@ for i, tab in enumerate(tabs[:-1]):
                     tiet_th_list = [int(x) for x in tiet_th_raw]
                 # Gán arr_tiet_th vào session_state để các bước sau dùng đúng dữ liệu
                 st.session_state.mon_hoc_data[i]['arr_tiet_th'] = tiet_th_list
+                # Tính tiết LT: luôn là list số nguyên
                 tiet_lt_list = []
+                arr_tiet_th = st.session_state.mon_hoc_data[i]['arr_tiet_th']
                 for idx in range(so_tuan_thuc_te):
                     t = tiet_list[idx] if idx < len(tiet_list) else 0
-                    th = tiet_th_list[idx] if idx < len(tiet_th_list) else 0
-                    tiet_lt_list.append(str(max(t - th, 0)))
-                tiet_lt_str = ' '.join(tiet_lt_list)
-                st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
+                    th = arr_tiet_th[idx] if idx < len(arr_tiet_th) else 0
+                    tiet_lt_list.append(max(t - th, 0))
+                tiet_lt_str = ' '.join(str(x) for x in tiet_lt_list)
+                st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_lt_str
                 # Luôn gán lại tiet_th là chuỗi đúng (nếu nhập rỗng hoặc chỉ 0 thì chuyển thành chuỗi '0 0 ...')
                 if not is_valid or len(tiet_th_raw) == 0 or (len(tiet_th_raw) == 1 and tiet_th_raw[0] == '0') or all(x == '0' for x in tiet_th_raw):
                     tiet_th_str = ' '.join(['0'] * so_tuan_thuc_te)
