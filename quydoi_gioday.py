@@ -38,16 +38,12 @@ def get_arr_tiet_from_state(mon_state):
                         mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
         st.info(f"[DEBUG] mamon_nganh: {mamon_nganh}")
         if not kieu_tinh_mdmh:
-            if 'MH' in mamon_nganh and 'TH' not in mamon_nganh:
+            if 'MH' in mamon_nganh and 'MĐ' not in mamon_nganh:
                 arr_tiet_lt = arr_tiet
                 arr_tiet_th = [0]*len(arr_tiet)
-            elif 'TH' in mamon_nganh and 'MH' not in mamon_nganh:
+            elif 'MĐ' in mamon_nganh and 'MH' not in mamon_nganh:
                 arr_tiet_lt = [0]*len(arr_tiet)
                 arr_tiet_th = arr_tiet
-            elif 'TH' in mamon_nganh and 'MH' in mamon_nganh:
-                # Nếu có cả MH và TH trong mamon_nganh, ưu tiên chia đều (hoặc tuỳ logic nghiệp vụ)
-                arr_tiet_lt = arr_tiet
-                arr_tiet_th = [0]*len(arr_tiet)
             else:
                 arr_tiet_lt = arr_tiet
                 arr_tiet_th = [0]*len(arr_tiet)
