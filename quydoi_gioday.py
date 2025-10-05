@@ -144,6 +144,8 @@ def render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df
     )
     # Các input tiết sẽ gom lại ở 1 hàm riêng nếu cần
     # ...
+    # Lấy arr_tiet, arr_tiet_lt, arr_tiet_th luôn qua helper để đảm bảo logic đồng nhất
+    arr_tiet, arr_tiet_lt, arr_tiet_th = get_arr_tiet_from_state(mon_state)
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -623,14 +625,13 @@ def process_mon_data(input_data, chuangv, df_lop_g, df_mon_g, df_ngaytuan_g, df_
         elif 'TẾT' in locdulieu_info.columns:
             locdulieu_info = locdulieu_info[~locdulieu_info['TẾT'].astype(str).str.upper().str.contains('TẾT')].copy()
     
-    try:
-        arr_tiet_lt = np.array([int(x) for x in str(tiet_lt_nhap).split()]) if tiet_lt_nhap and tiet_lt_nhap.strip() else np.array([], dtype=int)
-        arr_tiet_th = np.array([int(x) for x in str(tiet_th_nhap).split()]) if tiet_th_nhap and tiet_th_nhap.strip() else np.array([], dtype=int)
-        arr_tiet = np.array([int(x) for x in str(tiet_nhap).split()]) if tiet_nhap and tiet_nhap.strip() else np.array([], dtype=int)
-        so_tiet_lt_dem_duoc = len(arr_tiet_lt)
-        so_tiet_th_dem_duoc = len(arr_tiet_th)
-    except (ValueError, TypeError):
-        return pd.DataFrame(), {"error": "Định dạng số tiết không hợp lệ. Vui lòng chỉ nhập số và dấu cách."}
+    # Lấy arr_tiet, arr_tiet_lt, arr_tiet_th từ helper để luôn đúng logic
+    arr_tiet, arr_tiet_lt, arr_tiet_th = get_arr_tiet_from_state(input_data)
+    arr_tiet = np.array(arr_tiet, dtype=int)
+    arr_tiet_lt = np.array(arr_tiet_lt, dtype=int)
+    arr_tiet_th = np.array(arr_tiet_th, dtype=int)
+    so_tiet_lt_dem_duoc = len(arr_tiet_lt)
+    so_tiet_th_dem_duoc = len(arr_tiet_th)
 
     # Gom logic kiểm tra số tiết về một chỗ
     if len(locdulieu_info) != len(arr_tiet):
