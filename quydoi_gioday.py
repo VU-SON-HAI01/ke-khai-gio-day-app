@@ -1,3 +1,13 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+from typing import Optional
+import gspread
+from gspread_dataframe import set_with_dataframe
+import ast
+import re
+from itertools import zip_longest
+# --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
 def on_change_cach_ke(i):
     mon_state = st.session_state.mon_hoc_data[i]
     cach_ke = st.session_state.get(f"widget_cach_ke_{i}")
@@ -197,16 +207,6 @@ def render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df
     # ...
     # Lấy arr_tiet, arr_tiet_lt, arr_tiet_th luôn qua helper để đảm bảo logic đồng nhất
     arr_tiet, arr_tiet_lt, arr_tiet_th = get_arr_tiet_from_state(mon_state)
-import streamlit as st
-import pandas as pd
-import numpy as np
-from typing import Optional
-import gspread
-from gspread_dataframe import set_with_dataframe
-import ast
-import re
-from itertools import zip_longest
-# --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
 def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
     """
     Đếm số tuần TẾT dựa vào cột Tuần_Tết nếu có, ánh xạ sang cột Tuần.
