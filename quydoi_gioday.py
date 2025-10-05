@@ -22,7 +22,6 @@ def get_arr_tiet_from_state(mon_state):
         arr_tiet = [int(x) for x in str(mon_state.get('tiet', '')).split() if x]
         kieu_tinh_mdmh = mon_state.get('kieu_tinh_mdmh', '')
         # Lấy mamon_nganh từ DataFrame
-        st.info(f"[DEBUG] mamon_nganh: {mon_state}")
         mamon_nganh = ''
         df_mon_g = st.session_state.get('df_mon')
         df_lop_g = st.session_state.get('df_lop')
@@ -36,7 +35,31 @@ def get_arr_tiet_from_state(mon_state):
                     mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
                     if not mon_info.empty:
                         mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
-        st.info(f"[DEBUG] mamon_nganh: {mamon_nganh}")
+                            # Tạo thongtinchung_monhoc từ mon_info
+        def tao_thongtinchung_monhoc(mon_info_row):
+            nganh = ''
+            ten_mon = ''
+            if 'Ngành' in mon_info_row:
+                nganh = mon_info_row['Ngành']
+            loai_mon = str(mon_info_row['Mã_môn_ngành']).upper() if 'Mã_môn_ngành' in mon_info_row else ''
+            ten_mh = mon_info_row['Môn_học'] if 'Môn_học' in mon_info_row else ''
+            if 'MH' in loai_mon:
+                ten_mon = ten_mh
+            elif 'MĐ' in loai_mon:
+                ten_mon = 'MĐ'
+            elif 'VH' in loai_mon:
+                ten_mon = 'Văn hóa phổ thông'
+            elif 'MC' in loai_mon:
+                ten_mon = 'Môn chung'
+            else:
+                ten_mon = ten_mh
+            thongtinchung_monhoc = f"{nganh} - {ten_mon}"
+            return thongtinchung_monhoc
+        # Lấy dòng đầu tiên nếu có
+        thongtinchung_monhoc = ''
+        if not mon_info.empty:
+            thongtinchung_monhoc = tao_thongtinchung_monhoc(mon_info.iloc[0])
+        st.info(f"Mã môn học: {thongtinchung_monhoc}")
         if not kieu_tinh_mdmh:
             if 'MH' in mamon_nganh and 'MĐ' not in mamon_nganh:
                 arr_tiet_lt = arr_tiet
