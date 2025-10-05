@@ -21,8 +21,21 @@ def get_arr_tiet_from_state(mon_state):
     if cach_ke == 'Kê theo MĐ, MH':
         arr_tiet = [int(x) for x in str(mon_state.get('tiet', '')).split() if x]
         kieu_tinh_mdmh = mon_state.get('kieu_tinh_mdmh', '')
-        mamon_nganh = mon_state.get('mamon_nganh', '')
-        # Luôn sinh lại arr_tiet_lt/th từ arr_tiet và mamon_nganh nếu kieu_tinh_mdmh rỗng (không lấy từ session_state cũ)
+        # Lấy mamon_nganh từ DataFrame
+        st.info(f"[DEBUG] mamon_nganh: {mon_state}")
+        mamon_nganh = ''
+        df_mon_g = st.session_state.get('df_mon')
+        df_lop_g = st.session_state.get('df_lop')
+        lop_hoc = mon_state.get('lop_hoc')
+        mon_hoc = mon_state.get('mon_hoc')
+        if df_lop_g is not None and not df_lop_g.empty and lop_hoc:
+            dsmon_code = df_lop_g[df_lop_g['Lớp'] == lop_hoc]['Mã_DSMON']
+            if not dsmon_code.empty:
+                dsmon_code = dsmon_code.iloc[0]
+                if df_mon_g is not None and not df_mon_g.empty and mon_hoc:
+                    mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
+                    if not mon_info.empty:
+                        mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
         st.info(f"[DEBUG] mamon_nganh: {mamon_nganh}")
         if not kieu_tinh_mdmh:
             if 'MH' in mamon_nganh and 'TH' not in mamon_nganh:
