@@ -1350,13 +1350,18 @@ for i, tab in enumerate(tabs[:-1]):
                 tiet_value = st.session_state.get(f"widget_tiet_{i}", "")
                 tiet_value_th = st.session_state.get(f"widget_tiet_th_{i}", "")
                 tiet_list = [int(x) for x in str(tiet_value).split() if x]
-                tiet_th_list = [int(x) for x in str(tiet_value_th).split() if x]
-                if not tiet_th_list:
+                tiet_th_raw = [x for x in str(tiet_value_th).strip().split() if x]
+                is_valid = all(x.isdigit() for x in tiet_th_raw)
+                if not is_valid:
                     tiet_th_list = [0] * so_tuan_thuc_te
-                elif len(tiet_th_list) < so_tuan_thuc_te:
-                    tiet_th_list = tiet_th_list + [0] * (so_tuan_thuc_te - len(tiet_th_list))
-                elif len(tiet_th_list) > so_tuan_thuc_te:
-                    tiet_th_list = tiet_th_list[:so_tuan_thuc_te]
+                elif all(x == '0' for x in tiet_th_raw):
+                    tiet_th_list = [0] * so_tuan_thuc_te
+                elif len(tiet_th_raw) != so_tuan_thuc_te:
+                    tiet_th_list = [0] * so_tuan_thuc_te
+                else:
+                    tiet_th_list = [int(x) for x in tiet_th_raw]
+                # Gán arr_tiet_th vào session_state để các bước sau dùng đúng dữ liệu
+                st.session_state.mon_hoc_data[i]['arr_tiet_th'] = tiet_th_list
                 tiet_lt_list = []
                 for idx in range(so_tuan_thuc_te):
                     t = tiet_list[idx] if idx < len(tiet_list) else 0
@@ -1393,22 +1398,7 @@ for i, tab in enumerate(tabs[:-1]):
                     key=f"widget_tiet_th_{i}",
                     on_change=update_tiet_lt
                 )
-                # Kiểm tra hợp lệ: phải là dãy số, số lượng đúng số tuần
-                tiet_th_list = [x for x in tiet_value_th.strip().split() if x]
-                is_valid = all(x.isdigit() for x in tiet_th_list)
-                
-                if not is_valid:
-                    st.warning("Vui lòng nhập số tiết thực hành mỗi tuần là các số, cách nhau bởi dấu cách. Hệ thống sẽ tự động dùng giá trị 0 cho các tuần.")
-                    tiet_value_th = [0] * so_tuan_thuc_te
-                elif all(x == '0' for x in tiet_th_list):
-                    tiet_value_th = [0] * so_tuan_thuc_te
-                elif len(tiet_th_list) != so_tuan_thuc_te:
-                    st.warning(f"Số lượng tiết thực hành phải đúng bằng số tuần thực tế: {so_tuan_thuc_te}.")
-                    tiet_value_th = [0] * so_tuan_thuc_te
-                st.write(f"Số tuần: {tiet_value_th}")
-                # Gán arr_tiet_th vào session_state để các bước sau dùng đúng dữ liệu
             # Tính lại tiết LT mỗi lần nhập liệu
-            st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
             update_tiet_lt()
             tiet_lt_str = st.session_state.get(f"widget_tiet_lt_{i}_auto", "")
             with c3:
