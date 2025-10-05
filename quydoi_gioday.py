@@ -1406,6 +1406,12 @@ for i, tab in enumerate(tabs[:-1]):
                     st.warning(f"Số lượng tiết thực hành phải đúng bằng số tuần thực tế: {so_tuan_thuc_te}.")
                     tiet_th_list = [0] * so_tuan_thuc_te
                 st.write(f"Số tuần: {tiet_th_list}")
+                # Gán arr_tiet_th vào session_state để các bước sau dùng đúng dữ liệu
+                try:
+                    arr_tiet_th = [int(x) for x in tiet_th_list]
+                except Exception:
+                    arr_tiet_th = [0] * so_tuan_thuc_te
+                st.session_state.mon_hoc_data[i]['arr_tiet_th'] = arr_tiet_th
             # Tính lại tiết LT mỗi lần nhập liệu
             update_tiet_lt()
             tiet_lt_str = st.session_state.get(f"widget_tiet_lt_{i}_auto", "")
