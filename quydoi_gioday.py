@@ -1385,7 +1385,7 @@ for i, tab in enumerate(tabs[:-1]):
                     tiet_th_str = ' '.join([str(x) for x in tiet_th_list])
                 st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_th_str
                 st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_lt_str
-                st.write(f"Số tuần: {tiet_th_list}")
+                st.write(f"Dữ liệu tiết thực hành được hiểu: {tiet_th_list}")
                 current_input['tiet'] = tiet_value
                 current_input['tiet_th'] = tiet_th_str
                 current_input['tiet_lt'] = tiet_lt_str
