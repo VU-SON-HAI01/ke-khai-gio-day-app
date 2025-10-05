@@ -1408,6 +1408,7 @@ for i, tab in enumerate(tabs[:-1]):
                 st.write(f"Số tuần: {tiet_value_th}")
                 # Gán arr_tiet_th vào session_state để các bước sau dùng đúng dữ liệu
             # Tính lại tiết LT mỗi lần nhập liệu
+            st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
             update_tiet_lt()
             tiet_lt_str = st.session_state.get(f"widget_tiet_lt_{i}_auto", "")
             with c3:
