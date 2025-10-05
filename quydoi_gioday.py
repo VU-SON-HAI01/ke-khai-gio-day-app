@@ -1393,6 +1393,13 @@ for i, tab in enumerate(tabs[:-1]):
                     key=f"widget_tiet_th_{i}",
                     on_change=update_tiet_lt
                 )
+                # Kiểm tra hợp lệ: phải là dãy số, số lượng đúng số tuần
+                tiet_th_list = [x for x in tiet_value_th.strip().split() if x]
+                is_valid = all(x.isdigit() for x in tiet_th_list)
+                if not is_valid:
+                    st.warning("Vui lòng nhập số tiết thực hành mỗi tuần là các số, cách nhau bởi dấu cách.")
+                elif len(tiet_th_list) != so_tuan_thuc_te:
+                    st.warning(f"Số lượng giá trị phải đúng bằng số tuần thực tế: {so_tuan_thuc_te}.")
             # Tính lại tiết LT mỗi lần nhập liệu
             update_tiet_lt()
             tiet_lt_str = st.session_state.get(f"widget_tiet_lt_{i}_auto", "")
