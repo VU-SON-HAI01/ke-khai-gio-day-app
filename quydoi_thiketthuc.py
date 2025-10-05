@@ -210,8 +210,8 @@ if input_method == 'Kê khai chi tiết':
             st.markdown("##### Tổng hợp Học kỳ 2")
             st.dataframe(df_hk2, use_container_width=True, column_order=display_cols_order, column_config={"Hệ số": st.column_config.NumberColumn(format="%.1f")})
         st.divider()
-        total_hk1_calculated = df_hk1['Quy đổi (Tiết)'].sum()
-        total_hk2_calculated = df_hk2['Quy đổi (Tiết)'].sum()
+        total_hk1_calculated = df_hk1["Quy đổi (Tiết)"].sum()
+        total_hk2_calculated = df_hk2["Quy đổi (Tiết)"].sum()
         grand_total = total_hk1_calculated + total_hk2_calculated
         summary_total_data = {'Mã HĐ': ['HD00'], 'Mã NCKH': ['BT'], 'Hoạt động quy đổi': ['Soạn, Coi, Chấm thi kết thúc'], 'Học kỳ 1 (Tiết)': [f"{total_hk1_calculated:.2f}"], 'Học kỳ 2 (Tiết)': [f"{total_hk2_calculated:.2f}"], 'Cả năm (Tiết)': [f"{grand_total:.2f}"]}
         summary_total_df = pd.DataFrame(summary_total_data)

@@ -712,7 +712,6 @@ def load_all_mon_data():
         st.session_state[f"widget_tiet_lt_{i}"] = input_data['tiet_lt']
         st.session_state[f"widget_tiet_th_{i}"] = input_data['tiet_th']
 
-load_all_mon_data()
 # --- HẰNG SỐ ---
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
 KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
