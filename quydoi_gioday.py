@@ -1371,9 +1371,17 @@ for i, tab in enumerate(tabs[:-1]):
                 tiet_lt_str = ' '.join(tiet_lt_list)
                 st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
                 # Luôn gán lại tiet_th là chuỗi đúng (nếu nhập rỗng hoặc chỉ 0 thì chuyển thành chuỗi '0 0 ...')
-                if not is_valid or len(tiet_th_raw) == 0 or (len(tiet_th_raw) == 1 and tiet_th_raw[0] == '0') or all(x == '0' for x in tiet_th_raw) or len(tiet_th_raw) != so_tuan_thuc_te:
+                if not is_valid or len(tiet_th_raw) == 0 or (len(tiet_th_raw) == 1 and tiet_th_raw[0] == '0') or all(x == '0' for x in tiet_th_raw):
                     tiet_th_str = ' '.join(['0'] * so_tuan_thuc_te)
+                elif len(tiet_th_raw) < so_tuan_thuc_te:
+                    # Bổ sung các số 0 vào cuối nếu thiếu
+                    tiet_th_list = [int(x) for x in tiet_th_raw] + [0] * (so_tuan_thuc_te - len(tiet_th_raw))
+                    tiet_th_str = ' '.join([str(x) for x in tiet_th_list])
+                elif len(tiet_th_raw) > so_tuan_thuc_te:
+                    tiet_th_list = [int(x) for x in tiet_th_raw[:so_tuan_thuc_te]]
+                    tiet_th_str = ' '.join([str(x) for x in tiet_th_list])
                 else:
+                    tiet_th_list = [int(x) for x in tiet_th_raw]
                     tiet_th_str = ' '.join([str(x) for x in tiet_th_list])
                 st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_th_str
                 st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_lt_str
