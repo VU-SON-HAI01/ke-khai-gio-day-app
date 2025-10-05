@@ -47,7 +47,7 @@ def get_arr_tiet_from_state(mon_state):
                 nganh_str = nganh_str.replace('CĐ', 'CAO ĐẲNG')
                 nganh_str = nganh_str.replace('TC', 'TRUNG CẤP')
                 nganh_str = nganh_str.replace('SC', 'SƠ CẤP')
-                nganh = nganh_str
+                nganh = nganh_str.replace('_', ' ')
 
 
             loai_mon = mon_info_row['MH/MĐ'] if 'MH/MĐ' in mon_info_row else ''
