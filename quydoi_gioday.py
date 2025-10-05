@@ -6,6 +6,7 @@ import gspread
 from gspread_dataframe import set_with_dataframe
 import ast
 import re
+from typing import List, Tuple, Dict, Any
 from itertools import zip_longest
 # --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
 def on_change_cach_ke(i):
@@ -22,7 +23,6 @@ def on_change_cach_ke(i):
         mon_state['tiet'] = ''
         mon_state['arr_tiet'] = []
     mon_state['cach_ke'] = cach_ke
-
 ###########################
 # HELPER VÀ GIAO DIỆN CHUẨN HOÁ
 ###########################
@@ -251,8 +251,6 @@ def xu_ly_ngay_tet(df_result, df_ngaytuan_g):
 # ==============================
 # BẮT ĐẦU: LOGIC TỪ FUN_QUYDOI.PY
 # ==============================
-import pandas as pd
-from typing import List, Tuple, Dict, Any
 # Bước 1: Chuẩn bị dữ liệu (các bảng hệ số)
 # (Bạn có thể lưu các bảng này vào file Excel riêng và đọc vào đây)
 def tao_cac_bang_he_so() -> Dict[str, pd.DataFrame]:
@@ -528,9 +526,108 @@ def tra_cuu_heso_tccd(mamon_nganh: str, chuan_gv: str) -> float:
     except Exception:
         return 1.0
 
+def load_all_mon_data():
+    """Tải tất cả dữ liệu môn học đã lưu của GV từ Google Sheet."""
+    def load_data_from_sheet(worksheet_name):
+        try:
+            worksheet = spreadsheet.worksheet(worksheet_name)
+            data = worksheet.get_all_records()
+            if not data:
+                return pd.DataFrame()
+            return pd.DataFrame(data)
+        except gspread.exceptions.WorksheetNotFound:
+            return pd.DataFrame()
+        except Exception:
+            return pd.DataFrame()
+
+    st.session_state.mon_hoc_data = []
+    st.session_state.results_data = []
+    all_worksheets = [ws.title for ws in spreadsheet.worksheets()]
+    # Chỉ dùng 1 sheet cho input và 1 sheet cho output
+    if 'input_giangday' not in all_worksheets:
+        st.session_state.mon_hoc_data.append(get_default_input_dict())
+        st.session_state.results_data.append(pd.DataFrame())
+        return
+
+    input_data_all = load_data_from_sheet('input_giangday')
+    if input_data_all is None or len(input_data_all) == 0:
+        st.session_state.mon_hoc_data.append(get_default_input_dict())
+        st.session_state.results_data.append(pd.DataFrame())
+        return
+    # Kiểm tra tồn tại cột ID_MÔN trước khi truy cập
+    if not isinstance(input_data_all, pd.DataFrame) or 'ID_MÔN' not in input_data_all.columns:
+        st.session_state.mon_hoc_data.append(get_default_input_dict())
+        st.session_state.results_data.append(pd.DataFrame())
+        return
+    # Lặp qua từng dòng, mỗi dòng là một môn/tab riêng biệt
+    for idx, row in input_data_all.iterrows():
+        input_data = row.copy()
+        # --- CHUẨN HÓA CÁC TRƯỜNG ---
+        # Tuần
+        tuan_val = input_data.get('tuan', (1, 12))
+        if isinstance(tuan_val, str):
+            import re
+            match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
+            if match:
+                tuan_val = (int(match.group(1)), int(match.group(2)))
+            else:
+                tuan_val = (1, 12)
+        elif isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
+            try:
+                tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
+            except Exception:
+                tuan_val = (1, 12)
+        else:
+            tuan_val = (1, 12)
+        input_data['tuan'] = tuan_val
+        # Khoa
+        khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
+        input_data['khoa'] = str(input_data.get('khoa', khoa_options[0]))
+        if input_data['khoa'] not in khoa_options:
+            input_data['khoa'] = khoa_options[0]
+        # Lớp học
+        input_data['lop_hoc'] = str(input_data.get('lop_hoc', ''))
+        # Môn học
+        input_data['mon_hoc'] = str(input_data.get('mon_hoc', ''))
+        # Cách kê
+        cach_ke_options = ['Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết']
+        input_data['cach_ke'] = str(input_data.get('cach_ke', cach_ke_options[0]))
+        if input_data['cach_ke'] not in cach_ke_options:
+            input_data['cach_ke'] = cach_ke_options[0]
+        # Tiết
+        tiet_val = input_data.get('tiet', '')
+        if isinstance(tiet_val, (list, tuple)):
+            tiet_val = ' '.join(str(x) for x in tiet_val)
+        input_data['tiet'] = str(tiet_val)
+        # Tiết LT
+        tiet_lt_val = input_data.get('tiet_lt', '0')
+        if isinstance(tiet_lt_val, (list, tuple)):
+            tiet_lt_val = ' '.join(str(x) for x in tiet_lt_val)
+        input_data['tiet_lt'] = str(tiet_lt_val)
+        # Tiết TH
+        tiet_th_val = input_data.get('tiet_th', '0')
+        if isinstance(tiet_th_val, (list, tuple)):
+            tiet_th_val = ' '.join(str(x) for x in tiet_th_val)
+        input_data['tiet_th'] = str(tiet_th_val)
+        # --- KẾT THÚC CHUẨN HÓA ---
+        input_data['index'] = len(st.session_state.mon_hoc_data)
+        st.session_state.mon_hoc_data.append(input_data)
+        st.session_state.results_data.append(pd.DataFrame())
+        # --- CẬP NHẬT GIÁ TRỊ WIDGET ---
+        i = input_data['index']
+        st.session_state[f"widget_khoa_{i}"] = input_data['khoa']
+        st.session_state[f"widget_lop_hoc_{i}"] = input_data['lop_hoc']
+        st.session_state[f"widget_mon_hoc_{i}"] = input_data['mon_hoc']
+        st.session_state[f"widget_tuan_{i}"] = input_data['tuan']
+        st.session_state[f"widget_cach_ke_{i}"] = input_data['cach_ke']
+        st.session_state[f"widget_tiet_{i}"] = input_data['tiet']
+        st.session_state[f"widget_tiet_lt_{i}"] = input_data['tiet_lt']
+        st.session_state[f"widget_tiet_th_{i}"] = input_data['tiet_th']
+
 # ==============================
 # KẾT THÚC: LOGIC FUN_QUYDOI.PY
 # ==============================
+
 # --- KIỂM TRA ĐIỀU KIỆN TIÊN QUYẾT (TỪ MAIN.PY) ---
 if 'initialized' not in st.session_state or not st.session_state.initialized:
     st.error("Vui lòng đăng nhập và đảm bảo thông tin của bạn đã được tải thành công từ trang chủ.")
@@ -541,6 +638,9 @@ missing_data = [item for item in required_data if item not in st.session_state]
 if missing_data:
     st.error(f"Lỗi: Không tìm thấy dữ liệu cần thiết: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ.")
     st.stop()
+
+# Luôn tải lại dữ liệu môn học từ Google Sheet mỗi khi vào page này
+load_all_mon_data()
 
 # --- CSS TÙY CHỈNH GIAO DIỆN ---
 st.markdown("""
@@ -827,17 +927,7 @@ def get_default_input_dict():
     tiet_default = "4 4 4 4 4 4 4 4 4 8 8 8"
     return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': tiet_default, 'tiet_lt': '0', 'tiet_th': '0', 'index': len(st.session_state.get('mon_hoc_data', []))}
 
-def load_data_from_sheet(worksheet_name):
-    try:
-        worksheet = spreadsheet.worksheet(worksheet_name)
-        data = worksheet.get_all_records()
-        if not data:
-            return pd.DataFrame()
-        return pd.DataFrame(data)
-    except gspread.exceptions.WorksheetNotFound:
-        return pd.DataFrame()
-    except Exception:
-        return pd.DataFrame()
+
 
 def save_data_to_sheet(worksheet_name, data_to_save):
     """Lưu dữ liệu vào một worksheet cụ thể."""
