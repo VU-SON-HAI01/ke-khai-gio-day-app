@@ -1352,7 +1352,8 @@ for i, tab in enumerate(tabs[:-1]):
                 tiet_list = [int(x) for x in str(tiet_value).split() if x]
                 tiet_th_raw = [x for x in str(tiet_value_th).strip().split() if x]
                 is_valid = all(x.isdigit() for x in tiet_th_raw)
-                if not is_valid:
+                # Nếu rỗng hoặc chỉ nhập đúng một số 0, coi như toàn bộ tuần đều là 0
+                if not is_valid or len(tiet_th_raw) == 0 or (len(tiet_th_raw) == 1 and tiet_th_raw[0] == '0'):
                     tiet_th_list = [0] * so_tuan_thuc_te
                 elif all(x == '0' for x in tiet_th_raw):
                     tiet_th_list = [0] * so_tuan_thuc_te
@@ -1371,6 +1372,7 @@ for i, tab in enumerate(tabs[:-1]):
                 st.session_state.mon_hoc_data[i]['tiet'] = tiet_value
                 st.session_state.mon_hoc_data[i]['tiet_th'] = tiet_value_th
                 st.session_state.mon_hoc_data[i]['tiet_lt'] = tiet_lt_str
+                st.write(f"Số tuần: {tiet_value_th}")
                 current_input['tiet'] = tiet_value
                 current_input['tiet_th'] = tiet_value_th
                 current_input['tiet_lt'] = tiet_lt_str
