@@ -1,3 +1,18 @@
+def on_change_cach_ke(i):
+    mon_state = st.session_state.mon_hoc_data[i]
+    cach_ke = st.session_state.get(f"widget_cach_ke_{i}")
+    # Nếu chuyển sang 'Kê theo MĐ, MH' thì reset LT, TH
+    if cach_ke == 'Kê theo MĐ, MH':
+        mon_state['tiet_lt'] = ''
+        mon_state['tiet_th'] = ''
+        mon_state['arr_tiet_lt'] = []
+        mon_state['arr_tiet_th'] = []
+    # Nếu chuyển sang 'Kê theo LT, TH chi tiết' thì reset tiết tổng
+    elif cach_ke == 'Kê theo LT, TH chi tiết':
+        mon_state['tiet'] = ''
+        mon_state['arr_tiet'] = []
+    mon_state['cach_ke'] = cach_ke
+
 ###########################
 # HELPER VÀ GIAO DIỆN CHUẨN HOÁ
 ###########################
@@ -105,8 +120,8 @@ def render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df
         options,
         index=0,
         key=f"widget_cach_ke_{i}",
-        on_change=update_mon_hoc_state,
-        args=(i, 'cach_ke', st.session_state.get(f"widget_cach_ke_{i}")),
+        on_change=on_change_cach_ke,
+        args=(i,),
         horizontal=True,
         disabled=radio_disabled
     )
