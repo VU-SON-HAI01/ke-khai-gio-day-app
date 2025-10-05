@@ -471,7 +471,46 @@ def xac_dinh_chuan_gv(danh_sach_ma_mon: List[str]) -> str:
         return 'VH'
     return "Không xác định"
 
-# ---
+def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
+    """
+    Tìm hệ số quy đổi dựa trên sĩ số, loại tiết (LT/TH) và điều kiện nặng nhọc.
+    
+    Tham số:
+    - siso: Sĩ số của lớp học.
+    - is_heavy_duty: True nếu môn học là nặng nhọc, False nếu bình thường.
+    - lesson_type: 'LT' cho tiết Lý thuyết, 'TH' cho tiết Thực hành.
+    - df_hesosiso_g: DataFrame chứa bảng tra cứu hệ số.
+    """
+    try:
+        cleaned_siso = int(float(siso)) if siso is not None and str(siso).strip() != '' else 0
+    except (ValueError, TypeError):
+        cleaned_siso = 0
+    siso = cleaned_siso
+
+    df_hesosiso = df_hesosiso_g.copy()
+    for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
+        df_hesosiso[col] = pd.to_numeric(df_hesosiso[col], errors='coerce').fillna(0)
+    
+    heso_siso = 1.0
+
+    if lesson_type == 'LT':
+        for i in range(len(df_hesosiso)):
+            if df_hesosiso['LT min'].values[i] <= siso <= df_hesosiso['LT max'].values[i]:
+                heso_siso = df_hesosiso['Hệ số'].values[i]
+                break
+    elif lesson_type == 'TH':
+        if is_heavy_duty:
+            for i in range(len(df_hesosiso)):
+                if df_hesosiso['THNN min'].values[i] <= siso <= df_hesosiso['THNN max'].values[i]:
+                    heso_siso = df_hesosiso['Hệ số'].values[i]
+                    break
+        else: # Not heavy duty
+            for i in range(len(df_hesosiso)):
+                if df_hesosiso['TH min'].values[i] <= siso <= df_hesosiso['TH max'].values[i]:
+                    heso_siso = df_hesosiso['Hệ số'].values[i]
+                    break
+    return heso_siso
+# --
 # Bước 3: Hàm chính (main function)
 def xu_ly_danh_sach_mon(ma_mon_list: List[str]) -> pd.DataFrame:
     """
@@ -525,6 +564,55 @@ def tra_cuu_heso_tccd(mamon_nganh: str, chuan_gv: str) -> float:
         return float(bang_he_so[chuan_gv].loc[loai_lop, loai_mon])
     except Exception:
         return 1.0
+
+# ==============================
+# KẾT THÚC: LOGIC FUN_QUYDOI.PY
+# ==============================
+
+# --- KIỂM TRA ĐIỀU KIỆN TIÊN QUYẾT (TỪ MAIN.PY) ---
+if 'initialized' not in st.session_state or not st.session_state.initialized:
+    st.error("Vui lòng đăng nhập và đảm bảo thông tin của bạn đã được tải thành công từ trang chủ.")
+    st.stop()
+
+required_data = ['spreadsheet', 'df_lop', 'df_mon', 'df_ngaytuan', 'df_hesosiso', 'chuangv', 'df_lopghep', 'df_loptach', 'df_lopsc']
+missing_data = [item for item in required_data if item not in st.session_state]
+if missing_data:
+    st.error(f"Lỗi: Không tìm thấy dữ liệu cần thiết: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ.")
+    st.stop()
+
+# Luôn tải lại dữ liệu môn học từ Google Sheet mỗi khi vào page này
+
+# --- CSS TÙY CHỈNH GIAO DIỆN ---
+st.markdown("""
+<style>
+    /* Cho phép các ô trong bảng dữ liệu tự động xuống dòng */
+    .stDataFrame [data-testid="stTable"] div[data-testid="stVerticalBlock"] {
+        white-space: normal;
+        word-wrap: break-word;
+    }
+    /* Thêm đường viền và kiểu dáng cho các ô số liệu (metric) */
+    [data-testid="stMetric"] {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 5px 0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- LẤY DỮ LIỆU CƠ SỞ TỪ SESSION STATE ---
+spreadsheet = st.session_state.spreadsheet
+df_lop_g = st.session_state.get('df_lop')
+df_mon_g = st.session_state.get('df_mon')
+df_ngaytuan_g = st.session_state.get('df_ngaytuan')
+df_hesosiso_g = st.session_state.get('df_hesosiso')
+
+# Xác định chuangv động từ danh sách mã môn trong tất cả các tab
+mon_data_list = st.session_state.get('mon_hoc_data', [])
+df_lopghep_g = st.session_state.get('df_lopghep')
+df_loptach_g = st.session_state.get('df_loptach')
+df_lopsc_g = st.session_state.get('df_lopsc')
+ma_gv = st.session_state.get('magv', 'khong_ro')
 
 def load_all_mon_data():
     """Tải tất cả dữ liệu môn học đã lưu của GV từ Google Sheet."""
@@ -624,97 +712,7 @@ def load_all_mon_data():
         st.session_state[f"widget_tiet_lt_{i}"] = input_data['tiet_lt']
         st.session_state[f"widget_tiet_th_{i}"] = input_data['tiet_th']
 
-# ==============================
-# KẾT THÚC: LOGIC FUN_QUYDOI.PY
-# ==============================
-
-# --- KIỂM TRA ĐIỀU KIỆN TIÊN QUYẾT (TỪ MAIN.PY) ---
-if 'initialized' not in st.session_state or not st.session_state.initialized:
-    st.error("Vui lòng đăng nhập và đảm bảo thông tin của bạn đã được tải thành công từ trang chủ.")
-    st.stop()
-
-required_data = ['spreadsheet', 'df_lop', 'df_mon', 'df_ngaytuan', 'df_hesosiso', 'chuangv', 'df_lopghep', 'df_loptach', 'df_lopsc']
-missing_data = [item for item in required_data if item not in st.session_state]
-if missing_data:
-    st.error(f"Lỗi: Không tìm thấy dữ liệu cần thiết: {', '.join(missing_data)}. Vui lòng đảm bảo file main.py đã tải đủ.")
-    st.stop()
-
-# Luôn tải lại dữ liệu môn học từ Google Sheet mỗi khi vào page này
 load_all_mon_data()
-
-# --- CSS TÙY CHỈNH GIAO DIỆN ---
-st.markdown("""
-<style>
-    /* Cho phép các ô trong bảng dữ liệu tự động xuống dòng */
-    .stDataFrame [data-testid="stTable"] div[data-testid="stVerticalBlock"] {
-        white-space: normal;
-        word-wrap: break-word;
-    }
-    /* Thêm đường viền và kiểu dáng cho các ô số liệu (metric) */
-    [data-testid="stMetric"] {
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 10px;
-        padding: 15px;
-        margin: 5px 0;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-
-def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
-    """
-    Tìm hệ số quy đổi dựa trên sĩ số, loại tiết (LT/TH) và điều kiện nặng nhọc.
-    
-    Tham số:
-    - siso: Sĩ số của lớp học.
-    - is_heavy_duty: True nếu môn học là nặng nhọc, False nếu bình thường.
-    - lesson_type: 'LT' cho tiết Lý thuyết, 'TH' cho tiết Thực hành.
-    - df_hesosiso_g: DataFrame chứa bảng tra cứu hệ số.
-    """
-    try:
-        cleaned_siso = int(float(siso)) if siso is not None and str(siso).strip() != '' else 0
-    except (ValueError, TypeError):
-        cleaned_siso = 0
-    siso = cleaned_siso
-
-    df_hesosiso = df_hesosiso_g.copy()
-    for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
-        df_hesosiso[col] = pd.to_numeric(df_hesosiso[col], errors='coerce').fillna(0)
-    
-    heso_siso = 1.0
-
-    if lesson_type == 'LT':
-        for i in range(len(df_hesosiso)):
-            if df_hesosiso['LT min'].values[i] <= siso <= df_hesosiso['LT max'].values[i]:
-                heso_siso = df_hesosiso['Hệ số'].values[i]
-                break
-    elif lesson_type == 'TH':
-        if is_heavy_duty:
-            for i in range(len(df_hesosiso)):
-                if df_hesosiso['THNN min'].values[i] <= siso <= df_hesosiso['THNN max'].values[i]:
-                    heso_siso = df_hesosiso['Hệ số'].values[i]
-                    break
-        else: # Not heavy duty
-            for i in range(len(df_hesosiso)):
-                if df_hesosiso['TH min'].values[i] <= siso <= df_hesosiso['TH max'].values[i]:
-                    heso_siso = df_hesosiso['Hệ số'].values[i]
-                    break
-    return heso_siso
-
-# --- LẤY DỮ LIỆU CƠ SỞ TỪ SESSION STATE ---
-spreadsheet = st.session_state.spreadsheet
-df_lop_g = st.session_state.get('df_lop')
-df_mon_g = st.session_state.get('df_mon')
-df_ngaytuan_g = st.session_state.get('df_ngaytuan')
-df_hesosiso_g = st.session_state.get('df_hesosiso')
-
-# Xác định chuangv động từ danh sách mã môn trong tất cả các tab
-mon_data_list = st.session_state.get('mon_hoc_data', [])
-df_lopghep_g = st.session_state.get('df_lopghep')
-df_loptach_g = st.session_state.get('df_loptach')
-df_lopsc_g = st.session_state.get('df_lopsc')
-ma_gv = st.session_state.get('magv', 'khong_ro')
-
 # --- HẰNG SỐ ---
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
 KHOA_OPTIONS = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
