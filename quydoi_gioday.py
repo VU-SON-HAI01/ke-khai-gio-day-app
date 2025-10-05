@@ -20,31 +20,23 @@ def get_arr_tiet_from_state(mon_state):
     cach_ke = mon_state.get('cach_ke', '')
     if cach_ke == 'Kê theo MĐ, MH':
         arr_tiet = [int(x) for x in str(mon_state.get('tiet', '')).split() if x]
-        # Xử lý đặc biệt khi kieu_tinh_mdmh == ''
         kieu_tinh_mdmh = mon_state.get('kieu_tinh_mdmh', '')
         mamon_nganh = mon_state.get('mamon_nganh', '')
-        # Nếu chưa có arr_tiet_lt/th thì sinh mặc định từ arr_tiet và mamon_nganh
-        arr_tiet_lt = mon_state.get('arr_tiet_lt')
-        arr_tiet_th = mon_state.get('arr_tiet_th')
-        if arr_tiet_lt is None or arr_tiet_th is None or len(arr_tiet_lt) != len(arr_tiet) or len(arr_tiet_th) != len(arr_tiet):
-            if not kieu_tinh_mdmh:
-                if 'MH' in mamon_nganh:
-                    arr_tiet_lt = arr_tiet
-                    arr_tiet_th = [0]*len(arr_tiet)
-                elif 'TH' in mamon_nganh:
-                    arr_tiet_lt = [0]*len(arr_tiet)
-                    arr_tiet_th = arr_tiet
-                else:
-                    arr_tiet_lt = arr_tiet
-                    arr_tiet_th = [0]*len(arr_tiet)
-                mon_state['arr_tiet_lt'] = arr_tiet_lt
-                mon_state['arr_tiet_th'] = arr_tiet_th
+        # Luôn sinh lại arr_tiet_lt/th từ arr_tiet và mamon_nganh nếu kieu_tinh_mdmh rỗng (không lấy từ session_state cũ)
+        if not kieu_tinh_mdmh:
+            if 'MH' in mamon_nganh:
+                arr_tiet_lt = arr_tiet
+                arr_tiet_th = [0]*len(arr_tiet)
+            elif 'TH' in mamon_nganh:
+                arr_tiet_lt = [0]*len(arr_tiet)
+                arr_tiet_th = arr_tiet
             else:
-                arr_tiet_lt, arr_tiet_th = [], []
-        # Nếu đã có arr_tiet_lt/th hợp lệ thì dùng luôn
-        if arr_tiet_lt is None:
+                arr_tiet_lt = arr_tiet
+                arr_tiet_th = [0]*len(arr_tiet)
+            mon_state['arr_tiet_lt'] = arr_tiet_lt
+            mon_state['arr_tiet_th'] = arr_tiet_th
+        else:
             arr_tiet_lt = []
-        if arr_tiet_th is None:
             arr_tiet_th = []
     else:
         arr_tiet = [int(x) for x in str(mon_state.get('tiet', '')).split() if x]
