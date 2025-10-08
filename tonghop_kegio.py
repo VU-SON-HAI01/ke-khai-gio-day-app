@@ -1,73 +1,39 @@
-def export_giangday_to_excel(spreadsheet, df_mon, template_path='data_base/mau_kegio.xlsx'):
-    """
-    Lấy dữ liệu từ sheet 'output_giangday' trong Google Sheet, ánh xạ và ghi vào file Excel mẫu đúng vị trí/cột.
-    """
-    import openpyxl
-    import pandas as pd
-    import os
-    if not os.path.exists(template_path):
-        return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.'
-    ws = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
-    if ws is None:
-        return False, "Không tìm thấy sheet 'output_giangday' trong Google Sheet."
-    df = pd.DataFrame(ws.get_all_records())
-    wb = openpyxl.load_workbook(template_path)
-    sheet = wb.active  # hoặc wb['Ke_gio_HK1'] nếu cần đúng sheet
-    start_row = 8
-    for i, row in df.iterrows():
-        excel_row = start_row + i
-        # Tuần: A8 trở xuống
-        sheet[f'A{excel_row}'] = row.get('Tuần', '')
-        # Sĩ số: C8 trở xuống
-        sheet[f'C{excel_row}'] = row.get('Sĩ số', '')
-        # Mã_Môn_Ngành ánh xạ sang tên môn học từ df_mon
-        ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
-        mon_hoc = ''
-        if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns:
-            mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
-            if not mon_row.empty and 'Môn_học' in mon_row.columns:
-                mon_hoc = mon_row.iloc[0]['Môn_học']
-        sheet[f'D{excel_row}'] = mon_hoc
-        # HS TC/CĐ: E8 trở xuống
-        sheet[f'E{excel_row}'] = row.get('HS TC/CĐ', '')
-        # Tiết: F8 trở xuống
-        sheet[f'F{excel_row}'] = row.get('Tiết', '')
-        # Tiết_LT: G8 trở xuống
-        sheet[f'G{excel_row}'] = row.get('Tiết_LT', '')
-        # Tiết_TH: H8 trở xuống
-        sheet[f'H{excel_row}'] = row.get('Tiết_TH', '')
-        # HS_SS_LT: I8 trở xuống
-        sheet[f'I{excel_row}'] = row.get('HS_SS_LT', '')
-        # HS_SS_TH: J8 trở xuống
-        sheet[f'J{excel_row}'] = row.get('HS_SS_TH', '')
-    wb.save(template_path)
-    return True, template_path
+
 import streamlit as st
 import pandas as pd
 
 # Hàm tổng hợp kết quả từ các trang kê khai
 # Giả định dữ liệu đã được lưu vào session_state từ các trang kê khai
-
-
-
 def export_kegio_to_excel(df_hk1, df_hk2, template_path='data_base/mau_kegio.xlsx', output_path='output_kegio.xlsx'):
     """
-    Nhận vào 2 DataFrame HK1/HK2, ghi vào file Excel mẫu đúng sheet, không xử lý download button.
+    Nhận vào 2 DataFrame HK1/HK2, ghi vào file Excel mẫu đúng vị trí/cột như export_giangday_to_excel.
     """
+    # Sử dụng logic của export_giangday_to_excel cho xuất dữ liệu giảng dạy
+    # df_hk1: DataFrame cho HK1, df_hk2: DataFrame cho HK2
     import openpyxl
     import pandas as pd
     import os
     if not os.path.exists(template_path):
         return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.'
     wb = openpyxl.load_workbook(template_path)
-    with pd.ExcelWriter(template_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-        if not df_hk1.empty:
-            df_hk1.to_excel(writer, sheet_name='Ke_gio_HK1', index=False)
-        if not df_hk2.empty:
-            df_hk2.to_excel(writer, sheet_name='Ke_gio_HK2_Cả_năm', index=False)
+    sheet = wb.active  # hoặc wb['Ke_gio_HK1'] nếu cần đúng sheet
+    start_row = 8
+    # Ghi dữ liệu HK1
+    if not df_hk1.empty:
+        for i, row in df_hk1.iterrows():
+            excel_row = start_row + i
+            sheet[f'A{excel_row}'] = row.get('Tuần', '')
+            sheet[f'C{excel_row}'] = row.get('Sĩ số', '')
+            sheet[f'D{excel_row}'] = row.get('Môn_học', '')
+            sheet[f'E{excel_row}'] = row.get('HS TC/CĐ', '')
+            sheet[f'F{excel_row}'] = row.get('Tiết', '')
+            sheet[f'G{excel_row}'] = row.get('Tiết_LT', '')
+            sheet[f'H{excel_row}'] = row.get('Tiết_TH', '')
+            sheet[f'I{excel_row}'] = row.get('HS_SS_LT', '')
+            sheet[f'J{excel_row}'] = row.get('HS_SS_TH', '')
+    # Ghi dữ liệu HK2 nếu cần (ví dụ sheet khác)
+    wb.save(template_path)
     return True, template_path
-    st.title("Báo cáo tổng hợp dư giờ/thiếu giờ")
-    st.info("Trang này tổng hợp dữ liệu từ các trang kê khai và cho phép xuất ra PDF.")
 def tonghop_ketqua():
     # Nút tải dữ liệu từ Google Sheet của user (các sheet có tên bắt đầu bằng 'output_')
     if 'export_ready' not in st.session_state:
