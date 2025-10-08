@@ -973,10 +973,24 @@ def save_all_data():
             # Chỉ giữ lại các trường input cần thiết
             fields_to_keep = ['khoa', 'lop_hoc', 'mon_hoc', 'tuan', 'cach_ke', 'ID_MÔN', 'tiet_lt', 'tiet_th']
             data_to_save = {k: input_data.get(k, '') for k in fields_to_keep}
-            # Tính tổng tiết từng tuần và lưu vào cột 'tiet'
-            tiet_lt_list = [int(x) for x in str(data_to_save.get('tiet_lt', '')).split() if str(x).isdigit()]
-            tiet_th_list = [int(x) for x in str(data_to_save.get('tiet_th', '')).split() if str(x).isdigit()]
+            # Chuẩn hóa dữ liệu nhập tiết: nếu không có dấu cách, tự động thêm
+            def normalize_tiet_string(s):
+                s = str(s).strip()
+                if ' ' in s:
+                    return s
+                # Nếu toàn bộ là số, tách từng ký tự
+                if s.isdigit():
+                    return ' '.join(list(s))
+                # Nếu là chuỗi số, ví dụ: 4444456784888
+                return ' '.join([c for c in s if c.isdigit()])
+
+            tiet_lt_str = normalize_tiet_string(data_to_save.get('tiet_lt', ''))
+            tiet_th_str = normalize_tiet_string(data_to_save.get('tiet_th', ''))
+            tiet_lt_list = [int(x) for x in tiet_lt_str.split() if str(x).isdigit()]
+            tiet_th_list = [int(x) for x in tiet_th_str.split() if str(x).isdigit()]
             tiet_sum_list = [str(tiet_lt_list[i] + tiet_th_list[i]) if i < len(tiet_lt_list) and i < len(tiet_th_list) else str(tiet_lt_list[i] if i < len(tiet_lt_list) else tiet_th_list[i]) for i in range(max(len(tiet_lt_list), len(tiet_th_list)))]
+            data_to_save['tiet_lt'] = tiet_lt_str
+            data_to_save['tiet_th'] = tiet_th_str
             data_to_save['tiet'] = ' '.join(tiet_sum_list)
             # Chuẩn hóa tuần
             tuan_val = input_data.get('tuan', (1, 12))
