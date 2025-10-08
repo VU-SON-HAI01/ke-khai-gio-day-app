@@ -37,6 +37,8 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
             # Ghi dữ liệu vào từng cell
             try:
                 sheet.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
+                # Ghi giá trị cột 'Lớp_học' vào từng dòng (cột 2)
+                sheet.cell(row=excel_row, column=2).value = row.get('Lớp_học', '')  # B
                 sheet.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
                 ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
                 mon_hoc = ''
@@ -51,6 +53,16 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                 sheet.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
                 sheet.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
                 sheet.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
+                # Cột K: Thực hành nghề Nặng nhọc
+                nang_nhoc_val = ''
+                if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns and 'Nặng_nhọc' in df_mon.columns:
+                    ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
+                    mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+                    if not mon_row.empty:
+                        nn_val = mon_row.iloc[0]['Nặng_nhọc']
+                        if nn_val == 'NN':
+                            nang_nhoc_val = 'NN'
+                sheet.cell(row=excel_row, column=11).value = nang_nhoc_val  # K
             except Exception as e:
                 print(f"Lỗi ghi dòng {excel_row}: {e}")
                 continue
