@@ -1121,6 +1121,14 @@ def save_all_data():
                         mon_hoc_val = input_data.get('mon_hoc', '')
                         result_data['Môn_học'] = mon_hoc_val
                         output_list.append(result_data)
+    # --- Lưu toàn bộ input_giangday và output_giangday ---
+    if input_list:
+        input_df = pd.DataFrame(input_list)
+        save_data_to_sheet('input_giangday', input_df)
+    if output_list:
+        output_df = pd.concat(output_list, ignore_index=True)
+        save_data_to_sheet('output_giangday', output_df)
+
     ten_khoa = st.session_state.get('ten_khoa', '')
     chuan_gv = st.session_state.get('chuan_gv', 'CĐ')
     gio_chuan = st.session_state.get('giochuan', '')
