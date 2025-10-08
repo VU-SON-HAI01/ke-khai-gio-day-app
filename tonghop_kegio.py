@@ -18,7 +18,10 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
     if not os.path.exists(template_path):
         return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.'
     wb = openpyxl.load_workbook(template_path)
-    sheet = wb.active  # hoặc wb['Ke_gio_HK1'] nếu cần đúng sheet
+    if 'Ke_gio_HK1' in wb.sheetnames:
+        sheet = wb['Ke_gio_HK1']
+    else:
+        sheet = wb.active
     start_row = 8
     # Nếu truyền spreadsheet và df_mon: lấy dữ liệu từ Google Sheet
     if spreadsheet is not None and df_mon is not None:
