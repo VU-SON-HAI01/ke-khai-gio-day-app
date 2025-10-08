@@ -989,8 +989,9 @@ def save_all_data():
             tiet_lt_list = [int(x) for x in tiet_lt_str.split() if str(x).isdigit()]
             tiet_th_list = [int(x) for x in tiet_th_str.split() if str(x).isdigit()]
             tiet_sum_list = [str(tiet_lt_list[i] + tiet_th_list[i]) if i < len(tiet_lt_list) and i < len(tiet_th_list) else str(tiet_lt_list[i] if i < len(tiet_lt_list) else tiet_th_list[i]) for i in range(max(len(tiet_lt_list), len(tiet_th_list)))]
-            data_to_save['tiet_lt'] = tiet_lt_str
-            data_to_save['tiet_th'] = tiet_th_str
+            # Đảm bảo cột tiet_lt lưu đúng giá trị input
+            data_to_save['tiet_lt'] = normalize_tiet_string(input_data.get('tiet_lt', ''))
+            data_to_save['tiet_th'] = normalize_tiet_string(input_data.get('tiet_th', ''))
             data_to_save['tiet'] = ' '.join(tiet_sum_list)
             # Chuẩn hóa tuần
             tuan_val = input_data.get('tuan', (1, 12))
