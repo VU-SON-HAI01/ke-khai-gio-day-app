@@ -989,17 +989,15 @@ def save_all_data():
 
             # Lấy giá trị từ bảng kết quả tính toán nếu có
             if result_data is not None and not result_data.empty:
-                # Nếu bảng kết quả có các cột tiết, lấy đúng giá trị đã tính toán
                 for col in ['tiet_lt', 'tiet_th', 'tiet']:
                     if col in result_data.columns:
-                        # Ghép các giá trị từng tuần thành chuỗi cách nhau bởi dấu cách
                         data_to_save[col] = ' '.join(str(x) for x in result_data[col].tolist())
             else:
-                # Nếu không có bảng kết quả, fallback về logic cũ
+                # Luôn lấy df_lop_g, df_mon_g từ session_state để tránh lỗi
+                df_mon_g = st.session_state.get('df_mon')
+                df_lop_g = st.session_state.get('df_lop')
                 if cach_ke == 'Kê theo MĐ, MH':
                     tiet_list = [int(x) for x in tiet_str.split() if str(x).isdigit()]
-                    df_mon_g = st.session_state.get('df_mon')
-                    df_lop_g = st.session_state.get('df_lop')
                     lop_hoc = input_data.get('lop_hoc', '')
                     mon_hoc = input_data.get('mon_hoc', '')
                     mamon_nganh = ''
