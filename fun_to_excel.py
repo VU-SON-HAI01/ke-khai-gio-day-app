@@ -18,16 +18,14 @@ if not os.path.exists(template_path):
 else:
     # Đọc file mẫu
     wb = openpyxl.load_workbook(template_path)
-    writer = pd.ExcelWriter(output_path, engine='openpyxl')
-    writer.book = wb
-    # Ghi dữ liệu vào các sheet (tùy chỉnh tên sheet theo file mẫu)
-    if not df_kekhai.empty:
-        df_kekhai.to_excel(writer, sheet_name='Kê khai', index=False)
-    if not df_giaovien.empty:
-        df_giaovien.to_excel(writer, sheet_name='Giáo viên', index=False)
-    # ... thêm các sheet khác nếu cần
-    writer.save()
-    writer.close()
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        # writer.book = wb  # KHÔNG cần dòng này với pandas >= 1.4.0
+        # Ghi dữ liệu vào các sheet (tùy chỉnh tên sheet theo file mẫu)
+        if not df_kekhai.empty:
+            df_kekhai.to_excel(writer, sheet_name='Kê khai', index=False)
+        if not df_giaovien.empty:
+            df_giaovien.to_excel(writer, sheet_name='Giáo viên', index=False)
+        # ... thêm các sheet khác nếu cần
     st.success('Đã xuất dữ liệu ra file Excel mẫu!')
     with open(output_path, 'rb') as f:
         st.download_button('Tải file Excel kết quả', f, file_name='ke_khai_gio_day.xlsx')
