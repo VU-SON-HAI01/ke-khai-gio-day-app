@@ -1008,9 +1008,13 @@ def save_all_data():
                     tiet_th_str = normalize_tiet_string(input_data.get('tiet_th', ''))
 
                     if result_data is not None and not result_data.empty:
-                        for col in ['tiet', 'tiet_lt', 'tiet_th']:
+                        # Luôn ưu tiên lấy giá trị 'tiet' từ bảng kết quả tính toán
+                        for col in ['tiet_lt', 'tiet_th']:
                             if col in result_data.columns:
                                 data_to_save[col] = ' '.join(str(x) for x in result_data[col].tolist())
+                        # Đảm bảo cột 'tiet' lấy từ bảng kết quả nếu có
+                        if 'Tiết' in result_data.columns:
+                            data_to_save['tiet'] = ' '.join(str(x) for x in result_data['Tiết'].tolist())
                     else:
                         if cach_ke == 'Kê theo MĐ, MH':
                             tiet_list = [int(x) for x in tiet_str.split() if str(x).isdigit()]
