@@ -1061,8 +1061,7 @@ def save_all_data():
                     return ' '.join(str(x) for x in val)
                 else:
                     return ''
-            data_to_save['tiet_lt'] = to_space_str(input_data.get('arr_tiet_lt', []))
-            data_to_save['tiet_th'] = to_space_str(input_data.get('arr_tiet_th', []))
+            # Không ghi đè lại giá trị tiet_lt, tiet_th đã lấy từ bảng kết quả hoặc logic phía trên
             data_to_save['ID_MÔN'] = f"Môn {mon_index}"
             selected_khoa = data_to_save.get('khoa')
             lop_hoc = data_to_save.get('lop_hoc')
