@@ -465,6 +465,15 @@ else:
                         st.session_state.ten_khoa = teacher_info.get('ten_khoa')
                         st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
                         st.session_state.chucvu_hientai = teacher_info.get('Chức vụ_HT', 'GV')
+                        # Ánh xạ Ten_chucvu từ df_giochuan dựa vào chucvu_hientai
+                        
+                        df_giochuan = all_base_data.get('df_giochuan', pd.DataFrame())
+                        ten_chucvu = ''
+                        if isinstance(df_giochuan, pd.DataFrame) and not df_giochuan.empty:
+                            row = df_giochuan[df_giochuan['Chuẩn_gv'].astype(str).str.upper() == str(st.session_state.chucvu_hientai).upper()]
+                            if not row.empty and 'Ten_chucvu' in row.columns:
+                                ten_chucvu = row.iloc[0]['Ten_chucvu']
+                        st.session_state.ten_chucvu = ten_chucvu
                         # Ánh xạ giờ chuẩn từ df_giochuan nếu có
                         df_giochuan = all_base_data.get('df_giochuan', pd.DataFrame())
                         giochuan_value = 594
@@ -509,7 +518,7 @@ else:
                 st.write(f"**Khoa/Phòng:** :green[{ten_khoa}]")
                 st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
                 st.write(f"**Chuẩn GV:** :green[{st.session_state.chuangv}]")
-                st.write(f"**Chức vụ:** :green[{st.session_state.chucvu_hientai}]")
+                st.write(f"**Chức vụ:** :green[{st.session_state.ten_chucvu}]")
                 st.divider()
                 if st.button("Đăng xuất", use_container_width=True, key="user_logout"):
                     st.session_state.clear()
