@@ -962,11 +962,6 @@ def remove_mon_hoc():
         st.session_state.results_data.pop()
 
 def save_all_data():
-    # Tính tổng tiết từng tuần và lưu vào cột 'tiet'
-    tiet_lt_list = [int(x) for x in data_to_save.get('tiet_lt', '').split() if str(x).isdigit()]
-    tiet_th_list = [int(x) for x in data_to_save.get('tiet_th', '').split() if str(x).isdigit()]
-    tiet_sum_list = [str(tiet_lt_list[i] + tiet_th_list[i]) if i < len(tiet_lt_list) and i < len(tiet_th_list) else str(tiet_lt_list[i] if i < len(tiet_lt_list) else tiet_th_list[i]) for i in range(max(len(tiet_lt_list), len(tiet_th_list)))]
-    data_to_save['tiet'] = ' '.join(tiet_sum_list)
     """Lưu tất cả dữ liệu với logic tùy chỉnh cho cột 'tiet'."""
     with st.spinner("Đang lưu tất cả dữ liệu..."):
         input_list = []
@@ -976,8 +971,13 @@ def save_all_data():
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
             # Chỉ giữ lại các trường input cần thiết
-            fields_to_keep = ['khoa', 'lop_hoc', 'mon_hoc', 'tuan', 'cach_ke', 'ID_MÔN']
+            fields_to_keep = ['khoa', 'lop_hoc', 'mon_hoc', 'tuan', 'cach_ke', 'ID_MÔN', 'tiet_lt', 'tiet_th']
             data_to_save = {k: input_data.get(k, '') for k in fields_to_keep}
+            # Tính tổng tiết từng tuần và lưu vào cột 'tiet'
+            tiet_lt_list = [int(x) for x in str(data_to_save.get('tiet_lt', '')).split() if str(x).isdigit()]
+            tiet_th_list = [int(x) for x in str(data_to_save.get('tiet_th', '')).split() if str(x).isdigit()]
+            tiet_sum_list = [str(tiet_lt_list[i] + tiet_th_list[i]) if i < len(tiet_lt_list) and i < len(tiet_th_list) else str(tiet_lt_list[i] if i < len(tiet_lt_list) else tiet_th_list[i]) for i in range(max(len(tiet_lt_list), len(tiet_th_list)))]
+            data_to_save['tiet'] = ' '.join(tiet_sum_list)
             # Chuẩn hóa tuần
             tuan_val = input_data.get('tuan', (1, 12))
             if isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
