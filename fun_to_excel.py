@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import openpyxl
 import os
-
+import io
 # Đường dẫn file mẫu Excel (bạn cần upload file này vào đúng thư mục data_base)
 template_path = os.path.join('data_base', 'mau_kegio.xlsx')
 output_path = 'output_kegio.xlsx'
@@ -25,10 +25,7 @@ else:
             if not df_hk2.empty:
                 df_hk2.to_excel(writer, sheet_name='Ke_gio_HK2_Cả_năm', index=False)
         st.success('Đã xuất dữ liệu ra file Excel mẫu!')
-        with open(output_path, 'rb') as f:
-            st.download_button('Tải file Excel kết quả', f, file_name='ke_khai_gio_day.xlsx')
 import pandas as pd
-import io
 
 def export_tables_to_excel(table_dict):
     """
