@@ -10,6 +10,7 @@ import os
 
 
 def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, template_path='data_base/mau_kegio.xlsx'):
+
     """
     Kết hợp: Nếu truyền spreadsheet và df_mon thì lấy dữ liệu từ Google Sheet, ánh xạ tên môn học và ghi vào file Excel mẫu.
     Nếu truyền df_hk1 thì ghi trực tiếp dữ liệu HK1 vào file Excel mẫu.
@@ -109,6 +110,12 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
             except Exception as e:
                 print(f"Lỗi ghi dòng {excel_row}: {e}")
                 continue
+        # Sau khi ghi dữ liệu, xóa các dòng thừa từ dòng cuối cùng có dữ liệu đến dòng 178
+    # Xác định dòng cuối cùng có dữ liệu
+    last_data_row = excel_row  # excel_row là dòng cuối cùng đã ghi dữ liệu
+    # Xóa các dòng thừa phía dưới dữ liệu đến dòng 178
+    if last_data_row < 178:
+        sheet.delete_rows(last_data_row + 1, 178 - last_data_row)
     wb.save(template_path)
     return True, template_path
 def tonghop_ketqua():
