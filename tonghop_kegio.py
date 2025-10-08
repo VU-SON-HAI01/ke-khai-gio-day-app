@@ -119,7 +119,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
     st.write(last_data_row)
     if last_data_row < 178:
         for row_idx in range(last_data_row + 1, 179):
-            sheet.delete_rows(last_data_row + 1)
+            sheet.delete_rows(row_idx)
     wb.save(template_path)
     return True, template_path
 def tonghop_ketqua():
