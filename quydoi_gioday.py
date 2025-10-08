@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -9,6 +10,13 @@ import re
 from typing import List, Tuple, Dict, Any
 from itertools import zip_longest
 # --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
+def add_lop_hoc_column_to_output_giangday(df, lop_hoc_value):
+    """
+    Thêm cột 'Lop_hoc' vào DataFrame output_giangday với giá trị lấy từ widget chọn lớp học.
+    """
+    df = df.copy()
+    df['Lop_hoc'] = lop_hoc_value
+    return df
 def on_change_cach_ke(i):
     mon_state = st.session_state.mon_hoc_data[i]
     cach_ke = st.session_state.get(f"widget_cach_ke_{i}")
