@@ -1068,6 +1068,9 @@ def save_all_data():
                 result_data = result_data.copy()
                 result_data['ID_MÔN'] = f"Môn {mon_index}"
                 result_data['Mã_Môn_Ngành'] = mamon_nganh
+                # Thêm cột Môn_học vào output_giangday
+                mon_hoc_val = input_data.get('mon_hoc', '')
+                result_data['Môn_học'] = mon_hoc_val
                 output_list.append(result_data)
         # Lưu toàn bộ input
         if input_list:
