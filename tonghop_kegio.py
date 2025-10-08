@@ -29,6 +29,9 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
         if ws is None:
             return False, "Không tìm thấy sheet 'output_giangday' trong Google Sheet."
         df = pd.DataFrame(ws.get_all_records())
+        from openpyxl.styles import Border, Side
+        border_style = Border(left=Side(style='medium'), right=Side(style='medium'), top=Side(style='medium'), bottom=Side(style='medium'))
+        prev_lop_hoc = None
         for i, row in df.iterrows():
             excel_row = int(start_row + i)
             # Đảm bảo excel_row không vượt quá số dòng tối đa của sheet
@@ -37,7 +40,6 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
             # Ghi dữ liệu vào từng cell
             try:
                 sheet.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
-                # Ghi giá trị cột 'Lớp_học' vào từng dòng (cột 2)
                 sheet.cell(row=excel_row, column=2).value = row.get('Lớp_học', '')  # B
                 sheet.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
                 ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
@@ -63,6 +65,24 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                         if nn_val == 'NN':
                             nang_nhoc_val = 'NN'
                 sheet.cell(row=excel_row, column=11).value = nang_nhoc_val  # K
+                # Chỉ thêm border medium khi chuyển sang lớp mới (ngăn cách giữa các lớp)
+                curr_lop_hoc = row.get('Lớp_học', '')
+                if prev_lop_hoc is not None and curr_lop_hoc != prev_lop_hoc:
+                    for col in range(1, 13):
+                        sheet.cell(row=excel_row, column=col).border = border_style
+                # Đánh dấu border medium cho dòng cuối cùng của mỗi lớp
+                # Lưu lại excel_row của dòng trước để gán border khi lớp thay đổi
+                if i == 0:
+                    prev_lop_hoc = row.get('Lớp_học', '')
+                    prev_excel_row = excel_row
+                else:
+                    curr_lop_hoc = row.get('Lớp_học', '')
+                    if curr_lop_hoc != prev_lop_hoc:
+                        # Gán border cho dòng trước (dòng cuối cùng của lớp trước)
+                        for col in range(1, 13):
+                            sheet.cell(row=prev_excel_row, column=col).border = border_style
+                    prev_lop_hoc = curr_lop_hoc
+                    prev_excel_row = excel_row
             except Exception as e:
                 print(f"Lỗi ghi dòng {excel_row}: {e}")
                 continue
