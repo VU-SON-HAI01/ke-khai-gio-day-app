@@ -978,21 +978,55 @@ def save_all_data():
                 s = str(s).strip()
                 if ' ' in s:
                     return s
-                # Nếu toàn bộ là số, tách từng ký tự
                 if s.isdigit():
                     return ' '.join(list(s))
-                # Nếu là chuỗi số, ví dụ: 4444456784888
                 return ' '.join([c for c in s if c.isdigit()])
 
-            tiet_lt_str = normalize_tiet_string(data_to_save.get('tiet_lt', ''))
-            tiet_th_str = normalize_tiet_string(data_to_save.get('tiet_th', ''))
-            tiet_lt_list = [int(x) for x in tiet_lt_str.split() if str(x).isdigit()]
-            tiet_th_list = [int(x) for x in tiet_th_str.split() if str(x).isdigit()]
-            tiet_sum_list = [str(tiet_lt_list[i] + tiet_th_list[i]) if i < len(tiet_lt_list) and i < len(tiet_th_list) else str(tiet_lt_list[i] if i < len(tiet_lt_list) else tiet_th_list[i]) for i in range(max(len(tiet_lt_list), len(tiet_th_list)))]
-            # Đảm bảo cột tiet_lt lưu đúng giá trị input
-            data_to_save['tiet_lt'] = normalize_tiet_string(input_data.get('tiet_lt', ''))
-            data_to_save['tiet_th'] = normalize_tiet_string(input_data.get('tiet_th', ''))
-            data_to_save['tiet'] = ' '.join(tiet_sum_list)
+            cach_ke = input_data.get('cach_ke', '')
+            tiet_str = normalize_tiet_string(input_data.get('tiet', ''))
+            tiet_lt_str = normalize_tiet_string(input_data.get('tiet_lt', ''))
+            tiet_th_str = normalize_tiet_string(input_data.get('tiet_th', ''))
+
+            # Trường hợp 1: Kê theo MĐ, MH
+            if cach_ke == 'Kê theo MĐ, MH':
+                # tiet = giá trị input
+                tiet_list = [int(x) for x in tiet_str.split() if str(x).isdigit()]
+                # Xác định môn là LT hay TH dựa vào mã môn
+                df_mon_g = st.session_state.get('df_mon')
+                df_lop_g = st.session_state.get('df_lop')
+                lop_hoc = input_data.get('lop_hoc', '')
+                mon_hoc = input_data.get('mon_hoc', '')
+                mamon_nganh = ''
+                if df_lop_g is not None and not df_lop_g.empty and lop_hoc:
+                    dsmon_code = df_lop_g[df_lop_g['Lớp'] == lop_hoc]['Mã_DSMON']
+                    if not dsmon_code.empty:
+                        dsmon_code = dsmon_code.iloc[0]
+                        if df_mon_g is not None and not df_mon_g.empty and mon_hoc:
+                            mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
+                            if not mon_info.empty:
+                                mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
+                # Nếu là MH thì LT, nếu là MĐ thì TH
+                if 'MH' in mamon_nganh and 'MĐ' not in mamon_nganh:
+                    tiet_lt_str = tiet_str
+                    tiet_th_str = ' '.join(['0']*len(tiet_list))
+                elif 'MĐ' in mamon_nganh and 'MH' not in mamon_nganh:
+                    tiet_lt_str = ' '.join(['0']*len(tiet_list))
+                    tiet_th_str = tiet_str
+                else:
+                    tiet_lt_str = tiet_str
+                    tiet_th_str = ' '.join(['0']*len(tiet_list))
+                data_to_save['tiet'] = tiet_str
+                data_to_save['tiet_lt'] = tiet_lt_str
+                data_to_save['tiet_th'] = tiet_th_str
+
+            # Trường hợp 2: Kê theo LT, TH chi tiết
+            elif cach_ke == 'Kê theo LT, TH chi tiết':
+                tiet_lt_list = [int(x) for x in tiet_lt_str.split() if str(x).isdigit()]
+                tiet_th_list = [int(x) for x in tiet_th_str.split() if str(x).isdigit()]
+                tiet_sum_list = [str(tiet_lt_list[i] + tiet_th_list[i]) if i < len(tiet_lt_list) and i < len(tiet_th_list) else str(tiet_lt_list[i] if i < len(tiet_lt_list) else tiet_th_list[i]) for i in range(max(len(tiet_lt_list), len(tiet_th_list)))]
+                data_to_save['tiet_lt'] = tiet_lt_str
+                data_to_save['tiet_th'] = tiet_th_str
+                data_to_save['tiet'] = ' '.join(tiet_sum_list)
             # Chuẩn hóa tuần
             tuan_val = input_data.get('tuan', (1, 12))
             if isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
