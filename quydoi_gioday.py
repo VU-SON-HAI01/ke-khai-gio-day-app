@@ -124,10 +124,10 @@ def render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df
         "Chọn Khóa/Hệ",
         options=khoa_options,
         index=khoa_options.index(mon_state.get('khoa', khoa_options[0])),
-        key=f"widget_khoa_{i}",
-        on_change=update_mon_hoc_state,
-        args=(i, 'khoa', st.session_state.get(f"widget_khoa_{i}"))
+        key=f"widget_khoa_{i}"
     )
+    mon_state['khoa'] = selected_khoa
+
     # Chọn lớp học
     df_lop_mapping = {
         'Khóa 48': df_lop_g,
@@ -142,14 +142,14 @@ def render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df
     if mon_state.get('lop_hoc') not in filtered_lop_options:
         mon_state['lop_hoc'] = filtered_lop_options[0] if filtered_lop_options else ''
     lop_hoc_index = filtered_lop_options.index(mon_state.get('lop_hoc')) if mon_state.get('lop_hoc') in filtered_lop_options else 0
-    st.selectbox(
+    selected_lop_hoc = st.selectbox(
         "Chọn Lớp học",
         options=filtered_lop_options,
         index=lop_hoc_index,
-        key=f"widget_lop_hoc_{i}",
-        on_change=update_mon_hoc_state,
-        args=(i, 'lop_hoc', st.session_state.get(f"widget_lop_hoc_{i}"))
+        key=f"widget_lop_hoc_{i}"
     )
+    mon_state['lop_hoc'] = selected_lop_hoc
+
     # Chọn môn học
     dsmon_options = []
     df_dsmon_loc = pd.DataFrame()
@@ -164,26 +164,26 @@ def render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df
     if mon_state.get('mon_hoc') not in dsmon_options:
         mon_state['mon_hoc'] = dsmon_options[0] if dsmon_options else ''
     mon_hoc_index = dsmon_options.index(mon_state.get('mon_hoc')) if mon_state.get('mon_hoc') in dsmon_options else 0
-    st.selectbox(
+    selected_mon_hoc = st.selectbox(
         "Chọn Môn học",
         options=dsmon_options,
         index=mon_hoc_index,
-        key=f"widget_mon_hoc_{i}",
-        on_change=update_mon_hoc_state,
-        args=(i, 'mon_hoc', st.session_state.get(f"widget_mon_hoc_{i}"))
+        key=f"widget_mon_hoc_{i}"
     )
+    mon_state['mon_hoc'] = selected_mon_hoc
+
     # Chọn tuần
     tuan_value = mon_state.get('tuan', (1, 12))
     if not isinstance(tuan_value, (list, tuple)) or len(tuan_value) != 2:
         tuan_value = (1, 12)
-    st.slider(
+    selected_tuan = st.slider(
         "Chọn Tuần giảng dạy",
         1, 50,
         value=tuan_value,
-        key=f"widget_tuan_{i}",
-        on_change=update_mon_hoc_state,
-        args=(i, 'tuan', st.session_state.get(f"widget_tuan_{i}"))
+        key=f"widget_tuan_{i}"
     )
+    mon_state['tuan'] = selected_tuan
+
     # Chọn phương pháp kê khai
     kieu_tinh_mdmh = ''
     if mon_state.get('mon_hoc') and not df_dsmon_loc.empty and 'Tính MĐ/MH' in df_dsmon_loc.columns:
@@ -201,20 +201,21 @@ def render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df
         options = ('Kê theo LT, TH chi tiết', 'Kê theo MĐ, MH')
     else:
         options = ('Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết')
-    st.radio(
+    selected_cach_ke = st.radio(
         "Chọn phương pháp kê khai",
         options,
         index=0,
         key=f"widget_cach_ke_{i}",
-        on_change=on_change_cach_ke,
-        args=(i,),
         horizontal=True,
         disabled=radio_disabled
     )
+    mon_state['cach_ke'] = selected_cach_ke
+
     # Các input tiết sẽ gom lại ở 1 hàm riêng nếu cần
-    # ...
+    # ...existing code...
     # Lấy arr_tiet, arr_tiet_lt, arr_tiet_th luôn qua helper để đảm bảo logic đồng nhất
     arr_tiet, arr_tiet_lt, arr_tiet_th = get_arr_tiet_from_state(mon_state)
+
 def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
     """
     Đếm số tuần TẾT dựa vào cột Tuần_Tết nếu có, ánh xạ sang cột Tuần.
@@ -961,6 +962,11 @@ def remove_mon_hoc():
         st.session_state.results_data.pop()
 
 def save_all_data():
+    # Tính tổng tiết từng tuần và lưu vào cột 'tiet'
+    tiet_lt_list = [int(x) for x in data_to_save.get('tiet_lt', '').split() if str(x).isdigit()]
+    tiet_th_list = [int(x) for x in data_to_save.get('tiet_th', '').split() if str(x).isdigit()]
+    tiet_sum_list = [str(tiet_lt_list[i] + tiet_th_list[i]) if i < len(tiet_lt_list) and i < len(tiet_th_list) else str(tiet_lt_list[i] if i < len(tiet_lt_list) else tiet_th_list[i]) for i in range(max(len(tiet_lt_list), len(tiet_th_list)))]
+    data_to_save['tiet'] = ' '.join(tiet_sum_list)
     """Lưu tất cả dữ liệu với logic tùy chỉnh cho cột 'tiet'."""
     with st.spinner("Đang lưu tất cả dữ liệu..."):
         input_list = []
