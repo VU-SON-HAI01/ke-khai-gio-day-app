@@ -75,7 +75,16 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                     if curr_lop_hoc != prev_lop_hoc:
                         # Gán border cho dòng trước (dòng cuối cùng của lớp trước)
                         for col in range(1, 13):
-                            sheet.cell(row=prev_excel_row, column=col).border = bottom_border
+                            cell = sheet.cell(row=prev_excel_row, column=col)
+                            # Giữ nguyên các border khác, chỉ thêm bottom border medium
+                            old_border = cell.border
+                            new_border = Border(
+                                left=old_border.left,
+                                right=old_border.right,
+                                top=old_border.top,
+                                bottom=Side(style='medium')
+                            )
+                            cell.border = new_border
                     prev_lop_hoc = curr_lop_hoc
                     prev_excel_row = excel_row
             except Exception as e:
