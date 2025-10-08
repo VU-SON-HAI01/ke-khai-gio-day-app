@@ -1165,7 +1165,7 @@ for i, tab in enumerate(tabs[:-1]):
         st.subheader(f"I. Cấu hình giảng dạy - Môn {i+1}")
 
         def update_tab_state(key, index):
-            st.session_state.mon_hoc_data[index][key] = st.session_state[f"widget_{key}_{index}"]
+            st.session_state.mon_hoc_data[index][key] = st.session_state.get(f"widget_{key}_{index}", "")
 
         current_input = st.session_state.mon_hoc_data[i]
 
