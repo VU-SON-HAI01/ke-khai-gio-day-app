@@ -969,31 +969,11 @@ def save_all_data():
         # Đảm bảo lấy đúng mã môn ngành cho từng môn
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
-            data_to_save = input_data.copy()
-            # --- CHUẨN HÓA CÁC TRƯỜNG TRƯỚC KHI LƯU ---
-            khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
-            data_to_save['khoa'] = str(data_to_save.get('khoa', khoa_options[0]))
-            if data_to_save['khoa'] not in khoa_options:
-                data_to_save['khoa'] = khoa_options[0]
-            data_to_save['lop_hoc'] = str(data_to_save.get('lop_hoc', ''))
-            data_to_save['mon_hoc'] = str(data_to_save.get('mon_hoc', ''))
-            cach_ke_options = ['Kê theo MĐ, MH', 'Kê theo LT, TH chi tiết']
-            data_to_save['cach_ke'] = str(data_to_save.get('cach_ke', cach_ke_options[0]))
-            if data_to_save['cach_ke'] not in cach_ke_options:
-                data_to_save['cach_ke'] = cach_ke_options[0]
-            tiet_val = data_to_save.get('tiet', '')
-            if isinstance(tiet_val, (list, tuple)):
-                tiet_val = ' '.join(str(x) for x in tiet_val)
-            data_to_save['tiet'] = str(tiet_val)
-            tiet_lt_val = data_to_save.get('tiet_lt', '0')
-            if isinstance(tiet_lt_val, (list, tuple)):
-                tiet_lt_val = ' '.join(str(x) for x in tiet_lt_val)
-            data_to_save['tiet_lt'] = str(tiet_lt_val)
-            tiet_th_val = data_to_save.get('tiet_th', '0')
-            if isinstance(tiet_th_val, (list, tuple)):
-                tiet_th_val = ' '.join(str(x) for x in tiet_th_val)
-            data_to_save['tiet_th'] = str(tiet_th_val)
-            tuan_val = data_to_save.get('tuan', (1, 12))
+            # Chỉ giữ lại các trường input cần thiết
+            fields_to_keep = ['khoa', 'lop_hoc', 'mon_hoc', 'tuan', 'cach_ke', 'arr_tiet_lt', 'arr_tiet_th', 'ID_MÔN']
+            data_to_save = {k: input_data.get(k, '') for k in fields_to_keep}
+            # Chuẩn hóa tuần
+            tuan_val = input_data.get('tuan', (1, 12))
             if isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
                 try:
                     tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
@@ -1009,21 +989,17 @@ def save_all_data():
             else:
                 tuan_val = (1, 12)
             data_to_save['tuan'] = str(tuan_val)
-            # --- KẾT THÚC CHUẨN HÓA ---
-            if data_to_save.get('cach_ke') == 'Kê theo LT, TH chi tiết':
-                try:
-                    tiet_lt_list = [int(x) for x in str(data_to_save.get('tiet_lt', '0')).split()]
-                    tiet_th_list = [int(x) for x in str(data_to_save.get('tiet_th', '0')).split()]
-                    tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
-                    data_to_save['tiet'] = ' '.join(map(str, tiet_sum_list))
-                except ValueError:
-                    data_to_save['tiet'] = ''
-                    st.warning(f"Môn {mon_index}: Định dạng số tiết LT/TH không hợp lệ, cột 'tiet' tổng hợp sẽ bị bỏ trống.")
-            elif data_to_save.get('cach_ke') == 'Kê theo MĐ, MH':
-                data_to_save['tiet_lt'] = '0'
-                data_to_save['tiet_th'] = '0'
+            # Chuyển arr_tiet_lt, arr_tiet_th về dạng list chuỗi
+            def to_space_str(val):
+                if isinstance(val, str):
+                    return val
+                elif isinstance(val, (list, tuple)):
+                    return ' '.join(str(x) for x in val)
+                else:
+                    return ''
+            data_to_save['arr_tiet_lt'] = to_space_str(input_data.get('arr_tiet_lt', []))
+            data_to_save['arr_tiet_th'] = to_space_str(input_data.get('arr_tiet_th', []))
             data_to_save['ID_MÔN'] = f"Môn {mon_index}"
-            # ...existing code...
             selected_khoa = data_to_save.get('khoa')
             lop_hoc = data_to_save.get('lop_hoc')
             mon_hoc = data_to_save.get('mon_hoc')
