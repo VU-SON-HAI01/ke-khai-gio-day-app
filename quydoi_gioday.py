@@ -970,7 +970,7 @@ def save_all_data():
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
             # Chỉ giữ lại các trường input cần thiết
-            fields_to_keep = ['khoa', 'lop_hoc', 'mon_hoc', 'tuan', 'cach_ke', 'arr_tiet_lt', 'arr_tiet_th', 'ID_MÔN']
+            fields_to_keep = ['khoa', 'lop_hoc', 'mon_hoc', 'tuan', 'cach_ke', 'ID_MÔN']
             data_to_save = {k: input_data.get(k, '') for k in fields_to_keep}
             # Chuẩn hóa tuần
             tuan_val = input_data.get('tuan', (1, 12))
@@ -989,16 +989,24 @@ def save_all_data():
             else:
                 tuan_val = (1, 12)
             data_to_save['tuan'] = str(tuan_val)
-            # Chuyển arr_tiet_lt, arr_tiet_th về dạng list chuỗi
+            # Chuyển đổi dữ liệu tiết LT/TH sang chuỗi số cách nhau bởi dấu cách
             def to_space_str(val):
                 if isinstance(val, str):
-                    return val
+                    if val.startswith("[") and val.endswith("]"):
+                        import ast
+                        try:
+                            arr = ast.literal_eval(val)
+                            return ' '.join(str(x) for x in arr)
+                        except Exception:
+                            return val
+                    else:
+                        return val
                 elif isinstance(val, (list, tuple)):
                     return ' '.join(str(x) for x in val)
                 else:
                     return ''
-            data_to_save['arr_tiet_lt'] = to_space_str(input_data.get('arr_tiet_lt', []))
-            data_to_save['arr_tiet_th'] = to_space_str(input_data.get('arr_tiet_th', []))
+            data_to_save['tiet_lt'] = to_space_str(input_data.get('arr_tiet_lt', []))
+            data_to_save['tiet_th'] = to_space_str(input_data.get('arr_tiet_th', []))
             data_to_save['ID_MÔN'] = f"Môn {mon_index}"
             selected_khoa = data_to_save.get('khoa')
             lop_hoc = data_to_save.get('lop_hoc')
