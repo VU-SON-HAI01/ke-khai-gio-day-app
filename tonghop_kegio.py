@@ -27,34 +27,34 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
         df = pd.DataFrame(ws.get_all_records())
         for i, row in df.iterrows():
             excel_row = start_row + i
-            sheet[f'A{excel_row}'].value = row.get('Tuần', '')
-            sheet[f'C{excel_row}'].value = row.get('Sĩ số', '')
+            sheet.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
+            sheet.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
             ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
             mon_hoc = ''
             if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns:
                 mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
                 if not mon_row.empty and 'Môn_học' in mon_row.columns:
                     mon_hoc = mon_row.iloc[0]['Môn_học']
-            sheet[f'D{excel_row}'].value = mon_hoc
-            sheet[f'E{excel_row}'].value = row.get('HS TC/CĐ', '')
-            sheet[f'F{excel_row}'].value = row.get('Tiết', '')
-            sheet[f'G{excel_row}'].value = row.get('Tiết_LT', '')
-            sheet[f'H{excel_row}'].value = row.get('Tiết_TH', '')
-            sheet[f'I{excel_row}'].value = row.get('HS_SS_LT', '')
-            sheet[f'J{excel_row}'].value = row.get('HS_SS_TH', '')
+            sheet.cell(row=excel_row, column=4).value = mon_hoc                 # D
+            sheet.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
+            sheet.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+            sheet.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
+            sheet.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
+            sheet.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
+            sheet.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
     # Nếu truyền df_hk1: ghi trực tiếp dữ liệu HK1
     elif df_hk1 is not None:
         for i, row in df_hk1.iterrows():
             excel_row = start_row + i
-            sheet[f'A{excel_row}'].value = row.get('Tuần', '')
-            sheet[f'C{excel_row}'].value = row.get('Sĩ số', '')
-            sheet[f'D{excel_row}'].value = row.get('Môn_học', '')
-            sheet[f'E{excel_row}'].value = row.get('HS TC/CĐ', '')
-            sheet[f'F{excel_row}'].value = row.get('Tiết', '')
-            sheet[f'G{excel_row}'].value = row.get('Tiết_LT', '')
-            sheet[f'H{excel_row}'].value = row.get('Tiết_TH', '')
-            sheet[f'I{excel_row}'].value = row.get('HS_SS_LT', '')
-            sheet[f'J{excel_row}'].value = row.get('HS_SS_TH', '')
+            sheet.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
+            sheet.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
+            sheet.cell(row=excel_row, column=4).value = row.get('Môn_học', '')  # D
+            sheet.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
+            sheet.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+            sheet.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
+            sheet.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
+            sheet.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
+            sheet.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
     wb.save(template_path)
     return True, template_path
 def tonghop_ketqua():
