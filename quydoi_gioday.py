@@ -1067,6 +1067,10 @@ def save_all_data():
             selected_khoa = data_to_save.get('khoa')
             lop_hoc = data_to_save.get('lop_hoc')
             mon_hoc = data_to_save.get('mon_hoc')
+            # Luôn lấy các DataFrame lớp từ session_state để tránh lỗi
+            df_lopghep_g = st.session_state.get('df_lopghep')
+            df_loptach_g = st.session_state.get('df_loptach')
+            df_lopsc_g = st.session_state.get('df_lopsc')
             df_lop_mapping = {
                 'Khóa 48': df_lop_g,
                 'Khóa 49': df_lop_g,
