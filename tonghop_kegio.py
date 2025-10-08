@@ -1,3 +1,47 @@
+def export_giangday_to_excel(spreadsheet, df_mon, template_path='data_base/mau_kegio.xlsx'):
+    """
+    Lấy dữ liệu từ sheet 'output_giangday' trong Google Sheet, ánh xạ và ghi vào file Excel mẫu đúng vị trí/cột.
+    """
+    import openpyxl
+    import pandas as pd
+    import os
+    if not os.path.exists(template_path):
+        return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.'
+    ws = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
+    if ws is None:
+        return False, "Không tìm thấy sheet 'output_giangday' trong Google Sheet."
+    df = pd.DataFrame(ws.get_all_records())
+    wb = openpyxl.load_workbook(template_path)
+    sheet = wb.active  # hoặc wb['Ke_gio_HK1'] nếu cần đúng sheet
+    start_row = 8
+    for i, row in df.iterrows():
+        excel_row = start_row + i
+        # Tuần: A8 trở xuống
+        sheet[f'A{excel_row}'] = row.get('Tuần', '')
+        # Sĩ số: C8 trở xuống
+        sheet[f'C{excel_row}'] = row.get('Sĩ số', '')
+        # Mã_Môn_Ngành ánh xạ sang tên môn học từ df_mon
+        ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
+        mon_hoc = ''
+        if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns:
+            mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+            if not mon_row.empty and 'Môn_học' in mon_row.columns:
+                mon_hoc = mon_row.iloc[0]['Môn_học']
+        sheet[f'D{excel_row}'] = mon_hoc
+        # HS TC/CĐ: E8 trở xuống
+        sheet[f'E{excel_row}'] = row.get('HS TC/CĐ', '')
+        # Tiết: F8 trở xuống
+        sheet[f'F{excel_row}'] = row.get('Tiết', '')
+        # Tiết_LT: G8 trở xuống
+        sheet[f'G{excel_row}'] = row.get('Tiết_LT', '')
+        # Tiết_TH: H8 trở xuống
+        sheet[f'H{excel_row}'] = row.get('Tiết_TH', '')
+        # HS_SS_LT: I8 trở xuống
+        sheet[f'I{excel_row}'] = row.get('HS_SS_LT', '')
+        # HS_SS_TH: J8 trở xuống
+        sheet[f'J{excel_row}'] = row.get('HS_SS_TH', '')
+    wb.save(template_path)
+    return True, template_path
 import streamlit as st
 import pandas as pd
 
