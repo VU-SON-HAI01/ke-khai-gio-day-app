@@ -9,26 +9,24 @@ output_path = 'output_kegio.xlsx'
 
 st.header('Xuất dữ liệu ra file Excel mẫu')
 
-# Giả sử bạn có các DataFrame sau (thay bằng dữ liệu thực tế của bạn)
-df_kekhai = st.session_state.get('df_kekhai', pd.DataFrame())
-df_giaovien = st.session_state.get('df_giaovien', pd.DataFrame())
+df_hk1 = st.session_state.get('df_hk1', pd.DataFrame())  # Bảng tổng hợp tiết giảng dạy quy đổi HK1
+df_hk2 = st.session_state.get('df_hk2', pd.DataFrame())  # Bảng tổng hợp tiết giảng dạy quy đổi HK2
 
 if not os.path.exists(template_path):
     st.error(f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.')
 else:
-    # Đọc file mẫu
-    wb = openpyxl.load_workbook(template_path)
-    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-        # writer.book = wb  # KHÔNG cần dòng này với pandas >= 1.4.0
-        # Ghi dữ liệu vào các sheet (tùy chỉnh tên sheet theo file mẫu)
-        if not df_kekhai.empty:
-            df_kekhai.to_excel(writer, sheet_name='Kê khai', index=False)
-        if not df_giaovien.empty:
-            df_giaovien.to_excel(writer, sheet_name='Giáo viên', index=False)
-        # ... thêm các sheet khác nếu cần
-    st.success('Đã xuất dữ liệu ra file Excel mẫu!')
-    with open(output_path, 'rb') as f:
-        st.download_button('Tải file Excel kết quả', f, file_name='ke_khai_gio_day.xlsx')
+    # Chỉ xuất file khi nhấn nút 'Xem kết quả dư giờ'
+    if st.button('Xem kết quả dư giờ', use_container_width=True):
+        wb = openpyxl.load_workbook(template_path)
+        with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+            # Ghi dữ liệu vào sheet Ke_gio_HK1 và Ke_gio_HK2_Cả_năm
+            if not df_hk1.empty:
+                df_hk1.to_excel(writer, sheet_name='Ke_gio_HK1', index=False)
+            if not df_hk2.empty:
+                df_hk2.to_excel(writer, sheet_name='Ke_gio_HK2_Cả_năm', index=False)
+        st.success('Đã xuất dữ liệu ra file Excel mẫu!')
+        with open(output_path, 'rb') as f:
+            st.download_button('Tải file Excel kết quả', f, file_name='ke_khai_gio_day.xlsx')
 import pandas as pd
 import io
 

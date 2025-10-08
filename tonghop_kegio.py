@@ -13,15 +13,7 @@ def tonghop_ketqua():
     if 'export_ready' not in st.session_state:
         st.session_state['export_ready'] = False
     dfs = []
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        load_clicked = st.button("Xem kết quả dư giờ", use_container_width=True)
-    with col2:
-        export_ready = st.session_state.get('export_ready', False)
-        excel_btn_placeholder = st.empty()
-    with col3:
-        export_ready = st.session_state.get('export_ready', False)
-        pdf_btn_placeholder = st.empty()
+    load_clicked = st.button("Xem kết quả dư giờ", use_container_width=True)
 
     if load_clicked:
         spreadsheet = st.session_state.get('spreadsheet')
@@ -291,40 +283,27 @@ def tonghop_ketqua():
         except Exception as e:
             st.error(f"Lỗi khi tải dữ liệu từ Google Sheet: {e}")
 
-    # Chỉ hiển thị nút Xuất ra Excel và Xuất ra PDF khi đã tải dữ liệu
+
+    # Chỉ hiển thị nút tải Excel mẫu khi đã tổng hợp xong
     export_ready = st.session_state.get('export_ready', False)
     if export_ready:
-        excel_tables = {}
-        df_all = st.session_state.get('df_all_tonghop')
-        if df_all is not None:
-            excel_tables['BẢNG TỔNG HỢP'] = df_all
-        sheet_names = ["output_giangday", "output_thiketthuc", "output_quydoigiam", "output_hoatdong"]
-        sheet_titles = ["BẢNG GIẢNG DẠY", "BẢNG THI KẾT THÚC", "BẢNG GIẢM TRỪ", "BẢNG HOẠT ĐỘNG"]
-        spreadsheet = st.session_state.get('spreadsheet')
-        if spreadsheet is not None:
-            for sname, stitle in zip(sheet_names, sheet_titles):
-                try:
-                    ws = next((ws for ws in spreadsheet.worksheets() if ws.title == sname), None)
-                    if ws is not None:
-                        df = pd.DataFrame(ws.get_all_records())
-                        if not df.empty:
-                            excel_tables[stitle] = df
-                except Exception:
-                    pass
-        excel_bytes = fun_to_excel.export_tables_to_excel(excel_tables)
-        with col2:
-            excel_btn_placeholder.download_button("📥 Xuất ra Excel", data=excel_bytes, file_name="bao_cao_tong_hop.xlsx", use_container_width=True)
-        with col3:
-            if pdf_btn_placeholder.button("Xuất ra PDF", use_container_width=True):
-                try:
-                    from fun_to_pdf import export_to_pdf
-                    df_all = st.session_state.get('df_all_tonghop')
-                    if df_all is not None:
-                        export_to_pdf(df_all)
-                    else:
-                        st.warning("Chưa có dữ liệu tổng hợp để xuất PDF.")
-                except ImportError:
-                    st.error("Không tìm thấy hàm export_to_pdf trong fun_to_pdf.py. Hãy kiểm tra lại.")
+        import os
+        template_path = os.path.join('data_base', 'mau_kegio.xlsx')
+        output_path = 'output_kegio.xlsx'
+        df_hk1 = st.session_state.get('df_hk1', pd.DataFrame())
+        df_hk2 = st.session_state.get('df_hk2', pd.DataFrame())
+        if os.path.exists(template_path):
+            if st.button('Tải file Excel kết quả', use_container_width=True):
+                wb = fun_to_excel.openpyxl.load_workbook(template_path)
+                with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+                    if not df_hk1.empty:
+                        df_hk1.to_excel(writer, sheet_name='Ke_gio_HK1', index=False)
+                    if not df_hk2.empty:
+                        df_hk2.to_excel(writer, sheet_name='Ke_gio_HK2_Cả_năm', index=False)
+                with open(output_path, 'rb') as f:
+                    st.download_button('Tải file Excel kết quả', f, file_name='ke_khai_gio_day.xlsx')
+        else:
+            st.error(f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.')
 
 def main():
     tonghop_ketqua()
