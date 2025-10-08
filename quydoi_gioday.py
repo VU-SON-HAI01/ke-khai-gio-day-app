@@ -971,7 +971,7 @@ def save_all_data():
         for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
             mon_index = i + 1
             # Chỉ giữ lại các trường input cần thiết
-            fields_to_keep = ['khoa', 'lop_hoc', 'mon_hoc', 'tuan', 'cach_ke', 'ID_MÔN', 'tiet_lt', 'tiet_th']
+            fields_to_keep = ['khoa', 'lop_hoc', 'mon_hoc', 'tuan', 'cach_ke', 'ID_MÔN', 'tiet', 'tiet_lt', 'tiet_th']
             data_to_save = {k: input_data.get(k, '') for k in fields_to_keep}
             # Chuẩn hóa dữ liệu nhập tiết: nếu không có dấu cách, tự động thêm
             with st.spinner("Đang lưu tất cả dữ liệu..."):
@@ -1008,7 +1008,7 @@ def save_all_data():
                     tiet_th_str = normalize_tiet_string(input_data.get('tiet_th', ''))
 
                     if result_data is not None and not result_data.empty:
-                        for col in ['tiet_lt', 'tiet_th', 'tiet']:
+                        for col in ['tiet', 'tiet_lt', 'tiet_th']:
                             if col in result_data.columns:
                                 data_to_save[col] = ' '.join(str(x) for x in result_data[col].tolist())
                     else:
