@@ -974,159 +974,153 @@ def save_all_data():
             fields_to_keep = ['khoa', 'lop_hoc', 'mon_hoc', 'tuan', 'cach_ke', 'ID_MÔN', 'tiet_lt', 'tiet_th']
             data_to_save = {k: input_data.get(k, '') for k in fields_to_keep}
             # Chuẩn hóa dữ liệu nhập tiết: nếu không có dấu cách, tự động thêm
-            def normalize_tiet_string(s):
-                s = str(s).strip()
-                if ' ' in s:
-                    return s
-                if s.isdigit():
-                    return ' '.join(list(s))
-                return ' '.join([c for c in s if c.isdigit()])
-
-            cach_ke = input_data.get('cach_ke', '')
-            tiet_str = normalize_tiet_string(input_data.get('tiet', ''))
-            tiet_lt_str = normalize_tiet_string(input_data.get('tiet_lt', ''))
-            tiet_th_str = normalize_tiet_string(input_data.get('tiet_th', ''))
-
-            # Lấy giá trị từ bảng kết quả tính toán nếu có
-            if result_data is not None and not result_data.empty:
-                for col in ['tiet_lt', 'tiet_th', 'tiet']:
-                    if col in result_data.columns:
-                        data_to_save[col] = ' '.join(str(x) for x in result_data[col].tolist())
-            else:
-                # Luôn lấy df_lop_g, df_mon_g từ session_state để tránh lỗi
-                df_mon_g = st.session_state.get('df_mon')
-                df_lop_g = st.session_state.get('df_lop')
-                if cach_ke == 'Kê theo MĐ, MH':
-                    tiet_list = [int(x) for x in tiet_str.split() if str(x).isdigit()]
-                    lop_hoc = input_data.get('lop_hoc', '')
-                    mon_hoc = input_data.get('mon_hoc', '')
+            with st.spinner("Đang lưu tất cả dữ liệu..."):
+                input_list = []
+                output_list = []
+                for i, (input_data, result_data) in enumerate(zip(st.session_state.mon_hoc_data, st.session_state.results_data)):
+                    # Luôn khởi tạo các biến cục bộ mặc định
+                    mon_index = i + 1
                     mamon_nganh = ''
-                    if df_lop_g is not None and not df_lop_g.empty and lop_hoc:
-                        dsmon_code = df_lop_g[df_lop_g['Lớp'] == lop_hoc]['Mã_DSMON']
-                        if not dsmon_code.empty:
-                            dsmon_code = dsmon_code.iloc[0]
-                            if df_mon_g is not None and not df_mon_g.empty and mon_hoc:
-                                mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
-                                if not mon_info.empty:
-                                    mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
-                    if 'MH' in mamon_nganh and 'MĐ' not in mamon_nganh:
-                        tiet_lt_str = tiet_str
-                        tiet_th_str = ' '.join(['0']*len(tiet_list))
-                    elif 'MĐ' in mamon_nganh and 'MH' not in mamon_nganh:
-                        tiet_lt_str = ' '.join(['0']*len(tiet_list))
-                        tiet_th_str = tiet_str
+                    dsmon_code = ''
+                    mon_info = None
+                    tiet_list = []
+                    tiet_lt_list = []
+                    tiet_th_list = []
+                    # Lấy lại các DataFrame từ session_state ở đầu vòng lặp
+                    df_mon_g = st.session_state.get('df_mon')
+                    df_lop_g = st.session_state.get('df_lop')
+                    df_lopghep_g = st.session_state.get('df_lopghep')
+                    df_loptach_g = st.session_state.get('df_loptach')
+                    df_lopsc_g = st.session_state.get('df_lopsc')
+                    fields_to_keep = ['khoa', 'lop_hoc', 'mon_hoc', 'tuan', 'cach_ke', 'ID_MÔN', 'tiet_lt', 'tiet_th']
+                    data_to_save = {k: input_data.get(k, '') for k in fields_to_keep}
+                    def normalize_tiet_string(s):
+                        s = str(s).strip()
+                        if ' ' in s:
+                            return s
+                        if s.isdigit():
+                            return ' '.join(list(s))
+                        return ' '.join([c for c in s if c.isdigit()])
+
+                    cach_ke = input_data.get('cach_ke', '')
+                    tiet_str = normalize_tiet_string(input_data.get('tiet', ''))
+                    tiet_lt_str = normalize_tiet_string(input_data.get('tiet_lt', ''))
+                    tiet_th_str = normalize_tiet_string(input_data.get('tiet_th', ''))
+
+                    if result_data is not None and not result_data.empty:
+                        for col in ['tiet_lt', 'tiet_th', 'tiet']:
+                            if col in result_data.columns:
+                                data_to_save[col] = ' '.join(str(x) for x in result_data[col].tolist())
                     else:
-                        tiet_lt_str = tiet_str
-                        tiet_th_str = ' '.join(['0']*len(tiet_list))
-                    data_to_save['tiet'] = tiet_str
-                    data_to_save['tiet_lt'] = tiet_lt_str
-                    data_to_save['tiet_th'] = tiet_th_str
-                elif cach_ke == 'Kê theo LT, TH chi tiết':
-                    tiet_lt_list = [int(x) for x in tiet_lt_str.split() if str(x).isdigit()]
-                    tiet_th_list = [int(x) for x in tiet_th_str.split() if str(x).isdigit()]
-                    tiet_sum_list = [str(tiet_lt_list[i] + tiet_th_list[i]) if i < len(tiet_lt_list) and i < len(tiet_th_list) else str(tiet_lt_list[i] if i < len(tiet_lt_list) else tiet_th_list[i]) for i in range(max(len(tiet_lt_list), len(tiet_th_list)))]
-                    data_to_save['tiet_lt'] = tiet_lt_str
-                    data_to_save['tiet_th'] = tiet_th_str
-                    data_to_save['tiet'] = ' '.join(tiet_sum_list)
-            # Chuẩn hóa tuần
-            tuan_val = input_data.get('tuan', (1, 12))
-            if isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
-                try:
-                    tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
-                except Exception:
-                    tuan_val = (1, 12)
-            elif isinstance(tuan_val, str):
-                import re
-                match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
-                if match:
-                    tuan_val = (int(match.group(1)), int(match.group(2)))
-                else:
-                    tuan_val = (1, 12)
-            else:
-                tuan_val = (1, 12)
-            data_to_save['tuan'] = str(tuan_val)
-            # Chuyển đổi dữ liệu tiết LT/TH sang chuỗi số cách nhau bởi dấu cách
-            def to_space_str(val):
-                if isinstance(val, str):
-                    if val.startswith("[") and val.endswith("]"):
-                        import ast
-                        try:
-                            arr = ast.literal_eval(val)
-                            return ' '.join(str(x) for x in arr)
-                        except Exception:
-                            return val
-                    else:
-                        return val
-                elif isinstance(val, (list, tuple)):
-                    return ' '.join(str(x) for x in val)
-                else:
-                    return ''
-            # Không ghi đè lại giá trị tiet_lt, tiet_th đã lấy từ bảng kết quả hoặc logic phía trên
-            data_to_save['ID_MÔN'] = f"Môn {mon_index}"
-            selected_khoa = data_to_save.get('khoa')
-            lop_hoc = data_to_save.get('lop_hoc')
-            mon_hoc = data_to_save.get('mon_hoc')
-            # Luôn lấy các DataFrame lớp từ session_state để tránh lỗi
-            df_lopghep_g = st.session_state.get('df_lopghep')
-            df_loptach_g = st.session_state.get('df_loptach')
-            df_lopsc_g = st.session_state.get('df_lopsc')
-            df_lop_mapping = {
-                'Khóa 48': df_lop_g,
-                'Khóa 49': df_lop_g,
-                'Khóa 50': df_lop_g,
-                'Lớp ghép': df_lopghep_g,
-                'Lớp tách': df_loptach_g,
-                'Sơ cấp + VHPT': df_lopsc_g
-            }
-            source_df = df_lop_mapping.get(selected_khoa)
-            if lop_hoc and source_df is not None and not source_df.empty:
-                dsmon_code = source_df[source_df['Lớp'] == lop_hoc]['Mã_DSMON']
-                if not dsmon_code.empty:
-                    dsmon_code = dsmon_code.iloc[0]
-                    mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
-                    if not mon_info.empty:
-                        mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
-            data_to_save['Mã_Môn_Ngành'] = mamon_nganh
-            # Chuyển mọi trường về kiểu đơn giản (str, int, float, bool) kể cả lồng sâu
-            def flatten_and_stringify_dict(d):
-                out = {}
-                for k, v in d.items():
-                    if isinstance(v, dict):
-                        out[k] = str(flatten_and_stringify_dict(v))
-                    elif isinstance(v, (list, tuple)):
-                        out[k] = str([str(x) if not isinstance(x, (dict, list, tuple)) else str(x) for x in v])
-                    else:
-                        try:
-                            # Nếu là kiểu đơn giản, giữ nguyên
-                            if isinstance(v, (str, int, float, bool)) or v is None:
-                                out[k] = v
+                        if cach_ke == 'Kê theo MĐ, MH':
+                            tiet_list = [int(x) for x in tiet_str.split() if str(x).isdigit()]
+                            lop_hoc = input_data.get('lop_hoc', '')
+                            mon_hoc = input_data.get('mon_hoc', '')
+                            if df_lop_g is not None and not df_lop_g.empty and lop_hoc:
+                                dsmon_code_df = df_lop_g[df_lop_g['Lớp'] == lop_hoc]['Mã_DSMON']
+                                if not dsmon_code_df.empty:
+                                    dsmon_code = dsmon_code_df.iloc[0]
+                                    if df_mon_g is not None and not df_mon_g.empty and mon_hoc:
+                                        mon_info_df = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
+                                        if not mon_info_df.empty:
+                                            mon_info = mon_info_df
+                                            mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
+                            if 'MH' in mamon_nganh and 'MĐ' not in mamon_nganh:
+                                tiet_lt_str = tiet_str
+                                tiet_th_str = ' '.join(['0']*len(tiet_list))
+                            elif 'MĐ' in mamon_nganh and 'MH' not in mamon_nganh:
+                                tiet_lt_str = ' '.join(['0']*len(tiet_list))
+                                tiet_th_str = tiet_str
                             else:
-                                out[k] = str(v)
+                                tiet_lt_str = tiet_str
+                                tiet_th_str = ' '.join(['0']*len(tiet_list))
+                            data_to_save['tiet'] = tiet_str
+                            data_to_save['tiet_lt'] = tiet_lt_str
+                            data_to_save['tiet_th'] = tiet_th_str
+                        elif cach_ke == 'Kê theo LT, TH chi tiết':
+                            tiet_lt_list = [int(x) for x in tiet_lt_str.split() if str(x).isdigit()]
+                            tiet_th_list = [int(x) for x in tiet_th_str.split() if str(x).isdigit()]
+                            tiet_sum_list = [str(tiet_lt_list[i] + tiet_th_list[i]) if i < len(tiet_lt_list) and i < len(tiet_th_list) else str(tiet_lt_list[i] if i < len(tiet_lt_list) else tiet_th_list[i]) for i in range(max(len(tiet_lt_list), len(tiet_th_list)))]
+                            data_to_save['tiet_lt'] = tiet_lt_str
+                            data_to_save['tiet_th'] = tiet_th_str
+                            data_to_save['tiet'] = ' '.join(tiet_sum_list)
+                    tuan_val = input_data.get('tuan', (1, 12))
+                    if isinstance(tuan_val, (list, tuple)) and len(tuan_val) == 2:
+                        try:
+                            tuan_val = (int(tuan_val[0]), int(tuan_val[1]))
                         except Exception:
-                            out[k] = str(v)
-                return out
-            data_to_save = flatten_and_stringify_dict(data_to_save)
-            input_list.append(data_to_save)
-            if not result_data.empty:
-                result_data = result_data.copy()
-                result_data['ID_MÔN'] = f"Môn {mon_index}"
-                result_data['Mã_Môn_Ngành'] = mamon_nganh
-                # Thêm cột Môn_học vào output_giangday
-                mon_hoc_val = input_data.get('mon_hoc', '')
-                result_data['Môn_học'] = mon_hoc_val
-                output_list.append(result_data)
-        # Lưu toàn bộ input
-        if input_list:
-            input_df = pd.DataFrame(input_list)
-            save_data_to_sheet('input_giangday', input_df)
-        # Lưu toàn bộ output
-        if output_list:
-            output_df = pd.concat(output_list, ignore_index=True)
-            save_data_to_sheet('output_giangday', output_df)
-    # --- Lưu thêm thông tin giáo viên ---
-    # Lấy thông tin từ session_state
-    magv = st.session_state.get('magv', '')
-    tengv = st.session_state.get('tengv', '')
+                            tuan_val = (1, 12)
+                    elif isinstance(tuan_val, str):
+                        match = re.match(r"[\(\[]\s*(\d+)\s*,\s*(\d+)\s*[\)\]]", tuan_val)
+                        if match:
+                            tuan_val = (int(match.group(1)), int(match.group(2)))
+                        else:
+                            tuan_val = (1, 12)
+                    else:
+                        tuan_val = (1, 12)
+                    data_to_save['tuan'] = str(tuan_val)
+                    def to_space_str(val):
+                        if isinstance(val, str):
+                            if val.startswith("[") and val.endswith("]"):
+                                try:
+                                    arr = ast.literal_eval(val)
+                                    return ' '.join(str(x) for x in arr)
+                                except Exception:
+                                    return val
+                            else:
+                                return val
+                        elif isinstance(val, (list, tuple)):
+                            return ' '.join(str(x) for x in val)
+                        else:
+                            return ''
+                    data_to_save['ID_MÔN'] = f"Môn {mon_index}"
+                    selected_khoa = data_to_save.get('khoa')
+                    lop_hoc = data_to_save.get('lop_hoc')
+                    mon_hoc = data_to_save.get('mon_hoc')
+                    df_lop_mapping = {
+                        'Khóa 48': df_lop_g,
+                        'Khóa 49': df_lop_g,
+                        'Khóa 50': df_lop_g,
+                        'Lớp ghép': df_lopghep_g,
+                        'Lớp tách': df_loptach_g,
+                        'Sơ cấp + VHPT': df_lopsc_g
+                    }
+                    source_df = df_lop_mapping.get(selected_khoa)
+                    # Đảm bảo mamon_nganh luôn có giá trị
+                    if lop_hoc and source_df is not None and not source_df.empty:
+                        dsmon_code_df = source_df[source_df['Lớp'] == lop_hoc]['Mã_DSMON']
+                        if not dsmon_code_df.empty:
+                            dsmon_code = dsmon_code_df.iloc[0]
+                            if df_mon_g is not None and not df_mon_g.empty and mon_hoc:
+                                mon_info_df = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
+                                if not mon_info_df.empty:
+                                    mamon_nganh = mon_info_df['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info_df.columns else mon_info_df['Mã_môn'].iloc[0]
+                    data_to_save['Mã_Môn_Ngành'] = mamon_nganh
+                    def flatten_and_stringify_dict(d):
+                        out = {}
+                        for k, v in d.items():
+                            if isinstance(v, dict):
+                                out[k] = str(flatten_and_stringify_dict(v))
+                            elif isinstance(v, (list, tuple)):
+                                out[k] = str([str(x) if not isinstance(x, (dict, list, tuple)) else str(x) for x in v])
+                            else:
+                                try:
+                                    if isinstance(v, (str, int, float, bool)) or v is None:
+                                        out[k] = v
+                                    else:
+                                        out[k] = str(v)
+                                except Exception:
+                                    out[k] = str(v)
+                        return out
+                    data_to_save = flatten_and_stringify_dict(data_to_save)
+                    input_list.append(data_to_save)
+                    if result_data is not None and not result_data.empty:
+                        result_data = result_data.copy()
+                        result_data['ID_MÔN'] = f"Môn {mon_index}"
+                        result_data['Mã_Môn_Ngành'] = mamon_nganh
+                        mon_hoc_val = input_data.get('mon_hoc', '')
+                        result_data['Môn_học'] = mon_hoc_val
+                        output_list.append(result_data)
     ten_khoa = st.session_state.get('ten_khoa', '')
     chuan_gv = st.session_state.get('chuan_gv', 'CĐ')
     gio_chuan = st.session_state.get('giochuan', '')
