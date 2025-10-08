@@ -1126,6 +1126,10 @@ def save_all_data():
     gio_chuan = st.session_state.get('giochuan', '')
     thongtin_giamgio = ''
 
+    # Lấy thông tin giáo viên từ session_state
+    magv = st.session_state.get('magv', '')
+    tengv = st.session_state.get('tengv', '')
+
     # Lấy thông tin teacher_info từ session_state nếu có
     teacher_info = st.session_state.get('teacher_info', {})
     chucvu_hientai = teacher_info.get('Chức vụ_HT', '') if teacher_info else ''
