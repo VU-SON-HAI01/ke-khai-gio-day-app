@@ -466,7 +466,7 @@ else:
                         st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
                         st.session_state.chucvu_hientai = teacher_info.get('Chức vụ_HT', 'GV')
                         # Ánh xạ Ten_chucvu từ df_giochuan dựa vào chucvu_hientai
-                        
+
                         df_giochuan = all_base_data.get('df_giochuan', pd.DataFrame())
                         ten_chucvu = ''
                         if isinstance(df_giochuan, pd.DataFrame) and not df_giochuan.empty:
@@ -513,12 +513,12 @@ else:
 
             with st.sidebar:
                 st.header(":green[THÔNG TIN GIÁO VIÊN]")
-                st.write(f"**Tên GV:** :green[{st.session_state.tengv}]")
-                st.write(f"**Mã GV:** :green[{st.session_state.magv}]")
-                st.write(f"**Khoa/Phòng:** :green[{ten_khoa}]")
-                st.write(f"**Giờ chuẩn:** :green[{st.session_state.giochuan}]")
-                st.write(f"**Chuẩn GV:** :green[{st.session_state.chuangv}]")
-                st.write(f"**Chức vụ:** :green[{st.session_state.ten_chucvu}]")
+                st.write(f"**Tên GV:** :green[{st.session_state.get('tengv', '')}]")
+                st.write(f"**Mã GV:** :green[{st.session_state.get('magv', '')}]")
+                st.write(f"**Khoa/Phòng:** :green[{st.session_state.get('ten_khoa', ten_khoa)}]")
+                st.write(f"**Giờ chuẩn:** :green[{st.session_state.get('giochuan', '')}]")
+                st.write(f"**Chuẩn GV:** :green[{st.session_state.get('chuangv', '')}]")
+                st.write(f"**Chức vụ:** :green[{st.session_state.get('ten_chucvu', '')}]")
                 st.divider()
                 if st.button("Đăng xuất", use_container_width=True, key="user_logout"):
                     st.session_state.clear()
