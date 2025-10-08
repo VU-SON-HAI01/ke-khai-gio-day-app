@@ -16,12 +16,12 @@ def export_kegio_to_excel(df_hk1, df_hk2, template_path='data_base/mau_kegio.xls
     if not os.path.exists(template_path):
         return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.'
     wb = openpyxl.load_workbook(template_path)
-    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+    with pd.ExcelWriter(template_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
         if not df_hk1.empty:
             df_hk1.to_excel(writer, sheet_name='Ke_gio_HK1', index=False)
         if not df_hk2.empty:
             df_hk2.to_excel(writer, sheet_name='Ke_gio_HK2_Cả_năm', index=False)
-    return True, output_path
+    return True, template_path
     st.title("Báo cáo tổng hợp dư giờ/thiếu giờ")
     st.info("Trang này tổng hợp dữ liệu từ các trang kê khai và cho phép xuất ra PDF.")
 def tonghop_ketqua():
@@ -298,8 +298,6 @@ def tonghop_ketqua():
                 st.warning("Không có dữ liệu nào để tổng hợp từ các sheet 'output_'.")
         except Exception as e:
             st.error(f"Lỗi khi tải dữ liệu từ Google Sheet: {e}")
-
-
     # Chỉ hiển thị nút tải Excel mẫu khi đã tổng hợp xong
     export_ready = st.session_state.get('export_ready', False)
     if export_ready:
@@ -308,14 +306,14 @@ def tonghop_ketqua():
         output_path = 'output_kegio.xlsx'
         df_hk1 = st.session_state.get('df_hk1', pd.DataFrame())
         df_hk2 = st.session_state.get('df_hk2', pd.DataFrame())
-        if st.button('Tải file Excel kết quả', use_container_width=True):
-            success, result = export_kegio_to_excel(df_hk1, df_hk2, template_path, output_path)
-            if success:
-                with open(result, 'rb') as f:
-                    st.download_button('Tải file Excel kết quả', f, file_name='ke_khai_gio_day.xlsx')
-                st.success('Đã xuất dữ liệu ra file Excel mẫu!')
-            else:
-                st.error(result)
+        # Sử dụng một nút duy nhất cho tải file
+        success, result = export_kegio_to_excel(df_hk1, df_hk2, template_path, output_path)
+        if success:
+            with open(result, 'rb') as f:
+                st.download_button('Tải file Excel kết quả', f, file_name='ke_khai_gio_day.xlsx')
+            st.success('Đã xuất dữ liệu ra file Excel mẫu!')
+        else:
+            st.error(result)
 
 def main():
     tonghop_ketqua()
