@@ -1,6 +1,9 @@
 
 import streamlit as st
 import pandas as pd
+import openpyxl
+import pandas as pd
+import os
 
 # Hàm tổng hợp kết quả từ các trang kê khai
 # Giả định dữ liệu đã được lưu vào session_state từ các trang kê khai
@@ -11,9 +14,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
     Kết hợp: Nếu truyền spreadsheet và df_mon thì lấy dữ liệu từ Google Sheet, ánh xạ tên môn học và ghi vào file Excel mẫu.
     Nếu truyền df_hk1 thì ghi trực tiếp dữ liệu HK1 vào file Excel mẫu.
     """
-    import openpyxl
-    import pandas as pd
-    import os
+
     if not os.path.exists(template_path):
         return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.'
     wb = openpyxl.load_workbook(template_path)
@@ -26,35 +27,49 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
             return False, "Không tìm thấy sheet 'output_giangday' trong Google Sheet."
         df = pd.DataFrame(ws.get_all_records())
         for i, row in df.iterrows():
-            excel_row = start_row + i
-            sheet.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
-            sheet.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
-            ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
-            mon_hoc = ''
-            if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns:
-                mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
-                if not mon_row.empty and 'Môn_học' in mon_row.columns:
-                    mon_hoc = mon_row.iloc[0]['Môn_học']
-            sheet.cell(row=excel_row, column=4).value = mon_hoc                 # D
-            sheet.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
-            sheet.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
-            sheet.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
-            sheet.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
-            sheet.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
-            sheet.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
+            excel_row = int(start_row + i)
+            # Đảm bảo excel_row không vượt quá số dòng tối đa của sheet
+            if excel_row < 1:
+                continue
+            # Ghi dữ liệu vào từng cell
+            try:
+                sheet.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
+                sheet.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
+                ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
+                mon_hoc = ''
+                if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns:
+                    mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+                    if not mon_row.empty and 'Môn_học' in mon_row.columns:
+                        mon_hoc = mon_row.iloc[0]['Môn_học']
+                sheet.cell(row=excel_row, column=4).value = mon_hoc                 # D
+                sheet.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
+                sheet.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+                sheet.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
+                sheet.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
+                sheet.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
+                sheet.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
+            except Exception as e:
+                print(f"Lỗi ghi dòng {excel_row}: {e}")
+                continue
     # Nếu truyền df_hk1: ghi trực tiếp dữ liệu HK1
     elif df_hk1 is not None:
         for i, row in df_hk1.iterrows():
-            excel_row = start_row + i
-            sheet.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
-            sheet.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
-            sheet.cell(row=excel_row, column=4).value = row.get('Môn_học', '')  # D
-            sheet.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
-            sheet.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
-            sheet.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
-            sheet.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
-            sheet.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
-            sheet.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
+            excel_row = int(start_row + i)
+            if excel_row < 1:
+                continue
+            try:
+                sheet.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
+                sheet.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
+                sheet.cell(row=excel_row, column=4).value = row.get('Môn_học', '')  # D
+                sheet.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
+                sheet.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+                sheet.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
+                sheet.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
+                sheet.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
+                sheet.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
+            except Exception as e:
+                print(f"Lỗi ghi dòng {excel_row}: {e}")
+                continue
     wb.save(template_path)
     return True, template_path
 def tonghop_ketqua():
