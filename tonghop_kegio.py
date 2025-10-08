@@ -114,11 +114,9 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
     # Xác định dòng cuối cùng có dữ liệu
     last_data_row = excel_row  # excel_row là dòng cuối cùng đã ghi dữ liệu
     # Xóa các dòng thừa phía dưới dữ liệu đến dòng 178
-    # Chỉ xóa nội dung các ô từ dòng cuối cùng có dữ liệu + 1 đến dòng 178, không xóa hàng để giữ nguyên dữ liệu phía dưới
+    # Xóa hoàn toàn các dòng thừa phía dưới dữ liệu (delete row) từ dòng cuối cùng có dữ liệu + 1 đến dòng 178
     if last_data_row < 178:
-        for row_idx in range(last_data_row + 1, 179):
-            for col_idx in range(1, sheet.max_column + 1):
-                sheet.cell(row=row_idx, column=col_idx).value = None
+        sheet.delete_rows(last_data_row + 1, 178 - last_data_row)
     wb.save(template_path)
     return True, template_path
 def tonghop_ketqua():
