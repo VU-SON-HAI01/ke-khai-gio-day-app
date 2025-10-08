@@ -113,10 +113,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
         # Sau khi ghi dữ liệu, xóa các dòng thừa từ dòng cuối cùng có dữ liệu đến dòng 178
     # Xác định dòng cuối cùng có dữ liệu
     last_data_row = excel_row  # excel_row là dòng cuối cùng đã ghi dữ liệu
-    # Xóa các dòng thừa phía dưới dữ liệu đến dòng 178
-    # Xóa hoàn toàn các dòng thừa phía dưới dữ liệu (delete row) từ dòng cuối cùng có dữ liệu + 1 đến dòng 178
-    # Chỉ xóa từng dòng thừa từ dòng cuối cùng có dữ liệu + 1 đến dòng 178, không xóa hàng từ 179 trở đi
-    # Xóa toàn bộ các dòng từ dòng cuối cùng có dữ liệu + 1 đến dòng 179
+    st.write(f"Dòng cuối cùng có dữ liệu: {last_data_row}")
     if last_data_row < 179:
         sheet.delete_rows(last_data_row + 1, 50)
     wb.save(template_path)
