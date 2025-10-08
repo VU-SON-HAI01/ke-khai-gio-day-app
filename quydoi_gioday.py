@@ -709,7 +709,12 @@ def load_all_mon_data():
         # --- KẾT THÚC CHUẨN HÓA ---
         input_data['index'] = len(st.session_state.mon_hoc_data)
         st.session_state.mon_hoc_data.append(input_data)
-        st.session_state.results_data.append(pd.DataFrame())
+        # Đảm bảo results_data luôn có đủ số lượng
+        if 'results_data' not in st.session_state:
+            st.session_state.results_data = []
+        while len(st.session_state.results_data) <= idx:
+            st.session_state.results_data.append(pd.DataFrame())
+        result_data = st.session_state.results_data[idx]
         # --- CẬP NHẬT GIÁ TRỊ WIDGET ---
         i = input_data['index']
         st.session_state[f"widget_khoa_{i}"] = input_data['khoa']
@@ -717,9 +722,15 @@ def load_all_mon_data():
         st.session_state[f"widget_mon_hoc_{i}"] = input_data['mon_hoc']
         st.session_state[f"widget_tuan_{i}"] = input_data['tuan']
         st.session_state[f"widget_cach_ke_{i}"] = input_data['cach_ke']
-        st.session_state[f"widget_tiet_{i}"] = input_data['tiet']
-        st.session_state[f"widget_tiet_lt_{i}"] = input_data['tiet_lt']
-        st.session_state[f"widget_tiet_th_{i}"] = input_data['tiet_th']
+        # Nếu có bảng II, lấy từ bảng II, ngược lại lấy từ input_data
+        if result_data is not None and not result_data.empty:
+            st.session_state[f"widget_tiet_{i}"] = ' '.join(str(x) for x in result_data['Tiết'].tolist()) if 'Tiết' in result_data.columns else input_data['tiet']
+            st.session_state[f"widget_tiet_lt_{i}"] = ' '.join(str(x) for x in result_data['Tiết_LT'].tolist()) if 'Tiết_LT' in result_data.columns else input_data['tiet_lt']
+            st.session_state[f"widget_tiet_th_{i}"] = ' '.join(str(x) for x in result_data['Tiết_TH'].tolist()) if 'Tiết_TH' in result_data.columns else input_data['tiet_th']
+        else:
+            st.session_state[f"widget_tiet_{i}"] = input_data['tiet']
+            st.session_state[f"widget_tiet_lt_{i}"] = input_data['tiet_lt']
+            st.session_state[f"widget_tiet_th_{i}"] = input_data['tiet_th']
 
 # --- HẰNG SỐ ---
 DEFAULT_TIET_STRING = "4 4 4 4 4 4 4 4 4 8 8 8"
@@ -1008,13 +1019,13 @@ def save_all_data():
                     tiet_th_str = normalize_tiet_string(input_data.get('tiet_th', ''))
 
                     if result_data is not None and not result_data.empty:
-                        # Luôn ưu tiên lấy giá trị 'tiet' từ bảng kết quả tính toán
-                        for col in ['tiet_lt', 'tiet_th']:
-                            if col in result_data.columns:
-                                data_to_save[col] = ' '.join(str(x) for x in result_data[col].tolist())
-                        # Đảm bảo cột 'tiet' lấy từ bảng kết quả nếu có
+                        # Luôn lấy từ bảng kết quả tính toán
                         if 'Tiết' in result_data.columns:
                             data_to_save['tiet'] = ' '.join(str(x) for x in result_data['Tiết'].tolist())
+                        if 'Tiết_LT' in result_data.columns:
+                            data_to_save['tiet_lt'] = ' '.join(str(x) for x in result_data['Tiết_LT'].tolist())
+                        if 'Tiết_TH' in result_data.columns:
+                            data_to_save['tiet_th'] = ' '.join(str(x) for x in result_data['Tiết_TH'].tolist())
                     else:
                         if cach_ke == 'Kê theo MĐ, MH':
                             tiet_list = [int(x) for x in tiet_str.split() if str(x).isdigit()]
