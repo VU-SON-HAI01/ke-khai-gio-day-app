@@ -85,7 +85,6 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                         hk1_rows.append(row)
                     else:
                         hk2_rows.append(row)
-                        sheet_hk2.cell(row=excel_row, column=11).value = nang_nhoc_val
     # Nếu truyền spreadsheet và df_mon: lấy dữ liệu từ Google Sheet
     if spreadsheet is not None and df_mon is not None:
         ws = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
