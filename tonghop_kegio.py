@@ -40,6 +40,29 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                     sht.cell(row=4, column=3).value = ten_gv
                     sht.cell(row=5, column=3).value = chuan_gv
                     sht.cell(row=5, column=8).value = khoa
+    # --- Gán giá trị duy nhất của Lớp_học và Môn học vào B185 và D185 ---
+    # Sheet chính để ghi dữ liệu
+    if 'Ke_gio_HK1' in wb.sheetnames:
+        sheet = wb['Ke_gio_HK1']
+    else:
+        sheet = wb.active
+    # Lấy dữ liệu từ Google Sheet nếu có
+    lop_list = []
+    mon_list = []
+    if spreadsheet is not None:
+        ws_giangday = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
+        if ws_giangday is not None:
+            df_giangday = pd.DataFrame(ws_giangday.get_all_records())
+            if not df_giangday.empty:
+                if 'Lớp_học' in df_giangday.columns:
+                    lop_list = list(sorted(df_giangday['Lớp_học'].dropna().unique()))
+                if 'Môn_học' in df_giangday.columns:
+                    mon_list = list(sorted(df_giangday['Môn_học'].dropna().unique()))
+    # Gán từng giá trị vào các dòng liên tiếp bắt đầu từ 185
+    for idx, val in enumerate(lop_list):
+        sheet.cell(row=185 + idx, column=2).value = val
+    for idx, val in enumerate(mon_list):
+        sheet.cell(row=185 + idx, column=4).value = val
     # Sheet chính để ghi dữ liệu
     if 'Ke_gio_HK1' in wb.sheetnames:
         sheet = wb['Ke_gio_HK1']
