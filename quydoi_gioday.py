@@ -1211,13 +1211,16 @@ for mon_input in st.session_state.mon_hoc_data:
     }
     source_df = df_lop_mapping.get(selected_khoa)
     if lop_hoc and source_df is not None and not source_df.empty:
-        dsmon_code = source_df[source_df['Lớp'] == lop_hoc]['Mã_DSMON']
-        if not dsmon_code.empty:
-            dsmon_code = dsmon_code.iloc[0]
-            mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
-            if not mon_info.empty:
-                mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
-                danh_sach_mamon_nganh_all.append(mamon_nganh)
+        if 'Mã_DSMON' in source_df.columns:
+            dsmon_code = source_df[source_df['Lớp'] == lop_hoc]['Mã_DSMON']
+            if not dsmon_code.empty:
+                dsmon_code = dsmon_code.iloc[0]
+                mon_info = df_mon_g[(df_mon_g['Mã_ngành'] == dsmon_code) & (df_mon_g['Môn_học'] == mon_hoc)]
+                if not mon_info.empty:
+                    mamon_nganh = mon_info['Mã_môn_ngành'].iloc[0] if 'Mã_môn_ngành' in mon_info.columns else mon_info['Mã_môn'].iloc[0]
+                    danh_sach_mamon_nganh_all.append(mamon_nganh)
+        else:
+            st.warning("Dữ liệu lớp học không có cột 'Mã_DSMON'. Vui lòng kiểm tra lại Google Sheet hoặc quá trình load dữ liệu.")
 
 st.session_state.chuan_gv = xac_dinh_chuan_gv(danh_sach_mamon_nganh_all)
 
