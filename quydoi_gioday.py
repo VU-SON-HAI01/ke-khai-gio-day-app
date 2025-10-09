@@ -1135,9 +1135,6 @@ def save_all_data():
                         result_data['Mã_Môn_Ngành'] = mamon_nganh
                         mon_hoc_val = input_data.get('mon_hoc', '')
                         result_data['Môn_học'] = mon_hoc_val
-                        # Thêm cột Lớp_học vào DataFrame kết quả
-                        lop_hoc_val = input_data.get('lop_hoc', '')
-                        result_data['Lớp_học'] = lop_hoc_val
                         output_list.append(result_data)
     # --- Lưu toàn bộ input_giangday và output_giangday ---
     if input_list:
