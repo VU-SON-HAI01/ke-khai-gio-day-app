@@ -117,6 +117,8 @@ def update_mon_hoc_state(i, key, value):
 
 def render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df_mon_g):
     mon_state = st.session_state.mon_hoc_data[i]
+    st.write("Kiểm tra dữ liệu df_mon_g:")
+    st.write(df_mon_g)
     # Chọn Khóa/Hệ
     khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
     selected_khoa = st.selectbox(
