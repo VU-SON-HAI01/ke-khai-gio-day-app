@@ -112,7 +112,6 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                 continue
         # Sau khi ghi dữ liệu, xóa các dòng thừa từ dòng cuối cùng có dữ liệu đến dòng 178
     # Xác định dòng cuối cùng có dữ liệu
-
     wb.save(template_path)
     return True, template_path
 def tonghop_ketqua():
