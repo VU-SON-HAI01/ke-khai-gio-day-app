@@ -1737,6 +1737,7 @@ for i, tab in enumerate(tabs[:-1]):
 with tabs[-1]:
     st.header("Tổng hợp khối lượng giảng dạy")
     if st.session_state.mon_hoc_data:
+
         summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
 
         qd_thua_totals = []
