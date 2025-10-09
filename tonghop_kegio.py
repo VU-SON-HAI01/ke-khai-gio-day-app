@@ -19,6 +19,28 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
     if not os.path.exists(template_path):
         return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.'
     wb = openpyxl.load_workbook(template_path)
+    # --- Thêm tên giảng viên và chuẩn GV vào ô C4, C5 của cả hai sheet mẫu ---
+    if spreadsheet is not None:
+        ws_gv = next((ws for ws in spreadsheet.worksheets() if ws.title == 'thongtin_gv'), None)
+        if ws_gv is not None:
+            df_gv = pd.DataFrame(ws_gv.get_all_records())
+            ten_gv = ''
+            chuan_gv = ''
+            khoa = ''
+            if not df_gv.empty:
+                if 'Tên_gv' in df_gv.columns:
+                    ten_gv = df_gv.iloc[0]['Tên_gv']
+                if 'chuan_gv' in df_gv.columns:
+                    chuan_gv = df_gv.iloc[0]['chuan_gv']
+                if 'khoa' in df_gv.columns:
+                    khoa = df_gv.iloc[0]['khoa']
+            for sheet_name in ['Ke_gio_HK1', 'Ke_gio_HK2_Cả_năm']:
+                if sheet_name in wb.sheetnames:
+                    sht = wb[sheet_name]
+                    sht.cell(row=4, column=3).value = ten_gv
+                    sht.cell(row=5, column=3).value = chuan_gv
+                    sht.cell(row=5, column=8).value = khoa
+    # Sheet chính để ghi dữ liệu
     if 'Ke_gio_HK1' in wb.sheetnames:
         sheet = wb['Ke_gio_HK1']
     else:
