@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -1856,3 +1855,4 @@ with tabs[-1]:
     col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=delta_hk1)
     col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=delta_hk2)
     col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}", delta=delta_canam)
+st.write(st.session_state.mon_hoc_data)
