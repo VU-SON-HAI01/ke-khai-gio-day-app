@@ -1229,7 +1229,7 @@ for i, tab in enumerate(tabs[:-1]):
 
         def update_tab_state(key, index):
             st.session_state.mon_hoc_data[index][key] = st.session_state.get(f"widget_{key}_{index}", "")
-
+        render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df_mon_g)
         current_input = st.session_state.mon_hoc_data[i]
 
         khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
