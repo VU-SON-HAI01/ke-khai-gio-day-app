@@ -63,12 +63,29 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
         sheet.cell(row=185 + idx, column=2).value = val
     for idx, val in enumerate(mon_list):
         sheet.cell(row=185 + idx, column=4).value = val
-    # Sheet chính để ghi dữ liệu
-    if 'Ke_gio_HK1' in wb.sheetnames:
-        sheet = wb['Ke_gio_HK1']
-    else:
-        sheet = wb.active
+    # --- Phân loại dữ liệu theo học kỳ và ghi vào từng sheet ---
     start_row = 8
+    if spreadsheet is not None:
+        ws_giangday = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
+        if ws_giangday is not None:
+            df_giangday = pd.DataFrame(ws_giangday.get_all_records())
+            if not df_giangday.empty:
+                # Phân loại học kỳ
+                hk1_rows = []
+                hk2_rows = []
+                for i, row in df_giangday.iterrows():
+                    tuan = row.get('Tuần', '')
+                    try:
+                        tuan_num = float(tuan)
+                    except Exception:
+                        tuan_num = 0
+                    # Logic: Tuần <= 22 là HK1, > 22 là HK2
+                    hoc_ky = 1 if tuan_num <= 22 else 2
+                    if hoc_ky == 1:
+                        hk1_rows.append(row)
+                    else:
+                        hk2_rows.append(row)
+                        sheet_hk2.cell(row=excel_row, column=11).value = nang_nhoc_val
     # Nếu truyền spreadsheet và df_mon: lấy dữ liệu từ Google Sheet
     if spreadsheet is not None and df_mon is not None:
         ws = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
@@ -77,65 +94,132 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
         df = pd.DataFrame(ws.get_all_records())
         from openpyxl.styles import Border, Side
         bottom_border = Border(bottom=Side(style='medium'))
-        prev_lop_hoc = None
-        prev_excel_row = None
+        # Tách dữ liệu thành học kỳ 1 và học kỳ 2
+        hk1_rows = []
+        hk2_rows = []
         for i, row in df.iterrows():
-            excel_row = int(start_row + i)
-            # Đảm bảo excel_row không vượt quá số dòng tối đa của sheet
-            if excel_row < 1:
-                continue
-            # Ghi dữ liệu vào từng cell
+            tuan = row.get('Tuần', '')
             try:
-                sheet.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
-                sheet.cell(row=excel_row, column=2).value = row.get('Lớp_học', '')  # B
-                sheet.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
-                ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
-                mon_hoc = ''
-                if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns:
-                    mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
-                    if not mon_row.empty and 'Môn_học' in mon_row.columns:
-                        mon_hoc = mon_row.iloc[0]['Môn_học']
-                sheet.cell(row=excel_row, column=4).value = mon_hoc                 # D
-                sheet.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
-                sheet.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
-                sheet.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
-                sheet.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
-                sheet.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
-                sheet.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
-                # Cột K: Thực hành nghề Nặng nhọc
-                nang_nhoc_val = ''
-                if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns and 'Nặng_nhọc' in df_mon.columns:
+                tuan_num = float(tuan)
+            except Exception:
+                tuan_num = 0
+            hoc_ky = 1 if tuan_num <= 22 else 2
+            if hoc_ky == 1:
+                hk1_rows.append(row)
+            else:
+                hk2_rows.append(row)
+        # Ghi dữ liệu HK1 vào Ke_gio_HK1
+        if 'Ke_gio_HK1' in wb.sheetnames:
+            sheet_hk1 = wb['Ke_gio_HK1']
+            prev_lop_hoc = None
+            prev_excel_row = None
+            for i, row in enumerate(hk1_rows):
+                excel_row = int(start_row + i)
+                if excel_row < 1:
+                    continue
+                try:
+                    sheet_hk1.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
+                    sheet_hk1.cell(row=excel_row, column=2).value = row.get('Lớp_học', '')  # B
+                    sheet_hk1.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
                     ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
-                    mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
-                    if not mon_row.empty:
-                        nn_val = mon_row.iloc[0]['Nặng_nhọc']
-                        if nn_val == 'NN':
-                            nang_nhoc_val = 'NN'
-                sheet.cell(row=excel_row, column=11).value = nang_nhoc_val  # K
-                # Đánh dấu border medium cho dòng cuối cùng của mỗi lớp
-                curr_lop_hoc = row.get('Lớp_học', '')
-                if i == 0:
-                    prev_lop_hoc = curr_lop_hoc
-                    prev_excel_row = excel_row
-                else:
-                    if curr_lop_hoc != prev_lop_hoc:
-                        # Gán border cho dòng trước (dòng cuối cùng của lớp trước)
-                        for col in range(1, 13):
-                            cell = sheet.cell(row=prev_excel_row, column=col)
-                            # Giữ nguyên các border khác, chỉ thêm bottom border medium
-                            old_border = cell.border
-                            new_border = Border(
-                                left=old_border.left,
-                                right=old_border.right,
-                                top=old_border.top,
-                                bottom=Side(style='medium')
-                            )
-                            cell.border = new_border
-                    prev_lop_hoc = curr_lop_hoc
-                    prev_excel_row = excel_row
-            except Exception as e:
-                print(f"Lỗi ghi dòng {excel_row}: {e}")
-                continue
+                    mon_hoc = ''
+                    if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns:
+                        mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+                        if not mon_row.empty and 'Môn_học' in mon_row.columns:
+                            mon_hoc = mon_row.iloc[0]['Môn_học']
+                    sheet_hk1.cell(row=excel_row, column=4).value = mon_hoc                 # D
+                    sheet_hk1.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
+                    sheet_hk1.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+                    sheet_hk1.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
+                    sheet_hk1.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
+                    sheet_hk1.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
+                    sheet_hk1.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
+                    nang_nhoc_val = ''
+                    if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns and 'Nặng_nhọc' in df_mon.columns:
+                        ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
+                        mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+                        if not mon_row.empty:
+                            nn_val = mon_row.iloc[0]['Nặng_nhọc']
+                            if nn_val == 'NN':
+                                nang_nhoc_val = 'NN'
+                    sheet_hk1.cell(row=excel_row, column=11).value = nang_nhoc_val  # K
+                    curr_lop_hoc = row.get('Lớp_học', '')
+                    if i == 0:
+                        prev_lop_hoc = curr_lop_hoc
+                        prev_excel_row = excel_row
+                    else:
+                        if curr_lop_hoc != prev_lop_hoc:
+                            for col in range(1, 13):
+                                cell = sheet_hk1.cell(row=prev_excel_row, column=col)
+                                old_border = cell.border
+                                new_border = Border(
+                                    left=old_border.left,
+                                    right=old_border.right,
+                                    top=old_border.top,
+                                    bottom=Side(style='medium')
+                                )
+                                cell.border = new_border
+                        prev_lop_hoc = curr_lop_hoc
+                        prev_excel_row = excel_row
+                except Exception as e:
+                    print(f"Lỗi ghi dòng HK1 {excel_row}: {e}")
+                    continue
+        # Ghi dữ liệu HK2 vào Ke_gio_HK2_Cả_năm
+        if 'Ke_gio_HK2_Cả_năm' in wb.sheetnames:
+            sheet_hk2 = wb['Ke_gio_HK2_Cả_năm']
+            prev_lop_hoc = None
+            prev_excel_row = None
+            for i, row in enumerate(hk2_rows):
+                excel_row = int(start_row + i)
+                if excel_row < 1:
+                    continue
+                try:
+                    sheet_hk2.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
+                    sheet_hk2.cell(row=excel_row, column=2).value = row.get('Lớp_học', '')  # B
+                    sheet_hk2.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
+                    ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
+                    mon_hoc = ''
+                    if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns:
+                        mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+                        if not mon_row.empty and 'Môn_học' in mon_row.columns:
+                            mon_hoc = mon_row.iloc[0]['Môn_học']
+                    sheet_hk2.cell(row=excel_row, column=4).value = mon_hoc                 # D
+                    sheet_hk2.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
+                    sheet_hk2.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+                    sheet_hk2.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
+                    sheet_hk2.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
+                    sheet_hk2.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
+                    sheet_hk2.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
+                    nang_nhoc_val = ''
+                    if not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns and 'Nặng_nhọc' in df_mon.columns:
+                        ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
+                        mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+                        if not mon_row.empty:
+                            nn_val = mon_row.iloc[0]['Nặng_nhọc']
+                            if nn_val == 'NN':
+                                nang_nhoc_val = 'NN'
+                    sheet_hk2.cell(row=excel_row, column=11).value = nang_nhoc_val  # K
+                    curr_lop_hoc = row.get('Lớp_học', '')
+                    if i == 0:
+                        prev_lop_hoc = curr_lop_hoc
+                        prev_excel_row = excel_row
+                    else:
+                        if curr_lop_hoc != prev_lop_hoc:
+                            for col in range(1, 13):
+                                cell = sheet_hk2.cell(row=prev_excel_row, column=col)
+                                old_border = cell.border
+                                new_border = Border(
+                                    left=old_border.left,
+                                    right=old_border.right,
+                                    top=old_border.top,
+                                    bottom=Side(style='medium')
+                                )
+                                cell.border = new_border
+                        prev_lop_hoc = curr_lop_hoc
+                        prev_excel_row = excel_row
+                except Exception as e:
+                    print(f"Lỗi ghi dòng HK2 {excel_row}: {e}")
+                    continue
     # Nếu truyền df_hk1: ghi trực tiếp dữ liệu HK1
     elif df_hk1 is not None:
         for i, row in df_hk1.iterrows():
