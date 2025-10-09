@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -116,10 +117,7 @@ def update_mon_hoc_state(i, key, value):
     st.session_state.mon_hoc_data[i][key] = value
 
 def render_mon_hoc_input(i, df_lop_g, df_lopghep_g, df_loptach_g, df_lopsc_g, df_mon_g):
-    st.write("Đã vào hàm render_mon_hoc_input")
     mon_state = st.session_state.mon_hoc_data[i]
-    st.write("Kiểm tra dữ liệu df_mon_g:")
-    st.write(df_mon_g)
     # Chọn Khóa/Hệ
     khoa_options = ['Khóa 48', 'Khóa 49', 'Khóa 50', 'Lớp ghép', 'Lớp tách', 'Sơ cấp + VHPT']
     selected_khoa = st.selectbox(
@@ -1740,7 +1738,6 @@ for i, tab in enumerate(tabs[:-1]):
 with tabs[-1]:
     st.header("Tổng hợp khối lượng giảng dạy")
     if st.session_state.mon_hoc_data:
-
         summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
 
         qd_thua_totals = []
@@ -1859,4 +1856,3 @@ with tabs[-1]:
     col4.metric("Giờ QĐ HK1", f"{qd_thua_hk1:,.1f}", delta=delta_hk1)
     col5.metric("Giờ QĐ HK2", f"{qd_thua_hk2:,.1f}", delta=delta_hk2)
     col6.metric("Giờ QĐ Cả năm", f"{qd_thua_canam:,.1f}", delta=delta_canam)
-st.write(st.session_state.mon_hoc_data)
