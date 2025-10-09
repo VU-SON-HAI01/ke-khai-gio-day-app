@@ -9,10 +9,6 @@ import re
 from typing import List, Tuple, Dict, Any
 from itertools import zip_longest
 
-if 'mon_hoc_data' in st.session_state:
-    del st.session_state['mon_hoc_data']
-# Gọi hàm load dữ liệu từ Google Sheet
-st.session_state['mon_hoc_data'] = load_all_mon_data()
 # --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
 def add_lop_hoc_column_to_output_giangday(df, lop_hoc_value):
     """
@@ -1177,8 +1173,10 @@ def save_all_data():
     st.success("Đã lưu thành công tất cả dữ liệu!")
 
 # --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
-if 'mon_hoc_data' not in st.session_state:
-    load_all_mon_data()
+if 'mon_hoc_data' in st.session_state:
+    del st.session_state['mon_hoc_data']
+# Gọi hàm load dữ liệu từ Google Sheet
+st.session_state['mon_hoc_data'] = load_all_mon_data()
 
 # --- THANH CÔNG CỤ ---
 cols = st.columns(4)
