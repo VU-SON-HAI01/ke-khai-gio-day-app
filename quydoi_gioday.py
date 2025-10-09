@@ -8,6 +8,11 @@ import ast
 import re
 from typing import List, Tuple, Dict, Any
 from itertools import zip_longest
+
+if 'mon_hoc_data' in st.session_state:
+    del st.session_state['mon_hoc_data']
+# Gọi hàm load dữ liệu từ Google Sheet
+st.session_state['mon_hoc_data'] = load_all_mon_data()
 # --- Đếm số tuần TẾT trong khoảng tuần được chọn ---
 def add_lop_hoc_column_to_output_giangday(df, lop_hoc_value):
     """
@@ -240,7 +245,6 @@ def dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g):
                 so_tuan_tet += 1
     return so_tuan_tet
 # --- KIỂM TRA DỮ LIỆU ĐÃ LOAD ---
-
 def xu_ly_ngay_tet(df_result, df_ngaytuan_g):
     """
     Nếu là tuần TẾT thì cột Ngày sẽ là 'Nghỉ tết'.
@@ -942,8 +946,6 @@ def get_default_input_dict():
     # Nếu là môn đầu tiên thì gán giá trị mặc định tiết mỗi tuần đặc biệt
     tiet_default = "4 4 4 4 4 4 4 4 4 8 8 8"
     return {'khoa': KHOA_OPTIONS[0], 'lop_hoc': default_lop, 'mon_hoc': '', 'tuan': (1, 12), 'cach_ke': 'Kê theo MĐ, MH', 'tiet': tiet_default, 'tiet_lt': '0', 'tiet_th': '0', 'index': len(st.session_state.get('mon_hoc_data', []))}
-
-
 
 def save_data_to_sheet(worksheet_name, data_to_save):
     """Lưu dữ liệu vào một worksheet cụ thể."""
@@ -1738,95 +1740,101 @@ with tabs[-1]:
     st.header("Tổng hợp khối lượng giảng dạy")
     if st.session_state.mon_hoc_data:
 
-        summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
+        def display_summary_inputs_and_results():
+            """
+            Hiển thị bảng tổng hợp các input và kết quả quy đổi cho từng môn học, chia theo học kỳ.
+            - Tính toán các trường tổng hợp (QĐ thừa, QĐ thiếu, Tiết, Học kỳ, ...)
+            - Hiển thị bảng dữ liệu cho từng học kỳ
+            """
+            summary_df = pd.DataFrame(st.session_state.mon_hoc_data)
 
-        qd_thua_totals = []
-        qd_thieu_totals = []
-        for res_df in st.session_state.results_data:
-            if not res_df.empty:
-                qd_thua_totals.append(pd.to_numeric(res_df['QĐ thừa'], errors='coerce').sum())
-                qd_thieu_totals.append(pd.to_numeric(res_df['QĐ thiếu'], errors='coerce').sum())
-            else:
-                qd_thua_totals.append(0)
-                qd_thieu_totals.append(0)
+            qd_thua_totals = []
+            qd_thieu_totals = []
+            for res_df in st.session_state.results_data:
+                if not res_df.empty:
+                    qd_thua_totals.append(pd.to_numeric(res_df['QĐ thừa'], errors='coerce').sum())
+                    qd_thieu_totals.append(pd.to_numeric(res_df['QĐ thiếu'], errors='coerce').sum())
+                else:
+                    qd_thua_totals.append(0)
+                    qd_thieu_totals.append(0)
 
-        summary_df['QĐ thừa'] = qd_thua_totals
-        summary_df['QĐ thiếu'] = qd_thieu_totals
+            summary_df['QĐ thừa'] = qd_thua_totals
+            summary_df['QĐ thiếu'] = qd_thieu_totals
 
-        def calculate_display_tiet(row):
-            if row['cach_ke'] == 'Kê theo LT, TH chi tiết':
+            def calculate_display_tiet(row):
+                if row['cach_ke'] == 'Kê theo LT, TH chi tiết':
+                    try:
+                        tiet_lt_list = [int(x) for x in str(row.get('tiet_lt', '0')).split()]
+                        tiet_th_list = [int(x) for x in str(row.get('tiet_th', '0')).split()]
+                        tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
+                        return ' '.join(map(str, tiet_sum_list))
+                    except ValueError:
+                        return ''
+                else:
+                    return row['tiet']
+
+            def calculate_total_tiet(tiet_string):
                 try:
-                    tiet_lt_list = [int(x) for x in str(row.get('tiet_lt', '0')).split()]
-                    tiet_th_list = [int(x) for x in str(row.get('tiet_th', '0')).split()]
-                    tiet_sum_list = [sum(pair) for pair in zip_longest(tiet_lt_list, tiet_th_list, fillvalue=0)]
-                    return ' '.join(map(str, tiet_sum_list))
-                except ValueError:
-                    return ''
-            else:
-                return row['tiet']
+                    return sum(int(t) for t in str(tiet_string).split())
+                except (ValueError, TypeError):
+                    return 0
 
-        def calculate_total_tiet(tiet_string):
-            try:
-                return sum(int(t) for t in str(tiet_string).split())
-            except (ValueError, TypeError):
-                return 0
-
-        def get_semester(tuan_tuple):
-            try:
-                if isinstance(tuan_tuple, tuple) and len(tuan_tuple) == 2:
-                    avg_week = (tuan_tuple[0] + tuan_tuple[1]) / 2
-                    return 1 if avg_week < 22 else 2
-            except:
+            def get_semester(tuan_tuple):
+                try:
+                    if isinstance(tuan_tuple, tuple) and len(tuan_tuple) == 2:
+                        avg_week = (tuan_tuple[0] + tuan_tuple[1]) / 2
+                        return 1 if avg_week < 22 else 2
+                except:
+                    return 1
                 return 1
-            return 1
 
-        if not summary_df.empty:
-            summary_df['Tiết theo tuần'] = summary_df.apply(calculate_display_tiet, axis=1)
-            summary_df['Tiết'] = summary_df['Tiết theo tuần'].apply(calculate_total_tiet)
-            summary_df['Học kỳ'] = summary_df['tuan'].apply(get_semester)
+            if not summary_df.empty:
+                summary_df['Tiết theo tuần'] = summary_df.apply(calculate_display_tiet, axis=1)
+                summary_df['Tiết'] = summary_df['Tiết theo tuần'].apply(calculate_total_tiet)
+                summary_df['Học kỳ'] = summary_df['tuan'].apply(get_semester)
 
-        summary_df.insert(0, "Thứ tự", range(1, len(summary_df) + 1))
+            summary_df.insert(0, "Thứ tự", range(1, len(summary_df) + 1))
 
-        rename_map = {
-            'lop_hoc': 'Lớp học', 'mon_hoc': 'Môn học', 'tuan': 'Tuần đến Tuần',
-            'tiet_lt': 'Tiết LT theo tuần', 'tiet_th': 'Tiết TH theo tuần',
-            'QĐ thừa': 'QĐ thừa', 'QĐ thiếu': 'QĐ thiếu'
-        }
-        summary_df.rename(columns=rename_map, inplace=True)
+            rename_map = {
+                'lop_hoc': 'Lớp học', 'mon_hoc': 'Môn học', 'tuan': 'Tuần đến Tuần',
+                'tiet_lt': 'Tiết LT theo tuần', 'tiet_th': 'Tiết TH theo tuần',
+                'QĐ thừa': 'QĐ thừa', 'QĐ thiếu': 'QĐ thiếu'
+            }
+            summary_df.rename(columns=rename_map, inplace=True)
 
-        cols_to_convert_to_list = ['Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần']
-        for col in cols_to_convert_to_list:
-            if col in summary_df.columns:
-                summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
+            cols_to_convert_to_list = ['Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần']
+            for col in cols_to_convert_to_list:
+                if col in summary_df.columns:
+                    summary_df[col] = summary_df[col].apply(lambda x: str(x).split())
 
-        display_columns = [
-            'Thứ tự', 'Lớp học', 'Môn học', 'Tuần đến Tuần', 'Tiết',
-            'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần',
-            'QĐ thừa', 'QĐ thiếu'
-        ]
-        final_columns_to_display = [col for col in display_columns if col in summary_df.columns]
+            display_columns = [
+                'Thứ tự', 'Lớp học', 'Môn học', 'Tuần đến Tuần', 'Tiết',
+                'Tiết theo tuần', 'Tiết LT theo tuần', 'Tiết TH theo tuần',
+                'QĐ thừa', 'QĐ thiếu'
+            ]
+            final_columns_to_display = [col for col in display_columns if col in summary_df.columns]
 
-        df_hk1 = summary_df[summary_df['Học kỳ'] == 1]
-        df_hk2 = summary_df[summary_df['Học kỳ'] == 2]
+            df_hk1 = summary_df[summary_df['Học kỳ'] == 1]
+            df_hk2 = summary_df[summary_df['Học kỳ'] == 2]
 
-        st.subheader("Học kỳ 1")
-        if not df_hk1.empty:
-            st.dataframe(df_hk1[final_columns_to_display])
-        else:
-            st.info("Không có dữ liệu cho Học kỳ 1.")
+            st.subheader("Học kỳ 1")
+            if not df_hk1.empty:
+                st.dataframe(df_hk1[final_columns_to_display])
+            else:
+                st.info("Không có dữ liệu cho Học kỳ 1.")
 
-        st.subheader("Học kỳ 2")
-        if not df_hk2.empty:
-            st.dataframe(df_hk2[final_columns_to_display])
-        else:
-            st.info("Không có dữ liệu cho Học kỳ 2.")
+            st.subheader("Học kỳ 2")
+            if not df_hk2.empty:
+                st.dataframe(df_hk2[final_columns_to_display])
+            else:
+                st.info("Không có dữ liệu cho Học kỳ 2.")
 
-        def display_totals(title, df):
-            total_tiet_day = df['Tiết'].sum()
-            total_qd_thua = df['QĐ thừa'].sum()
-            # total_qd_thieu = df['QĐ thiếu'].sum()  # Không dùng nữa
-            # Không hiển thị metric ở đây nữa, chỉ trả về số liệu
-            return total_tiet_day, total_qd_thua
+            def display_totals(title, df):
+                total_tiet_day = df['Tiết'].sum()
+                total_qd_thua = df['QĐ thừa'].sum()
+                # total_qd_thieu = df['QĐ thiếu'].sum()  # Không dùng nữa
+                # Không hiển thị metric ở đây nữa, chỉ trả về số liệu
+                return total_tiet_day, total_qd_thua
 
     tiet_hk1, qd_thua_hk1 = display_totals("Tổng hợp Học kỳ 1", df_hk1)
     tiet_hk2, qd_thua_hk2 = display_totals("Tổng hợp Học kỳ 2", df_hk2)
