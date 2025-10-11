@@ -220,9 +220,9 @@ if uploaded_file:
                 for mh in mon_hoc_excel:
                     match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
                     fuzzy_map[mh] = match[0] if match else ''
-                st.write(f"**Lớp:** {lop} (Mã_lớp: {ma_lop}, Mã_DSMON: {dsmon_code})")
-                st.dataframe(pd.DataFrame({'Môn học phù hợp': mon_list}))
-                st.write("Gợi ý ghép gần đúng từ file Excel:")
+                #st.write(f"**Lớp:** {lop} (Mã_lớp: {ma_lop}, Mã_DSMON: {dsmon_code})")
+                #st.dataframe(pd.DataFrame({'Môn học phù hợp': mon_list}))
+                #st.write("Gợi ý ghép gần đúng từ file Excel:")
                 st.dataframe(pd.DataFrame({'Môn học nhập': list(fuzzy_map.keys()), 'Môn học gần đúng': list(fuzzy_map.values())}))
             else:
                 st.write(f"**Lớp:** {lop} không hợp lệ hoặc không có dữ liệu nền.")
@@ -268,7 +268,7 @@ if uploaded_file:
                 debug_rows.append(debug_info)
                 continue
 
-            st.write(ten_mon, mon_list)
+            #st.write(ten_mon, mon_list)
             ten_mon_norm = str(ten_mon).strip().lower()
             mon_list_norm = [str(m).strip().lower() for m in mon_list]
             found = any(ten_mon_norm == m for m in mon_list_norm)
