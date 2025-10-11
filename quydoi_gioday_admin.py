@@ -319,8 +319,6 @@ if uploaded_file:
                     khoa_phong_trungtam = matched_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
             except Exception as e:
                 debug_info['error'] = str(e)
-        st.write(f"Khoa/Phòng/Trung tâm: {khoa_phong_trungtam}")
-        st.write(f"[DEBUG] Khoa mapping: {debug_info}")
     # Chọn chuẩn giáo viên
     chuan_gv_selected = st.selectbox("Chuẩn GV", options=["CĐ", "CĐMC", "TC", "TCMC", "VH"], index=2)
     st.session_state['chuan_gv'] = chuan_gv_selected
