@@ -264,7 +264,7 @@ if uploaded_file:
             if 'data_mon_list_by_lop' in st.session_state and ten_lop in st.session_state['data_mon_list_by_lop']:
                 df_data_mon = st.session_state['data_mon_list_by_lop'][ten_lop]
                 loc_data_monhoc = df_data_mon[df_data_mon['Môn_học'] == ten_mon]
-            st.write("Lớp:", ten_lop, "Môn:", ten_mon_goc)
+            st.write("Lớp:", ten_lop, "Môn:", df_input_new)
             st.write(loc_data_monhoc)
             # Nếu cần kiểm tra hoặc sử dụng loc_data_monhoc, có thể thêm xử lý tại đây
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
