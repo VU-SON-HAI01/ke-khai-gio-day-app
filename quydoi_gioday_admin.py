@@ -172,7 +172,6 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
         return pd.DataFrame(), {"error": "loc_data_lop có nhiều hơn 1 dòng, cần lọc chính xác."}
     if len(mamon_info) > 1:
         return pd.DataFrame(), {"error": "loc_data_mon có nhiều hơn 1 dòng, cần lọc chính xác."}
-    kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     # Lấy tiết từ các cột T1-T23
     dulieu_info = row_input_data
     st.write(dulieu_info)  # index là số thứ tự dòng
@@ -206,6 +205,9 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     if len(locdulieu_info) != len(arr_tiet):
         return pd.DataFrame(), {"error": f"Số tuần ({len(locdulieu_info)}) không khớp số tiết ({len(arr_tiet)})."}
     st.write(locdulieu_info)
+        
+    kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
+    loai_mon_mdmh = malop_info['MH/MĐ'].iloc[0]
     # Xác định loại tiết
     if kieu_tinh_mdmh == 'LT':
         arr_tiet_lt = arr_tiet
@@ -213,13 +215,13 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     elif kieu_tinh_mdmh == 'TH':
         arr_tiet_lt = np.zeros_like(arr_tiet)
         arr_tiet_th = arr_tiet
-    elif kieu_tinh_mdmh == 'LTTH':
-        # Nếu là LTTH, cần logic chi tiết hơn nếu có
-        arr_tiet_lt = arr_tiet // 2
-        arr_tiet_th = arr_tiet - arr_tiet_lt
     else:
-        arr_tiet_lt = arr_tiet
-        arr_tiet_th = np.zeros_like(arr_tiet)
+        if loai_mon_mdmh == 'MH':
+            arr_tiet_lt = arr_tiet
+            arr_tiet_th = np.zeros_like(arr_tiet)
+        elif loai_mon_mdmh == 'MĐ':
+            arr_tiet_lt = np.zeros_like(arr_tiet)
+            arr_tiet_th = arr_tiet
     # Xử lý dữ liệu đầu ra
     if 'Tháng' not in locdulieu_info.columns:
         found = False
