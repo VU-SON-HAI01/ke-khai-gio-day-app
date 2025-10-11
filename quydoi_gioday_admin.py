@@ -211,7 +211,7 @@ if uploaded_file:
                     if 'data_mon_list_by_lop' not in st.session_state:
                         st.session_state['data_mon_list_by_lop'] = {}
                     st.session_state['data_mon_list_by_lop'][lop] = data_mon_list
-                    st.write(data_mon_list)
+                    #st.write(data_mon_list)
                 else:
                     mon_list = []
                 # Tìm giá trị gần đúng nhất trong mon_list so với từng giá trị mon_hoc đã nhập
@@ -257,11 +257,9 @@ if uploaded_file:
             if 'data_mon_list_by_lop' in st.session_state and ten_lop in st.session_state['data_mon_list_by_lop']:
                 df_data_mon = st.session_state['data_mon_list_by_lop'][ten_lop]
                 loc_data_monhoc = df_data_mon[df_data_mon['Môn_học'] == ten_mon]
+            st.write(loc_data_monhoc)
             # Nếu cần kiểm tra hoặc sử dụng loc_data_monhoc, có thể thêm xử lý tại đây
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
-            # Lấy mon_list cho lớp này
-            malop_info = df_lop_g[df_lop_g['Lớp'] == ten_lop]
-            st.write(loc_data_monhoc)
             # Lấy mon_list từ session_state nếu có
             mon_list = st.session_state.get('mon_list_by_lop', {}).get(ten_lop, [])
             st.session_state['data_mon_list_by_lop'][lop]
@@ -272,7 +270,6 @@ if uploaded_file:
                 debug_info['detail'] = f"Tên lớp '{ten_lop}' không có trong danh sách lớp hợp lệ."
                 debug_rows.append(debug_info)
                 continue
-
             #st.write(ten_mon, mon_list)
             ten_mon_norm = str(ten_mon).strip().lower()
             mon_list_norm = [str(m).strip().lower() for m in mon_list]
