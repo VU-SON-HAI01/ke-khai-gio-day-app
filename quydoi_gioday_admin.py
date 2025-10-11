@@ -9,10 +9,9 @@ st.title("Kê khai giờ dạy - Admin")
 
 st.markdown("""
 ### 1. Upload file Excel dữ liệu môn học
-- File phải có các cột: Lớp học, Môn học, Tuần, Tiết, ...
 """)
-
-
+chuan_gv_selected = st.selectbox("Chuẩn GV", options=["CĐ", "CĐMC", "TC", "TCMC", "VH"], index=2)
+st.session_state['chuan_gv'] = chuan_gv_selected
 # --- Load các bảng dữ liệu nền từ session_state ---
 df_lop_g = st.session_state.get('df_lop', pd.DataFrame())
 df_mon = st.session_state.get('df_mon', pd.DataFrame())
@@ -245,11 +244,11 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     df_result['Tiết_LT'] = arr_tiet_lt
     df_result['Tiết_TH'] = arr_tiet_th
     # Tính hệ số TC/CĐ cho từng dòng dựa vào mã ngành và chuẩn GV
-    mamon_nganh = "201Y_MH07"
-    chuan_gv = "TC"
+    # mamon_nganh = "201Y_MH07"
+    chuan_gv = chuan_gv_selected
 
-    #if 'Mã_môn_ngành' in mamon_info.columns:
-        #mamon_nganh = mamon_info['Mã_môn_ngành'].iloc[0]
+    if 'Mã_môn_ngành' in mamon_info.columns:
+        mamon_nganh = mamon_info['Mã_môn_ngành'].iloc[0]
     heso_tccd = tra_cuu_heso_tccd(mamon_nganh, chuan_gv)
     df_result['HS TC/CĐ'] = round(float(heso_tccd), 2)
     # Tra cứu hệ số sĩ số LT/TH từ bảng hệ số, giống logic quydoi_gioday.py
