@@ -206,6 +206,12 @@ if uploaded_file:
                     if 'mon_list_by_lop' not in st.session_state:
                         st.session_state['mon_list_by_lop'] = {}
                     st.session_state['mon_list_by_lop'][lop] = mon_list
+                    # Lưu toàn bộ dữ liệu df_mon cho lớp này
+                    data_mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code].copy()
+                    if 'data_mon_list_by_lop' not in st.session_state:
+                        st.session_state['data_mon_list_by_lop'] = {}
+                    st.session_state['data_mon_list_by_lop'][lop] = data_mon_list
+                    st.write(data_mon_list)
                 else:
                     mon_list = []
                 # Tìm giá trị gần đúng nhất trong mon_list so với từng giá trị mon_hoc đã nhập
