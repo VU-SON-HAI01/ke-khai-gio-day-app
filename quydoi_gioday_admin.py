@@ -62,9 +62,24 @@ def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
         except:
             tiet_list.append(0)
     arr_tiet = np.array(tiet_list, dtype=int)
-    # Lấy tuần thực tế từ dữ liệu ngày/tuần
-    tuanbatdau = 1
-    tuanketthuc = 23
+    st.write(arr_tiet)
+
+    # Xác định tuần bắt đầu/kết thúc dựa trên dữ liệu tiết
+    arr_tiet_list = arr_tiet.tolist() if isinstance(arr_tiet, np.ndarray) else list(arr_tiet)
+    tuanbatdau = None
+    tuanketthuc = None
+    for idx, val in enumerate(arr_tiet_list):
+        if val > 0:
+            tuanbatdau = idx + 1
+            break
+    for idx in range(len(arr_tiet_list)-1, -1, -1):
+        if arr_tiet_list[idx] > 0:
+            tuanketthuc = idx + 1
+            break
+    if tuanbatdau is None or tuanketthuc is None:
+        return pd.DataFrame(), {"error": "Không có tuần nào có dữ liệu tiết > 0."}
+    # Chỉ lấy dữ liệu tuần trong khoảng này
+    arr_tiet = arr_tiet[ (tuanbatdau-1):(tuanketthuc) ]
     locdulieu_info = df_ngaytuan_g[(df_ngaytuan_g['Tuần'] >= tuanbatdau) & (df_ngaytuan_g['Tuần'] <= tuanketthuc)].copy()
     if len(locdulieu_info) != len(arr_tiet):
         return pd.DataFrame(), {"error": f"Số tuần ({len(locdulieu_info)}) không khớp số tiết ({len(arr_tiet)})."}
