@@ -74,9 +74,10 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     if tuanbatdau is None or tuanketthuc is None:
         return pd.DataFrame(), {"error": "Không có tuần nào có dữ liệu tiết > 0."}
     st.write(f"Tuan bat dau: {tuanbatdau}, Tuan ket thuc: {tuanketthuc}")
-    st.write(arr_tiet_list)
+
     # Chỉ lấy dữ liệu tuần trong khoảng này
     arr_tiet = arr_tiet_list[ (tuanbatdau-1):(tuanketthuc) ]
+    st.write(arr_tiet)
     locdulieu_info = df_ngaytuan_g[(df_ngaytuan_g['Tuần'] >= tuanbatdau) & (df_ngaytuan_g['Tuần'] <= tuanketthuc)].copy()
     if len(locdulieu_info) != len(arr_tiet):
         return pd.DataFrame(), {"error": f"Số tuần ({len(locdulieu_info)}) không khớp số tiết ({len(arr_tiet)})."}
