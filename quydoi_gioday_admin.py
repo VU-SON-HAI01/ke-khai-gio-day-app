@@ -155,6 +155,11 @@ if uploaded_file:
     st.success("Đã upload dữ liệu. Xem trước bảng dữ liệu:")
     st.dataframe(df_input)
 
+    st.info("Kiểm tra dữ liệu nền lớp học (df_lop_g):")
+    st.dataframe(df_lop_g)
+    st.info("Kiểm tra dữ liệu nền môn học (df_mon_g):")
+    st.dataframe(df_mon_g)
+
     output_rows = []
     for idx, row in df_input.iterrows():
         df_result, log = process_mon_data(row, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
