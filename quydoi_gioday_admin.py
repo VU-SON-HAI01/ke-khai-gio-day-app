@@ -267,8 +267,12 @@ if uploaded_file:
             if 'data_mon_list_by_lop' in st.session_state and ten_lop in st.session_state['data_mon_list_by_lop']:
                 df_data_mon = st.session_state['data_mon_list_by_lop'][ten_lop]
                 loc_data_monhoc = df_data_mon[df_data_mon['Môn_học'] == ten_mon]
+            # Lọc dữ liệu lớp theo tên lớp
+            loc_data_lop = df_lop_g[df_lop_g['Lớp'] == ten_lop]
+            
             st.write("Lớp:", ten_lop, "Môn:", ten_mon)
             st.write(loc_data_monhoc)
+            st.write(loc_data_lop)
             # Nếu cần kiểm tra hoặc sử dụng loc_data_monhoc, có thể thêm xử lý tại đây
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
             # Lấy mon_list từ session_state nếu có
@@ -289,6 +293,9 @@ if uploaded_file:
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
                 continue
+            df_final = process_mon_data(df_input_new, df_lop_g, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
+                # Xử lý dữ liệu môn học tại đây
+
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
             st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
