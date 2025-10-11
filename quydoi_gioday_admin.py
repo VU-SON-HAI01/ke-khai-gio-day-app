@@ -279,19 +279,6 @@ if uploaded_file:
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
                 continue
-            #df_result, log = process_mon_data(row, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
-            if not df_result.empty:
-                # Nếu có Ten_GV, thêm vào kết quả
-                if 'Ten_GV' in row:
-                    df_result.insert(0, 'Ten_GV', row['Ten_GV'])
-                output_rows.append(df_result)
-                debug_info['status'] = 'OK'
-            else:
-                # Ghi lại lý do lỗi từ log
-                debug_info['status'] = 'Không xử lý được'
-                debug_info['detail'] = log.get('error', 'Không rõ nguyên nhân')
-            debug_rows.append(debug_info)
-
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
             st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
