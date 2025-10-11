@@ -60,6 +60,9 @@ def process_mon_data(input_data, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_
     tiet_list = []
     for i in range(1, 24):
         tiet = input_data.get(f'T{i}', 0)
+        # Nếu giá trị là None, coi như không dạy tuần đó (tiet = 0)
+        if tiet is None or (isinstance(tiet, float) and np.isnan(tiet)):
+            tiet = 0
         try:
             tiet_list.append(int(tiet))
         except:
