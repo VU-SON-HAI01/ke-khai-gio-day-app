@@ -277,7 +277,7 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
             df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0).round(decimals)
     final_columns = ["Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "QĐ thiếu"]
     df_final = df_result[[col for col in final_columns if col in df_result.columns]]
-    st.write(df_result)
+    st.write(df_final)
     return df_final, {}
 
 uploaded_file = st.file_uploader("Chọn file Excel nhập dữ liệu môn học", type=["xlsx", "xls"])
