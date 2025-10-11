@@ -160,10 +160,15 @@ if uploaded_file:
             if not malop_info.empty:
                 # Lấy Mã_lớp
                 ma_lop = malop_info['Mã_lớp'].iloc[0] if 'Mã_lớp' in malop_info.columns else None
-                # Lấy Mã_ngành (ưu tiên), nếu không có thì lấy Mã_DSMON
-                ma_nganh = malop_info['Mã_ngành'].iloc[0] if 'Mã_ngành' in malop_info.columns else None
-                if not ma_nganh:
-                    ma_nganh = malop_info['Mã_DSMON'].iloc[0] if 'Mã_DSMON' in malop_info.columns else None
+                # Từ Mã_lớp lấy Mã_ngành
+                ma_nganh = None
+                if ma_lop is not None and 'Mã_lớp' in df_lop_g.columns and 'Mã_ngành' in df_lop_g.columns:
+                    nganh_info = df_lop_g[df_lop_g['Mã_lớp'] == ma_lop]
+                    if not nganh_info.empty:
+                        ma_nganh = nganh_info['Mã_ngành'].iloc[0]
+                # Nếu không có Mã_ngành thì thử lấy Mã_DSMON
+                if not ma_nganh and 'Mã_DSMON' in malop_info.columns:
+                    ma_nganh = malop_info['Mã_DSMON'].iloc[0]
                 # Lọc môn học theo Mã_ngành
                 if ma_nganh:
                     mon_list = df_mon[df_mon['Mã_ngành'] == ma_nganh]['Môn_học'].drop_duplicates().tolist()
