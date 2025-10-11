@@ -243,12 +243,11 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     df_result['Tiết_TH'] = arr_tiet_th
     # Tính hệ số TC/CĐ cho từng dòng dựa vào mã ngành và chuẩn GV
     mamon_nganh = "201Y_MH07"
-    chuan_gv = "CĐ"
+    chuan_gv = "TC"
 
     if 'Mã_ngành' in mamon_info.columns:
         mamon_nganh = mamon_info['Mã_ngành'].iloc[0]
     heso_tccd = tra_cuu_heso_tccd(mamon_nganh, chuan_gv)
-    heso_tccd = 0.89
     df_result['HS TC/CĐ'] = round(float(heso_tccd), 2)
     # Tra cứu hệ số sĩ số LT/TH từ bảng hệ số, giống logic quydoi_gioday.py
     # Xác định is_heavy_duty từ dữ liệu môn học
