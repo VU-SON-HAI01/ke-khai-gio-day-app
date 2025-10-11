@@ -11,21 +11,16 @@ st.markdown("""
 - File phải có các cột: Lớp học, Môn học, Tuần, Tiết, ...
 """)
 
-# --- Load các bảng dữ liệu nền ---
-def load_parquet_or_excel(path):
-    if path.endswith('.parquet'):
-        return pd.read_parquet(path)
-    else:
-        return pd.read_excel(path)
 
-df_lop_g = load_parquet_or_excel("data_base/df_lop.parquet")
-df_mon_g = load_parquet_or_excel("data_base/df_mon.parquet")
-df_ngaytuan_g = load_parquet_or_excel("data_base/df_ngaytuan.parquet")
-df_hesosiso_g = load_parquet_or_excel("data_base/df_hesosiso.parquet")
-df_lopghep_g = load_parquet_or_excel("data_base/df_lopgheptach.parquet") if 'df_lopgheptach.parquet' in str(list(df_lop_g.columns)) else pd.DataFrame()
-df_loptach_g = pd.DataFrame() # Bổ sung nếu có file
-df_lopsc_g = pd.DataFrame() # Bổ sung nếu có file
-chuangv = "Cao đẳng"  # Hoặc lấy từ input
+# --- Load các bảng dữ liệu nền từ session_state ---
+df_lop_g = st.session_state.get('df_lop', pd.DataFrame())
+df_mon = st.session_state.get('df_mon', pd.DataFrame())
+df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
+df_hesosiso_g = st.session_state.get('df_hesosiso', pd.DataFrame())
+df_lopghep_g = st.session_state.get('df_lopghep', pd.DataFrame())
+df_loptach_g = st.session_state.get('df_loptach', pd.DataFrame())
+df_lopsc_g = st.session_state.get('df_lopsc', pd.DataFrame())
+chuangv = st.session_state.get('chuangv', "Cao đẳng")  # Hoặc lấy từ input
 
 def get_arr_tiet_from_state(mon_state):
     cach_ke = mon_state.get('cach_ke', '')
