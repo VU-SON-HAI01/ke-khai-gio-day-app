@@ -388,13 +388,17 @@ if uploaded_file:
                     #st.write(data_mon_list)
                 else:
                     mon_list = []
-                # Tìm giá trị gần đúng nhất trong mon_list so với từng giá trị mon_hoc đã nhập
+                # Chỉ thực hiện tìm tên môn gần đúng nếu môn học không có trong list môn học hợp lệ
                 mon_hoc_excel = df_input[df_input['lop_hoc'] == lop]['mon_hoc'].dropna().astype(str).tolist()
                 fuzzy_map = {}
+                need_fuzzy = False
                 for mh in mon_hoc_excel:
-                    match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
-                    fuzzy_map[mh] = match[0] if match else ''
-                st.dataframe(pd.DataFrame({'Môn học nhập': list(fuzzy_map.keys()), 'Môn học gần đúng': list(fuzzy_map.values())}))
+                    if mh not in mon_list:
+                        match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
+                        fuzzy_map[mh] = match[0] if match else ''
+                        need_fuzzy = True
+                if need_fuzzy:
+                    st.dataframe(pd.DataFrame({'Môn học nhập': list(fuzzy_map.keys()), 'Môn học gần đúng': list(fuzzy_map.values())}))
             else:
                 st.write(f"**Lớp:** {lop} không hợp lệ hoặc không có dữ liệu nền.")
 
