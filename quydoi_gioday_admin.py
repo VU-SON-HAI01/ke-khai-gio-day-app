@@ -168,11 +168,11 @@ if uploaded_file:
             cols.remove('Ten_GV')
             cols.insert(0, 'Ten_GV')
             df_input = df_input[cols]
-    st.success("Đã upload dữ liệu. Xem trước bảng dữ liệu:")
-    st.dataframe(df_input)
+    #st.success("Đã upload dữ liệu. Xem trước bảng dữ liệu:")
+    #st.dataframe(df_input)
 
-    st.info("Kiểm tra dữ liệu nền lớp học (df_lop_g):")
-    st.dataframe(df_lop_g)
+    #st.info("Kiểm tra dữ liệu nền lớp học (df_lop_g):")
+    #st.dataframe(df_lop_g)
     # Hiển thị danh sách môn học phù hợp với từng lớp đã nhập
     st.info("Danh sách môn học phù hợp với từng lớp đã nhập:")
     if 'lop_hoc' in df_input.columns:
