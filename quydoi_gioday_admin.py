@@ -250,8 +250,8 @@ if uploaded_file:
                 df_input_new.loc[mask, 'mon_hoc'] = df_input_new.loc[mask, 'mon_hoc'].apply(lambda x: fuzzy_map.get(str(x), x))
         # Tiếp tục kiểm tra và tính toán với dữ liệu đã thay thế
         for idx, row in df_input_new.iterrows():
-            ten_lop = row.get('lop_hoc')
-            ten_mon = row.get('mon_hoc')
+            ten_lop = row['lop_hoc'] if 'lop_hoc' in row else row.get('lop_hoc')
+            ten_mon = row['mon_hoc'] if 'mon_hoc' in row else row.get('mon_hoc')
             # Lấy dữ liệu môn học đã lọc gần đúng cho lớp này
             loc_data_monhoc = None
             if 'data_mon_list_by_lop' in st.session_state and ten_lop in st.session_state['data_mon_list_by_lop']:
