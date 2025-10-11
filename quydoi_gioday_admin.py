@@ -204,8 +204,28 @@ if uploaded_file:
         st.info(f"Các cột hiện có trong file Excel:")
         st.dataframe(pd.DataFrame({'Tên cột': list(df_input.columns)}))
     else:
+        from difflib import get_close_matches
         debug_rows = []
-        for idx, row in df_input.iterrows():
+        # Tạo bản sao dữ liệu đầu vào để thay thế môn học gần đúng
+        df_input_new = df_input.copy()
+        for lop in df_input_new['lop_hoc'].drop_duplicates():
+            malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
+            if not malop_info.empty:
+                # Lấy Mã_DSMON từ lớp
+                dsmon_code = malop_info['Mã_DSMON'].iloc[0] if 'Mã_DSMON' in malop_info.columns else None
+                # Lọc môn học theo Mã_ngành = Mã_DSMON
+                mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].dropna().astype(str).tolist() if dsmon_code else []
+                # Tìm giá trị gần đúng nhất trong mon_list so với từng giá trị mon_hoc đã nhập
+                mon_hoc_excel = df_input_new[df_input_new['lop_hoc'] == lop]['mon_hoc'].dropna().astype(str).tolist()
+                fuzzy_map = {}
+                for mh in mon_hoc_excel:
+                    match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
+                    fuzzy_map[mh] = match[0] if match else mh
+                # Thay thế vào df_input_new
+                mask = df_input_new['lop_hoc'] == lop
+                df_input_new.loc[mask, 'mon_hoc'] = df_input_new.loc[mask, 'mon_hoc'].apply(lambda x: fuzzy_map.get(str(x), x))
+        # Tiếp tục kiểm tra và tính toán với dữ liệu đã thay thế
+        for idx, row in df_input_new.iterrows():
             ten_lop = row.get('lop_hoc')
             ten_mon = row.get('mon_hoc')
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
