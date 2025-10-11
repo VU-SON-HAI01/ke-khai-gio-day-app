@@ -239,13 +239,15 @@ if uploaded_file:
         for lop in df_input_new['lop_hoc'].drop_duplicates():
             malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
             if not malop_info.empty:
+                # Lấy mon_list cho lớp này từ session_state
+                mon_list = st.session_state.get('mon_list_by_lop', {}).get(lop, [])
                 # Tìm giá trị gần đúng nhất trong mon_list so với từng giá trị mon_hoc đã nhập
                 mon_hoc_excel = df_input_new[df_input_new['lop_hoc'] == lop]['mon_hoc'].dropna().astype(str).tolist()
                 fuzzy_map = {}
                 for mh in mon_hoc_excel:
                     match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
                     fuzzy_map[mh] = match[0] if match else mh
-                # Thay thế vào df_input_new (di chuyển vào đúng phạm vi)
+                # Thay thế vào df_input_new (đúng phạm vi, đúng mon_list)
                 mask = df_input_new['lop_hoc'] == lop
                 df_input_new.loc[mask, 'mon_hoc'] = df_input_new.loc[mask, 'mon_hoc'].apply(lambda x: fuzzy_map.get(str(x), x))
                 # Lưu fuzzy_map cho từng lớp để sử dụng sau này
