@@ -51,8 +51,8 @@ def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
         return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'."}
     malop = malop_info['Mã_lớp'].iloc[0]
     dsmon_code = malop_info['Mã_DSMON'].iloc[0]
-    st.write('DEBUG: dsmon_code:', dsmon_code)
-    st.write('DEBUG: df_mon["Mã_ngành"].unique():', df_mon['Mã_ngành'].unique())
+    #st.write('DEBUG: dsmon_code:', dsmon_code)
+    #st.write('DEBUG: df_mon["Mã_ngành"].unique():', df_mon['Mã_ngành'].unique())
     # Lấy danh sách môn học hợp lệ cho lớp này từ session_state
     list_monhoc = st.session_state.get('mon_list_by_lop', {}).get(lop_chon, [])
     if not list_monhoc:
@@ -63,10 +63,10 @@ def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
     mon_chon_norm = normalize_str(mon_chon)
     mon_info_source = mon_info_source.copy()
     mon_info_source['Môn_học_norm'] = mon_info_source['Môn_học'].apply(normalize_str)
-    st.write('DEBUG: mon_chon:', mon_chon)
-    st.write('DEBUG: mon_chon_norm:', mon_chon_norm)
-    st.write('DEBUG: mon_info_source["Môn_học"]:', mon_info_source['Môn_học'].tolist())
-    st.write('DEBUG: mon_info_source["Môn_học_norm"]:', mon_info_source['Môn_học_norm'].tolist())
+    #st.write('DEBUG: mon_chon:', mon_chon)
+    #st.write('DEBUG: mon_chon_norm:', mon_chon_norm)
+    #st.write('DEBUG: mon_info_source["Môn_học"]:', mon_info_source['Môn_học'].tolist())
+    #st.write('DEBUG: mon_info_source["Môn_học_norm"]:', mon_info_source['Môn_học_norm'].tolist())
     mamon_info = mon_info_source[mon_info_source['Môn_học_norm'] == mon_chon_norm]
     if mamon_info.empty:
         return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
@@ -255,6 +255,7 @@ if uploaded_file:
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
             # Lấy mon_list cho lớp này
             malop_info = df_lop_g[df_lop_g['Lớp'] == ten_lop]
+            st.write(malop_info)
             # Lấy mon_list từ session_state nếu có
             mon_list = st.session_state.get('mon_list_by_lop', {}).get(ten_lop, [])
             debug_info['mon_hoc_hople'] = ', '.join(mon_list)
