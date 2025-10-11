@@ -500,7 +500,6 @@ if uploaded_file:
                 continue
             
             bangtonghop_mon, info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
-            st.write(f"[ROW {idx}] Kết quả bảng tổng hợp:")
             st.write(bangtonghop_mon)
             if bangtonghop_mon.empty:
                 st.error(f"[ROW {idx}] Không tạo được bảng tổng hợp. Lý do: {info.get('error', 'Không rõ')}")
