@@ -35,7 +35,7 @@ def get_arr_tiet_from_state(mon_state):
     return arr_tiet, arr_tiet_lt, arr_tiet_th
 
 
-def process_mon_data(df_input,row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g):
+def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g):
     # Sử dụng trực tiếp loc_data_lop và loc_data_mon đã truyền vào, không cần lọc lại
     malop_info = df_lop_g  # df_lop_g lúc này là loc_data_lop
     mamon_info = df_mon    # df_mon lúc này là loc_data_mon
@@ -50,7 +50,6 @@ def process_mon_data(df_input,row_input_data, df_lop_g, df_mon, df_ngaytuan_g, d
         return pd.DataFrame(), {"error": "loc_data_mon có nhiều hơn 1 dòng, cần lọc chính xác."}
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     # Lấy tiết từ các cột T1-T23
-    st.write(f"Kieu tinh:")
     dulieu_info = row_input_data
     st.write(dulieu_info)  # index là số thứ tự dòng
     arr_tiet_list = []
@@ -75,7 +74,7 @@ def process_mon_data(df_input,row_input_data, df_lop_g, df_mon, df_ngaytuan_g, d
     if tuanbatdau is None or tuanketthuc is None:
         return pd.DataFrame(), {"error": "Không có tuần nào có dữ liệu tiết > 0."}
     st.write(f"Tuan bat dau: {tuanbatdau}, Tuan ket thuc: {tuanketthuc}")
-    st.write(arr_tiet)
+    st.write(arr_tiet_list)
     # Chỉ lấy dữ liệu tuần trong khoảng này
     arr_tiet = arr_tiet[ (tuanbatdau-1):(tuanketthuc) ]
     locdulieu_info = df_ngaytuan_g[(df_ngaytuan_g['Tuần'] >= tuanbatdau) & (df_ngaytuan_g['Tuần'] <= tuanketthuc)].copy()
@@ -284,7 +283,7 @@ if uploaded_file:
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
                 continue
-            df_final,info = process_mon_data(df_input_new,row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
+            df_final,info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
                 # Xử lý dữ liệu môn học tại đây
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
