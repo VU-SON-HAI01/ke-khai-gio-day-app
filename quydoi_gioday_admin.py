@@ -155,6 +155,7 @@ if uploaded_file:
     # Hiển thị danh sách môn học phù hợp với từng lớp đã nhập
     st.info("Danh sách môn học phù hợp với từng lớp đã nhập:")
     if 'lop_hoc' in df_input.columns:
+        from difflib import get_close_matches
         for lop in df_input['lop_hoc'].drop_duplicates():
             malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
             if not malop_info.empty:
@@ -182,8 +183,16 @@ if uploaded_file:
                     mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].dropna().astype(str).tolist()
                 else:
                     mon_list = []
+                # Tìm giá trị gần đúng nhất trong mon_list so với từng giá trị mon_hoc đã nhập
+                mon_hoc_excel = df_input[df_input['lop_hoc'] == lop]['mon_hoc'].dropna().astype(str).tolist()
+                fuzzy_map = {}
+                for mh in mon_hoc_excel:
+                    match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
+                    fuzzy_map[mh] = match[0] if match else ''
                 st.write(f"**Lớp:** {lop} (Mã_lớp: {ma_lop}, Mã_DSMON: {dsmon_code})")
                 st.dataframe(pd.DataFrame({'Môn học phù hợp': mon_list}))
+                st.write("Gợi ý ghép gần đúng từ file Excel:")
+                st.dataframe(pd.DataFrame({'Môn học nhập': list(fuzzy_map.keys()), 'Môn học gần đúng': list(fuzzy_map.values())}))
             else:
                 st.write(f"**Lớp:** {lop} không hợp lệ hoặc không có dữ liệu nền.")
 
@@ -204,35 +213,8 @@ if uploaded_file:
             mon_hoc_hople = []
             malop_info = df_lop_g[df_lop_g['Lớp'] == ten_lop]
             if not malop_info.empty:
-                # Xác định Mã_DSMON theo quy tắc đặc biệt
-                ma_lop = str(malop_info['Mã_lớp'].iloc[0]) if 'Mã_lớp' in malop_info.columns else ''
-                dsmon_code = ''
-                if len(ma_lop) >= 6:
-                    A = ma_lop[2:5]
-                    B = ma_lop[0:2]
-                    last_char = ma_lop[-1]
-                    if last_char == 'X':
-                        dsmon_code = f"{A}X"
-                    else:
-                        try:
-                            B_num = int(B)
-                        except:
-                            B_num = 0
-                        if B_num >= 49:
-                            dsmon_code = f"{A}Z"
-                        else:
-                            dsmon_code = f"{A}Y"
-                # Lọc danh sách môn học phù hợp (gần đúng nhất)
-                from difflib import get_close_matches
-                mon_hoc_hople = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].dropna().astype(str).tolist()
-                # Nếu mon_hoc không nằm trong danh sách, tìm giá trị gần đúng nhất
-                ten_mon = row.get('mon_hoc')
-                mon_ganday = ''
-                if ten_mon and mon_hoc_hople:
-                    matches = get_close_matches(ten_mon, mon_hoc_hople, n=1, cutoff=0.6)
-                    if matches:
-                        mon_ganday = matches[0]
-                debug_info['mon_hoc_ganday'] = mon_ganday
+                dsmon_code = malop_info['Mã_DSMON'].iloc[0]
+                mon_hoc_hople = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].drop_duplicates().tolist()
             debug_info['mon_hoc_hople'] = ', '.join(mon_hoc_hople)
             if ten_lop not in lop_hop_le:
                 loi_lop.append(ten_lop)
