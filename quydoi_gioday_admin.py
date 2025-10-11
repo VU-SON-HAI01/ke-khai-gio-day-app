@@ -82,7 +82,6 @@ def tra_cuu_heso_tccd(mamon_nganh: str, chuan_gv: str) -> float:
 # Bước 2: Các hàm logic
 def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
     """Xác định loại lớp và loại môn cho một mã môn duy nhất."""
-    st.write(ma_mon)
     ma_mon_upper = str(ma_mon).upper()
     
     # Xác định loại lớp
@@ -102,7 +101,7 @@ def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
         loai_mon = 'Môn_VH'
     else:
         loai_mon = 'Không tìm thấy'
-        
+    st.write(loai_mon,loai_lop)
     return loai_lop, loai_mon
 def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
     """
