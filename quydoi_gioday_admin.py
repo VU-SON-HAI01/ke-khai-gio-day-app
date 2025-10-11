@@ -152,8 +152,18 @@ if uploaded_file:
 
     st.info("Kiểm tra dữ liệu nền lớp học (df_lop_g):")
     st.dataframe(df_lop_g)
-    st.info("Kiểm tra dữ liệu nền môn học (df_mon):")
-    st.dataframe(df_mon)
+    # Hiển thị danh sách môn học phù hợp với từng lớp đã nhập
+    st.info("Danh sách môn học phù hợp với từng lớp đã nhập:")
+    if 'lop_hoc' in df_input.columns:
+        for lop in df_input['lop_hoc'].drop_duplicates():
+            malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
+            if not malop_info.empty:
+                dsmon_code = malop_info['Mã_DSMON'].iloc[0]
+                mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].drop_duplicates().tolist()
+                st.write(f"**Lớp:** {lop}")
+                st.dataframe(pd.DataFrame({'Môn học phù hợp': mon_list}))
+            else:
+                st.write(f"**Lớp:** {lop} không hợp lệ hoặc không có dữ liệu nền.")
 
     output_rows = []
     lop_hop_le = set(df_lop_g['Lớp']) if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else set()
