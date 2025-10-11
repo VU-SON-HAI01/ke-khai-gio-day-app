@@ -262,7 +262,6 @@ if uploaded_file:
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
             # Lấy mon_list từ session_state nếu có
             mon_list = st.session_state.get('mon_list_by_lop', {}).get(ten_lop, [])
-            st.session_state['data_mon_list_by_lop'][lop]
             debug_info['mon_hoc_hople'] = ', '.join(mon_list)
             if ten_lop not in lop_hop_le:
                 loi_lop.append(ten_lop)
