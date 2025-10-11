@@ -103,7 +103,6 @@ def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
         loai_mon = 'Không tìm thấy'
         
     return loai_lop, loai_mon
-
 def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
     """
     Tìm hệ số quy đổi dựa trên sĩ số, loại tiết (LT/TH) và điều kiện nặng nhọc.
