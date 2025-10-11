@@ -157,7 +157,6 @@ def get_arr_tiet_from_state(mon_state):
         arr_tiet_th = [int(x) for x in str(mon_state.get('tiet_th', '0')).split() if x]
     return arr_tiet, arr_tiet_lt, arr_tiet_th
 
-
 def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g):
     # Đảm bảo cột 'HS TC/CĐ' luôn tồn tại trước khi tính toán
     # Sử dụng trực tiếp loc_data_lop và loc_data_mon đã truyền vào, không cần lọc lại
@@ -278,8 +277,6 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
             df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0).round(decimals)
     final_columns = ["Tuần", "Ngày", "Tiết", "Sĩ số", "HS TC/CĐ", "Tiết_LT", "Tiết_TH", "HS_SS_LT", "HS_SS_TH", "QĐ thừa", "QĐ thiếu"]
     df_final = df_result[[col for col in final_columns if col in df_result.columns]]
-    st.write("Bảng sau khi xóa cột")
-    st.write(df_final)
     return df_final, {}
 
 uploaded_file = st.file_uploader("Chọn file Excel nhập dữ liệu môn học", type=["xlsx", "xls"])
@@ -433,8 +430,10 @@ if uploaded_file:
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
                 continue
-            df_final,info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
+            bangtonghop_mon,info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
                 # Xử lý dữ liệu môn học tại đây
+        st.write("Bảng sau khi xóa cột")
+        st.write(bangtonghop_mon)
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
             st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
