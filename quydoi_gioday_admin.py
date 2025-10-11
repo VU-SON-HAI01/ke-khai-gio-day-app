@@ -51,7 +51,7 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     # Lấy tiết từ các cột T1-T23
     st.write(f"Kieu tinh:")
-    st.write(df_input_new)
+    st.write(df_input_new.row_input_data)
     arr_tiet_list = []
     for i in range(1, 24):
         tiet = df_input_new.get(f'T{i}', 0)
