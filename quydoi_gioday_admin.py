@@ -229,20 +229,21 @@ if uploaded_file:
             ten_lop = row.get('lop_hoc')
             ten_mon = row.get('mon_hoc')
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
-            # Lọc danh sách môn học hợp lệ cho lớp này
-            mon_hoc_hople = []
+            # Lấy mon_list cho lớp này
             malop_info = df_lop_g[df_lop_g['Lớp'] == ten_lop]
+            mon_list = []
             if not malop_info.empty:
-                dsmon_code = malop_info['Mã_DSMON'].iloc[0]
-                mon_hoc_hople = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].drop_duplicates().tolist()
-            debug_info['mon_hoc_hople'] = ', '.join(mon_hoc_hople)
+                dsmon_code = malop_info['Mã_DSMON'].iloc[0] if 'Mã_DSMON' in malop_info.columns else None
+                mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].dropna().astype(str).tolist() if dsmon_code else []
+            debug_info['mon_hoc_hople'] = ', '.join(mon_list)
             if ten_lop not in lop_hop_le:
                 loi_lop.append(ten_lop)
                 debug_info['status'] = 'Lớp không hợp lệ'
                 debug_info['detail'] = f"Tên lớp '{ten_lop}' không có trong danh sách lớp hợp lệ."
                 debug_rows.append(debug_info)
                 continue
-            if ten_mon not in mon_hoc_hople:
+            # So sánh giá trị sau khi thay thế với mon_list
+            if ten_mon not in mon_list:
                 debug_info['status'] = 'Môn học không hợp lệ'
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
