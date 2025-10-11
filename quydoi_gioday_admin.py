@@ -77,10 +77,11 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
 
     # Chỉ lấy dữ liệu tuần trong khoảng này
     arr_tiet = arr_tiet_list[ (tuanbatdau-1):(tuanketthuc) ]
-    st.write(arr_tiet)
+    
     locdulieu_info = df_ngaytuan_g[(df_ngaytuan_g['Tuần'] >= tuanbatdau) & (df_ngaytuan_g['Tuần'] <= tuanketthuc)].copy()
     if len(locdulieu_info) != len(arr_tiet):
         return pd.DataFrame(), {"error": f"Số tuần ({len(locdulieu_info)}) không khớp số tiết ({len(arr_tiet)})."}
+    st.write(locdulieu_info)
     # Xác định loại tiết
     if kieu_tinh_mdmh == 'LT':
         arr_tiet_lt = arr_tiet
