@@ -161,7 +161,7 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     malop_info = df_lop_g  # df_lop_g lúc này là loc_data_lop
     mamon_info = df_mon    # df_mon lúc này là loc_data_mon
     # Kiểm tra số dòng, đảm bảo chỉ lấy đúng 1 dòng
-    st.write(mamon_info)
+    #st.write(mamon_info)
     if malop_info.empty:
         return pd.DataFrame(), {"error": "Không tìm thấy thông tin cho lớp."}
     if mamon_info.empty:
