@@ -22,6 +22,46 @@ df_loptach_g = st.session_state.get('df_loptach', pd.DataFrame())
 df_lopsc_g = st.session_state.get('df_lopsc', pd.DataFrame())
 chuangv = st.session_state.get('chuangv', "Cao đẳng")  # Hoặc lấy từ input
 
+def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
+    """
+    Tìm hệ số quy đổi dựa trên sĩ số, loại tiết (LT/TH) và điều kiện nặng nhọc.
+    
+    Tham số:
+    - siso: Sĩ số của lớp học.
+    - is_heavy_duty: True nếu môn học là nặng nhọc, False nếu bình thường.
+    - lesson_type: 'LT' cho tiết Lý thuyết, 'TH' cho tiết Thực hành.
+    - df_hesosiso_g: DataFrame chứa bảng tra cứu hệ số.
+    """
+    try:
+        cleaned_siso = int(float(siso))
+    except (ValueError, TypeError):
+        cleaned_siso = 0
+    siso = cleaned_siso
+
+    df_hesosiso = df_hesosiso_g.copy()
+    for col in ['LT min', 'LT max', 'TH min', 'TH max', 'THNN min', 'THNN max', 'Hệ số']:
+        if col not in df_hesosiso.columns:
+            return 1.0
+
+    heso_siso = 1.0
+
+    if lesson_type == 'LT':
+        for _, row in df_hesosiso.iterrows():
+            if row['LT min'] <= siso <= row['LT max']:
+                heso_siso = row['Hệ số']
+                break
+    elif lesson_type == 'TH':
+        if is_heavy_duty:
+            for _, row in df_hesosiso.iterrows():
+                if row['THNN min'] <= siso <= row['THNN max']:
+                    heso_siso = row['Hệ số']
+                    break
+        else:
+            for _, row in df_hesosiso.iterrows():
+                if row['TH min'] <= siso <= row['TH max']:
+                    heso_siso = row['Hệ số']
+                    break
+    return heso_siso
 def get_arr_tiet_from_state(mon_state):
     cach_ke = mon_state.get('cach_ke', '')
     if cach_ke == 'Kê theo MĐ, MH':
@@ -119,9 +159,19 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     df_result['Tiết'] = arr_tiet
     df_result['Tiết_LT'] = arr_tiet_lt
     df_result['Tiết_TH'] = arr_tiet_th
-    df_result['HS TC/CĐ'] = 1.0  # Bổ sung tra cứu hệ số nếu cần
-    df_result['HS_SS_LT'] = 1.0  # Bổ sung tra cứu hệ số nếu cần
-    df_result['HS_SS_TH'] = 1.0  # Bổ sung tra cứu hệ số nếu cần
+    # Tra cứu hệ số sĩ số LT/TH từ bảng hệ số, giống logic quydoi_gioday.py
+    # Xác định is_heavy_duty từ dữ liệu môn học
+    is_heavy_duty = False
+    if 'Nặng_nhọc' in mamon_info.columns:
+        is_heavy_duty = mamon_info['Nặng_nhọc'].iloc[0] == 'NN'
+    heso_lt_list, heso_th_list = [], []
+    for siso in df_result['Sĩ số']:
+        lt = timhesomon_siso(siso, is_heavy_duty, 'LT', df_hesosiso_g)
+        th = timhesomon_siso(siso, is_heavy_duty, 'TH', df_hesosiso_g)
+        heso_lt_list.append(lt)
+        heso_th_list.append(th)
+    df_result['HS_SS_LT'] = heso_lt_list
+    df_result['HS_SS_TH'] = heso_th_list
     df_result["QĐ thừa"] = (df_result["Tiết_LT"] * df_result["HS_SS_LT"]) + (df_result["Tiết_TH"] * df_result["HS_SS_TH"])
     df_result["HS_SS_LT_tron"] = df_result["HS_SS_LT"].clip(lower=1)
     df_result["HS_SS_TH_tron"] = df_result["HS_SS_TH"].clip(lower=1)
