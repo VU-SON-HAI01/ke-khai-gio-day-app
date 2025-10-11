@@ -248,10 +248,17 @@ if uploaded_file:
                 # Thay thế vào df_input_new (di chuyển vào đúng phạm vi)
                 mask = df_input_new['lop_hoc'] == lop
                 df_input_new.loc[mask, 'mon_hoc'] = df_input_new.loc[mask, 'mon_hoc'].apply(lambda x: fuzzy_map.get(str(x), x))
+                # Lưu fuzzy_map cho từng lớp để sử dụng sau này
+                if 'fuzzy_map_by_lop' not in st.session_state:
+                    st.session_state['fuzzy_map_by_lop'] = {}
+                st.session_state['fuzzy_map_by_lop'][lop] = fuzzy_map
         # Tiếp tục kiểm tra và tính toán với dữ liệu đã thay thế
         for idx, row in df_input_new.iterrows():
             ten_lop = row['lop_hoc'] if 'lop_hoc' in row else row.get('lop_hoc')
-            ten_mon = row['mon_hoc'] if 'mon_hoc' in row else row.get('mon_hoc')
+            # Lấy tên môn học gần đúng từ fuzzy_map_by_lop nếu có
+            fuzzy_map = st.session_state.get('fuzzy_map_by_lop', {}).get(ten_lop, {})
+            ten_mon_goc = row['mon_hoc'] if 'mon_hoc' in row else row.get('mon_hoc')
+            ten_mon = fuzzy_map.get(str(ten_mon_goc), ten_mon_goc)
             # Lấy dữ liệu môn học đã lọc gần đúng cho lớp này
             loc_data_monhoc = None
             if 'data_mon_list_by_lop' in st.session_state and ten_lop in st.session_state['data_mon_list_by_lop']:
