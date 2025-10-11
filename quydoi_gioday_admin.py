@@ -51,7 +51,7 @@ def process_mon_data(df_input,row_input_data, df_lop_g, df_mon, df_ngaytuan_g, d
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     # Lấy tiết từ các cột T1-T23
     st.write(f"Kieu tinh:")
-    dulieu_info = df_input.iloc[row_input_data]
+    dulieu_info = row_input_data
     st.write(dulieu_info)  # index là số thứ tự dòng
     arr_tiet_list = []
     for i in range(1, 24):
