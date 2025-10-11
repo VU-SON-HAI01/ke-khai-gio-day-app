@@ -498,18 +498,19 @@ if uploaded_file:
                 debug_rows.append(debug_info)
                 continue
             
-            bangtonghop_mon,info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
+            bangtonghop_mon, info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
+            st.write(f"[ROW {idx}] Kết quả bảng tổng hợp:")
             st.write(bangtonghop_mon)
-            if not bangtonghop_mon.empty:
+            if bangtonghop_mon.empty:
+                st.error(f"[ROW {idx}] Không tạo được bảng tổng hợp. Lý do: {info.get('error', 'Không rõ')}")
+            else:
                 # Chèn cột Lớp_học và Mã_môn_ngành vào sau cột Tuần
                 bangtonghop_mon.insert(1, 'Lớp_học', ten_lop)
                 mamon_nganh = ''
                 if loc_data_monhoc is not None and not loc_data_monhoc.empty and 'Mã_môn_ngành' in loc_data_monhoc.columns:
                     mamon_nganh = loc_data_monhoc['Mã_môn_ngành'].iloc[0]
                 bangtonghop_mon.insert(2, 'Mã_môn_ngành', mamon_nganh)
-                # Nối các môn lại với nhau
                 output_rows.append(bangtonghop_mon)
-                # Sau vòng lặp, nối tất cả các bảng lại thành một bảng tổng hợp
         if output_rows:
             bangtonghop_all = pd.concat(output_rows, ignore_index=True)
         if loi_lop:
