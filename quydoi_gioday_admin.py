@@ -76,6 +76,7 @@ def get_arr_tiet_from_state(mon_state):
 
 
 def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g):
+    # Đảm bảo cột 'HS TC/CĐ' luôn tồn tại trước khi tính toán
     # Sử dụng trực tiếp loc_data_lop và loc_data_mon đã truyền vào, không cần lọc lại
     malop_info = df_lop_g  # df_lop_g lúc này là loc_data_lop
     mamon_info = df_mon    # df_mon lúc này là loc_data_mon
@@ -159,6 +160,8 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     df_result['Tiết'] = arr_tiet
     df_result['Tiết_LT'] = arr_tiet_lt
     df_result['Tiết_TH'] = arr_tiet_th
+    # Khởi tạo cột 'HS TC/CĐ' mặc định là 1.0
+    df_result['HS TC/CĐ'] = 1.0
     # Tra cứu hệ số sĩ số LT/TH từ bảng hệ số, giống logic quydoi_gioday.py
     # Xác định is_heavy_duty từ dữ liệu môn học
     is_heavy_duty = False
