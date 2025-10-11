@@ -304,7 +304,7 @@ if uploaded_file:
         st.write(f"Mã GV: {ma_gv}")
         st.write(f"Chức vụ: {chuc_vu_ht}")
         # Lấy ký tự đầu tiên của Magv, ánh xạ với Mã_khoa của df_khoa
-        st.write("Khoa/Phòng/Trung tâm:")
+        st.write(df_khoa)
         khoa_phong_trungtam = ''
         if ma_gv and isinstance(ma_gv, (str, int)) and not df_khoa.empty and 'Mã_khoa' in df_khoa.columns and 'Khoa/Phòng/Trung tâm' in df_khoa.columns:
             try:
