@@ -51,8 +51,15 @@ def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
         return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'."}
     malop = malop_info['Mã_lớp'].iloc[0]
     dsmon_code = malop_info['Mã_DSMON'].iloc[0]
-    # Lọc danh sách môn học phù hợp với lớp
-    mon_info_source = df_mon[df_mon['Mã_ngành'] == dsmon_code]
+    st.write('DEBUG: dsmon_code:', dsmon_code)
+    st.write('DEBUG: df_mon["Mã_ngành"].unique():', df_mon['Mã_ngành'].unique())
+    # Lấy danh sách môn học hợp lệ cho lớp này từ session_state
+    list_monhoc = st.session_state.get('mon_list_by_lop', {}).get(lop_chon, [])
+    if not list_monhoc:
+        st.warning(f"Không tìm thấy danh sách môn học hợp lệ cho lớp '{lop_chon}', sẽ kiểm tra toàn bộ df_mon.")
+        mon_info_source = df_mon.copy()
+    else:
+        mon_info_source = df_mon[df_mon['Môn_học'].isin(list_monhoc)].copy()
     mon_chon_norm = normalize_str(mon_chon)
     mon_info_source = mon_info_source.copy()
     mon_info_source['Môn_học_norm'] = mon_info_source['Môn_học'].apply(normalize_str)
