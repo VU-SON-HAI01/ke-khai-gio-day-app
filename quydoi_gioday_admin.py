@@ -341,11 +341,16 @@ if uploaded_file:
                              (" N4", "_4"), (" n4", "_4"), (" Ca4", "_4"), (" ca4", "_4")]:
                 name = name.replace(pat, rep)
             return name
-            return name
+        
         df_input['lop_hoc'] = df_input['lop_hoc'].apply(fix_lop_name)
         # Chuẩn hóa tên lớp: loại bỏ khoảng trắng đầu/cuối và giữa các ký tự
         df_input['lop_hoc'] = df_input['lop_hoc'].astype(str).str.replace(' ', '', regex=False).str.strip()
         
+        # Nếu tên lớp có chứa 'CĐ', tìm giá trị gần đúng trong danh sách lớp hợp lệ
+        lop_hop_le_list = df_lop_g['Lớp'].astype(str).tolist() if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else []
+        df_input['lop_hoc'] = df_input['lop_hoc'].apply(
+            lambda x: get_close_matches(x, lop_hop_le_list, n=1, cutoff=0.7)[0] if ('CĐ' in x and get_close_matches(x, lop_hop_le_list, n=1, cutoff=0.7)) else x
+        )
         for lop in df_input['lop_hoc'].drop_duplicates():
             malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
             if not malop_info.empty:
