@@ -432,8 +432,14 @@ if uploaded_file:
                 continue
             bangtonghop_mon,info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
                 # Xử lý dữ liệu môn học tại đây
-        st.write("Bảng sau khi xóa cột")
-        st.write(bangtonghop_mon)
+                    # Nối dữ liệu từng môn vào danh sách
+            if not bangtonghop_mon.empty:
+                output_rows.append(bangtonghop_mon)
+                # Sau vòng lặp, nối tất cả các bảng lại thành một bảng tổng hợp
+        if output_rows:
+            bangtonghop_all = pd.concat(output_rows, ignore_index=True)
+            st.write("Bảng tổng hợp tất cả môn học:")
+            st.dataframe(bangtonghop_all)
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
             st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
