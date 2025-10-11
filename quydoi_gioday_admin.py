@@ -497,7 +497,7 @@ if uploaded_file:
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
                 continue
-            st.write(f"Lớp: {loc_data_lop}, Môn: {ten_mon}")
+            st.write(f"Lớp: {row}, Môn: {ten_mon}")
             bangtonghop_mon,info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
             
             if not bangtonghop_mon.empty:
