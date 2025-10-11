@@ -242,7 +242,9 @@ if uploaded_file:
                 continue
 
             st.write(ten_mon, mon_list)
-            if ten_mon not in mon_list:
+            ten_mon_norm = str(ten_mon).strip().lower()
+            mon_list_norm = [str(m).strip().lower() for m in mon_list]
+            if ten_mon_norm not in mon_list_norm:
                 debug_info['status'] = 'Môn học không hợp lệ'
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
