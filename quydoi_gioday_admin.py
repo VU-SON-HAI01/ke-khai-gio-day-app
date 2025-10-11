@@ -35,7 +35,7 @@ def get_arr_tiet_from_state(mon_state):
     return arr_tiet, arr_tiet_lt, arr_tiet_th
 
 
-def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g):
+def process_mon_data(df_input,row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g):
     # Sử dụng trực tiếp loc_data_lop và loc_data_mon đã truyền vào, không cần lọc lại
     malop_info = df_lop_g  # df_lop_g lúc này là loc_data_lop
     mamon_info = df_mon    # df_mon lúc này là loc_data_mon
@@ -51,10 +51,11 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     # Lấy tiết từ các cột T1-T23
     st.write(f"Kieu tinh:")
-    st.write(df_input_new.iloc[row_input_data])  # index là số thứ tự dòng
+    dulieu_info = df_input.iloc[row_input_data]
+    st.write(dulieu_info)  # index là số thứ tự dòng
     arr_tiet_list = []
     for i in range(1, 24):
-        tiet = df_input_new.get(f'T{i}', 0)
+        tiet = dulieu_info.get(f'T{i}', 0)
         if tiet is None or (isinstance(tiet, float) and np.isnan(tiet)):
             tiet = 0
         try:
@@ -283,7 +284,7 @@ if uploaded_file:
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
                 continue
-            df_final,info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
+            df_final,info = process_mon_data(df_input_new,row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
                 # Xử lý dữ liệu môn học tại đây
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
