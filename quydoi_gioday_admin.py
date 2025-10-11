@@ -472,6 +472,7 @@ if uploaded_file:
             ten_mon = fuzzy_map.get(str(ten_mon_goc), ten_mon_goc)
             # Lấy dữ liệu môn học đã lọc gần đúng cho lớp này
             loc_data_monhoc = None
+            st.write(f"Xử lý dòng {idx}: Lớp '{ten_lop}', Môn '{ten_mon}' (gốc: '{ten_mon_goc}')")
             if 'data_mon_list_by_lop' in st.session_state and ten_lop in st.session_state['data_mon_list_by_lop']:
                 df_data_mon = st.session_state['data_mon_list_by_lop'][ten_lop]
                 loc_data_monhoc = df_data_mon[df_data_mon['Môn_học'] == ten_mon]
