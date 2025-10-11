@@ -68,7 +68,7 @@ def tra_cuu_heso_tccd(mamon_nganh: str, chuan_gv: str) -> float:
     """
     Tra cứu hệ số TC/CĐ dựa vào mã môn ngành và chuẩn GV.
     """
-    st.write(mamon_nganh)
+    #st.write(mamon_nganh)
 
     bang_he_so = tao_cac_bang_he_so()
     if chuan_gv not in bang_he_so:
@@ -91,7 +91,7 @@ def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
         loai_lop = 'Lớp_TC'
     elif ky_tu_dau == '3':
         loai_lop = 'Lớp_SC'
-        # Xác định loại môn
+    # Xác định loại môn
     if 'MC' in ma_mon_upper:
         loai_mon = 'Môn_MC'
     elif 'MH' in ma_mon_upper or 'MĐ' in ma_mon_upper:
@@ -100,7 +100,7 @@ def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
         loai_mon = 'Môn_VH'
     else:
         loai_mon = 'Không tìm thấy'
-    st.write(loai_mon,loai_lop)
+    #st.write(loai_mon,loai_lop)
     return loai_lop, loai_mon
 def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
     """
