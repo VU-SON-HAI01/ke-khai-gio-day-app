@@ -448,9 +448,6 @@ if uploaded_file:
             # Lọc dữ liệu lớp theo tên lớp
             loc_data_lop = df_lop_g[df_lop_g['Lớp'] == ten_lop]
             
-            st.write("Lớp:", ten_lop, "Môn:", ten_mon)
-            st.write(loc_data_monhoc)
-            st.write(loc_data_lop)
             # Nếu cần kiểm tra hoặc sử dụng loc_data_monhoc, có thể thêm xử lý tại đây
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
             # Lấy mon_list từ session_state nếu có
