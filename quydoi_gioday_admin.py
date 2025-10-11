@@ -374,8 +374,14 @@ if uploaded_file:
             return name
 
         df_input['lop_hoc'] = df_input['lop_hoc'].apply(fix_lop_name)
-        # Chuẩn hóa tên lớp: loại bỏ khoảng trắng đầu/cuối và giữa các ký tự
-        df_input['lop_hoc'] = df_input['lop_hoc'].astype(str).str.replace(' ', '', regex=False).str.strip()
+        # Nếu không có 'CĐ' trong tên lớp thì mới loại bỏ khoảng trắng
+        def remove_space_if_no_cd(name):
+            name_str = str(name)
+            if 'CĐ' in name_str:
+                return name_str.strip()
+            else:
+                return name_str.replace(' ', '').strip()
+        df_input['lop_hoc'] = df_input['lop_hoc'].apply(remove_space_if_no_cd)
         
         for lop in df_input['lop_hoc'].drop_duplicates():
             malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
