@@ -82,6 +82,7 @@ def tra_cuu_heso_tccd(mamon_nganh: str, chuan_gv: str) -> float:
 # Bước 2: Các hàm logic
 def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
     """Xác định loại lớp và loại môn cho một mã môn duy nhất."""
+    st.write(ma_mon)
     ma_mon_upper = str(ma_mon).upper()
     
     # Xác định loại lớp
@@ -243,7 +244,7 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     df_result['Tiết_TH'] = arr_tiet_th
     # Tính hệ số TC/CĐ cho từng dòng dựa vào mã ngành và chuẩn GV
     mamon_nganh = "201Y_MH07"
-    chuan_gv = "TC"
+    chuan_gv = "CĐ"
 
     if 'Mã_ngành' in mamon_info.columns:
         mamon_nganh = mamon_info['Mã_ngành'].iloc[0]
