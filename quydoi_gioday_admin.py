@@ -242,7 +242,7 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     df_result['Tiết_LT'] = arr_tiet_lt
     df_result['Tiết_TH'] = arr_tiet_th
     # Tính hệ số TC/CĐ cho từng dòng dựa vào mã ngành và chuẩn GV
-    mamon_nganh = ''
+    mamon_nganh = "201Y_MH07"
     chuan_gv = "CĐ"
     if 'Mã_ngành' in mamon_info.columns:
         mamon_nganh = mamon_info['Mã_ngành'].iloc[0]
