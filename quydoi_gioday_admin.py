@@ -303,18 +303,24 @@ if uploaded_file:
         st.write(f"Giáo viên đã chọn: {selected_gv}")
         st.write(f"Mã GV: {ma_gv}")
         st.write(f"Chức vụ: {chuc_vu_ht}")
-        # Lấy ký tự đầu tiên của Magv, ánh xạ với Mã_khoa của df_khoa
-        st.write(df_khoa)
+        # Lấy ký tự đầu tiên của Magv, ánh xạ với Mã_khoa của df_khoa (đảm bảo kiểu dữ liệu đúng)
         khoa_phong_trungtam = ''
-        if ma_gv and isinstance(ma_gv, (str, int)) and not df_khoa.empty and 'Mã_khoa' in df_khoa.columns and 'Khoa/Phòng/Trung tâm' in df_khoa.columns:
+        debug_info = {}
+        if ma_gv and not df_khoa.empty and 'Mã_khoa' in df_khoa.columns and 'Khoa/Phòng/Trung tâm' in df_khoa.columns:
             try:
                 first_digit = int(str(ma_gv)[0])
+                # Đảm bảo cột Mã_khoa là int
+                df_khoa['Mã_khoa'] = pd.to_numeric(df_khoa['Mã_khoa'], errors='coerce').fillna(-1).astype(int)
+                debug_info['first_digit'] = first_digit
+                debug_info['df_khoa_Mã_khoa'] = df_khoa['Mã_khoa'].tolist()
                 matched_khoa = df_khoa[df_khoa['Mã_khoa'] == first_digit]
+                debug_info['matched_rows'] = matched_khoa.shape[0]
                 if not matched_khoa.empty:
                     khoa_phong_trungtam = matched_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
-            except Exception:
-                pass
+            except Exception as e:
+                debug_info['error'] = str(e)
         st.write(f"Khoa/Phòng/Trung tâm: {khoa_phong_trungtam}")
+        st.write(f"[DEBUG] Khoa mapping: {debug_info}")
     # Chọn chuẩn giáo viên
     chuan_gv_selected = st.selectbox("Chuẩn GV", options=["CĐ", "CĐMC", "TC", "TCMC", "VH"], index=2)
     st.session_state['chuan_gv'] = chuan_gv_selected
