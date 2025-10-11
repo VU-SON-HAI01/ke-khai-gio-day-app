@@ -22,6 +22,87 @@ df_loptach_g = st.session_state.get('df_loptach', pd.DataFrame())
 df_lopsc_g = st.session_state.get('df_lopsc', pd.DataFrame())
 chuangv = st.session_state.get('chuangv', "Cao đẳng")  # Hoặc lấy từ input
 
+def tao_cac_bang_he_so() -> dict:
+    """Tạo và trả về một từ điển chứa tất cả các bảng hệ số."""
+    data_cd = {
+        'Môn_MC': [1.00, 0.89, 0.79, 1.00],
+        'Môn_MĐ/MH': [1.00, 0.89, 0.79, 1.00],
+        'Môn_VH': [1.00, 1.00, 1.00, 1.00]
+    }
+    df_cd = pd.DataFrame(data_cd, index=['Lớp_CĐ', 'Lớp_TC', 'Lớp_SC', 'Lớp_VH'])
+
+    data_cdmc = {
+        'Môn_MC': [1.00, 0.88, 0.79, 1.00],
+        'Môn_MĐ/MH': [1.00, 0.89, 0.79, 1.00],
+        'Môn_VH': [1.00, 1.00, 1.00, 1.00]
+    }
+    df_cdmc = pd.DataFrame(data_cdmc, index=['Lớp_CĐ', 'Lớp_TC', 'Lớp_SC', 'Lớp_VH'])
+
+    data_tc = {
+        'Môn_MC': [1.00, 1.00, 0.89, 1.00],
+        'Môn_MĐ/MH': [1.00, 1.00, 0.89, 1.00],
+        'Môn_VH': [1.00, 1.00, 1.00, 1.00]
+    }
+    df_tc = pd.DataFrame(data_tc, index=['Lớp_CĐ', 'Lớp_TC', 'Lớp_SC', 'Lớp_VH'])
+
+    data_tcmc = {
+        'Môn_MC': [1.00, 1.00, 0.89, 1.00],
+        'Môn_MĐ/MH': [1.00, 1.00, 0.89, 1.00],
+        'Môn_VH': [1.00, 1.00, 1.00, 1.00]
+    }
+    df_tcmc = pd.DataFrame(data_tcmc, index=['Lớp_CĐ', 'Lớp_TC', 'Lớp_SC', 'Lớp_VH'])
+
+    data_vh = {
+        'Môn_MC': [1.00, 1.00, 1.00, 1.00],
+        'Môn_MĐ/MH': [1.00, 1.00, 1.00, 1.00],
+        'Môn_VH': [1.00, 1.00, 1.00, 1.00]
+    }
+    df_vh = pd.DataFrame(data_vh, index=['Lớp_CĐ', 'Lớp_TC', 'Lớp_SC', 'Lớp_VH'])
+
+    return {
+        'CĐ': df_cd,
+        'CĐMC': df_cdmc,
+        'TC': df_tc,
+        'TCMC': df_tcmc,
+        'VH': df_vh
+    }
+def tra_cuu_heso_tccd(mamon_nganh: str, chuan_gv: str) -> float:
+    """
+    Tra cứu hệ số TC/CĐ dựa vào mã môn ngành và chuẩn GV.
+    """
+    bang_he_so = tao_cac_bang_he_so()
+    if chuan_gv not in bang_he_so:
+        return 1.0  # Giá trị mặc định nếu không tìm thấy chuẩn GV
+    loai_lop, loai_mon = phan_loai_ma_mon(mamon_nganh)
+    try:
+        return float(bang_he_so[chuan_gv].loc[loai_lop, loai_mon])
+    except Exception:
+        return 1.0
+# Bước 2: Các hàm logic
+def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
+    """Xác định loại lớp và loại môn cho một mã môn duy nhất."""
+    ma_mon_upper = str(ma_mon).upper()
+    
+    # Xác định loại lớp
+    ky_tu_dau = ma_mon_upper[0]
+    if ky_tu_dau == '1':
+        loai_lop = 'Lớp_CĐ'
+    elif ky_tu_dau == '2':
+        loai_lop = 'Lớp_TC'
+    elif ky_tu_dau == '3':
+        loai_lop = 'Lớp_SC'
+        # Xác định loại môn
+    if 'MC' in ma_mon_upper:
+        loai_mon = 'Môn_MC'
+    elif 'MH' in ma_mon_upper or 'MĐ' in ma_mon_upper:
+        loai_mon = 'Môn_MĐ/MH'
+    elif 'VH' in ma_mon_upper:
+        loai_mon = 'Môn_VH'
+    else:
+        loai_mon = 'Không tìm thấy'
+        
+    return loai_lop, loai_mon
+
 def timhesomon_siso(siso, is_heavy_duty, lesson_type, df_hesosiso_g):
     """
     Tìm hệ số quy đổi dựa trên sĩ số, loại tiết (LT/TH) và điều kiện nặng nhọc.
@@ -160,8 +241,13 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     df_result['Tiết'] = arr_tiet
     df_result['Tiết_LT'] = arr_tiet_lt
     df_result['Tiết_TH'] = arr_tiet_th
-    # Khởi tạo cột 'HS TC/CĐ' mặc định là 1.0
-    df_result['HS TC/CĐ'] = 1.0
+    # Tính hệ số TC/CĐ cho từng dòng dựa vào mã ngành và chuẩn GV
+    mamon_nganh = ''
+    chuan_gv = "CĐ"
+    if 'Mã_ngành' in mamon_info.columns:
+        mamon_nganh = mamon_info['Mã_ngành'].iloc[0]
+    heso_tccd = tra_cuu_heso_tccd(mamon_nganh, chuan_gv, df_hesosiso_g)
+    df_result['HS TC/CĐ'] = heso_tccd
     # Tra cứu hệ số sĩ số LT/TH từ bảng hệ số, giống logic quydoi_gioday.py
     # Xác định is_heavy_duty từ dữ liệu môn học
     is_heavy_duty = False
