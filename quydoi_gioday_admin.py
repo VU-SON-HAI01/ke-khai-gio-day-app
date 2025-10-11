@@ -38,6 +38,13 @@ def get_arr_tiet_from_state(mon_state):
 def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g):
     lop_chon = input_data.get('lop_hoc')
     mon_chon = input_data.get('mon_hoc')
+    # Chuẩn hóa tên môn học để so sánh
+    def normalize_str(s):
+        import unicodedata
+        s = unicodedata.normalize('NFKC', str(s)).lower()
+        s = ''.join(c for c in s if not unicodedata.category(c).startswith('C'))
+        s = s.replace(' ', '')
+        return s
     # Lấy thông tin lớp
     malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
     if malop_info.empty:
@@ -46,7 +53,10 @@ def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
     dsmon_code = malop_info['Mã_DSMON'].iloc[0]
     # Lọc danh sách môn học phù hợp với lớp
     mon_info_source = df_mon[df_mon['Mã_ngành'] == dsmon_code]
-    mamon_info = mon_info_source[mon_info_source['Môn_học'] == mon_chon]
+    mon_chon_norm = normalize_str(mon_chon)
+    mon_info_source = mon_info_source.copy()
+    mon_info_source['Môn_học_norm'] = mon_info_source['Môn_học'].apply(normalize_str)
+    mamon_info = mon_info_source[mon_info_source['Môn_học_norm'] == mon_chon_norm]
     if mamon_info.empty:
         return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
     is_heavy_duty = mamon_info['Nặng_nhọc'].iloc[0] == 'NN'
