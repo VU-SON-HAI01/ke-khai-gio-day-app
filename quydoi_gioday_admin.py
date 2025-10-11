@@ -11,6 +11,8 @@ st.markdown("""
 ### 1. Upload file Excel dữ liệu môn học
 """)
 # --- Load các bảng dữ liệu nền từ session_state ---
+df_giaovien = st.session_state.get('df_giaovien', pd.DataFrame())
+df_khoa = st.session_state.get('df_khoa', pd.DataFrame())
 df_lop_g = st.session_state.get('df_lop', pd.DataFrame())
 df_mon = st.session_state.get('df_mon', pd.DataFrame())
 df_ngaytuan_g = st.session_state.get('df_ngaytuan', pd.DataFrame())
@@ -153,7 +155,6 @@ def get_arr_tiet_from_state(mon_state):
         arr_tiet_lt = [int(x) for x in str(mon_state.get('tiet_lt', '0')).split() if x]
         arr_tiet_th = [int(x) for x in str(mon_state.get('tiet_th', '0')).split() if x]
     return arr_tiet, arr_tiet_lt, arr_tiet_th
-
 def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g):
     # Đảm bảo cột 'HS TC/CĐ' luôn tồn tại trước khi tính toán
     # Sử dụng trực tiếp loc_data_lop và loc_data_mon đã truyền vào, không cần lọc lại
@@ -289,6 +290,30 @@ if uploaded_file:
         list_gv = sorted(df_input[gv_col].dropna().unique())
         selected_gv = st.selectbox("Chọn giáo viên để lọc dữ liệu", options=list_gv)
         df_input = df_input[df_input[gv_col] == selected_gv].copy()
+            # Ánh xạ selected_gv với df_giaovien để lấy Magv và Chức vụ_HT
+        ma_gv = ''
+        chuc_vu_ht = ''
+        if not df_giaovien.empty and 'Tên giảng viên' in df_giaovien.columns:
+            matched_row = df_giaovien[df_giaovien['Tên giảng viên'] == selected_gv]
+            if not matched_row.empty:
+                if 'Magv' in matched_row.columns:
+                    ma_gv = matched_row['Magv'].iloc[0]
+                if 'Chức vụ_HT' in matched_row.columns:
+                    chuc_vu_ht = matched_row['Chức vụ_HT'].iloc[0]
+        st.write(f"Giáo viên đã chọn: {selected_gv}")
+        st.write(f"Mã GV: {ma_gv}")
+        st.write(f"Chức vụ: {chuc_vu_ht}")
+        # Lấy ký tự đầu tiên của Magv, ánh xạ với Mã_khoa của df_khoa
+        khoa_phong_trungtam = ''
+        if ma_gv and isinstance(ma_gv, (str, int)) and not df_khoa.empty and 'Mã_khoa' in df_khoa.columns and 'Khoa/Phòng/Trung tâm' in df_khoa.columns:
+            try:
+                first_digit = int(str(ma_gv)[0])
+                matched_khoa = df_khoa[df_khoa['Mã_khoa'] == first_digit]
+                if not matched_khoa.empty:
+                    khoa_phong_trungtam = matched_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
+            except Exception:
+                pass
+        st.write(f"Khoa/Phòng/Trung tâm: {khoa_phong_trungtam}")
     # Chọn chuẩn giáo viên
     chuan_gv_selected = st.selectbox("Chuẩn GV", options=["CĐ", "CĐMC", "TC", "TCMC", "VH"], index=2)
     st.session_state['chuan_gv'] = chuan_gv_selected
@@ -316,9 +341,6 @@ if uploaded_file:
             cols.insert(0, 'Ten_GV')
             df_input = df_input[cols]
     #st.success("Đã upload dữ liệu. Xem trước bảng dữ liệu:")
-    #st.dataframe(df_input)
-
-    #st.info("Kiểm tra dữ liệu nền lớp học (df_lop_g):")
     #st.dataframe(df_lop_g)
     # Hiển thị danh sách môn học phù hợp với từng lớp đã nhập
     st.info("Danh sách môn học phù hợp với từng lớp đã nhập:")
