@@ -383,16 +383,19 @@ if uploaded_file:
                 return name_str.replace(' ', '').strip()
         df_input['lop_hoc'] = df_input['lop_hoc'].apply(remove_space_if_no_cd)
         
+        lop_hop_le_set = set(df_lop_g['Lớp']) if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else set()
         for lop in df_input['lop_hoc'].drop_duplicates():
             malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
+            if lop not in lop_hop_le_set:
+                st.error(f"Lớp '{lop}' không có trong danh sách lớp hợp lệ!")
+                continue
             if not malop_info.empty:
-                # Lấy Mã_lớp
+                # ...existing code...
                 ma_lop = str(malop_info['Mã_lớp'].iloc[0]) if 'Mã_lớp' in malop_info.columns else ''
-                # Xác định Mã_DSMON theo quy tắc đặc biệt
                 dsmon_code = ''
                 if len(ma_lop) >= 6:
-                    A = ma_lop[2:5]  # vị trí 3 đến 5 (0-based)
-                    B = ma_lop[0:2]  # vị trí 1 đến 2
+                    A = ma_lop[2:5]
+                    B = ma_lop[0:2]
                     last_char = ma_lop[-1]
                     if last_char == 'X':
                         dsmon_code = f"{A}X"
@@ -405,22 +408,17 @@ if uploaded_file:
                             dsmon_code = f"{A}Z"
                         else:
                             dsmon_code = f"{A}Y"
-                # Lọc môn học theo Mã_ngành = Mã_DSMON
                 if dsmon_code and 'Mã_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns:
                     mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].dropna().astype(str).tolist()
-                    # Gán vào session_state ngay tại đây
                     if 'mon_list_by_lop' not in st.session_state:
                         st.session_state['mon_list_by_lop'] = {}
                     st.session_state['mon_list_by_lop'][lop] = mon_list
-                    # Lưu toàn bộ dữ liệu df_mon cho lớp này
                     data_mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code].copy()
                     if 'data_mon_list_by_lop' not in st.session_state:
                         st.session_state['data_mon_list_by_lop'] = {}
                     st.session_state['data_mon_list_by_lop'][lop] = data_mon_list
-                    #st.write(data_mon_list)
                 else:
                     mon_list = []
-                # Chỉ thực hiện tìm tên môn gần đúng nếu môn học không có trong list môn học hợp lệ
                 mon_hoc_excel = df_input[df_input['lop_hoc'] == lop]['mon_hoc'].dropna().astype(str).tolist()
                 fuzzy_map = {}
                 need_fuzzy = False
@@ -431,8 +429,6 @@ if uploaded_file:
                         need_fuzzy = True
                 if need_fuzzy:
                     st.dataframe(pd.DataFrame({'Môn học nhập': list(fuzzy_map.keys()), 'Môn học gần đúng': list(fuzzy_map.values())}))
-            else:
-                st.write(f"**Lớp:** {lop} không hợp lệ hoặc không có dữ liệu nền.")
 
     output_rows = []
     lop_hop_le = set(df_lop_g['Lớp']) if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else set()
