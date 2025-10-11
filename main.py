@@ -370,6 +370,16 @@ else:
     
     # --- PHÂN QUYỀN VÀ HIỂN THỊ GIAO DIỆN ---
     if user_email == ADMIN_EMAIL:
+        # Đảm bảo admin cũng thực hiện load base_data như user thường
+        if 'initialized' not in st.session_state:
+            with st.spinner("Đang kiểm tra quyền và tải dữ liệu quản trị (Admin)..."):
+                sa_gspread_client, sa_drive_service = connect_as_service_account()
+                all_base_data = load_all_base_data(sa_gspread_client, sa_drive_service)
+                for key, df_data in all_base_data.items():
+                    st.session_state[key] = df_data
+                st.session_state.initialized = True
+                st.success("Đã tải dữ liệu quản trị thành công!")
+
         # Giao diện của Admin sử dụng navigation giống user, có thêm trang Quản trị
         pages = {
             "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
