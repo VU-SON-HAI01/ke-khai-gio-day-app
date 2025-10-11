@@ -163,10 +163,16 @@ if uploaded_file:
         st.info(f"Các cột hiện có trong file Excel:")
         st.dataframe(pd.DataFrame({'Tên cột': list(df_input.columns)}))
     else:
+        debug_rows = []
         for idx, row in df_input.iterrows():
             ten_lop = row.get('lop_hoc')
+            ten_mon = row.get('mon_hoc')
+            debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
             if ten_lop not in lop_hop_le:
                 loi_lop.append(ten_lop)
+                debug_info['status'] = 'Lớp không hợp lệ'
+                debug_info['detail'] = f"Tên lớp '{ten_lop}' không có trong danh sách lớp hợp lệ."
+                debug_rows.append(debug_info)
                 continue
             df_result, log = process_mon_data(row, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
             if not df_result.empty:
@@ -174,6 +180,12 @@ if uploaded_file:
                 if 'Ten_GV' in row:
                     df_result.insert(0, 'Ten_GV', row['Ten_GV'])
                 output_rows.append(df_result)
+                debug_info['status'] = 'OK'
+            else:
+                # Ghi lại lý do lỗi từ log
+                debug_info['status'] = 'Không xử lý được'
+                debug_info['detail'] = log.get('error', 'Không rõ nguyên nhân')
+            debug_rows.append(debug_info)
 
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
@@ -181,10 +193,14 @@ if uploaded_file:
             st.dataframe(pd.DataFrame({'Tên lớp nhập': df_input['lop_hoc'].drop_duplicates().tolist()}))
             st.info(f"Vui lòng chọn đúng tên lớp trong danh sách sau:")
             st.dataframe(pd.DataFrame({'Lớp hợp lệ': sorted(lop_hop_le)}))
+            st.info("Chi tiết kiểm tra từng dòng:")
+            st.dataframe(pd.DataFrame(debug_rows))
         elif output_rows:
             df_output = pd.concat(output_rows, ignore_index=True)
             st.markdown("### 2. Kết quả xử lý - Xuất file Excel")
             st.dataframe(df_output)
+            st.info("Chi tiết kiểm tra từng dòng:")
+            st.dataframe(pd.DataFrame(debug_rows))
 
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -198,5 +214,7 @@ if uploaded_file:
             )
         else:
             st.warning("Không có dữ liệu kết quả sau xử lý.")
+            st.info("Chi tiết kiểm tra từng dòng:")
+            st.dataframe(pd.DataFrame(debug_rows))
 else:
     st.info("Vui lòng upload file Excel dữ liệu môn học để bắt đầu.")
