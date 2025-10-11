@@ -158,23 +158,14 @@ if uploaded_file:
         for lop in df_input['lop_hoc'].drop_duplicates():
             malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
             if not malop_info.empty:
-                # Lấy Mã_lớp
-                ma_lop = malop_info['Mã_lớp'].iloc[0] if 'Mã_lớp' in malop_info.columns else None
-                # Từ Mã_lớp lấy Mã_ngành
-                ma_nganh = None
-                if ma_lop is not None and 'Mã_lớp' in df_lop_g.columns and 'Mã_ngành' in df_lop_g.columns:
-                    nganh_info = df_lop_g[df_lop_g['Mã_lớp'] == ma_lop]
-                    if not nganh_info.empty:
-                        ma_nganh = nganh_info['Mã_ngành'].iloc[0]
-                # Nếu không có Mã_ngành thì thử lấy Mã_DSMON
-                if not ma_nganh and 'Mã_DSMON' in malop_info.columns:
-                    ma_nganh = malop_info['Mã_DSMON'].iloc[0]
-                # Lọc môn học theo Mã_ngành
-                if ma_nganh:
-                    mon_list = df_mon[df_mon['Mã_ngành'] == ma_nganh]['Môn_học'].drop_duplicates().tolist()
+                # Lấy Mã_DSMON từ lớp
+                dsmon_code = malop_info['Mã_DSMON'].iloc[0] if 'Mã_DSMON' in malop_info.columns else None
+                # Lọc môn học theo Mã_ngành = Mã_DSMON
+                if dsmon_code and 'Mã_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns:
+                    mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].dropna().astype(str).tolist()
                 else:
                     mon_list = []
-                st.write(f"**Lớp:** {lop} (Mã_lớp: {ma_lop}, Mã_ngành: {ma_nganh})")
+                st.write(f"**Lớp:** {lop} (Mã_DSMON: {dsmon_code})")
                 st.dataframe(pd.DataFrame({'Môn học phù hợp': mon_list}))
             else:
                 st.write(f"**Lớp:** {lop} không hợp lệ hoặc không có dữ liệu nền.")
