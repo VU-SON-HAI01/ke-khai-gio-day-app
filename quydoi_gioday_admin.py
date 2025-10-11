@@ -253,6 +253,7 @@ if uploaded_file:
                     st.session_state['fuzzy_map_by_lop'] = {}
                 st.session_state['fuzzy_map_by_lop'][lop] = fuzzy_map
         # Tiếp tục kiểm tra và tính toán với dữ liệu đã thay thế
+        st.write(df_input_new)
         for idx, row in df_input_new.iterrows():
             ten_lop = row['lop_hoc'] if 'lop_hoc' in row else row.get('lop_hoc')
             # Lấy tên môn học gần đúng từ fuzzy_map_by_lop nếu có
@@ -264,7 +265,7 @@ if uploaded_file:
             if 'data_mon_list_by_lop' in st.session_state and ten_lop in st.session_state['data_mon_list_by_lop']:
                 df_data_mon = st.session_state['data_mon_list_by_lop'][ten_lop]
                 loc_data_monhoc = df_data_mon[df_data_mon['Môn_học'] == ten_mon]
-            st.write("Lớp:", ten_lop, "Môn:", df_input_new)
+            st.write("Lớp:", ten_lop, "Môn:", ten_mon)
             st.write(loc_data_monhoc)
             # Nếu cần kiểm tra hoặc sử dụng loc_data_monhoc, có thể thêm xử lý tại đây
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
