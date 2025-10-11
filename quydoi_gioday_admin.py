@@ -51,19 +51,6 @@ def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     # Lấy tiết từ các cột T1-T23
     st.write(input_data)
-    tiet_list = []
-    for i in range(1, 24):
-        tiet = input_data.get(f'T{i}', 0)
-        # Nếu giá trị là None, coi như không dạy tuần đó (tiet = 0)
-        if tiet is None or (isinstance(tiet, float) and np.isnan(tiet)):
-            tiet = 0
-        try:
-            tiet_list.append(int(tiet))
-        except:
-            tiet_list.append(0)
-    arr_tiet = np.array(tiet_list, dtype=int)
-    st.write(arr_tiet)
-
     # Xác định tuần bắt đầu/kết thúc dựa trên dữ liệu tiết
     arr_tiet_list = arr_tiet.tolist() if isinstance(arr_tiet, np.ndarray) else list(arr_tiet)
     tuanbatdau = None
@@ -78,6 +65,8 @@ def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
             break
     if tuanbatdau is None or tuanketthuc is None:
         return pd.DataFrame(), {"error": "Không có tuần nào có dữ liệu tiết > 0."}
+    st.write(f"Tuan bat dau: {tuanbatdau}, Tuan ket thuc: {tuanketthuc}")
+    st.write(arr_tiet)
     # Chỉ lấy dữ liệu tuần trong khoảng này
     arr_tiet = arr_tiet[ (tuanbatdau-1):(tuanketthuc) ]
     locdulieu_info = df_ngaytuan_g[(df_ngaytuan_g['Tuần'] >= tuanbatdau) & (df_ngaytuan_g['Tuần'] <= tuanketthuc)].copy()
