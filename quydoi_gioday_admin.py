@@ -325,6 +325,19 @@ if uploaded_file:
     st.info("Danh sách môn học phù hợp với từng lớp đã nhập:")
     if 'lop_hoc' in df_input.columns:
         from difflib import get_close_matches
+        # Thay thế các ký hiệu N1/N2/N3/Ca1/Ca2/Ca3 thành _1/_2/_3 trước khi xóa khoảng trắng
+        def fix_lop_name(name):
+            name = str(name)
+            for pat, rep in [(" N1", "_1"), (" n1", "_1"), (" Ca1", "_1"), (" ca1", "_1"),
+                                (" N2", "_2"), (" n2", "_2"), (" Ca2", "_2"), (" ca2", "_2"),
+                                (" N3", "_3"), (" n3", "_3"), (" Ca3", "_3"), (" ca3", "_3"),
+                                (" N4", "_4"), (" n4", "_4"), (" Ca4", "_4"), (" ca4", "_4"),]:
+                name = name.replace(pat, rep)
+            return name
+        df_input['lop_hoc'] = df_input['lop_hoc'].apply(fix_lop_name)
+        # Chuẩn hóa tên lớp: loại bỏ khoảng trắng đầu/cuối và giữa các ký tự
+        df_input['lop_hoc'] = df_input['lop_hoc'].astype(str).str.replace(' ', '', regex=False).str.strip()
+        
         for lop in df_input['lop_hoc'].drop_duplicates():
             malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
             if not malop_info.empty:
