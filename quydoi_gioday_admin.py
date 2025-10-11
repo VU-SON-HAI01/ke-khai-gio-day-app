@@ -40,7 +40,7 @@ def get_arr_tiet_from_state(mon_state):
     return arr_tiet, arr_tiet_lt, arr_tiet_th
 
 
-def process_mon_data(input_data, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g):
+def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g):
     lop_chon = input_data.get('lop_hoc')
     mon_chon = input_data.get('mon_hoc')
     # Lấy thông tin lớp
@@ -50,7 +50,7 @@ def process_mon_data(input_data, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_
     malop = malop_info['Mã_lớp'].iloc[0]
     dsmon_code = malop_info['Mã_DSMON'].iloc[0]
     # Lọc danh sách môn học phù hợp với lớp
-    mon_info_source = df_mon_g[df_mon_g['Mã_ngành'] == dsmon_code]
+    mon_info_source = df_mon[df_mon['Mã_ngành'] == dsmon_code]
     mamon_info = mon_info_source[mon_info_source['Môn_học'] == mon_chon]
     if mamon_info.empty:
         return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
@@ -157,12 +157,12 @@ if uploaded_file:
 
     st.info("Kiểm tra dữ liệu nền lớp học (df_lop_g):")
     st.dataframe(df_lop_g)
-    st.info("Kiểm tra dữ liệu nền môn học (df_mon_g):")
-    st.dataframe(df_mon_g)
+    st.info("Kiểm tra dữ liệu nền môn học (df_mon):")
+    st.dataframe(df_mon)
 
     output_rows = []
     for idx, row in df_input.iterrows():
-        df_result, log = process_mon_data(row, df_lop_g, df_mon_g, df_ngaytuan_g, df_hesosiso_g)
+        df_result, log = process_mon_data(row, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
         if not df_result.empty:
             # Nếu có Ten_GV, thêm vào kết quả
             if 'Ten_GV' in row:
