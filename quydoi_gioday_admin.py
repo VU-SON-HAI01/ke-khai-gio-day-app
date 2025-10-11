@@ -156,7 +156,13 @@ if uploaded_file:
     st.dataframe(df_mon)
 
     output_rows = []
+    lop_hop_le = set(df_lop_g['Lớp']) if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else set()
+    loi_lop = []
     for idx, row in df_input.iterrows():
+        ten_lop = row.get('lop_hoc')
+        if ten_lop not in lop_hop_le:
+            loi_lop.append(ten_lop)
+            continue
         df_result, log = process_mon_data(row, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
         if not df_result.empty:
             # Nếu có Ten_GV, thêm vào kết quả
@@ -164,7 +170,11 @@ if uploaded_file:
                 df_result.insert(0, 'Ten_GV', row['Ten_GV'])
             output_rows.append(df_result)
 
-    if output_rows:
+    if loi_lop:
+        st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
+        st.info(f"Vui lòng chọn đúng tên lớp trong danh sách sau:")
+        st.dataframe(pd.DataFrame({'Lớp hợp lệ': sorted(lop_hop_le)}))
+    elif output_rows:
         df_output = pd.concat(output_rows, ignore_index=True)
         st.markdown("### 2. Kết quả xử lý - Xuất file Excel")
         st.dataframe(df_output)
