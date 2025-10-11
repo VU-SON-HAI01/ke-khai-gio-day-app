@@ -385,6 +385,7 @@ if uploaded_file:
         
         lop_hop_le_set = set(df_lop_g['Lớp']) if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else set()
         for lop in df_input['lop_hoc'].drop_duplicates():
+            st.write(f"Lớp: {lop}")
             malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
             if lop not in lop_hop_le_set:
                 st.error(f"Lớp '{lop}' không có trong danh sách lớp hợp lệ!")
