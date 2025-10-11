@@ -130,6 +130,21 @@ uploaded_file = st.file_uploader("Chọn file Excel nhập dữ liệu môn họ
 
 if uploaded_file:
     df_input = pd.read_excel(uploaded_file)
+    # Chuẩn hóa tên cột về đúng định dạng code sử dụng
+    col_map = {
+        'Ten_gv': 'Ten_GV',
+        'ten_gv': 'Ten_GV',
+        'Mon_hoc': 'mon_hoc',
+        'mon_hoc': 'mon_hoc',
+        'Lop_hoc': 'lop_hoc',
+        'lop_hoc': 'lop_hoc'
+    }
+    df_input.rename(columns={k: v for k, v in col_map.items() if k in df_input.columns}, inplace=True)
+    # Thay thế toàn bộ None/NaN thành 0 cho các cột T1-T23
+    for i in range(1, 24):
+        col = f'T{i}'
+        if col in df_input.columns:
+            df_input[col] = df_input[col].fillna(0)
     # Đảm bảo cột Ten_GV nằm trước lop_hoc
     if 'Ten_GV' in df_input.columns:
         cols = list(df_input.columns)
