@@ -178,10 +178,22 @@ if uploaded_file:
             ten_lop = row.get('lop_hoc')
             ten_mon = row.get('mon_hoc')
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
+            # Lọc danh sách môn học hợp lệ cho lớp này
+            mon_hoc_hople = []
+            malop_info = df_lop_g[df_lop_g['Lớp'] == ten_lop]
+            if not malop_info.empty:
+                dsmon_code = malop_info['Mã_DSMON'].iloc[0]
+                mon_hoc_hople = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].drop_duplicates().tolist()
+            debug_info['mon_hoc_hople'] = ', '.join(mon_hoc_hople)
             if ten_lop not in lop_hop_le:
                 loi_lop.append(ten_lop)
                 debug_info['status'] = 'Lớp không hợp lệ'
                 debug_info['detail'] = f"Tên lớp '{ten_lop}' không có trong danh sách lớp hợp lệ."
+                debug_rows.append(debug_info)
+                continue
+            if ten_mon not in mon_hoc_hople:
+                debug_info['status'] = 'Môn học không hợp lệ'
+                debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
                 continue
             df_result, log = process_mon_data(row, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
