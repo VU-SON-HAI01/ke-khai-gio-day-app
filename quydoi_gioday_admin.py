@@ -36,41 +36,18 @@ def get_arr_tiet_from_state(mon_state):
 
 
 def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g):
-    lop_chon = input_data.get('lop_hoc')
-    mon_chon = input_data.get('mon_hoc')
-    # Chuẩn hóa tên môn học để so sánh
-    def normalize_str(s):
-        import unicodedata
-        s = unicodedata.normalize('NFKC', str(s)).lower()
-        s = ''.join(c for c in s if not unicodedata.category(c).startswith('C'))
-        s = s.replace(' ', '')
-        return s
-    # Lấy thông tin lớp
-    malop_info = df_lop_g[df_lop_g['Lớp'] == lop_chon]
+    # Sử dụng trực tiếp loc_data_lop và loc_data_mon đã truyền vào, không cần lọc lại
+    malop_info = df_lop_g  # df_lop_g lúc này là loc_data_lop
+    mamon_info = df_mon    # df_mon lúc này là loc_data_mon
+    # Kiểm tra số dòng, đảm bảo chỉ lấy đúng 1 dòng
     if malop_info.empty:
-        return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho lớp '{lop_chon}'."}
-    malop = malop_info['Mã_lớp'].iloc[0]
-    dsmon_code = malop_info['Mã_DSMON'].iloc[0]
-    #st.write('DEBUG: dsmon_code:', dsmon_code)
-    #st.write('DEBUG: df_mon["Mã_ngành"].unique():', df_mon['Mã_ngành'].unique())
-    # Lấy danh sách môn học hợp lệ cho lớp này từ session_state
-    list_monhoc = st.session_state.get('mon_list_by_lop', {}).get(lop_chon, [])
-    if not list_monhoc:
-        st.warning(f"Không tìm thấy danh sách môn học hợp lệ cho lớp '{lop_chon}', sẽ kiểm tra toàn bộ df_mon.")
-        mon_info_source = df_mon.copy()
-    else:
-        mon_info_source = df_mon[df_mon['Môn_học'].isin(list_monhoc)].copy()
-    mon_chon_norm = normalize_str(mon_chon)
-    mon_info_source = mon_info_source.copy()
-    mon_info_source['Môn_học_norm'] = mon_info_source['Môn_học'].apply(normalize_str)
-    #st.write('DEBUG: mon_chon:', mon_chon)
-    #st.write('DEBUG: mon_chon_norm:', mon_chon_norm)
-    #st.write('DEBUG: mon_info_source["Môn_học"]:', mon_info_source['Môn_học'].tolist())
-    #st.write('DEBUG: mon_info_source["Môn_học_norm"]:', mon_info_source['Môn_học_norm'].tolist())
-    mamon_info = mon_info_source[mon_info_source['Môn_học_norm'] == mon_chon_norm]
+        return pd.DataFrame(), {"error": "Không tìm thấy thông tin cho lớp."}
     if mamon_info.empty:
-        return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
-    is_heavy_duty = mamon_info['Nặng_nhọc'].iloc[0] == 'NN'
+        return pd.DataFrame(), {"error": "Không tìm thấy thông tin cho môn học."}
+    if len(malop_info) > 1:
+        return pd.DataFrame(), {"error": "loc_data_lop có nhiều hơn 1 dòng, cần lọc chính xác."}
+    if len(mamon_info) > 1:
+        return pd.DataFrame(), {"error": "loc_data_mon có nhiều hơn 1 dòng, cần lọc chính xác."}
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     # Lấy tiết từ các cột T1-T23
     tiet_list = []
@@ -293,9 +270,8 @@ if uploaded_file:
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
                 continue
-            df_final = process_mon_data(df_input_new, df_lop_g, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
+            df_final = process_mon_data(df_input_new, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
                 # Xử lý dữ liệu môn học tại đây
-
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
             st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
