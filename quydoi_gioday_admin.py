@@ -220,9 +220,6 @@ if uploaded_file:
                 for mh in mon_hoc_excel:
                     match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
                     fuzzy_map[mh] = match[0] if match else ''
-                #st.write(f"**Lớp:** {lop} (Mã_lớp: {ma_lop}, Mã_DSMON: {dsmon_code})")
-                #st.dataframe(pd.DataFrame({'Môn học phù hợp': mon_list}))
-                #st.write("Gợi ý ghép gần đúng từ file Excel:")
                 st.dataframe(pd.DataFrame({'Môn học nhập': list(fuzzy_map.keys()), 'Môn học gần đúng': list(fuzzy_map.values())}))
             else:
                 st.write(f"**Lớp:** {lop} không hợp lệ hoặc không có dữ liệu nền.")
@@ -248,7 +245,7 @@ if uploaded_file:
                 for mh in mon_hoc_excel:
                     match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
                     fuzzy_map[mh] = match[0] if match else mh
-                # Thay thế vào df_input_new
+                # Thay thế vào df_input_new (di chuyển vào đúng phạm vi)
                 mask = df_input_new['lop_hoc'] == lop
                 df_input_new.loc[mask, 'mon_hoc'] = df_input_new.loc[mask, 'mon_hoc'].apply(lambda x: fuzzy_map.get(str(x), x))
         # Tiếp tục kiểm tra và tính toán với dữ liệu đã thay thế
