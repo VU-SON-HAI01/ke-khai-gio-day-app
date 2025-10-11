@@ -172,6 +172,8 @@ if uploaded_file:
 
     if loi_lop:
         st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
+        st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
+        st.dataframe(pd.DataFrame({'Tên lớp nhập': df_input['lop_hoc'].drop_duplicates().tolist()}))
         st.info(f"Vui lòng chọn đúng tên lớp trong danh sách sau:")
         st.dataframe(pd.DataFrame({'Lớp hợp lệ': sorted(lop_hop_le)}))
     elif output_rows:
