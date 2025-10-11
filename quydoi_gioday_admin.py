@@ -252,12 +252,19 @@ if uploaded_file:
         for idx, row in df_input_new.iterrows():
             ten_lop = row.get('lop_hoc')
             ten_mon = row.get('mon_hoc')
+            # Lấy dữ liệu môn học đã lọc gần đúng cho lớp này
+            loc_data_monhoc = None
+            if 'data_mon_list_by_lop' in st.session_state and ten_lop in st.session_state['data_mon_list_by_lop']:
+                df_data_mon = st.session_state['data_mon_list_by_lop'][ten_lop]
+                loc_data_monhoc = df_data_mon[df_data_mon['Môn_học'] == ten_mon]
+            # Nếu cần kiểm tra hoặc sử dụng loc_data_monhoc, có thể thêm xử lý tại đây
             debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
             # Lấy mon_list cho lớp này
             malop_info = df_lop_g[df_lop_g['Lớp'] == ten_lop]
-            st.write(malop_info)
+            st.write(loc_data_monhoc)
             # Lấy mon_list từ session_state nếu có
             mon_list = st.session_state.get('mon_list_by_lop', {}).get(ten_lop, [])
+            st.session_state['data_mon_list_by_lop'][lop]
             debug_info['mon_hoc_hople'] = ', '.join(mon_list)
             if ten_lop not in lop_hop_le:
                 loi_lop.append(ten_lop)
