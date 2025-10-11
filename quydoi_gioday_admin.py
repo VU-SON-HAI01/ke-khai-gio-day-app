@@ -10,8 +10,6 @@ st.title("Kê khai giờ dạy - Admin")
 st.markdown("""
 ### 1. Upload file Excel dữ liệu môn học
 """)
-chuan_gv_selected = st.selectbox("Chuẩn GV", options=["CĐ", "CĐMC", "TC", "TCMC", "VH"], index=2)
-st.session_state['chuan_gv'] = chuan_gv_selected
 # --- Load các bảng dữ liệu nền từ session_state ---
 df_lop_g = st.session_state.get('df_lop', pd.DataFrame())
 df_mon = st.session_state.get('df_mon', pd.DataFrame())
@@ -282,6 +280,20 @@ uploaded_file = st.file_uploader("Chọn file Excel nhập dữ liệu môn họ
 
 if uploaded_file:
     df_input = pd.read_excel(uploaded_file)
+    # Nếu có cột ten_gv hoặc Ten_GV thì tạo danh sách giáo viên
+    gv_col = None
+    for col in ['ten_gv', 'Ten_GV']:
+        if col in df_input.columns:
+            gv_col = col
+            break
+    if gv_col:
+        list_gv = sorted(df_input[gv_col].dropna().unique())
+        selected_gv = st.selectbox("Chọn giáo viên để lọc dữ liệu", options=list_gv)
+        df_input = df_input[df_input[gv_col] == selected_gv].copy()
+    # Chọn chuẩn giáo viên
+    chuan_gv_selected = st.selectbox("Chuẩn GV", options=["CĐ", "CĐMC", "TC", "TCMC", "VH"], index=2)
+    st.session_state['chuan_gv'] = chuan_gv_selected
+    
     # Chuẩn hóa tên cột về đúng định dạng code sử dụng
     col_map = {
         'Ten_gv': 'Ten_GV',
