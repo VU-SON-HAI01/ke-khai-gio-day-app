@@ -83,7 +83,7 @@ def tra_cuu_heso_tccd(mamon_nganh: str, chuan_gv: str) -> float:
 def phan_loai_ma_mon(ma_mon: str) -> Tuple[str, str]:
     """Xác định loại lớp và loại môn cho một mã môn duy nhất."""
     ma_mon_upper = str(ma_mon).upper()
-    
+    st.write(ma_mon_upper)
     # Xác định loại lớp
     ky_tu_dau = ma_mon_upper[0]
     if ky_tu_dau == '1':
