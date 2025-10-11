@@ -51,8 +51,15 @@ def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     # Lấy tiết từ các cột T1-T23
     st.write(input_data)
-    # Xác định tuần bắt đầu/kết thúc dựa trên dữ liệu tiết
-    arr_tiet_list = arr_tiet.tolist() if isinstance(arr_tiet, np.ndarray) else list(arr_tiet)
+    arr_tiet_list = []
+    for i in range(1, 24):
+        tiet = input_data.get(f'T{i}', 0)
+        if tiet is None or (isinstance(tiet, float) and np.isnan(tiet)):
+            tiet = 0
+        try:
+            arr_tiet_list.append(int(tiet))
+        except:
+            arr_tiet_list.append(0)
     tuanbatdau = None
     tuanketthuc = None
     for idx, val in enumerate(arr_tiet_list):
