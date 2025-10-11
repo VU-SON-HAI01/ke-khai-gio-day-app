@@ -281,6 +281,7 @@ uploaded_file = st.file_uploader("Chọn file Excel nhập dữ liệu môn họ
 if uploaded_file:
     df_input = pd.read_excel(uploaded_file)
     # Nếu có cột ten_gv hoặc Ten_GV thì tạo danh sách giáo viên
+    st.write(df_input.columns)
     gv_col = None
     for col in ['ten_gv ', 'Ten_GV']:
         if col in df_input.columns:
