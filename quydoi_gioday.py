@@ -1552,7 +1552,6 @@ for i, tab in enumerate(tabs[:-1]):
                     danh_sach_mamon_tab.append(mamon_nganh)
         chuangv_tab = st.session_state.chuan_gv
 
-
         # Kiểm tra hợp lệ dữ liệu nhập (cập nhật loại trừ tuần TẾT)
         tuanbatdau, tuanketthuc = current_input.get('tuan', (1, 1))
         so_tuan_tet = dem_so_tuan_tet(tuanbatdau, tuanketthuc, df_ngaytuan_g)

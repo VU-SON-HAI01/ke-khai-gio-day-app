@@ -546,7 +546,8 @@ else:
                     st.Page("quydoi_gioday.py", title="Kê giờ dạy", icon="✍️"),
                     st.Page("quydoi_thiketthuc.py", title="Kê Thi kết thúc", icon="📝"),
                     st.Page("quydoi_giamgio.py", title="Kê Giảm trừ/Kiêm nhiệm", icon="⚖️"),
-                    st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃")
+                    st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃"),
+                    st.Page("quydoi_gioday_admin.py", title="Kê giờ dạy (Admin)", icon="🛠️")
                 ],
                 "Báo cáo": [
                     st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")
