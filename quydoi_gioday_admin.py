@@ -279,7 +279,7 @@ if uploaded_file:
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
                 continue
-            df_result, log = process_mon_data(row, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
+            #df_result, log = process_mon_data(row, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
             if not df_result.empty:
                 # Nếu có Ten_GV, thêm vào kết quả
                 if 'Ten_GV' in row:
