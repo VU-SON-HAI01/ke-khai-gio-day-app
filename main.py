@@ -35,6 +35,7 @@ except KeyError as e:
     st.error(f"Lỗi: Không tìm thấy thông tin cấu hình '{e.args[0]}' trong st.secrets.")
     st.stop()
 
+        
 # --- URLS VÀ SCOPES CHO OAUTH2 ---
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
