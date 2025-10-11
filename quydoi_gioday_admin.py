@@ -170,7 +170,6 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
         return pd.DataFrame(), {"error": "loc_data_mon có nhiều hơn 1 dòng, cần lọc chính xác."}
     # Lấy tiết từ các cột T1-T23
     dulieu_info = row_input_data
-    st.write(dulieu_info)  # index là số thứ tự dòng
     arr_tiet_list = []
     for i in range(1, 24):
         tiet = dulieu_info.get(f'T{i}', 0)
@@ -192,7 +191,7 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
             break
     if tuanbatdau is None or tuanketthuc is None:
         return pd.DataFrame(), {"error": "Không có tuần nào có dữ liệu tiết > 0."}
-    st.write(f"Tuan bat dau: {tuanbatdau}, Tuan ket thuc: {tuanketthuc}")
+    #st.write(f"Tuan bat dau: {tuanbatdau}, Tuan ket thuc: {tuanketthuc}")
 
     # Chỉ lấy dữ liệu tuần trong khoảng này
     arr_tiet = arr_tiet_list[ (tuanbatdau-1):(tuanketthuc) ]
@@ -200,7 +199,7 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     locdulieu_info = df_ngaytuan_g[(df_ngaytuan_g['Tuần'] >= tuanbatdau) & (df_ngaytuan_g['Tuần'] <= tuanketthuc)].copy()
     if len(locdulieu_info) != len(arr_tiet):
         return pd.DataFrame(), {"error": f"Số tuần ({len(locdulieu_info)}) không khớp số tiết ({len(arr_tiet)})."}
-    st.write(locdulieu_info)
+    #st.write(locdulieu_info)
         
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
     loai_mon_mdmh = mamon_info['MH/MĐ'].iloc[0]
@@ -267,8 +266,8 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     df_result["HS_SS_TH_tron"] = df_result["HS_SS_TH"].clip(lower=1)
     df_result["QĐ thiếu"] = df_result["HS TC/CĐ"] * ((df_result["Tiết_LT"] * df_result["HS_SS_LT_tron"]) + (df_result["HS_SS_TH_tron"] * df_result["Tiết_TH"]))
     rounding_map = {"Sĩ số": 0, "Tiết": 1, "HS_SS_LT": 1, "HS_SS_TH": 1, "QĐ thừa": 1, "QĐ thiếu": 1, "HS TC/CĐ": 2, "Tiết_LT": 1, "Tiết_TH": 1}
-    st.write("Bảng trước khi xóa cột")
-    st.write(df_result)
+    #st.write("Bảng trước khi xóa cột")
+    #st.write(df_result)
     for col, decimals in rounding_map.items():
         if col in df_result.columns:
             df_result[col] = pd.to_numeric(df_result[col], errors='coerce').fillna(0).round(decimals)
