@@ -431,15 +431,19 @@ if uploaded_file:
                 debug_rows.append(debug_info)
                 continue
             bangtonghop_mon,info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
-                # Xử lý dữ liệu môn học tại đây
-                    # Nối dữ liệu từng môn vào danh sách
+            
             if not bangtonghop_mon.empty:
+                # Chèn cột Lớp_học và Mã_môn_ngành vào sau cột Tuần
+                bangtonghop_mon.insert(1, 'Lớp_học', ten_lop)
+                mamon_nganh = ''
+                if loc_data_monhoc is not None and not loc_data_monhoc.empty and 'Mã_môn_ngành' in loc_data_monhoc.columns:
+                    mamon_nganh = loc_data_monhoc['Mã_môn_ngành'].iloc[0]
+                bangtonghop_mon.insert(2, 'Mã_môn_ngành', mamon_nganh)
+                # Nối các môn lại với nhau
                 output_rows.append(bangtonghop_mon)
                 # Sau vòng lặp, nối tất cả các bảng lại thành một bảng tổng hợp
         if output_rows:
             bangtonghop_all = pd.concat(output_rows, ignore_index=True)
-            st.write("Bảng tổng hợp tất cả môn học:")
-            st.dataframe(bangtonghop_all)
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
             st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
@@ -449,15 +453,14 @@ if uploaded_file:
             st.info("Chi tiết kiểm tra từng dòng:")
             st.dataframe(pd.DataFrame(debug_rows))
         elif output_rows:
-            df_output = pd.concat(output_rows, ignore_index=True)
             st.markdown("### 2. Kết quả xử lý - Xuất file Excel")
-            st.dataframe(df_output)
+            st.dataframe(bangtonghop_all)
             st.info("Chi tiết kiểm tra từng dòng:")
             st.dataframe(pd.DataFrame(debug_rows))
 
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df_output.to_excel(writer, index=False, sheet_name="output_giangday")
+                bangtonghop_all.to_excel(writer, index=False, sheet_name="output_giangday")
             output.seek(0)
             st.download_button(
                 label="Tải file Excel kết quả",
