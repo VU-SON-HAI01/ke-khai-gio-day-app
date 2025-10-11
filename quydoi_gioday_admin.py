@@ -56,6 +56,10 @@ def process_mon_data(input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosiso_g)
     mon_chon_norm = normalize_str(mon_chon)
     mon_info_source = mon_info_source.copy()
     mon_info_source['Môn_học_norm'] = mon_info_source['Môn_học'].apply(normalize_str)
+    st.write('DEBUG: mon_chon:', mon_chon)
+    st.write('DEBUG: mon_chon_norm:', mon_chon_norm)
+    st.write('DEBUG: mon_info_source["Môn_học"]:', mon_info_source['Môn_học'].tolist())
+    st.write('DEBUG: mon_info_source["Môn_học_norm"]:', mon_info_source['Môn_học_norm'].tolist())
     mamon_info = mon_info_source[mon_info_source['Môn_học_norm'] == mon_chon_norm]
     if mamon_info.empty:
         return pd.DataFrame(), {"error": f"Không tìm thấy thông tin cho môn '{mon_chon}'."}
