@@ -462,7 +462,7 @@ if uploaded_file:
                     st.session_state['fuzzy_map_by_lop'] = {}
                 st.session_state['fuzzy_map_by_lop'][lop] = fuzzy_map
         # Tiếp tục kiểm tra và tính toán với dữ liệu đã thay thế
-        st.write(df_input_new)
+        #st.write(df_input_new)
         for idx, row in df_input_new.iterrows():
             ten_lop = row['lop_hoc'] if 'lop_hoc' in row else row.get('lop_hoc')
             # Lấy tên môn học gần đúng từ fuzzy_map_by_lop nếu có
@@ -497,9 +497,9 @@ if uploaded_file:
                 debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
                 debug_rows.append(debug_info)
                 continue
-            st.write(f"Lớp: {row}, Môn: {ten_mon}")
-            bangtonghop_mon,info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
             
+            bangtonghop_mon,info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
+            st.write(bangtonghop_mon)
             if not bangtonghop_mon.empty:
                 # Chèn cột Lớp_học và Mã_môn_ngành vào sau cột Tuần
                 bangtonghop_mon.insert(1, 'Lớp_học', ten_lop)
