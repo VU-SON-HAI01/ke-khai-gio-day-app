@@ -247,7 +247,7 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
 
     if 'Mã_ngành' in mamon_info.columns:
         mamon_nganh = mamon_info['Mã_ngành'].iloc[0]
-    heso_tccd = tra_cuu_heso_tccd(mamon_nganh, chuan_gv, df_hesosiso_g)
+    heso_tccd = tra_cuu_heso_tccd(mamon_nganh, chuan_gv)
 
     df_result['HS TC/CĐ'] = heso_tccd
     # Tra cứu hệ số sĩ số LT/TH từ bảng hệ số, giống logic quydoi_gioday.py
