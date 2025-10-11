@@ -207,7 +207,7 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     st.write(locdulieu_info)
         
     kieu_tinh_mdmh = mamon_info['Tính MĐ/MH'].iloc[0]
-    loai_mon_mdmh = malop_info['MH/MĐ'].iloc[0]
+    loai_mon_mdmh = mamon_info['MH/MĐ'].iloc[0]
     # Xác định loại tiết
     if kieu_tinh_mdmh == 'LT':
         arr_tiet_lt = arr_tiet
