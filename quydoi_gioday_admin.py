@@ -565,15 +565,17 @@ if uploaded_file:
             bangtonghop_display = bangtonghop_all.copy()
             if 'Lớp_học' in bangtonghop_display.columns:
                 idx = bangtonghop_display.columns.get_loc('Lớp_học')
-                ten_mon = None
                 if 'Tên_môn' in bangtonghop_display.columns:
-                    # Nếu đã có thì không cần thêm
                     pass
-                elif 'Mã_Môn_Ngành' in bangtonghop_display.columns and 'mon_hoc' in bangtonghop_all.columns:
-                    # Nếu có cột mon_hoc thì lấy luôn
-                    bangtonghop_display.insert(idx+1, 'Tên_môn', bangtonghop_all['mon_hoc'] if 'mon_hoc' in bangtonghop_all.columns else '')
+                elif 'Mã_Môn_Ngành' in bangtonghop_display.columns:
+                    # Tạo Series ánh xạ tên môn từ df_mon
+                    ma_mon_map = df_mon.set_index('Mã_môn_ngành')['Môn_học'] if ('Mã_môn_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns) else None
+                    if ma_mon_map is not None:
+                        ten_mon_series = bangtonghop_display['Mã_Môn_Ngành'].map(ma_mon_map).fillna('')
+                        bangtonghop_display.insert(idx+1, 'Tên_môn', ten_mon_series)
+                    else:
+                        bangtonghop_display.insert(idx+1, 'Tên_môn', '')
                 else:
-                    # Nếu không có thì để trống
                     bangtonghop_display.insert(idx+1, 'Tên_môn', '')
         
         if loi_lop:
