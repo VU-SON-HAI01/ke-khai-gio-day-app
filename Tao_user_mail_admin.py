@@ -104,6 +104,12 @@ else:
     else:
         folder_id = folders[0].get('id')
         with st.expander("Tạo người dùng hàng loạt từ file Excel", expanded=True):
+            st.markdown(
+                """
+                **Tải dữ liệu mẫu Email cho user:**
+                [Tải file mẫu tại đây](data_base/mau_email_user.xlsx)
+                """
+            )
             uploaded_file = st.file_uploader(
                 "Chọn file Excel của bạn",
                 type=['xlsx', 'xls'],
