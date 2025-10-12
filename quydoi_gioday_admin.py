@@ -534,8 +534,9 @@ if uploaded_file:
             st.dataframe(pd.DataFrame({'Tên lớp nhập': df_input['lop_hoc'].drop_duplicates().tolist()}))
             st.info(f"Vui lòng chọn đúng tên lớp trong danh sách sau:")
             st.dataframe(pd.DataFrame({'Lớp hợp lệ': sorted(lop_hop_le)}))
-            st.info("Chi tiết kiểm tra từng dòng:")
-            st.dataframe(pd.DataFrame(debug_rows))
+            if debug_rows:
+                st.info("Chi tiết kiểm tra từng dòng:")
+                st.dataframe(pd.DataFrame(debug_rows))
         elif output_rows:
             st.markdown("### 2. Kết quả xử lý - Xuất file Excel")
             st.dataframe(bangtonghop_all)
@@ -663,7 +664,8 @@ if uploaded_file:
                     st.error(f"Lỗi xuất file Excel: {file_path}")
         else:
             st.warning("Không có dữ liệu kết quả sau xử lý.")
-            st.info("Chi tiết kiểm tra từng dòng:")
-            st.dataframe(pd.DataFrame(debug_rows))
+            if debug_rows:
+                st.info("Chi tiết kiểm tra từng dòng:")
+                st.dataframe(pd.DataFrame(debug_rows))
 else:
     st.info("Vui lòng upload file Excel dữ liệu môn học để bắt đầu.")
