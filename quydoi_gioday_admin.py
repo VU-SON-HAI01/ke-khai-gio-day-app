@@ -662,11 +662,7 @@ with st.expander("Lưu trữ dữ kiệu giảng dạy của giảng viên từ 
                         st.success(f"Đã lưu dữ liệu vào Google Sheet: https://docs.google.com/spreadsheets/d/{sheet_id}")
                     except Exception as e:
                         st.error(f"Lỗi lưu Google Sheet: {e}")
-                else:
-                    st.warning("Không có dữ liệu kết quả sau xử lý.")
-                    if debug_rows:
-                        st.info("Chi tiết kiểm tra từng dòng:")
-                        st.dataframe(pd.DataFrame(debug_rows))
+
 with st.expander("Tạo file Excel tải về cho giảng viên"):
 
     import gspread
@@ -699,8 +695,8 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
         'Tên file Google Sheet': sheet_names,
         'Tên giảng viên': [magv_to_tengv.get(name, '') for name in sheet_names]
     })
-    st.write("Ánh xạ tên file Google Sheet sang tên giảng viên:")
-    st.dataframe(df_sheet_map)
+    #st.write("Ánh xạ tên file Google Sheet sang tên giảng viên:")
+    #st.dataframe(df_sheet_map)
     
     # Tạo list tên giảng viên từ ánh xạ
     gv_names_list = df_sheet_map['Tên giảng viên'].tolist()
