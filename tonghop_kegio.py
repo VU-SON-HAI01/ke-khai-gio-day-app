@@ -9,6 +9,11 @@ import os
 
 
 def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, template_path='data_base/mau_kegio.xlsx'):
+    # Sau khi ghi dữ liệu, ẩn các dòng trống từ dòng cuối cùng đến dòng 178 cho cả hai sheet
+    def hide_empty_rows(sheet, last_row, to_row=178):
+        for r in range(last_row+1, to_row+1):
+            sheet.row_dimensions[r].hidden = True
+
     from openpyxl.styles import Border, Side
     medium_border = Border(bottom=Side(style='medium'))
     # --- HK1 ---
@@ -51,6 +56,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
         if ws_hk1 is not None and 'Ke_gio_HK1' in wb.sheetnames:
             df_hk1 = pd.DataFrame(ws_hk1.get_all_records())
             sheet_hk1 = wb['Ke_gio_HK1']
+            last_data_row_hk1 = start_row - 1
             for i, row in df_hk1.iterrows():
                 excel_row = int(start_row + i)
                 if excel_row < 1:
@@ -95,9 +101,12 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                                 bottom=Side(style='medium')
                             )
                     prev_lop_hoc, prev_mon_hoc = curr_lop_hoc, curr_mon_hoc
+                    last_data_row_hk1 = excel_row
                 except Exception as e:
                     print(f"Lỗi ghi dòng HK1 {excel_row}: {e}")
                     continue
+            hide_empty_rows(sheet_hk1, last_data_row_hk1, 178)
+                
     # --- HK2 ---
     prev_lop_hoc, prev_mon_hoc = None, None
     if spreadsheet is not None and df_mon is not None:
@@ -105,6 +114,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
         if ws_hk2 is not None and 'Ke_gio_HK2_Cả_năm' in wb.sheetnames:
             df_hk2 = pd.DataFrame(ws_hk2.get_all_records())
             sheet_hk2 = wb['Ke_gio_HK2_Cả_năm']
+            last_data_row_hk2 = start_row - 1
             for i, row in df_hk2.iterrows():
                 excel_row = int(start_row + i)
                 if excel_row < 1:
@@ -149,9 +159,11 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                                 bottom=Side(style='medium')
                             )
                     prev_lop_hoc, prev_mon_hoc = curr_lop_hoc, curr_mon_hoc
+                    last_data_row_hk2 = excel_row
                 except Exception as e:
                     print(f"Lỗi ghi dòng HK2 {excel_row}: {e}")
                     continue
+            hide_empty_rows(sheet_hk2, last_data_row_hk2, 178)
     # HK1: lấy từ output_giangday, ghi vào Ke_gio_HK1
     if spreadsheet is not None and df_mon is not None:
         ws_hk1 = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
