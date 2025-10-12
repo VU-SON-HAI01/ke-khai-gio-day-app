@@ -720,12 +720,12 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
             except Exception as e:
                 st.write(f"Không tìm thấy hoặc lỗi worksheet thongtin_gv: {e}")
                 df_gv_info = None
+    with st.expander("Xem thông tin giảng viên"):
+        st.write(df_gv_info)
     with st.expander("Xem dữ liệu giảng dạy HK1 từ Google Sheet"):
         st.write(df_giangday)
     with st.expander("Xem dữ liệu giảng dạy HK2 từ Google Sheet"):
         st.write(df_giangday_hk2)
-    with st.expander("Xem thông tin giảng viên"):
-        st.write(df_gv_info)
     # Tạo dummy spreadsheet để xuất file Excel
     class DummyWorksheet:
         def __init__(self, df, title):
@@ -751,42 +751,6 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
     spreadsheet = DummySpreadsheet(df_giangday, df_giangday_hk2, df_gv_info)
     from tonghop_kegio import export_giangday_to_excel
     template_path = 'data_base/mau_kegio.xlsx'
-    ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
-    if ok:
-        with open(file_path, 'rb') as f:
-            st.download_button(
-                label="Tải file Excel kết quả",
-                data=f.read(),
-                file_name="output_giangday.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-    else:
-        st.error(f"Lỗi xuất file Excel: {file_path}")
-    # Nếu không có dữ liệu từ Google Sheet thì fallback sang dữ liệu đã xử lý
-    class DummyWorksheet:
-        def __init__(self, df, title):
-            self._df = df
-            self.title = title
-        def get_all_records(self):
-            import pandas as pd
-            if self._df is None or not isinstance(self._df, pd.DataFrame) or self._df.empty:
-                return []
-            return self._df.to_dict(orient='records')
-    # Tạo dummy spreadsheet với cả output_giangday, output_giangday(HK2) và thongtin_gv
-    class DummySpreadsheet:
-        def __init__(self, df_giangday, df_giangday_hk2, df_gv_info):
-            self._df_giangday = df_giangday
-            self._df_giangday_hk2 = df_giangday_hk2
-            self._df_gv_info = df_gv_info
-        def worksheets(self):
-            ws = [DummyWorksheet(self._df_giangday, 'output_giangday')]
-            if self._df_giangday_hk2 is not None:
-                ws.append(DummyWorksheet(self._df_giangday_hk2, 'output_giangday(HK2)'))
-            if self._df_gv_info is not None:
-                ws.append(DummyWorksheet(self._df_gv_info, 'thongtin_gv'))
-            return ws
-
-    spreadsheet = DummySpreadsheet(df_giangday, df_giangday_hk2, df_gv_info)
     ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
     if ok:
         with open(file_path, 'rb') as f:
