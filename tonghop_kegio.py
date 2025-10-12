@@ -122,12 +122,12 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                 except Exception as e:
                     print(f"Lỗi ghi dòng HK2 {excel_row}: {e}")
                     continue
-    # Tạo mảng gồm cặp (Lớp_học, mon_hoc) duy nhất từ dữ liệu HK1
-    unique_pairs = []
+    # HK1: lấy từ output_giangday, ghi vào Ke_gio_HK1
     if spreadsheet is not None and df_mon is not None:
         ws_hk1 = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
-        if ws_hk1 is not None:
+        if ws_hk1 is not None and 'Ke_gio_HK1' in wb.sheetnames:
             df_hk1 = pd.DataFrame(ws_hk1.get_all_records())
+            unique_pairs_hk1 = []
             if 'Lớp_học' in df_hk1.columns and 'Mã_Môn_Ngành' in df_hk1.columns and not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns:
                 for _, row in df_hk1.iterrows():
                     lop_hoc = row.get('Lớp_học', '')
@@ -137,16 +137,34 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                         mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
                         if not mon_row.empty:
                             mon_hoc = mon_row.iloc[0]['Môn_học']
-                    unique_pairs.append((str(lop_hoc), str(mon_hoc)))
-    # Lấy unique cặp (Lớp_học, mon_hoc)
-    unique_pairs = list(pd.DataFrame(unique_pairs, columns=['Lớp_học', 'Môn_học']).drop_duplicates().itertuples(index=False, name=None))
-    # Ghi vào vị trí B185 và D185 của cả hai sheet
-    for sheet_name in ['Ke_gio_HK1', 'Ke_gio_HK2_Cả_năm']:
-        if sheet_name in wb.sheetnames:
-            sht = wb[sheet_name]
-            for idx, (lop_hoc, mon_hoc) in enumerate(unique_pairs):
-                sht.cell(row=185+idx, column=2).value = lop_hoc
-                sht.cell(row=185+idx, column=4).value = mon_hoc
+                    unique_pairs_hk1.append((str(lop_hoc), str(mon_hoc)))
+            unique_pairs_hk1 = list(pd.DataFrame(unique_pairs_hk1, columns=['Lớp_học', 'Môn_học']).drop_duplicates().itertuples(index=False, name=None))
+            sht_hk1 = wb['Ke_gio_HK1']
+            for idx, (lop_hoc, mon_hoc) in enumerate(unique_pairs_hk1):
+                sht_hk1.cell(row=185+idx, column=2).value = lop_hoc
+                sht_hk1.cell(row=185+idx, column=4).value = mon_hoc
+
+    # HK2: lấy từ output_giangday(HK2), ghi vào Ke_gio_HK2_Cả_năm
+    if spreadsheet is not None and df_mon is not None:
+        ws_hk2 = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday(HK2)'), None)
+        if ws_hk2 is not None and 'Ke_gio_HK2_Cả_năm' in wb.sheetnames:
+            df_hk2 = pd.DataFrame(ws_hk2.get_all_records())
+            unique_pairs_hk2 = []
+            if 'Lớp_học' in df_hk2.columns and 'Mã_Môn_Ngành' in df_hk2.columns and not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns:
+                for _, row in df_hk2.iterrows():
+                    lop_hoc = row.get('Lớp_học', '')
+                    ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
+                    mon_hoc = ''
+                    if ma_mon_nganh:
+                        mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+                        if not mon_row.empty:
+                            mon_hoc = mon_row.iloc[0]['Môn_học']
+                    unique_pairs_hk2.append((str(lop_hoc), str(mon_hoc)))
+            unique_pairs_hk2 = list(pd.DataFrame(unique_pairs_hk2, columns=['Lớp_học', 'Môn_học']).drop_duplicates().itertuples(index=False, name=None))
+            sht_hk2 = wb['Ke_gio_HK2_Cả_năm']
+            for idx, (lop_hoc, mon_hoc) in enumerate(unique_pairs_hk2):
+                sht_hk2.cell(row=185+idx, column=2).value = lop_hoc
+                sht_hk2.cell(row=185+idx, column=4).value = mon_hoc
 
     # Nếu truyền df_hk1: ghi trực tiếp dữ liệu HK1
     # Đã chuyển sang ghi trực tiếp từ sheet Google, không cần logic này nữa
