@@ -188,13 +188,18 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
             arr_tiet_list.append(0)
     tuanbatdau = None
     tuanketthuc = None
+    # Xác định tuần thực tế dựa trên học kỳ
+    if hocky == 'HK1':
+        week_offset = 1
+    else:
+        week_offset = 22
     for idx, val in enumerate(arr_tiet_list):
         if val > 0:
-            tuanbatdau = idx + 1
+            tuanbatdau = week_offset + idx
             break
     for idx in range(len(arr_tiet_list)-1, -1, -1):
         if arr_tiet_list[idx] > 0:
-            tuanketthuc = idx + 1
+            tuanketthuc = week_offset + idx
             break
     if tuanbatdau is None or tuanketthuc is None:
         return pd.DataFrame(), {"error": "Không có tuần nào có dữ liệu tiết > 0."}
