@@ -108,9 +108,6 @@ else:
                 """
                 **Tải dữ liệu mẫu Email cho user:**
                 [Tải file mẫu tại đây](https://github.com/VU-SON-HAI01/ke-khai-gio-day-app/raw/master/data_base/mau_email_user.xlsx)
-
-                **Tải file mẫu kê giờ:**
-                [Tải file mẫu tại đây](https://github.com/VU-SON-HAI01/ke-khai-gio-day-app/raw/master/data_base/mau_kegio.xlsx)
                 """
             )
             uploaded_file = st.file_uploader(
