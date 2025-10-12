@@ -320,10 +320,20 @@ if uploaded_file:
                     khoa_phong_trungtam = matched_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
             except Exception as e:
                 debug_info['error'] = str(e)
+        st.write(f"Khoa/Phòng/Trung tâm: {khoa_phong_trungtam}")
     # Chọn chuẩn giáo viên
     chuan_gv_selected = st.selectbox("Chuẩn GV", options=["CĐ", "CĐMC", "TC", "TCMC", "VH"], index=2)
     st.session_state['chuan_gv'] = chuan_gv_selected
-    
+    df_gv_info = pd.DataFrame([{
+    "Mã_gv": ma_gv,
+    "Tên_gv": selected_gv,
+    "chucvu_hientai": chuc_vu_ht,
+    "khoa": khoa_phong_trungtam,
+    "chuan_gv": st.session_state['chuan_gv'],
+    "gio_chuan": 0.0,
+    "thongtin_giamgio": "",
+    }])
+    st.session_state['df_gv_info'] = df_gv_info
     # Chuẩn hóa tên cột về đúng định dạng code sử dụng
     col_map = {
         'Ten_gv': 'Ten_GV',
@@ -517,6 +527,7 @@ if uploaded_file:
             # Đổi tên cột 'Mã_môn_ngành' thành 'Mã_Môn_Ngành' nếu tồn tại
             if 'Mã_môn_ngành' in bangtonghop_all.columns:
                 bangtonghop_all.rename(columns={'Mã_môn_ngành': 'Mã_Môn_Ngành'}, inplace=True)
+        
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
             st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
@@ -533,6 +544,31 @@ if uploaded_file:
 
             # Nút lưu dữ liệu vào session_state và Google Sheet
             if st.button("Lưu dữ liệu"):
+                # Lưu thông tin giáo viên vào Google Sheet (sheet 'thongtin_gv')
+                try:
+                    df_gv_info = st.session_state.get('df_gv_info', None)
+                    if df_gv_info is not None:
+                        import gspread
+                        from google.oauth2.service_account import Credentials
+                        creds_dict = st.secrets["gcp_service_account"]
+                        scopes = [
+                            "https://www.googleapis.com/auth/drive",
+                            "https://www.googleapis.com/auth/spreadsheets"
+                        ]
+                        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+                        gc = gspread.authorize(creds)
+                        # Mở Google Sheet theo sheet_id đã tạo ở trên
+                        sh = gc.open_by_key(sheet_id)
+                        # Tạo hoặc ghi đè sheet 'thongtin_gv'
+                        try:
+                            worksheet_gv = sh.worksheet('thongtin_gv')
+                            worksheet_gv.clear()
+                        except:
+                            worksheet_gv = sh.add_worksheet(title='thongtin_gv', rows=10, cols=len(df_gv_info.columns))
+                        worksheet_gv.update([df_gv_info.columns.values.tolist()] + df_gv_info.values.tolist())
+                        st.success("Đã lưu thông tin giáo viên vào sheet 'thongtin_gv' trên Google Sheet!")
+                except Exception as e:
+                    st.error(f"Lỗi lưu sheet thongtin_gv: {e}")
                 st.session_state['bangtonghop_all'] = bangtonghop_all.copy()
                 st.success("Đã lưu dữ liệu vào session_state['bangtonghop_all']!")
                 try:
