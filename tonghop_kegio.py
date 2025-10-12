@@ -91,7 +91,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                 print(f"Lỗi ghi dòng HK1 từ output_giangday {excel_row}: {e}")
                 continue
 
-    # Nếu có dữ liệu output_giangday(HK2) thì chuyển vào Ke_gio_HK2_Cả_năm
+    # Ghi dữ liệu HK2 vào Ke_gio_HK2_Cả_năm từ df_giangday_hk2 nếu có
     if df_giangday_hk2 is not None and 'Ke_gio_HK2_Cả_năm' in wb.sheetnames:
         sheet_hk2 = wb['Ke_gio_HK2_Cả_năm']
         start_row = 8
@@ -103,13 +103,27 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                 sheet_hk2.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
                 sheet_hk2.cell(row=excel_row, column=2).value = row.get('Lớp_học', '')  # B
                 sheet_hk2.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
-                sheet_hk2.cell(row=excel_row, column=4).value = row.get('Môn_học', '')  # D
+                ma_mon_nganh = row.get('Mã_Môn_Ngành', '')
+                mon_hoc = ''
+                if df_mon is not None and not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns:
+                    mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+                    if not mon_row.empty and 'Môn_học' in mon_row.columns:
+                        mon_hoc = mon_row.iloc[0]['Môn_học']
+                sheet_hk2.cell(row=excel_row, column=4).value = mon_hoc                 # D
                 sheet_hk2.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
                 sheet_hk2.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
                 sheet_hk2.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
                 sheet_hk2.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
                 sheet_hk2.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
                 sheet_hk2.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
+                nang_nhoc_val = ''
+                if df_mon is not None and not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns and 'Nặng_nhọc' in df_mon.columns:
+                    mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+                    if not mon_row.empty:
+                        nn_val = mon_row.iloc[0]['Nặng_nhọc']
+                        if nn_val == 'NN':
+                            nang_nhoc_val = 'NN'
+                sheet_hk2.cell(row=excel_row, column=11).value = nang_nhoc_val  # K
             except Exception as e:
                 print(f"Lỗi ghi dòng HK2 từ output_giangday(HK2) {excel_row}: {e}")
                 continue
