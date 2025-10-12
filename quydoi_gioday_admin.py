@@ -273,6 +273,8 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
         th = timhesomon_siso(siso, is_heavy_duty, 'TH', df_hesosiso_g)
         heso_lt_list.append(lt)
         heso_th_list.append(th)
+    st.write(heso_lt_list)    
+    st.write(heso_th_list)    
     df_result['HS_SS_LT'] = heso_lt_list
     df_result['HS_SS_TH'] = heso_th_list
     df_result["QĐ thừa"] = (df_result["Tiết_LT"] * df_result["HS_SS_LT"]) + (df_result["Tiết_TH"] * df_result["HS_SS_TH"])
