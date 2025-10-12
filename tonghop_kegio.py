@@ -9,6 +9,10 @@ import os
 
 
 def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, template_path='data_base/mau_kegio.xlsx'):
+    from openpyxl.styles import Border, Side
+    medium_border = Border(bottom=Side(style='medium'))
+    # --- HK1 ---
+    start_row = 8
 
     """
     Kết hợp: Nếu truyền spreadsheet và df_mon thì lấy dữ liệu từ Google Sheet, ánh xạ tên môn học và ghi vào file Excel mẫu.
@@ -41,10 +45,6 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                     sht.cell(row=5, column=8).value = khoa
 
     # Nếu truyền spreadsheet và df_mon: lấy dữ liệu từ Google Sheet
-    from openpyxl.styles import Border, Side
-    medium_border = Border(bottom=Side(style='medium'))
-    # --- HK1 ---
-    start_row = 8
     prev_lop_hoc, prev_mon_hoc = None, None
     if spreadsheet is not None and df_mon is not None:
         ws_hk1 = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
@@ -138,7 +138,6 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                 except Exception as e:
                     print(f"Lỗi ghi dòng HK2 {excel_row}: {e}")
                     continue
-
     # HK1: lấy từ output_giangday, ghi vào Ke_gio_HK1
     if spreadsheet is not None and df_mon is not None:
         ws_hk1 = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
