@@ -561,6 +561,20 @@ if uploaded_file:
             # Đổi tên cột 'Mã_môn_ngành' thành 'Mã_Môn_Ngành' nếu tồn tại
             if 'Mã_môn_ngành' in bangtonghop_all.columns:
                 bangtonghop_all.rename(columns={'Mã_môn_ngành': 'Mã_Môn_Ngành'}, inplace=True)
+            # Tạo bản hiển thị thêm cột Tên_môn sau cột Lớp_học
+            bangtonghop_display = bangtonghop_all.copy()
+            if 'Lớp_học' in bangtonghop_display.columns:
+                idx = bangtonghop_display.columns.get_loc('Lớp_học')
+                ten_mon = None
+                if 'Tên_môn' in bangtonghop_display.columns:
+                    # Nếu đã có thì không cần thêm
+                    pass
+                elif 'Mã_Môn_Ngành' in bangtonghop_display.columns and 'mon_hoc' in bangtonghop_all.columns:
+                    # Nếu có cột mon_hoc thì lấy luôn
+                    bangtonghop_display.insert(idx+1, 'Tên_môn', bangtonghop_all['mon_hoc'] if 'mon_hoc' in bangtonghop_all.columns else '')
+                else:
+                    # Nếu không có thì để trống
+                    bangtonghop_display.insert(idx+1, 'Tên_môn', '')
         
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
@@ -573,7 +587,7 @@ if uploaded_file:
                 st.dataframe(pd.DataFrame(debug_rows))
         elif output_rows:
             st.markdown("### 2. Kết quả xử lý - Xuất file Excel")
-            st.dataframe(bangtonghop_all)
+            st.dataframe(bangtonghop_display)
 
             # Nút lưu dữ liệu vào session_state và Google Sheet
             if st.button("Lưu dữ liệu"):
