@@ -544,31 +544,6 @@ if uploaded_file:
 
             # Nút lưu dữ liệu vào session_state và Google Sheet
             if st.button("Lưu dữ liệu"):
-                # Lưu thông tin giáo viên vào Google Sheet (sheet 'thongtin_gv')
-                try:
-                    df_gv_info = st.session_state.get('df_gv_info', None)
-                    if df_gv_info is not None:
-                        import gspread
-                        from google.oauth2.service_account import Credentials
-                        creds_dict = st.secrets["gcp_service_account"]
-                        scopes = [
-                            "https://www.googleapis.com/auth/drive",
-                            "https://www.googleapis.com/auth/spreadsheets"
-                        ]
-                        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-                        gc = gspread.authorize(creds)
-                        # Mở Google Sheet theo sheet_id đã tạo ở trên
-                        sh = gc.open_by_key(sheet_id)
-                        # Tạo hoặc ghi đè sheet 'thongtin_gv'
-                        try:
-                            worksheet_gv = sh.worksheet('thongtin_gv')
-                            worksheet_gv.clear()
-                        except:
-                            worksheet_gv = sh.add_worksheet(title='thongtin_gv', rows=10, cols=len(df_gv_info.columns))
-                        worksheet_gv.update([df_gv_info.columns.values.tolist()] + df_gv_info.values.tolist())
-                        st.success("Đã lưu thông tin giáo viên vào sheet 'thongtin_gv' trên Google Sheet!")
-                except Exception as e:
-                    st.error(f"Lỗi lưu sheet thongtin_gv: {e}")
                 st.session_state['bangtonghop_all'] = bangtonghop_all.copy()
                 st.success("Đã lưu dữ liệu vào session_state['bangtonghop_all']!")
                 try:
@@ -599,6 +574,15 @@ if uploaded_file:
                             worksheet = sh.worksheet('output_giangday')
                         except:
                             worksheet = sh.add_worksheet(title='output_giangday', rows=100, cols=20)
+                        # Thêm hoặc cập nhật worksheet thongtin_gv
+                        try:
+                            ws_gv = sh.worksheet('thongtin_gv')
+                        except:
+                            ws_gv = sh.add_worksheet(title='thongtin_gv', rows=10, cols=20)
+                        df_gv_info = st.session_state.get('df_gv_info')
+                        if df_gv_info is not None:
+                            ws_gv.clear()
+                            ws_gv.update([df_gv_info.columns.values.tolist()] + df_gv_info.values.tolist())
                     else:
                         # Sao chép từ template
                         copied_file = drive_service.files().copy(
@@ -612,6 +596,15 @@ if uploaded_file:
                             worksheet = sh.worksheet('output_giangday')
                         except:
                             worksheet = sh.add_worksheet(title='output_giangday', rows=100, cols=20)
+                        # Thêm worksheet thongtin_gv
+                        try:
+                            ws_gv = sh.worksheet('thongtin_gv')
+                        except:
+                            ws_gv = sh.add_worksheet(title='thongtin_gv', rows=10, cols=20)
+                        df_gv_info = st.session_state.get('df_gv_info')
+                        if df_gv_info is not None:
+                            ws_gv.clear()
+                            ws_gv.update([df_gv_info.columns.values.tolist()] + df_gv_info.values.tolist())
                     worksheet.clear()
                     worksheet.update([bangtonghop_all.columns.values.tolist()] + bangtonghop_all.values.tolist())
                     st.success(f"Đã lưu dữ liệu vào Google Sheet: https://docs.google.com/spreadsheets/d/{sheet_id}")
