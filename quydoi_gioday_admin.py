@@ -335,7 +335,7 @@ with st.expander("Lưu trữ dữ kiệu giảng dạy của giảng viên từ 
                     if 'Chức vụ_HT' in matched_row.columns:
                         chuc_vu_ht = matched_row['Chức vụ_HT'].iloc[0]
             #st.write(f"Giáo viên đã chọn: {selected_gv}")
-            #st.write(f"Mã GV: {ma_gv}")
+            st.write(f"Mã GV: {ma_gv}")
             #st.write(f"Chức vụ: {chuc_vu_ht}")
             # Lấy ký tự đầu tiên của Magv, ánh xạ với Mã_khoa của df_khoa (đảm bảo kiểu dữ liệu đúng)
             khoa_phong_trungtam = ''
