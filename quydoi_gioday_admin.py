@@ -372,7 +372,6 @@ if uploaded_file:
     df_input.rename(columns={k: v for k, v in col_map.items() if k in df_input.columns}, inplace=True)
     # Thay thế toàn bộ None/NaN thành 0 cho các cột tiết theo học kỳ 1 - 23 và 22 - 48
     tiet_start, tiet_end = (1, 23) if st.session_state.get('hocky') == 'HK1' else (22, 48)
-    st.write(tiet_start,"Và kết thúc", tiet_end)
     for i in range(tiet_start, tiet_end + 1):
         col = f'T{i}'
         if col in df_input.columns:
