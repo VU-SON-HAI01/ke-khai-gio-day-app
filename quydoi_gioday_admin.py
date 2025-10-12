@@ -714,6 +714,8 @@ if uploaded_file:
                         if self._df_gv_info is not None:
                             ws.append(DummyWorksheet(self._df_gv_info, 'thongtin_gv'))
                         return ws
+                st.write(df_giangday)
+                st.write(df_giangday_hk2)
                 spreadsheet = DummySpreadsheet(df_giangday, df_giangday_hk2, df_gv_info)
                 ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=output_path)
                 if ok:
