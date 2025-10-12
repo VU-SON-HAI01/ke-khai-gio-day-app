@@ -289,478 +289,476 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
     df_final = df_result[[col for col in final_columns if col in df_result.columns]]
     return df_final, {}
 
-uploaded_file = st.file_uploader("Chọn file Excel nhập dữ liệu môn học", type=["xlsx", "xls"])
+with st.expander("Lưu trữ dữ kiệu giảng dạy của giảng viên từ kết hoạch giảng dạy"):
+    uploaded_file = st.file_uploader("Chọn file Excel nhập dữ liệu môn học", type=["xlsx", "xls"])
+    if uploaded_file:
+        # Đọc tên các sheet
+        import openpyxl
+        from openpyxl import load_workbook
+        import os
+        import tempfile
+        # Lưu file tạm để openpyxl đọc sheet
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmpfile:
+            tmpfile.write(uploaded_file.read())
+            tmpfile_path = tmpfile.name
+        wb = load_workbook(tmpfile_path, read_only=True)
+        sheet_names = wb.sheetnames
+        # Chỉ lấy các sheet HK1/HK2 nếu có
+        available_sheets = [s for s in sheet_names if s in ['HK1', 'HK2']]
 
-if uploaded_file:
-    # Đọc tên các sheet
-    import openpyxl
-    from openpyxl import load_workbook
-    import os
-    import tempfile
-    # Lưu file tạm để openpyxl đọc sheet
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmpfile:
-        tmpfile.write(uploaded_file.read())
-        tmpfile_path = tmpfile.name
-    wb = load_workbook(tmpfile_path, read_only=True)
-    sheet_names = wb.sheetnames
-    # Chỉ lấy các sheet HK1/HK2 nếu có
-    available_sheets = [s for s in sheet_names if s in ['HK1', 'HK2']]
+        if not available_sheets:
+            st.error("File Excel không có sheet HK1 hoặc HK2!")
+            os.unlink(tmpfile_path)
+        else:
+            selected_sheet = st.selectbox("Chọn học kỳ để xử lý dữ liệu:", options=available_sheets)
+            df_input = pd.read_excel(tmpfile_path, sheet_name=selected_sheet)
+            os.unlink(tmpfile_path)
+        st.session_state['hocky'] = selected_sheet
+            # Nếu có cột ten_gv hoặc Ten_GV thì tạo danh sách giáo viên
+        gv_col = None
+        for col in ['ten_gv', 'Ten_GV']:
+            if col in df_input.columns:
+                gv_col = col
+                break
+        if gv_col:
+            list_gv = sorted(df_input[gv_col].dropna().unique())
+            selected_gv = st.selectbox("Chọn giáo viên để lọc dữ liệu", options=list_gv)
+            df_input = df_input[df_input[gv_col] == selected_gv].copy()
+                # Ánh xạ selected_gv với df_giaovien để lấy Magv và Chức vụ_HT
+            ma_gv = ''
+            chuc_vu_ht = ''
+            if not df_giaovien.empty and 'Tên giảng viên' in df_giaovien.columns:
+                matched_row = df_giaovien[df_giaovien['Tên giảng viên'] == selected_gv]
+                if not matched_row.empty:
+                    if 'Magv' in matched_row.columns:
+                        ma_gv = matched_row['Magv'].iloc[0]
+                    if 'Chức vụ_HT' in matched_row.columns:
+                        chuc_vu_ht = matched_row['Chức vụ_HT'].iloc[0]
+            #st.write(f"Giáo viên đã chọn: {selected_gv}")
+            #st.write(f"Mã GV: {ma_gv}")
+            #st.write(f"Chức vụ: {chuc_vu_ht}")
+            # Lấy ký tự đầu tiên của Magv, ánh xạ với Mã_khoa của df_khoa (đảm bảo kiểu dữ liệu đúng)
+            khoa_phong_trungtam = ''
+            debug_info = {}
+            if ma_gv and not df_khoa.empty and 'Mã_khoa' in df_khoa.columns and 'Khoa/Phòng/Trung tâm' in df_khoa.columns:
+                try:
+                    first_digit = int(str(ma_gv)[0])
+                    # Đảm bảo cột Mã_khoa là int
+                    df_khoa['Mã_khoa'] = pd.to_numeric(df_khoa['Mã_khoa'], errors='coerce').fillna(-1).astype(int)
+                    debug_info['first_digit'] = first_digit
+                    debug_info['df_khoa_Mã_khoa'] = df_khoa['Mã_khoa'].tolist()
+                    matched_khoa = df_khoa[df_khoa['Mã_khoa'] == first_digit]
+                    debug_info['matched_rows'] = matched_khoa.shape[0]
+                    if not matched_khoa.empty:
+                        khoa_phong_trungtam = matched_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
+                except Exception as e:
+                    debug_info['error'] = str(e)
+            #st.write(f"Khoa/Phòng/Trung tâm: {khoa_phong_trungtam}")
+        # Chọn chuẩn giáo viên
+        chuan_gv_selected = st.selectbox("Chuẩn GV", options=["CĐ", "CĐMC", "TC", "TCMC", "VH"], index=2)
+        st.session_state['chuan_gv'] = chuan_gv_selected
+        df_gv_info = pd.DataFrame([{
+        "Mã_gv": ma_gv,
+        "Tên_gv": selected_gv,
+        "chucvu_hientai": chuc_vu_ht,
+        "khoa": khoa_phong_trungtam,
+        "chuan_gv": st.session_state['chuan_gv'],
+        "gio_chuan": 0.0,
+        "thongtin_giamgio": "",
+        }])
+        st.session_state['df_gv_info'] = df_gv_info
+        # Chuẩn hóa tên cột về đúng định dạng code sử dụng
+        col_map = {
+            'Ten_gv': 'Ten_GV',
+            'ten_gv': 'Ten_GV',
+            'Mon_hoc': 'mon_hoc',
+            'mon_hoc': 'mon_hoc',
+            'Lop_hoc': 'lop_hoc',
+            'lop_hoc': 'lop_hoc'
+        }
+        df_input.rename(columns={k: v for k, v in col_map.items() if k in df_input.columns}, inplace=True)
+        # Thay thế toàn bộ None/NaN thành 0 cho các cột tiết theo học kỳ 1 - 23 và 22 - 48
+        tiet_start, tiet_end = (1, 23) if st.session_state.get('hocky') == 'HK1' else (22, 48)
+        for i in range(tiet_start, tiet_end + 1):
+            col = f'T{i}'
+            if col in df_input.columns:
+                df_input[col] = df_input[col].fillna(0)
+        # Đảm bảo cột Ten_GV nằm trước lop_hoc
+        if 'Ten_GV' in df_input.columns:
+            cols = list(df_input.columns)
+            if cols[0] != 'Ten_GV':
+                cols.remove('Ten_GV')
+                cols.insert(0, 'Ten_GV')
+                df_input = df_input[cols]
+        #st.success("Đã upload dữ liệu. Xem trước bảng dữ liệu:")
+        #st.dataframe(df_lop_g)
+        # Hiển thị danh sách môn học phù hợp với từng lớp đã nhập
+        #st.info("Danh sách môn học phù hợp với từng lớp đã nhập:")
+        if 'lop_hoc' in df_input.columns:
+            from difflib import get_close_matches
+            # Thay thế các ký hiệu N1/N2/N3/Ca1/Ca2/Ca3 thành _1/_2/_3 trước khi xóa khoảng trắng
+            def fix_lop_name(name):
+                name = str(name)
+                # Nếu có 'CĐ' thì tìm tên lớp gần đúng, không xóa khoảng trắng
+                if 'CĐ' in name:
+                    lop_hop_le_list = df_lop_g['Lớp'].astype(str).tolist() if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else []
+                    from difflib import get_close_matches
+                    match = get_close_matches(name, lop_hop_le_list, n=1, cutoff=0.7)
+                    return match[0] if match else name
+                # Nếu không có 'CĐ', thực hiện chuẩn hóa như cũ
+                for i in range(1, 5):
+                    name = name.replace(f"(N{i})", f"_{i}")
+                    name = name.replace(f"(n{i})", f"_{i}")
+                    name = name.replace(f"(Ca{i})", f"_{i}")
+                    name = name.replace(f"(ca{i})", f"_{i}")
+                for pat, rep in [(" N1", "_1"), (" n1", "_1"), (" Ca1", "_1"), (" ca1", "_1"),
+                                (" N2", "_2"), (" n2", "_2"), (" Ca2", "_2"), (" ca2", "_2"),
+                                (" N3", "_3"), (" n3", "_3"), (" Ca3", "_3"), (" ca3", "_3"),
+                                (" N4", "_4"), (" n4", "_4"), (" Ca4", "_4"), (" ca4", "_4")]:
+                    name = name.replace(pat, rep)
+                return name
 
-    if not available_sheets:
-        st.error("File Excel không có sheet HK1 hoặc HK2!")
-        os.unlink(tmpfile_path)
-    else:
-        selected_sheet = st.selectbox("Chọn học kỳ để xử lý dữ liệu:", options=available_sheets)
-        df_input = pd.read_excel(tmpfile_path, sheet_name=selected_sheet)
-        os.unlink(tmpfile_path)
-    st.session_state['hocky'] = selected_sheet
-        # Nếu có cột ten_gv hoặc Ten_GV thì tạo danh sách giáo viên
-    gv_col = None
-    for col in ['ten_gv', 'Ten_GV']:
-        if col in df_input.columns:
-            gv_col = col
-            break
-    if gv_col:
-        list_gv = sorted(df_input[gv_col].dropna().unique())
-        selected_gv = st.selectbox("Chọn giáo viên để lọc dữ liệu", options=list_gv)
-        df_input = df_input[df_input[gv_col] == selected_gv].copy()
-            # Ánh xạ selected_gv với df_giaovien để lấy Magv và Chức vụ_HT
-        ma_gv = ''
-        chuc_vu_ht = ''
-        if not df_giaovien.empty and 'Tên giảng viên' in df_giaovien.columns:
-            matched_row = df_giaovien[df_giaovien['Tên giảng viên'] == selected_gv]
-            if not matched_row.empty:
-                if 'Magv' in matched_row.columns:
-                    ma_gv = matched_row['Magv'].iloc[0]
-                if 'Chức vụ_HT' in matched_row.columns:
-                    chuc_vu_ht = matched_row['Chức vụ_HT'].iloc[0]
-        #st.write(f"Giáo viên đã chọn: {selected_gv}")
-        #st.write(f"Mã GV: {ma_gv}")
-        #st.write(f"Chức vụ: {chuc_vu_ht}")
-        # Lấy ký tự đầu tiên của Magv, ánh xạ với Mã_khoa của df_khoa (đảm bảo kiểu dữ liệu đúng)
-        khoa_phong_trungtam = ''
-        debug_info = {}
-        if ma_gv and not df_khoa.empty and 'Mã_khoa' in df_khoa.columns and 'Khoa/Phòng/Trung tâm' in df_khoa.columns:
-            try:
-                first_digit = int(str(ma_gv)[0])
-                # Đảm bảo cột Mã_khoa là int
-                df_khoa['Mã_khoa'] = pd.to_numeric(df_khoa['Mã_khoa'], errors='coerce').fillna(-1).astype(int)
-                debug_info['first_digit'] = first_digit
-                debug_info['df_khoa_Mã_khoa'] = df_khoa['Mã_khoa'].tolist()
-                matched_khoa = df_khoa[df_khoa['Mã_khoa'] == first_digit]
-                debug_info['matched_rows'] = matched_khoa.shape[0]
-                if not matched_khoa.empty:
-                    khoa_phong_trungtam = matched_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
-            except Exception as e:
-                debug_info['error'] = str(e)
-        #st.write(f"Khoa/Phòng/Trung tâm: {khoa_phong_trungtam}")
-    # Chọn chuẩn giáo viên
-    chuan_gv_selected = st.selectbox("Chuẩn GV", options=["CĐ", "CĐMC", "TC", "TCMC", "VH"], index=2)
-    st.session_state['chuan_gv'] = chuan_gv_selected
-    df_gv_info = pd.DataFrame([{
-    "Mã_gv": ma_gv,
-    "Tên_gv": selected_gv,
-    "chucvu_hientai": chuc_vu_ht,
-    "khoa": khoa_phong_trungtam,
-    "chuan_gv": st.session_state['chuan_gv'],
-    "gio_chuan": 0.0,
-    "thongtin_giamgio": "",
-    }])
-    st.session_state['df_gv_info'] = df_gv_info
-    # Chuẩn hóa tên cột về đúng định dạng code sử dụng
-    col_map = {
-        'Ten_gv': 'Ten_GV',
-        'ten_gv': 'Ten_GV',
-        'Mon_hoc': 'mon_hoc',
-        'mon_hoc': 'mon_hoc',
-        'Lop_hoc': 'lop_hoc',
-        'lop_hoc': 'lop_hoc'
-    }
-    df_input.rename(columns={k: v for k, v in col_map.items() if k in df_input.columns}, inplace=True)
-    # Thay thế toàn bộ None/NaN thành 0 cho các cột tiết theo học kỳ 1 - 23 và 22 - 48
-    tiet_start, tiet_end = (1, 23) if st.session_state.get('hocky') == 'HK1' else (22, 48)
-    for i in range(tiet_start, tiet_end + 1):
-        col = f'T{i}'
-        if col in df_input.columns:
-            df_input[col] = df_input[col].fillna(0)
-    # Đảm bảo cột Ten_GV nằm trước lop_hoc
-    if 'Ten_GV' in df_input.columns:
-        cols = list(df_input.columns)
-        if cols[0] != 'Ten_GV':
-            cols.remove('Ten_GV')
-            cols.insert(0, 'Ten_GV')
-            df_input = df_input[cols]
-    #st.success("Đã upload dữ liệu. Xem trước bảng dữ liệu:")
-    #st.dataframe(df_lop_g)
-    # Hiển thị danh sách môn học phù hợp với từng lớp đã nhập
-    #st.info("Danh sách môn học phù hợp với từng lớp đã nhập:")
-    if 'lop_hoc' in df_input.columns:
-        from difflib import get_close_matches
-        # Thay thế các ký hiệu N1/N2/N3/Ca1/Ca2/Ca3 thành _1/_2/_3 trước khi xóa khoảng trắng
-        def fix_lop_name(name):
-            name = str(name)
-            # Nếu có 'CĐ' thì tìm tên lớp gần đúng, không xóa khoảng trắng
-            if 'CĐ' in name:
-                lop_hop_le_list = df_lop_g['Lớp'].astype(str).tolist() if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else []
-                from difflib import get_close_matches
-                match = get_close_matches(name, lop_hop_le_list, n=1, cutoff=0.7)
-                return match[0] if match else name
-            # Nếu không có 'CĐ', thực hiện chuẩn hóa như cũ
-            for i in range(1, 5):
-                name = name.replace(f"(N{i})", f"_{i}")
-                name = name.replace(f"(n{i})", f"_{i}")
-                name = name.replace(f"(Ca{i})", f"_{i}")
-                name = name.replace(f"(ca{i})", f"_{i}")
-            for pat, rep in [(" N1", "_1"), (" n1", "_1"), (" Ca1", "_1"), (" ca1", "_1"),
-                            (" N2", "_2"), (" n2", "_2"), (" Ca2", "_2"), (" ca2", "_2"),
-                            (" N3", "_3"), (" n3", "_3"), (" Ca3", "_3"), (" ca3", "_3"),
-                            (" N4", "_4"), (" n4", "_4"), (" Ca4", "_4"), (" ca4", "_4")]:
-                name = name.replace(pat, rep)
-            return name
-
-        df_input['lop_hoc'] = df_input['lop_hoc'].apply(fix_lop_name)
-        # Nếu không có 'CĐ' trong tên lớp thì mới loại bỏ khoảng trắng
-        def remove_space_if_no_cd(name):
-            name_str = str(name)
-            if 'CĐ' in name_str:
-                return name_str.strip()
-            else:
-                return name_str.replace(' ', '').strip()
-        df_input['lop_hoc'] = df_input['lop_hoc'].apply(remove_space_if_no_cd)
-        
-        lop_hop_le_set = set(df_lop_g['Lớp']) if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else set()
-        for lop in df_input['lop_hoc'].drop_duplicates():
-            #st.write(f"Lớp: {lop}")
-            malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
-            if lop not in lop_hop_le_set:
-                st.error(f"Lớp '{lop}' không có trong danh sách lớp hợp lệ!")
-                continue
-            if not malop_info.empty:
-                # ...existing code...
-                ma_lop = str(malop_info['Mã_lớp'].iloc[0]) if 'Mã_lớp' in malop_info.columns else ''
-                dsmon_code = ''
-                if len(ma_lop) >= 6:
-                    A = ma_lop[2:5]
-                    B = ma_lop[0:2]
-                    last_char = ma_lop[-1]
-                    if last_char == 'X':
-                        dsmon_code = f"{A}X"
-                    else:
-                        try:
-                            B_num = int(B)
-                        except:
-                            B_num = 0
-                        if B_num >= 49:
-                            dsmon_code = f"{A}Z"
-                        else:
-                            dsmon_code = f"{A}Y"
-                if dsmon_code and 'Mã_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns:
-                    mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].dropna().astype(str).tolist()
-                    if 'mon_list_by_lop' not in st.session_state:
-                        st.session_state['mon_list_by_lop'] = {}
-                    st.session_state['mon_list_by_lop'][lop] = mon_list
-                    data_mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code].copy()
-                    if 'data_mon_list_by_lop' not in st.session_state:
-                        st.session_state['data_mon_list_by_lop'] = {}
-                    st.session_state['data_mon_list_by_lop'][lop] = data_mon_list
+            df_input['lop_hoc'] = df_input['lop_hoc'].apply(fix_lop_name)
+            # Nếu không có 'CĐ' trong tên lớp thì mới loại bỏ khoảng trắng
+            def remove_space_if_no_cd(name):
+                name_str = str(name)
+                if 'CĐ' in name_str:
+                    return name_str.strip()
                 else:
-                    mon_list = []
-                mon_hoc_excel = df_input[df_input['lop_hoc'] == lop]['mon_hoc'].dropna().astype(str).tolist()
-                fuzzy_map = {}
-                need_fuzzy = False
-                for mh in mon_hoc_excel:
-                    if mh not in mon_list:
-                        match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
-                        fuzzy_map[mh] = match[0] if match else ''
-                        need_fuzzy = True
-                if need_fuzzy:
-                    st.dataframe(pd.DataFrame({'Môn học nhập': list(fuzzy_map.keys()), 'Môn học gần đúng': list(fuzzy_map.values())}))
-
-    output_rows = []
-    lop_hop_le = set(df_lop_g['Lớp']) if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else set()
-    loi_lop = []
-    if 'lop_hoc' not in df_input.columns:
-        st.error("File Excel của bạn thiếu cột 'lop_hoc'. Vui lòng kiểm tra lại tên cột hoặc chuẩn hóa đúng định dạng!")
-        st.info(f"Các cột hiện có trong file Excel:")
-        st.dataframe(pd.DataFrame({'Tên cột': list(df_input.columns)}))
-    else:
-        from difflib import get_close_matches
-        debug_rows = []
-        # Tạo bản sao dữ liệu đầu vào để thay thế môn học gần đúng
-        df_input_new = df_input.copy()
-        for lop in df_input_new['lop_hoc'].drop_duplicates():
-            malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
-            if not malop_info.empty:
-                # Lấy mon_list cho lớp này từ session_state
-                mon_list = st.session_state.get('mon_list_by_lop', {}).get(lop, [])
-                # Tìm giá trị gần đúng nhất trong mon_list so với từng giá trị mon_hoc đã nhập
-                mon_hoc_excel = df_input_new[df_input_new['lop_hoc'] == lop]['mon_hoc'].dropna().astype(str).tolist()
-                fuzzy_map = {}
-                for mh in mon_hoc_excel:
-                    match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
-                    fuzzy_map[mh] = match[0] if match else mh
-                # Thay thế vào df_input_new (đúng phạm vi, đúng mon_list)
-                mask = df_input_new['lop_hoc'] == lop
-                df_input_new.loc[mask, 'mon_hoc'] = df_input_new.loc[mask, 'mon_hoc'].apply(lambda x: fuzzy_map.get(str(x), x))
-                # Lưu fuzzy_map cho từng lớp để sử dụng sau này
-                if 'fuzzy_map_by_lop' not in st.session_state:
-                    st.session_state['fuzzy_map_by_lop'] = {}
-                st.session_state['fuzzy_map_by_lop'][lop] = fuzzy_map
-        # Tiếp tục kiểm tra và tính toán với dữ liệu đã thay thế
-        #st.write(df_input_new)
-        for idx, row in df_input_new.iterrows():
-            ten_lop = row['lop_hoc'] if 'lop_hoc' in row else row.get('lop_hoc')
-            # Lấy tên môn học gần đúng từ fuzzy_map_by_lop nếu có
-            fuzzy_map = st.session_state.get('fuzzy_map_by_lop', {}).get(ten_lop, {})
-            ten_mon_goc = row['mon_hoc'] if 'mon_hoc' in row else row.get('mon_hoc')
-            ten_mon = fuzzy_map.get(str(ten_mon_goc), ten_mon_goc)
-            # Lấy dữ liệu môn học đã lọc gần đúng cho lớp này
-            loc_data_monhoc = None
-            st.write(f"Xử lý dòng {idx}: Lớp '{ten_lop}', Môn '{ten_mon}' (gốc: '{ten_mon_goc}')")
-            if 'data_mon_list_by_lop' in st.session_state and ten_lop in st.session_state['data_mon_list_by_lop']:
-                df_data_mon = st.session_state['data_mon_list_by_lop'][ten_lop]
-                loc_data_monhoc = df_data_mon[df_data_mon['Môn_học'] == ten_mon]
-            # Lọc dữ liệu lớp theo tên lớp
-            loc_data_lop = df_lop_g[df_lop_g['Lớp'] == ten_lop]
+                    return name_str.replace(' ', '').strip()
+            df_input['lop_hoc'] = df_input['lop_hoc'].apply(remove_space_if_no_cd)
             
-            # Nếu cần kiểm tra hoặc sử dụng loc_data_monhoc, có thể thêm xử lý tại đây
-            debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
-            # Lấy mon_list từ session_state nếu có
-            mon_list = st.session_state.get('mon_list_by_lop', {}).get(ten_lop, [])
-            debug_info['mon_hoc_hople'] = ', '.join(mon_list)
-            if ten_lop not in lop_hop_le:
-                loi_lop.append(ten_lop)
-                debug_info['status'] = 'Lớp không hợp lệ'
-                debug_info['detail'] = f"Tên lớp '{ten_lop}' không có trong danh sách lớp hợp lệ."
-                debug_rows.append(debug_info)
-                continue
-            #st.write(ten_mon, mon_list)
-            ten_mon_norm = str(ten_mon).strip().lower()
-            mon_list_norm = [str(m).strip().lower() for m in mon_list]
-            found = any(ten_mon_norm == m for m in mon_list_norm)
-            if not found:
-                debug_info['status'] = 'Môn học không hợp lệ'
-                debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
-                debug_rows.append(debug_info)
-                continue
-            st.write(loc_data_monhoc)
-            bangtonghop_mon, info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
-            #st.write(bangtonghop_mon)
-            if bangtonghop_mon.empty:
-                st.error(f"[ROW {idx}] Không tạo được bảng tổng hợp. Lý do: {info.get('error', 'Không rõ')}")
-            else:
-                # Chèn cột Lớp_học và Mã_môn_ngành vào sau cột Tuần
-                bangtonghop_mon.insert(1, 'Lớp_học', ten_lop)
-                mamon_nganh = ''
-                if loc_data_monhoc is not None and not loc_data_monhoc.empty and 'Mã_môn_ngành' in loc_data_monhoc.columns:
-                    mamon_nganh = loc_data_monhoc['Mã_môn_ngành'].iloc[0]
-                bangtonghop_mon.insert(2, 'Mã_môn_ngành', mamon_nganh)
-                output_rows.append(bangtonghop_mon)
-        if output_rows:
-            bangtonghop_all = pd.concat(output_rows, ignore_index=True)
-            # Đổi tên cột 'Mã_môn_ngành' thành 'Mã_Môn_Ngành' nếu tồn tại
-            if 'Mã_môn_ngành' in bangtonghop_all.columns:
-                bangtonghop_all.rename(columns={'Mã_môn_ngành': 'Mã_Môn_Ngành'}, inplace=True)
-            # Tạo bản hiển thị thêm cột Tên_môn sau cột Lớp_học
-            bangtonghop_display = bangtonghop_all.copy()
-            if 'Lớp_học' in bangtonghop_display.columns:
-                idx = bangtonghop_display.columns.get_loc('Lớp_học')
-                if 'Tên_môn' in bangtonghop_display.columns:
-                    pass
-                elif 'Mã_Môn_Ngành' in bangtonghop_display.columns:
-                    # Tạo Series ánh xạ tên môn từ df_mon
-                    ma_mon_map = df_mon.set_index('Mã_môn_ngành')['Môn_học'] if ('Mã_môn_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns) else None
-                    if ma_mon_map is not None:
-                        ten_mon_series = bangtonghop_display['Mã_Môn_Ngành'].map(ma_mon_map).fillna('')
-                        bangtonghop_display.insert(idx+1, 'Tên_môn', ten_mon_series)
+            lop_hop_le_set = set(df_lop_g['Lớp']) if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else set()
+            for lop in df_input['lop_hoc'].drop_duplicates():
+                #st.write(f"Lớp: {lop}")
+                malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
+                if lop not in lop_hop_le_set:
+                    st.error(f"Lớp '{lop}' không có trong danh sách lớp hợp lệ!")
+                    continue
+                if not malop_info.empty:
+                    # ...existing code...
+                    ma_lop = str(malop_info['Mã_lớp'].iloc[0]) if 'Mã_lớp' in malop_info.columns else ''
+                    dsmon_code = ''
+                    if len(ma_lop) >= 6:
+                        A = ma_lop[2:5]
+                        B = ma_lop[0:2]
+                        last_char = ma_lop[-1]
+                        if last_char == 'X':
+                            dsmon_code = f"{A}X"
+                        else:
+                            try:
+                                B_num = int(B)
+                            except:
+                                B_num = 0
+                            if B_num >= 49:
+                                dsmon_code = f"{A}Z"
+                            else:
+                                dsmon_code = f"{A}Y"
+                    if dsmon_code and 'Mã_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns:
+                        mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code]['Môn_học'].dropna().astype(str).tolist()
+                        if 'mon_list_by_lop' not in st.session_state:
+                            st.session_state['mon_list_by_lop'] = {}
+                        st.session_state['mon_list_by_lop'][lop] = mon_list
+                        data_mon_list = df_mon[df_mon['Mã_ngành'] == dsmon_code].copy()
+                        if 'data_mon_list_by_lop' not in st.session_state:
+                            st.session_state['data_mon_list_by_lop'] = {}
+                        st.session_state['data_mon_list_by_lop'][lop] = data_mon_list
+                    else:
+                        mon_list = []
+                    mon_hoc_excel = df_input[df_input['lop_hoc'] == lop]['mon_hoc'].dropna().astype(str).tolist()
+                    fuzzy_map = {}
+                    need_fuzzy = False
+                    for mh in mon_hoc_excel:
+                        if mh not in mon_list:
+                            match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
+                            fuzzy_map[mh] = match[0] if match else ''
+                            need_fuzzy = True
+                    if need_fuzzy:
+                        st.dataframe(pd.DataFrame({'Môn học nhập': list(fuzzy_map.keys()), 'Môn học gần đúng': list(fuzzy_map.values())}))
+
+        output_rows = []
+        lop_hop_le = set(df_lop_g['Lớp']) if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else set()
+        loi_lop = []
+        if 'lop_hoc' not in df_input.columns:
+            st.error("File Excel của bạn thiếu cột 'lop_hoc'. Vui lòng kiểm tra lại tên cột hoặc chuẩn hóa đúng định dạng!")
+            st.info(f"Các cột hiện có trong file Excel:")
+            st.dataframe(pd.DataFrame({'Tên cột': list(df_input.columns)}))
+        else:
+            from difflib import get_close_matches
+            debug_rows = []
+            # Tạo bản sao dữ liệu đầu vào để thay thế môn học gần đúng
+            df_input_new = df_input.copy()
+            for lop in df_input_new['lop_hoc'].drop_duplicates():
+                malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
+                if not malop_info.empty:
+                    # Lấy mon_list cho lớp này từ session_state
+                    mon_list = st.session_state.get('mon_list_by_lop', {}).get(lop, [])
+                    # Tìm giá trị gần đúng nhất trong mon_list so với từng giá trị mon_hoc đã nhập
+                    mon_hoc_excel = df_input_new[df_input_new['lop_hoc'] == lop]['mon_hoc'].dropna().astype(str).tolist()
+                    fuzzy_map = {}
+                    for mh in mon_hoc_excel:
+                        match = get_close_matches(mh, mon_list, n=1, cutoff=0.6)
+                        fuzzy_map[mh] = match[0] if match else mh
+                    # Thay thế vào df_input_new (đúng phạm vi, đúng mon_list)
+                    mask = df_input_new['lop_hoc'] == lop
+                    df_input_new.loc[mask, 'mon_hoc'] = df_input_new.loc[mask, 'mon_hoc'].apply(lambda x: fuzzy_map.get(str(x), x))
+                    # Lưu fuzzy_map cho từng lớp để sử dụng sau này
+                    if 'fuzzy_map_by_lop' not in st.session_state:
+                        st.session_state['fuzzy_map_by_lop'] = {}
+                    st.session_state['fuzzy_map_by_lop'][lop] = fuzzy_map
+            # Tiếp tục kiểm tra và tính toán với dữ liệu đã thay thế
+            #st.write(df_input_new)
+            for idx, row in df_input_new.iterrows():
+                ten_lop = row['lop_hoc'] if 'lop_hoc' in row else row.get('lop_hoc')
+                # Lấy tên môn học gần đúng từ fuzzy_map_by_lop nếu có
+                fuzzy_map = st.session_state.get('fuzzy_map_by_lop', {}).get(ten_lop, {})
+                ten_mon_goc = row['mon_hoc'] if 'mon_hoc' in row else row.get('mon_hoc')
+                ten_mon = fuzzy_map.get(str(ten_mon_goc), ten_mon_goc)
+                # Lấy dữ liệu môn học đã lọc gần đúng cho lớp này
+                loc_data_monhoc = None
+                st.write(f"Xử lý dòng {idx}: Lớp '{ten_lop}', Môn '{ten_mon}' (gốc: '{ten_mon_goc}')")
+                if 'data_mon_list_by_lop' in st.session_state and ten_lop in st.session_state['data_mon_list_by_lop']:
+                    df_data_mon = st.session_state['data_mon_list_by_lop'][ten_lop]
+                    loc_data_monhoc = df_data_mon[df_data_mon['Môn_học'] == ten_mon]
+                # Lọc dữ liệu lớp theo tên lớp
+                loc_data_lop = df_lop_g[df_lop_g['Lớp'] == ten_lop]
+                
+                # Nếu cần kiểm tra hoặc sử dụng loc_data_monhoc, có thể thêm xử lý tại đây
+                debug_info = {'row': idx, 'lop_hoc': ten_lop, 'mon_hoc': ten_mon, 'status': '', 'detail': ''}
+                # Lấy mon_list từ session_state nếu có
+                mon_list = st.session_state.get('mon_list_by_lop', {}).get(ten_lop, [])
+                debug_info['mon_hoc_hople'] = ', '.join(mon_list)
+                if ten_lop not in lop_hop_le:
+                    loi_lop.append(ten_lop)
+                    debug_info['status'] = 'Lớp không hợp lệ'
+                    debug_info['detail'] = f"Tên lớp '{ten_lop}' không có trong danh sách lớp hợp lệ."
+                    debug_rows.append(debug_info)
+                    continue
+                #st.write(ten_mon, mon_list)
+                ten_mon_norm = str(ten_mon).strip().lower()
+                mon_list_norm = [str(m).strip().lower() for m in mon_list]
+                found = any(ten_mon_norm == m for m in mon_list_norm)
+                if not found:
+                    debug_info['status'] = 'Môn học không hợp lệ'
+                    debug_info['detail'] = f"Tên môn '{ten_mon}' không có trong danh sách môn học hợp lệ cho lớp '{ten_lop}'."
+                    debug_rows.append(debug_info)
+                    continue
+                st.write(loc_data_monhoc)
+                bangtonghop_mon, info = process_mon_data(row, loc_data_lop, loc_data_monhoc, df_ngaytuan_g, df_hesosiso_g)
+                #st.write(bangtonghop_mon)
+                if bangtonghop_mon.empty:
+                    st.error(f"[ROW {idx}] Không tạo được bảng tổng hợp. Lý do: {info.get('error', 'Không rõ')}")
+                else:
+                    # Chèn cột Lớp_học và Mã_môn_ngành vào sau cột Tuần
+                    bangtonghop_mon.insert(1, 'Lớp_học', ten_lop)
+                    mamon_nganh = ''
+                    if loc_data_monhoc is not None and not loc_data_monhoc.empty and 'Mã_môn_ngành' in loc_data_monhoc.columns:
+                        mamon_nganh = loc_data_monhoc['Mã_môn_ngành'].iloc[0]
+                    bangtonghop_mon.insert(2, 'Mã_môn_ngành', mamon_nganh)
+                    output_rows.append(bangtonghop_mon)
+            if output_rows:
+                bangtonghop_all = pd.concat(output_rows, ignore_index=True)
+                # Đổi tên cột 'Mã_môn_ngành' thành 'Mã_Môn_Ngành' nếu tồn tại
+                if 'Mã_môn_ngành' in bangtonghop_all.columns:
+                    bangtonghop_all.rename(columns={'Mã_môn_ngành': 'Mã_Môn_Ngành'}, inplace=True)
+                # Tạo bản hiển thị thêm cột Tên_môn sau cột Lớp_học
+                bangtonghop_display = bangtonghop_all.copy()
+                if 'Lớp_học' in bangtonghop_display.columns:
+                    idx = bangtonghop_display.columns.get_loc('Lớp_học')
+                    if 'Tên_môn' in bangtonghop_display.columns:
+                        pass
+                    elif 'Mã_Môn_Ngành' in bangtonghop_display.columns:
+                        # Tạo Series ánh xạ tên môn từ df_mon
+                        ma_mon_map = df_mon.set_index('Mã_môn_ngành')['Môn_học'] if ('Mã_môn_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns) else None
+                        if ma_mon_map is not None:
+                            ten_mon_series = bangtonghop_display['Mã_Môn_Ngành'].map(ma_mon_map).fillna('')
+                            bangtonghop_display.insert(idx+1, 'Tên_môn', ten_mon_series)
+                        else:
+                            bangtonghop_display.insert(idx+1, 'Tên_môn', '')
                     else:
                         bangtonghop_display.insert(idx+1, 'Tên_môn', '')
+            
+            if loi_lop:
+                st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
+                st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
+                st.dataframe(pd.DataFrame({'Tên lớp nhập': df_input['lop_hoc'].drop_duplicates().tolist()}))
+                st.info(f"Vui lòng chọn đúng tên lớp trong danh sách sau:")
+                st.dataframe(pd.DataFrame({'Lớp hợp lệ': sorted(lop_hop_le)}))
+                if debug_rows:
+                    st.info("Chi tiết kiểm tra từng dòng:")
+                    st.dataframe(pd.DataFrame(debug_rows))
+            elif output_rows:
+                st.markdown("### 2. Kết quả xử lý - Xuất file Excel")
+                # Ẩn cột Ngày và Mã_Môn_Ngành khi hiển thị
+                cols_to_hide = ['Ngày', 'Mã_Môn_Ngành']
+                cols_to_show = [col for col in bangtonghop_display.columns if col not in cols_to_hide]
+                st.dataframe(bangtonghop_display[cols_to_show])
+
+                # Nút lưu dữ liệu vào session_state và Google Sheet
+                if st.button("Lưu dữ liệu"):
+                    st.session_state['bangtonghop_all'] = bangtonghop_all.copy()
+                    st.success("Đã lưu dữ liệu vào session_state['bangtonghop_all']!")
+                    try:
+                        import gspread
+                        from google.oauth2.service_account import Credentials
+                        from googleapiclient.discovery import build
+                        creds_dict = st.secrets["gcp_service_account"]
+                        folder_id = st.secrets["google_sheet"]["target_folder_id"]
+                        template_file_id = st.secrets["google_sheet"]["template_file_id"]
+                        ma_gv_sheet = str(ma_gv) if 'ma_gv' in locals() or 'ma_gv' in globals() else "output_giangday"
+                        scopes = [
+                            "https://www.googleapis.com/auth/drive",
+                            "https://www.googleapis.com/auth/spreadsheets"
+                        ]
+                        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+                        gc = gspread.authorize(creds)
+                        drive_service = build('drive', 'v3', credentials=creds)
+                        query = f"name='{ma_gv_sheet}' and '{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet'"
+                        results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+                        files = results.get('files', [])
+                        # Xác định tên sheet cần lưu dựa vào học kỳ
+                        hocky = st.session_state.get('hocky', 'HK1')
+                        sheet_title = 'output_giangday' if hocky == 'HK1' else 'output_giangday(HK2)'
+                        if files:
+                            sheet_id = files[0]['id']
+                            sh = gc.open_by_key(sheet_id)
+                            worksheet = None
+                            try:
+                                worksheet = sh.worksheet(sheet_title)
+                            except:
+                                worksheet = sh.add_worksheet(title=sheet_title, rows=100, cols=20)
+                            # Thêm hoặc cập nhật worksheet thongtin_gv
+                            try:
+                                ws_gv = sh.worksheet('thongtin_gv')
+                            except:
+                                ws_gv = sh.add_worksheet(title='thongtin_gv', rows=10, cols=20)
+                            df_gv_info = st.session_state.get('df_gv_info')
+                            if df_gv_info is not None:
+                                ws_gv.clear()
+                                ws_gv.update([df_gv_info.columns.values.tolist()] + df_gv_info.values.tolist())
+                        else:
+                            copied_file = drive_service.files().copy(
+                                fileId=template_file_id,
+                                body={"name": ma_gv_sheet, "parents": [folder_id]}
+                            ).execute()
+                            sheet_id = copied_file['id']
+                            sh = gc.open_by_key(sheet_id)
+                            worksheet = None
+                            try:
+                                worksheet = sh.worksheet(sheet_title)
+                            except:
+                                worksheet = sh.add_worksheet(title=sheet_title, rows=100, cols=20)
+                            try:
+                                ws_gv = sh.worksheet('thongtin_gv')
+                            except:
+                                ws_gv = sh.add_worksheet(title='thongtin_gv', rows=10, cols=20)
+                            df_gv_info = st.session_state.get('df_gv_info')
+                            if df_gv_info is not None:
+                                ws_gv.clear()
+                                ws_gv.update([df_gv_info.columns.values.tolist()] + df_gv_info.values.tolist())
+                        worksheet.clear()
+                        worksheet.update([bangtonghop_all.columns.values.tolist()] + bangtonghop_all.values.tolist())
+                        st.success(f"Đã lưu dữ liệu vào Google Sheet: https://docs.google.com/spreadsheets/d/{sheet_id}")
+                    except Exception as e:
+                        st.error(f"Lỗi lưu Google Sheet: {e}")
                 else:
-                    bangtonghop_display.insert(idx+1, 'Tên_môn', '')
-        
-        if loi_lop:
-            st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
-            st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
-            st.dataframe(pd.DataFrame({'Tên lớp nhập': df_input['lop_hoc'].drop_duplicates().tolist()}))
-            st.info(f"Vui lòng chọn đúng tên lớp trong danh sách sau:")
-            st.dataframe(pd.DataFrame({'Lớp hợp lệ': sorted(lop_hop_le)}))
-            if debug_rows:
-                st.info("Chi tiết kiểm tra từng dòng:")
-                st.dataframe(pd.DataFrame(debug_rows))
-        elif output_rows:
-            st.markdown("### 2. Kết quả xử lý - Xuất file Excel")
-            # Ẩn cột Ngày và Mã_Môn_Ngành khi hiển thị
-            cols_to_hide = ['Ngày', 'Mã_Môn_Ngành']
-            cols_to_show = [col for col in bangtonghop_display.columns if col not in cols_to_hide]
-            st.dataframe(bangtonghop_display[cols_to_show])
+                    st.warning("Không có dữ liệu kết quả sau xử lý.")
+                    if debug_rows:
+                        st.info("Chi tiết kiểm tra từng dòng:")
+                        st.dataframe(pd.DataFrame(debug_rows))
+with st.expander("Tạo file Excel tải về cho giảng viên"):
+    output = io.BytesIO()
+    from tonghop_kegio import export_giangday_to_excel
+    # Tạo file tạm để xuất Excel
+    template_path = 'data_base/mau_kegio.xlsx'
+    # Lấy dữ liệu giảng dạy từ Google Sheet nếu có
+    df_giangday = None
+    df_giangday_hk2 = None
+    df_gv_info = None
+    spreadsheet_gs = st.session_state.get('spreadsheet')
+    if spreadsheet_gs is not None:
+        st.write("Worksheet titles:", [ws.title for ws in spreadsheet_gs.worksheets()])
+        # Load df_giangday from worksheet 'output_giangday'
+        ws_giangday = None
+        try:
+            ws_giangday = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday'), None)
+        except Exception as e:
+            st.write("Error finding output_giangday:", e)
+            ws_giangday = None
+        if ws_giangday is not None:
+            try:
+                records_giangday = ws_giangday.get_all_records()
+                st.write("output_giangday records:", records_giangday)
+                df_giangday = pd.DataFrame(records_giangday)
+            except Exception as e:
+                st.write("Error loading output_giangday records:", e)
+                df_giangday = None
+        # Load df_giangday_hk2 from worksheet 'output_giangday(HK2)'
+        ws_giangday_hk2 = None
+        try:
+            ws_giangday_hk2 = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday(HK2)'), None)
+        except Exception as e:
+            st.write("Error finding output_giangday(HK2):", e)
+            ws_giangday_hk2 = None
+        if ws_giangday_hk2 is not None:
+            try:
+                records_giangday_hk2 = ws_giangday_hk2.get_all_records()
+                st.write("output_giangday(HK2) records:", records_giangday_hk2)
+                df_giangday_hk2 = pd.DataFrame(records_giangday_hk2)
+            except Exception as e:
+                st.write("Error loading output_giangday(HK2) records:", e)
+                df_giangday_hk2 = None
+        # Load df_gv_info from worksheet 'thongtin_gv'
+        ws_gv_info = None
+        try:
+            ws_gv_info = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'thongtin_gv'), None)
+        except Exception as e:
+            st.write("Error finding thongtin_gv:", e)
+            ws_gv_info = None
+        if ws_gv_info is not None:
+            try:
+                records_gv_info = ws_gv_info.get_all_records()
+                st.write("thongtin_gv records:", records_gv_info)
+                df_gv_info = pd.DataFrame(records_gv_info)
+            except Exception as e:
+                st.write("Error loading thongtin_gv records:", e)
+                df_gv_info = None
+        st.write(df_giangday)
+        st.write(df_giangday_hk2)
+    # Nếu không có dữ liệu từ Google Sheet thì fallback sang dữ liệu đã xử lý
+    class DummyWorksheet:
+        def __init__(self, df, title):
+            self._df = df
+            self.title = title
+        def get_all_records(self):
+            import pandas as pd
+            if self._df is None or not isinstance(self._df, pd.DataFrame) or self._df.empty:
+                return []
+            return self._df.to_dict(orient='records')
+    # Tạo dummy spreadsheet với cả output_giangday, output_giangday(HK2) và thongtin_gv
+    class DummySpreadsheet:
+        def __init__(self, df_giangday, df_giangday_hk2, df_gv_info):
+            self._df_giangday = df_giangday
+            self._df_giangday_hk2 = df_giangday_hk2
+            self._df_gv_info = df_gv_info
+        def worksheets(self):
+            ws = [DummyWorksheet(self._df_giangday, 'output_giangday')]
+            if self._df_giangday_hk2 is not None:
+                ws.append(DummyWorksheet(self._df_giangday_hk2, 'output_giangday(HK2)'))
+            if self._df_gv_info is not None:
+                ws.append(DummyWorksheet(self._df_gv_info, 'thongtin_gv'))
+            return ws
 
-            # Nút lưu dữ liệu vào session_state và Google Sheet
-            if st.button("Lưu dữ liệu"):
-                st.session_state['bangtonghop_all'] = bangtonghop_all.copy()
-                st.success("Đã lưu dữ liệu vào session_state['bangtonghop_all']!")
-                try:
-                    import gspread
-                    from google.oauth2.service_account import Credentials
-                    from googleapiclient.discovery import build
-                    creds_dict = st.secrets["gcp_service_account"]
-                    folder_id = st.secrets["google_sheet"]["target_folder_id"]
-                    template_file_id = st.secrets["google_sheet"]["template_file_id"]
-                    ma_gv_sheet = str(ma_gv) if 'ma_gv' in locals() or 'ma_gv' in globals() else "output_giangday"
-                    scopes = [
-                        "https://www.googleapis.com/auth/drive",
-                        "https://www.googleapis.com/auth/spreadsheets"
-                    ]
-                    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-                    gc = gspread.authorize(creds)
-                    drive_service = build('drive', 'v3', credentials=creds)
-                    query = f"name='{ma_gv_sheet}' and '{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet'"
-                    results = drive_service.files().list(q=query, fields="files(id, name)").execute()
-                    files = results.get('files', [])
-                    # Xác định tên sheet cần lưu dựa vào học kỳ
-                    hocky = st.session_state.get('hocky', 'HK1')
-                    sheet_title = 'output_giangday' if hocky == 'HK1' else 'output_giangday(HK2)'
-                    if files:
-                        sheet_id = files[0]['id']
-                        sh = gc.open_by_key(sheet_id)
-                        worksheet = None
-                        try:
-                            worksheet = sh.worksheet(sheet_title)
-                        except:
-                            worksheet = sh.add_worksheet(title=sheet_title, rows=100, cols=20)
-                        # Thêm hoặc cập nhật worksheet thongtin_gv
-                        try:
-                            ws_gv = sh.worksheet('thongtin_gv')
-                        except:
-                            ws_gv = sh.add_worksheet(title='thongtin_gv', rows=10, cols=20)
-                        df_gv_info = st.session_state.get('df_gv_info')
-                        if df_gv_info is not None:
-                            ws_gv.clear()
-                            ws_gv.update([df_gv_info.columns.values.tolist()] + df_gv_info.values.tolist())
-                    else:
-                        copied_file = drive_service.files().copy(
-                            fileId=template_file_id,
-                            body={"name": ma_gv_sheet, "parents": [folder_id]}
-                        ).execute()
-                        sheet_id = copied_file['id']
-                        sh = gc.open_by_key(sheet_id)
-                        worksheet = None
-                        try:
-                            worksheet = sh.worksheet(sheet_title)
-                        except:
-                            worksheet = sh.add_worksheet(title=sheet_title, rows=100, cols=20)
-                        try:
-                            ws_gv = sh.worksheet('thongtin_gv')
-                        except:
-                            ws_gv = sh.add_worksheet(title='thongtin_gv', rows=10, cols=20)
-                        df_gv_info = st.session_state.get('df_gv_info')
-                        if df_gv_info is not None:
-                            ws_gv.clear()
-                            ws_gv.update([df_gv_info.columns.values.tolist()] + df_gv_info.values.tolist())
-                    worksheet.clear()
-                    worksheet.update([bangtonghop_all.columns.values.tolist()] + bangtonghop_all.values.tolist())
-                    st.success(f"Đã lưu dữ liệu vào Google Sheet: https://docs.google.com/spreadsheets/d/{sheet_id}")
-                except Exception as e:
-                    st.error(f"Lỗi lưu Google Sheet: {e}")
+    spreadsheet = DummySpreadsheet(df_giangday, df_giangday_hk2, df_gv_info)
+    ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
+    if ok:
+        with open(file_path, 'rb') as f:
+            st.download_button(
+                label="Tải file Excel kết quả",
+                data=f.read(),
+                file_name="output_giangday.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    else:
+        st.error(f"Lỗi xuất file Excel: {file_path}")
 
-            output = io.BytesIO()
-            from tonghop_kegio import export_giangday_to_excel
-            import tempfile
-            # Tạo file tạm để xuất Excel
-            template_path = 'data_base/mau_kegio.xlsx'
-            # Lấy dữ liệu giảng dạy từ Google Sheet nếu có
-            df_giangday = None
-            df_giangday_hk2 = None
-            df_gv_info = None
-            spreadsheet_gs = st.session_state.get('spreadsheet')
-            if spreadsheet_gs is not None:
-                st.write("Worksheet titles:", [ws.title for ws in spreadsheet_gs.worksheets()])
-                # Load df_giangday from worksheet 'output_giangday'
-                ws_giangday = None
-                try:
-                    ws_giangday = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday'), None)
-                except Exception as e:
-                    st.write("Error finding output_giangday:", e)
-                    ws_giangday = None
-                if ws_giangday is not None:
-                    try:
-                        records_giangday = ws_giangday.get_all_records()
-                        st.write("output_giangday records:", records_giangday)
-                        df_giangday = pd.DataFrame(records_giangday)
-                    except Exception as e:
-                        st.write("Error loading output_giangday records:", e)
-                        df_giangday = None
-                # Load df_giangday_hk2 from worksheet 'output_giangday(HK2)'
-                ws_giangday_hk2 = None
-                try:
-                    ws_giangday_hk2 = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday(HK2)'), None)
-                except Exception as e:
-                    st.write("Error finding output_giangday(HK2):", e)
-                    ws_giangday_hk2 = None
-                if ws_giangday_hk2 is not None:
-                    try:
-                        records_giangday_hk2 = ws_giangday_hk2.get_all_records()
-                        st.write("output_giangday(HK2) records:", records_giangday_hk2)
-                        df_giangday_hk2 = pd.DataFrame(records_giangday_hk2)
-                    except Exception as e:
-                        st.write("Error loading output_giangday(HK2) records:", e)
-                        df_giangday_hk2 = None
-                # Load df_gv_info from worksheet 'thongtin_gv'
-                ws_gv_info = None
-                try:
-                    ws_gv_info = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'thongtin_gv'), None)
-                except Exception as e:
-                    st.write("Error finding thongtin_gv:", e)
-                    ws_gv_info = None
-                if ws_gv_info is not None:
-                    try:
-                        records_gv_info = ws_gv_info.get_all_records()
-                        st.write("thongtin_gv records:", records_gv_info)
-                        df_gv_info = pd.DataFrame(records_gv_info)
-                    except Exception as e:
-                        st.write("Error loading thongtin_gv records:", e)
-                        df_gv_info = None
-            st.write(df_giangday)
-            st.write(df_giangday_hk2)
-            # Nếu không có dữ liệu từ Google Sheet thì fallback sang dữ liệu đã xử lý
-            class DummyWorksheet:
-                def __init__(self, df, title):
-                    self._df = df
-                    self.title = title
-                def get_all_records(self):
-                    import pandas as pd
-                    if self._df is None or not isinstance(self._df, pd.DataFrame) or self._df.empty:
-                        return []
-                    return self._df.to_dict(orient='records')
-            # Tạo dummy spreadsheet với cả output_giangday, output_giangday(HK2) và thongtin_gv
-            class DummySpreadsheet:
-                def __init__(self, df_giangday, df_giangday_hk2, df_gv_info):
-                    self._df_giangday = df_giangday
-                    self._df_giangday_hk2 = df_giangday_hk2
-                    self._df_gv_info = df_gv_info
-                def worksheets(self):
-                    ws = [DummyWorksheet(self._df_giangday, 'output_giangday')]
-                    if self._df_giangday_hk2 is not None:
-                        ws.append(DummyWorksheet(self._df_giangday_hk2, 'output_giangday(HK2)'))
-                    if self._df_gv_info is not None:
-                        ws.append(DummyWorksheet(self._df_gv_info, 'thongtin_gv'))
-                    return ws
-
-            spreadsheet = DummySpreadsheet(df_giangday, df_giangday_hk2, df_gv_info)
-            ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
-            if ok:
-                with open(file_path, 'rb') as f:
-                    st.download_button(
-                        label="Tải file Excel kết quả",
-                        data=f.read(),
-                        file_name="output_giangday.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-            else:
-                st.error(f"Lỗi xuất file Excel: {file_path}")
-        else:
-            st.warning("Không có dữ liệu kết quả sau xử lý.")
-            if debug_rows:
-                st.info("Chi tiết kiểm tra từng dòng:")
-                st.dataframe(pd.DataFrame(debug_rows))
-else:
-    st.info("Vui lòng upload file Excel dữ liệu môn học để bắt đầu.")
