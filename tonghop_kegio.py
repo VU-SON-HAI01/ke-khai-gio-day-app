@@ -67,7 +67,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
         sheet.cell(row=185 + idx, column=2).value = val
     for idx, val in enumerate(mon_list):
         sheet.cell(row=185 + idx, column=4).value = val
-
+    st.write(df_giangday_hk1)
     # Nếu có dữ liệu output_giangday thì chuyển vào Ke_gio_HK1
     if df_giangday_hk1 is not None and 'Ke_gio_HK1' in wb.sheetnames:
         sheet_hk1 = wb['Ke_gio_HK1']
@@ -90,12 +90,11 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
             except Exception as e:
                 print(f"Lỗi ghi dòng HK1 từ output_giangday {excel_row}: {e}")
                 continue
-    
+    st.write(df_giangday_hk2)
     # Ghi dữ liệu HK2 vào Ke_gio_HK2_Cả_năm từ df_giangday_hk2 nếu có
     if df_giangday_hk2 is not None and 'Ke_gio_HK2_Cả_năm' in wb.sheetnames:
         sheet_hk2 = wb['Ke_gio_HK2_Cả_năm']
         start_row = 8
-        st.write(df_giangday_hk2)
         for i, row in df_giangday_hk2.iterrows():
             excel_row = int(start_row + i)
             if excel_row < 1:
@@ -128,6 +127,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
             except Exception as e:
                 print(f"Lỗi ghi dòng HK2 từ output_giangday(HK2) {excel_row}: {e}")
                 continue
+
     # --- Phân loại dữ liệu theo học kỳ và ghi vào từng sheet ---
     start_row = 8
     if spreadsheet is not None:
