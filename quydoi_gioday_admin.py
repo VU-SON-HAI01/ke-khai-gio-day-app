@@ -280,27 +280,50 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
 uploaded_file = st.file_uploader("Chọn file Excel nhập dữ liệu môn học", type=["xlsx", "xls"])
 
 if uploaded_file:
-    df_input = pd.read_excel(uploaded_file)
-    # Nếu có cột ten_gv hoặc Ten_GV thì tạo danh sách giáo viên
-    gv_col = None
-    for col in ['ten_gv', 'Ten_GV']:
-        if col in df_input.columns:
-            gv_col = col
-            break
-    if gv_col:
-        list_gv = sorted(df_input[gv_col].dropna().unique())
-        selected_gv = st.selectbox("Chọn giáo viên để lọc dữ liệu", options=list_gv)
-        df_input = df_input[df_input[gv_col] == selected_gv].copy()
-            # Ánh xạ selected_gv với df_giaovien để lấy Magv và Chức vụ_HT
-        ma_gv = ''
-        chuc_vu_ht = ''
-        if not df_giaovien.empty and 'Tên giảng viên' in df_giaovien.columns:
-            matched_row = df_giaovien[df_giaovien['Tên giảng viên'] == selected_gv]
-            if not matched_row.empty:
-                if 'Magv' in matched_row.columns:
-                    ma_gv = matched_row['Magv'].iloc[0]
-                if 'Chức vụ_HT' in matched_row.columns:
-                    chuc_vu_ht = matched_row['Chức vụ_HT'].iloc[0]
+    # Đọc cả 2 sheet HK1 và HK2
+    xls = pd.ExcelFile(uploaded_file)
+    sheet_names = xls.sheet_names
+    df_hk1 = pd.read_excel(xls, sheet_name='HK1') if 'HK1' in sheet_names else None
+    df_hk2 = pd.read_excel(xls, sheet_name='HK2') if 'HK2' in sheet_names else None
+    # Xác định cột tuần cho từng sheet
+    tiet_cols_hk1 = [f'T{i}' for i in range(1, 24)] if df_hk1 is not None else []
+    tiet_cols_hk2 = [f'T{i}' for i in range(22, 49)] if df_hk2 is not None else []
+    # Chuẩn hóa tên cột cho cả 2 sheet
+    col_map = {
+        'Ten_gv': 'Ten_GV',
+        'ten_gv': 'Ten_GV',
+        'Mon_hoc': 'mon_hoc',
+        'mon_hoc': 'mon_hoc',
+        'Lop_hoc': 'lop_hoc',
+        'lop_hoc': 'lop_hoc'
+    }
+    if df_hk1 is not None:
+        df_hk1.rename(columns={k: v for k, v in col_map.items() if k in df_hk1.columns}, inplace=True)
+    if df_hk2 is not None:
+        df_hk2.rename(columns={k: v for k, v in col_map.items() if k in df_hk2.columns}, inplace=True)
+    # Lấy danh sách giáo viên chung
+    all_gv = set()
+    if df_hk1 is not None and 'Ten_GV' in df_hk1.columns:
+        all_gv.update(df_hk1['Ten_GV'].dropna().unique())
+    if df_hk2 is not None and 'Ten_GV' in df_hk2.columns:
+        all_gv.update(df_hk2['Ten_GV'].dropna().unique())
+    list_gv = sorted(all_gv)
+    selected_gv = st.selectbox("Chọn giáo viên để lọc dữ liệu", options=list_gv) if list_gv else None
+    # Lọc dữ liệu theo giáo viên
+    if df_hk1 is not None:
+        df_hk1 = df_hk1[df_hk1['Ten_GV'] == selected_gv].copy() if selected_gv else df_hk1.copy()
+    if df_hk2 is not None:
+        df_hk2 = df_hk2[df_hk2['Ten_GV'] == selected_gv].copy() if selected_gv else df_hk2.copy()
+    # Ánh xạ selected_gv với df_giaovien để lấy Magv và Chức vụ_HT
+    ma_gv = ''
+    chuc_vu_ht = ''
+    if selected_gv and not df_giaovien.empty and 'Tên giảng viên' in df_giaovien.columns:
+        matched_row = df_giaovien[df_giaovien['Tên giảng viên'] == selected_gv]
+        if not matched_row.empty:
+            if 'Magv' in matched_row.columns:
+                ma_gv = matched_row['Magv'].iloc[0]
+            if 'Chức vụ_HT' in matched_row.columns:
+                chuc_vu_ht = matched_row['Chức vụ_HT'].iloc[0]
         #st.write(f"Giáo viên đã chọn: {selected_gv}")
         #st.write(f"Mã GV: {ma_gv}")
         #st.write(f"Chức vụ: {chuc_vu_ht}")
