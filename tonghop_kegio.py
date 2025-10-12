@@ -14,7 +14,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
     Kết hợp: Nếu truyền spreadsheet và df_mon thì lấy dữ liệu từ Google Sheet, ánh xạ tên môn học và ghi vào file Excel mẫu.
     Nếu truyền df_hk1 thì ghi trực tiếp dữ liệu HK1 vào file Excel mẫu.
     """
-
+    
     if not os.path.exists(template_path):
         return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.'
     wb = openpyxl.load_workbook(template_path)
@@ -95,6 +95,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
     if df_giangday_hk2 is not None and 'Ke_gio_HK2_Cả_năm' in wb.sheetnames:
         sheet_hk2 = wb['Ke_gio_HK2_Cả_năm']
         start_row = 8
+        st.write(df_giangday_hk2)
         for i, row in df_giangday_hk2.iterrows():
             excel_row = int(start_row + i)
             if excel_row < 1:
