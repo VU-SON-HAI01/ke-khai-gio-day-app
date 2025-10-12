@@ -401,57 +401,6 @@ else:
         }
         pg = st.navigation(pages)
         pg.run()
-        # Các chức năng quản trị khác vẫn giữ lại dưới dạng expander nếu muốn
-        with st.expander("Tạo người dùng hàng loạt từ file Excel", expanded=True):
-            uploaded_file = st.file_uploader(
-                "Chọn file Excel của bạn",
-                type=['xlsx', 'xls'],
-                help="File Excel phải có 2 cột tên là 'email' và 'magv'."
-            )
-            if uploaded_file is not None:
-                if st.button("🚀 Bắt đầu xử lý hàng loạt"):
-                    sa_gspread_client, sa_drive_service = connect_as_service_account()
-                    admin_gspread_client, admin_drive_service = connect_as_user(st.session_state.token)
-                    query = f"mimeType='application/vnd.google-apps.folder' and name='{TARGET_FOLDER_NAME}' and 'me' in owners"
-                    response = admin_drive_service.files().list(q=query, fields='files(id)').execute()
-                    folders = response.get('files', [])
-                    if not folders:
-                        st.error(f"Lỗi: Admin ({ADMIN_EMAIL}) không sở hữu thư mục nào có tên '{TARGET_FOLDER_NAME}'.")
-                    else:
-                        folder_id = folders[0].get('id')
-                        bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file)
-        st.divider()
-        with st.expander("Cập nhật Email cho Giáo viên"):
-            try:
-                sa_gspread_client, sa_drive_service = connect_as_service_account()
-                mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-                records = mapping_sheet.get_all_records()
-                df_map = pd.DataFrame(records)
-                if not df_map.empty:
-                    magv_list = df_map['magv'].astype(str).tolist()
-                    selected_magv = st.selectbox("Chọn Mã giáo viên để cập nhật", options=[""] + magv_list)
-                    if selected_magv:
-                        user_data = df_map[df_map['magv'].astype(str) == selected_magv]
-                        old_email = user_data.iloc[0]['email']
-                        st.text_input("Email cũ", value=old_email, disabled=True)
-                        new_email = st.text_input("Nhập Email mới", key=f"new_email_{selected_magv}")
-                        if st.button("Cập nhật Email"):
-                            if new_email and new_email != old_email:
-                                admin_gspread_client, admin_drive_service = connect_as_user(st.session_state.token)
-                                with st.spinner("Đang cập nhật..."):
-                                    success, message = update_user_email(admin_drive_service, sa_gspread_client,
-                                                                         selected_magv, old_email, new_email)
-                                if success:
-                                    st.success(message)
-                                    st.rerun()
-                                else:
-                                    st.error(message)
-                            else:
-                                st.warning("Vui lòng nhập một email mới và khác với email cũ.")
-                else:
-                    st.info("Bảng phân quyền đang trống.")
-            except Exception as e:
-                st.error(f"Không thể tải danh sách giáo viên: {e}")
 
     else:
         # --- GIAO DIỆN CỦA USER THƯỜNG ---
