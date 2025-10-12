@@ -183,7 +183,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                             mon_hoc = mon_row.iloc[0]['Môn_học']
                     sheet_hk2.cell(row=excel_row, column=4).value = mon_hoc                 # D
                     sheet_hk2.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
-                    sheet_hk2.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+                    #sheet_hk2.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
                     sheet_hk2.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
                     sheet_hk2.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
                     sheet_hk2.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
@@ -229,7 +229,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                 sheet.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
                 sheet.cell(row=excel_row, column=4).value = row.get('Môn_học', '')  # D
                 sheet.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
-                sheet.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+                #sheet.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
                 sheet.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
                 sheet.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
                 sheet.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
