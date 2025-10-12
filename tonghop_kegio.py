@@ -9,6 +9,38 @@ import os
 
 
 def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, template_path='data_base/mau_kegio.xlsx'):
+
+    """
+    Kết hợp: Nếu truyền spreadsheet và df_mon thì lấy dữ liệu từ Google Sheet, ánh xạ tên môn học và ghi vào file Excel mẫu.
+    Nếu truyền df_hk1 thì ghi trực tiếp dữ liệu HK1 vào file Excel mẫu.
+    """
+    
+    if not os.path.exists(template_path):
+        return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.', None, None
+    wb = openpyxl.load_workbook(template_path)
+    # --- Thêm tên giảng viên và chuẩn GV vào ô C4, C5 của cả hai sheet mẫu ---
+    if spreadsheet is not None:
+        ws_gv = next((ws for ws in spreadsheet.worksheets() if ws.title == 'thongtin_gv'), None)
+        if ws_gv is not None:
+            df_gv = pd.DataFrame(ws_gv.get_all_records())
+            ten_gv = ''
+            chuan_gv = ''
+            khoa = ''
+            if not df_gv.empty:
+                if 'Tên_gv' in df_gv.columns:
+                    ten_gv = df_gv.iloc[0]['Tên_gv']
+                if 'chuan_gv' in df_gv.columns:
+                    chuan_gv = df_gv.iloc[0]['chuan_gv']
+                if 'khoa' in df_gv.columns:
+                    khoa = df_gv.iloc[0]['khoa']
+            for sheet_name in ['Ke_gio_HK1', 'Ke_gio_HK2_Cả_năm']:
+                if sheet_name in wb.sheetnames:
+                    sht = wb[sheet_name]
+                    sht.cell(row=4, column=3).value = ten_gv
+                    sht.cell(row=5, column=3).value = chuan_gv
+                    sht.cell(row=5, column=8).value = khoa
+
+    # Nếu truyền spreadsheet và df_mon: lấy dữ liệu từ Google Sheet
     from openpyxl.styles import Border, Side
     medium_border = Border(bottom=Side(style='medium'))
     # --- HK1 ---
@@ -106,37 +138,6 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                 except Exception as e:
                     print(f"Lỗi ghi dòng HK2 {excel_row}: {e}")
                     continue
-
-    """
-    Kết hợp: Nếu truyền spreadsheet và df_mon thì lấy dữ liệu từ Google Sheet, ánh xạ tên môn học và ghi vào file Excel mẫu.
-    Nếu truyền df_hk1 thì ghi trực tiếp dữ liệu HK1 vào file Excel mẫu.
-    """
-    
-    if not os.path.exists(template_path):
-        return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.', None, None
-    wb = openpyxl.load_workbook(template_path)
-    # --- Thêm tên giảng viên và chuẩn GV vào ô C4, C5 của cả hai sheet mẫu ---
-    if spreadsheet is not None:
-        ws_gv = next((ws for ws in spreadsheet.worksheets() if ws.title == 'thongtin_gv'), None)
-        if ws_gv is not None:
-            df_gv = pd.DataFrame(ws_gv.get_all_records())
-            ten_gv = ''
-            chuan_gv = ''
-            khoa = ''
-            if not df_gv.empty:
-                if 'Tên_gv' in df_gv.columns:
-                    ten_gv = df_gv.iloc[0]['Tên_gv']
-                if 'chuan_gv' in df_gv.columns:
-                    chuan_gv = df_gv.iloc[0]['chuan_gv']
-                if 'khoa' in df_gv.columns:
-                    khoa = df_gv.iloc[0]['khoa']
-            for sheet_name in ['Ke_gio_HK1', 'Ke_gio_HK2_Cả_năm']:
-                if sheet_name in wb.sheetnames:
-                    sht = wb[sheet_name]
-                    sht.cell(row=4, column=3).value = ten_gv
-                    sht.cell(row=5, column=3).value = chuan_gv
-                    sht.cell(row=5, column=8).value = khoa
-
 
     # HK1: lấy từ output_giangday, ghi vào Ke_gio_HK1
     if spreadsheet is not None and df_mon is not None:
