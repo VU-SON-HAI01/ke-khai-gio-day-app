@@ -707,12 +707,17 @@ if uploaded_file:
                             df_gv_info = pd.DataFrame(ws_gv_info.get_all_records())
                         except Exception:
                             df_gv_info = None
+                st.write(df_giangday)
+                st.write(df_giangday_hk2)
                 # Nếu không có dữ liệu từ Google Sheet thì fallback sang dữ liệu đã xử lý
                 class DummyWorksheet:
                     def __init__(self, df, title):
                         self._df = df
                         self.title = title
                     def get_all_records(self):
+                        import pandas as pd
+                        if self._df is None or not isinstance(self._df, pd.DataFrame) or self._df.empty:
+                            return []
                         return self._df.to_dict(orient='records')
                 # Tạo dummy spreadsheet với cả output_giangday, output_giangday(HK2) và thongtin_gv
                 class DummySpreadsheet:
@@ -727,8 +732,7 @@ if uploaded_file:
                         if self._df_gv_info is not None:
                             ws.append(DummyWorksheet(self._df_gv_info, 'thongtin_gv'))
                         return ws
-                st.write(df_giangday)
-                st.write(df_giangday_hk2)
+
                 spreadsheet = DummySpreadsheet(df_giangday, df_giangday_hk2, df_gv_info)
                 ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
                 if ok:
