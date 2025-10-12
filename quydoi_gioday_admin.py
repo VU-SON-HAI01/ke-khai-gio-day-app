@@ -514,6 +514,9 @@ if uploaded_file:
                 output_rows.append(bangtonghop_mon)
         if output_rows:
             bangtonghop_all = pd.concat(output_rows, ignore_index=True)
+            # Đổi tên cột 'Mã_môn_ngành' thành 'Mã_Môn_Ngành' nếu tồn tại
+            if 'Mã_môn_ngành' in bangtonghop_all.columns:
+                bangtonghop_all.rename(columns={'Mã_môn_ngành': 'Mã_Môn_Ngành'}, inplace=True)
         if loi_lop:
             st.error(f"Các tên lớp sau không hợp lệ: {', '.join([str(x) for x in loi_lop if pd.notna(x)])}")
             st.info(f"Các tên lớp bạn đã nhập trong file Excel:")
