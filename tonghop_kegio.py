@@ -86,7 +86,14 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                     curr_mon_hoc = str(mon_hoc)
                     if (prev_lop_hoc is not None and prev_mon_hoc is not None) and (curr_lop_hoc != prev_lop_hoc or curr_mon_hoc != prev_mon_hoc):
                         for col in range(1, 13):
-                            sheet_hk1.cell(row=excel_row-1, column=col).border = medium_border
+                            # Chỉ vẽ border ngang phía dưới, không xóa border dọc
+                            old_border = sheet_hk1.cell(row=excel_row-1, column=col).border
+                            sheet_hk1.cell(row=excel_row-1, column=col).border = Border(
+                                left=old_border.left,
+                                right=old_border.right,
+                                top=old_border.top,
+                                bottom=Side(style='medium')
+                            )
                     prev_lop_hoc, prev_mon_hoc = curr_lop_hoc, curr_mon_hoc
                 except Exception as e:
                     print(f"Lỗi ghi dòng HK1 {excel_row}: {e}")
@@ -133,7 +140,14 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                     curr_mon_hoc = str(mon_hoc)
                     if (prev_lop_hoc is not None and prev_mon_hoc is not None) and (curr_lop_hoc != prev_lop_hoc or curr_mon_hoc != prev_mon_hoc):
                         for col in range(1, 13):
-                            sheet_hk2.cell(row=excel_row-1, column=col).border = medium_border
+                            # Chỉ vẽ border ngang phía dưới, không xóa border dọc
+                            old_border = sheet_hk2.cell(row=excel_row-1, column=col).border
+                            sheet_hk2.cell(row=excel_row-1, column=col).border = Border(
+                                left=old_border.left,
+                                right=old_border.right,
+                                top=old_border.top,
+                                bottom=Side(style='medium')
+                            )
                     prev_lop_hoc, prev_mon_hoc = curr_lop_hoc, curr_mon_hoc
                 except Exception as e:
                     print(f"Lỗi ghi dòng HK2 {excel_row}: {e}")
