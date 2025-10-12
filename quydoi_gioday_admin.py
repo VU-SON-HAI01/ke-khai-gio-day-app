@@ -602,7 +602,6 @@ if uploaded_file:
                     import gspread
                     from google.oauth2.service_account import Credentials
                     from googleapiclient.discovery import build
-                    # Đọc thông tin từ secrets
                     creds_dict = st.secrets["gcp_service_account"]
                     folder_id = st.secrets["google_sheet"]["target_folder_id"]
                     template_file_id = st.secrets["google_sheet"]["template_file_id"]
@@ -614,18 +613,20 @@ if uploaded_file:
                     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
                     gc = gspread.authorize(creds)
                     drive_service = build('drive', 'v3', credentials=creds)
-                    # Kiểm tra sheet đã tồn tại chưa
                     query = f"name='{ma_gv_sheet}' and '{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet'"
                     results = drive_service.files().list(q=query, fields="files(id, name)").execute()
                     files = results.get('files', [])
+                    # Xác định tên sheet cần lưu dựa vào học kỳ
+                    hocky = st.session_state.get('hocky', 'HK1')
+                    sheet_title = 'output_giangday' if hocky == 'HK1' else 'output_giangday(HK2)'
                     if files:
                         sheet_id = files[0]['id']
                         sh = gc.open_by_key(sheet_id)
                         worksheet = None
                         try:
-                            worksheet = sh.worksheet('output_giangday')
+                            worksheet = sh.worksheet(sheet_title)
                         except:
-                            worksheet = sh.add_worksheet(title='output_giangday', rows=100, cols=20)
+                            worksheet = sh.add_worksheet(title=sheet_title, rows=100, cols=20)
                         # Thêm hoặc cập nhật worksheet thongtin_gv
                         try:
                             ws_gv = sh.worksheet('thongtin_gv')
@@ -636,7 +637,6 @@ if uploaded_file:
                             ws_gv.clear()
                             ws_gv.update([df_gv_info.columns.values.tolist()] + df_gv_info.values.tolist())
                     else:
-                        # Sao chép từ template
                         copied_file = drive_service.files().copy(
                             fileId=template_file_id,
                             body={"name": ma_gv_sheet, "parents": [folder_id]}
@@ -645,10 +645,9 @@ if uploaded_file:
                         sh = gc.open_by_key(sheet_id)
                         worksheet = None
                         try:
-                            worksheet = sh.worksheet('output_giangday')
+                            worksheet = sh.worksheet(sheet_title)
                         except:
-                            worksheet = sh.add_worksheet(title='output_giangday', rows=100, cols=20)
-                        # Thêm worksheet thongtin_gv
+                            worksheet = sh.add_worksheet(title=sheet_title, rows=100, cols=20)
                         try:
                             ws_gv = sh.worksheet('thongtin_gv')
                         except:
@@ -666,28 +665,16 @@ if uploaded_file:
             output = io.BytesIO()
             from tonghop_kegio import export_giangday_to_excel
             import tempfile
-            import shutil
             # Tạo file tạm để xuất Excel
             with tempfile.TemporaryDirectory() as tmpdirname:
                 template_path = 'data_base/mau_kegio.xlsx'
-                output_path = f'{tmpdirname}/output_giangday.xlsx'
-                output_hk2_path = f'{tmpdirname}/output_giangday(HK2).xlsx'
-                thongtin_gv_path = f'{tmpdirname}/thongtin_gv.xlsx'
-                shutil.copy(template_path, output_path)
-                df_mon = st.session_state.get('df_mon', None)
-                import os
-                # Ghi df_gv_info ra file
-                df_gv_info_session = st.session_state.get('df_gv_info')
-                if df_gv_info_session is not None and not df_gv_info_session.empty:
-                    df_gv_info_session.to_excel(thongtin_gv_path, index=False)
-                if os.path.exists(thongtin_gv_path):
-                    df_gv_info = pd.read_excel(thongtin_gv_path)
-                else:
-                    df_gv_info = None
                 # Lấy dữ liệu giảng dạy từ Google Sheet nếu có
                 df_giangday = None
+                df_giangday_hk2 = None
+                df_gv_info = None
                 spreadsheet_gs = st.session_state.get('spreadsheet')
                 if spreadsheet_gs is not None:
+                     # Load df_giangday from worksheet 'output_giangday'
                     ws_giangday = None
                     try:
                         ws_giangday = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday'), None)
@@ -698,15 +685,29 @@ if uploaded_file:
                             df_giangday = pd.DataFrame(ws_giangday.get_all_records())
                         except Exception:
                             df_giangday = None
+                    # Load df_giangday_hk2 from worksheet 'output_giangday(HK2)'
+                    ws_giangday_hk2 = None
+                    try:
+                        ws_giangday_hk2 = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday(HK2)'), None)
+                    except Exception:
+                        ws_giangday_hk2 = None
+                    if ws_giangday_hk2 is not None:
+                        try:
+                            df_giangday_hk2 = pd.DataFrame(ws_giangday_hk2.get_all_records())
+                        except Exception:
+                            df_giangday_hk2 = None
+                    # Load df_gv_info from worksheet 'thongtin_gv'
+                    ws_gv_info = None
+                    try:
+                        ws_gv_info = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'thongtin_gv'), None)
+                    except Exception:
+                        ws_gv_info = None
+                    if ws_gv_info is not None:
+                        try:
+                            df_gv_info = pd.DataFrame(ws_gv_info.get_all_records())
+                        except Exception:
+                            df_gv_info = None
                 # Nếu không có dữ liệu từ Google Sheet thì fallback sang dữ liệu đã xử lý
-                if df_giangday is None or df_giangday.empty:
-                    df_giangday = bangtonghop_all
-                # Luôn đọc df_giangday_hk2 từ output_giangday(HK2).xlsx nếu có
-                if os.path.exists(output_hk2_path):
-                    df_giangday_hk2 = pd.read_excel(output_hk2_path)
-                else:
-                    df_giangday_hk2 = None
-                # Tạo dummy worksheet cho thongtin_gv
                 class DummyWorksheet:
                     def __init__(self, df, title):
                         self._df = df
@@ -729,7 +730,7 @@ if uploaded_file:
                 st.write(df_giangday)
                 st.write(df_giangday_hk2)
                 spreadsheet = DummySpreadsheet(df_giangday, df_giangday_hk2, df_gv_info)
-                ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=output_path)
+                ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
                 if ok:
                     with open(file_path, 'rb') as f:
                         st.download_button(
