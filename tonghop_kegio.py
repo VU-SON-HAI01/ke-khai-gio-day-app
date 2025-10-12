@@ -210,8 +210,9 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
 
     # Nếu truyền df_hk1: ghi trực tiếp dữ liệu HK1
     # Đã chuyển sang ghi trực tiếp từ sheet Google, không cần logic này nữa
-    wb.save(template_path)
-    return True, template_path
+    output_path = 'output_giangday.xlsx'
+    wb.save(output_path)
+    return True, output_path
 def tonghop_ketqua():
     # Nút tải dữ liệu từ Google Sheet của user (các sheet có tên bắt đầu bằng 'output_')
     if 'export_ready' not in st.session_state:
