@@ -589,7 +589,10 @@ if uploaded_file:
                 st.dataframe(pd.DataFrame(debug_rows))
         elif output_rows:
             st.markdown("### 2. Kết quả xử lý - Xuất file Excel")
-            st.dataframe(bangtonghop_display)
+            # Ẩn cột Ngày và Mã_Môn_Ngành khi hiển thị
+            cols_to_hide = ['Ngày', 'Mã_Môn_Ngành']
+            cols_to_show = [col for col in bangtonghop_display.columns if col not in cols_to_hide]
+            st.dataframe(bangtonghop_display[cols_to_show])
 
             # Nút lưu dữ liệu vào session_state và Google Sheet
             if st.button("Lưu dữ liệu"):
