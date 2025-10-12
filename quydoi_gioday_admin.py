@@ -628,6 +628,7 @@ if uploaded_file:
                     df_gv_info = pd.read_excel(thongtin_gv_path)
                 else:
                     df_gv_info = None
+                st.write(df_gv_info)
                 # Tạo dummy worksheet cho thongtin_gv
                 class DummyWorksheet:
                     def __init__(self, df, title):
