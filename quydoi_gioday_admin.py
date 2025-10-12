@@ -798,17 +798,17 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
             )
         # Chỉ clear các biến session_state về giá trị mặc định để tránh xung đột khi chọn GV khác
         clear_defaults = {
-            'df_giangday': pd.DataFrame(),
-            'df_giangday_hk2': pd.DataFrame(),
-            'df_gv_info': pd.DataFrame(),
+            #'df_giangday': pd.DataFrame(),
+            #'df_giangday_hk2': pd.DataFrame(),
+            #'df_gv_info': pd.DataFrame(),
             'spreadsheet': None,
-            'df_mon': pd.DataFrame(),
-            'df_hk1': pd.DataFrame(),
-            'df_hk2': pd.DataFrame(),
-            'df_all_tonghop': pd.DataFrame(),
-            'export_ready': False,
-            'giochuan': 0,
-            'chuan_gv': ''
+            #'df_mon': pd.DataFrame(),
+            #'df_hk1': pd.DataFrame(),
+            #'df_hk2': pd.DataFrame(),
+            #'df_all_tonghop': pd.DataFrame(),
+            #'export_ready': False,
+            #'giochuan': 0,
+            #'chuan_gv': ''
         }
         for key, val in clear_defaults.items():
             st.session_state[key] = val
