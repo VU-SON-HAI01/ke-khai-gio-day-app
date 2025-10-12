@@ -170,10 +170,15 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
         return pd.DataFrame(), {"error": "loc_data_lop có nhiều hơn 1 dòng, cần lọc chính xác."}
     if len(mamon_info) > 1:
         return pd.DataFrame(), {"error": "loc_data_mon có nhiều hơn 1 dòng, cần lọc chính xác."}
-    # Lấy tiết từ các cột T1-T23
+    # Lấy tiết từ các cột T1-T23 (HK1) hoặc T22-T48 (HK2) theo session_state['hocky']
     dulieu_info = row_input_data
     arr_tiet_list = []
-    for i in range(1, 24):
+    hocky = st.session_state.get('hocky', 'HK1')
+    if hocky == 'HK1':
+        tiet_start, tiet_end = 1, 23
+    else:
+        tiet_start, tiet_end = 22, 48
+    for i in range(tiet_start, tiet_end + 1):
         tiet = dulieu_info.get(f'T{i}', 0)
         if tiet is None or (isinstance(tiet, float) and np.isnan(tiet)):
             tiet = 0
