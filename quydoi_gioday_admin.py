@@ -301,12 +301,18 @@ if uploaded_file:
         df_hk1.rename(columns={k: v for k, v in col_map.items() if k in df_hk1.columns}, inplace=True)
     if df_hk2 is not None:
         df_hk2.rename(columns={k: v for k, v in col_map.items() if k in df_hk2.columns}, inplace=True)
-    # Lấy danh sách giáo viên chung
+    # Lấy danh sách giáo viên từ cả 2 sheet, kể cả khi có tên cột khác nhau
     all_gv = set()
-    if df_hk1 is not None and 'Ten_GV' in df_hk1.columns:
-        all_gv.update(df_hk1['Ten_GV'].dropna().unique())
-    if df_hk2 is not None and 'Ten_GV' in df_hk2.columns:
-        all_gv.update(df_hk2['Ten_GV'].dropna().unique())
+    for df in [df_hk1, df_hk2]:
+        if df is not None:
+            # Tìm cột tên giáo viên
+            gv_col = None
+            for col in ['Ten_GV', 'ten_gv']:
+                if col in df.columns:
+                    gv_col = col
+                    break
+            if gv_col:
+                all_gv.update(df[gv_col].dropna().unique())
     list_gv = sorted(all_gv)
     selected_gv = st.selectbox("Chọn giáo viên để lọc dữ liệu", options=list_gv) if list_gv else None
     # Lọc dữ liệu theo giáo viên
