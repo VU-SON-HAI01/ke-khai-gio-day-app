@@ -528,6 +528,57 @@ if uploaded_file:
             st.info("Chi tiết kiểm tra từng dòng:")
             st.dataframe(pd.DataFrame(debug_rows))
 
+            # Nút lưu dữ liệu vào session_state và Google Sheet
+            if st.button("Lưu dữ liệu"):
+                st.session_state['bangtonghop_all'] = bangtonghop_all.copy()
+                st.success("Đã lưu dữ liệu vào session_state['bangtonghop_all']!")
+                try:
+                    import gspread
+                    from google.oauth2.service_account import Credentials
+                    from googleapiclient.discovery import build
+                    # Đọc thông tin từ secrets
+                    creds_dict = st.secrets["gcp_service_account"]
+                    folder_id = st.secrets["target_folder_id"]
+                    template_file_id = st.secrets["template_file_id"]
+                    ma_gv_sheet = str(ma_gv) if 'ma_gv' in locals() or 'ma_gv' in globals() else "output_giangday"
+                    scopes = [
+                        "https://www.googleapis.com/auth/drive",
+                        "https://www.googleapis.com/auth/spreadsheets"
+                    ]
+                    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+                    gc = gspread.authorize(creds)
+                    drive_service = build('drive', 'v3', credentials=creds)
+                    # Kiểm tra sheet đã tồn tại chưa
+                    query = f"name='{ma_gv_sheet}' and '{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet'"
+                    results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+                    files = results.get('files', [])
+                    if files:
+                        sheet_id = files[0]['id']
+                        sh = gc.open_by_key(sheet_id)
+                        worksheet = None
+                        try:
+                            worksheet = sh.worksheet('output_giangday')
+                        except:
+                            worksheet = sh.add_worksheet(title='output_giangday', rows=100, cols=20)
+                    else:
+                        # Sao chép từ template
+                        copied_file = drive_service.files().copy(
+                            fileId=template_file_id,
+                            body={"name": ma_gv_sheet, "parents": [folder_id]}
+                        ).execute()
+                        sheet_id = copied_file['id']
+                        sh = gc.open_by_key(sheet_id)
+                        worksheet = None
+                        try:
+                            worksheet = sh.worksheet('output_giangday')
+                        except:
+                            worksheet = sh.add_worksheet(title='output_giangday', rows=100, cols=20)
+                    worksheet.clear()
+                    worksheet.update([bangtonghop_all.columns.values.tolist()] + bangtonghop_all.values.tolist())
+                    st.success(f"Đã lưu dữ liệu vào Google Sheet: https://docs.google.com/spreadsheets/d/{sheet_id}")
+                except Exception as e:
+                    st.error(f"Lỗi lưu Google Sheet: {e}")
+
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 bangtonghop_all.to_excel(writer, index=False, sheet_name="output_giangday")
