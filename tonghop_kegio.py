@@ -16,7 +16,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
     """
     
     if not os.path.exists(template_path):
-        return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.'
+        return False, f'Không tìm thấy file mẫu: {template_path}. Hãy upload file mau_kegio.xlsx vào thư mục data_base.', None, None
     wb = openpyxl.load_workbook(template_path)
     # --- Thêm tên giảng viên và chuẩn GV vào ô C4, C5 của cả hai sheet mẫu ---
     if spreadsheet is not None:
@@ -154,7 +154,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
     if spreadsheet is not None and df_mon is not None:
         ws = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
         if ws is None:
-            return False, "Không tìm thấy sheet 'output_giangday' trong Google Sheet."
+            return False, "Không tìm thấy sheet 'output_giangday' trong Google Sheet.", None, None
         df = pd.DataFrame(ws.get_all_records())
         from openpyxl.styles import Border, Side
         bottom_border = Border(bottom=Side(style='medium'))
@@ -303,8 +303,6 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
             except Exception as e:
                 print(f"Lỗi ghi dòng {excel_row}: {e}")
                 continue
-        # Sau khi ghi dữ liệu, xóa các dòng thừa từ dòng cuối cùng có dữ liệu đến dòng 178
-    # Xác định dòng cuối cùng có dữ liệu
     wb.save(template_path)
     return True, template_path,df_giangday_hk1,df_giangday_hk2
 def tonghop_ketqua():
