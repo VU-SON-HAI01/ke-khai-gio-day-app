@@ -796,6 +796,10 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 file_name="output_giangday.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+        # Xóa các session_state liên quan sau khi tải file để tránh xung đột khi chọn GV khác
+        for key in ['df_giangday', 'df_giangday_hk2', 'df_gv_info', 'spreadsheet', 'df_mon', 'df_hk1', 'df_hk2', 'df_all_tonghop', 'export_ready', 'giochuan', 'chuan_gv']:
+            if key in st.session_state:
+                del st.session_state[key]
     else:
         st.error(f"Lỗi xuất file Excel: {file_path}")
 
