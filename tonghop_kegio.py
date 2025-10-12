@@ -40,6 +40,33 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                     sht.cell(row=5, column=3).value = chuan_gv
                     sht.cell(row=5, column=8).value = khoa
     start_row = 8
+    # Lấy danh sách duy nhất cho Lớp_học và mon_hoc
+    unique_lop_hoc = []
+    unique_mon_hoc = []
+    # Dữ liệu HK1
+    if spreadsheet is not None and df_mon is not None:
+        ws_hk1 = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
+        if ws_hk1 is not None:
+            df_hk1 = pd.DataFrame(ws_hk1.get_all_records())
+            if 'Lớp_học' in df_hk1.columns:
+                unique_lop_hoc = df_hk1['Lớp_học'].dropna().unique().tolist()
+            if 'Mã_Môn_Ngành' in df_hk1.columns and not df_mon.empty and 'Mã_môn_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns:
+                mon_hoc_list = []
+                for ma_mon_nganh in df_hk1['Mã_Môn_Ngành'].dropna().unique():
+                    mon_row = df_mon[df_mon['Mã_môn_ngành'] == ma_mon_nganh]
+                    if not mon_row.empty:
+                        mon_hoc_list.append(mon_row.iloc[0]['Môn_học'])
+                unique_mon_hoc = list(pd.Series(mon_hoc_list).dropna().unique())
+    # Ghi vào vị trí B185 và D185 của cả hai sheet
+    for sheet_name in ['Ke_gio_HK1', 'Ke_gio_HK2_Cả_năm']:
+        if sheet_name in wb.sheetnames:
+            sht = wb[sheet_name]
+            # B185: Lớp_học
+            for idx, val in enumerate(unique_lop_hoc):
+                sht.cell(row=185+idx, column=2).value = val
+            # D185: mon_hoc
+            for idx, val in enumerate(unique_mon_hoc):
+                sht.cell(row=185+idx, column=4).value = val
     # Nếu truyền spreadsheet và df_mon: lấy dữ liệu từ Google Sheet
     if spreadsheet is not None and df_mon is not None:
 
@@ -64,7 +91,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                             mon_hoc = mon_row.iloc[0]['Môn_học']
                     sheet_hk1.cell(row=excel_row, column=4).value = mon_hoc                 # D
                     sheet_hk1.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
-                    sheet_hk1.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+                    #sheet_hk1.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
                     sheet_hk1.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
                     sheet_hk1.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
                     sheet_hk1.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
@@ -81,7 +108,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                 except Exception as e:
                     print(f"Lỗi ghi dòng HK1 {excel_row}: {e}")
                     continue
-
+                
         # Ghi dữ liệu HK2 từ sheet 'output_giangday(HK2)' vào 'Ke_gio_HK2_Cả_năm'
         ws_hk2 = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday(HK2)'), None)
         if ws_hk2 is not None and 'Ke_gio_HK2_Cả_năm' in wb.sheetnames:
@@ -104,7 +131,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                             mon_hoc = mon_row.iloc[0]['Môn_học']
                     sheet_hk2.cell(row=excel_row, column=4).value = mon_hoc                 # D
                     sheet_hk2.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
-                    sheet_hk2.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+                    #sheet_hk2.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
                     sheet_hk2.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
                     sheet_hk2.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
                     sheet_hk2.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
