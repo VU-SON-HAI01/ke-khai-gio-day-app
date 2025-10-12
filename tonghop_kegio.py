@@ -45,23 +45,74 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
         sheet = wb['Ke_gio_HK1']
     else:
         sheet = wb.active
-    # Lấy dữ liệu từ Google Sheet nếu có
+    # Kiểm tra và chuyển dữ liệu từ Google Sheet nếu có
     lop_list = []
     mon_list = []
+    df_giangday_hk1 = None
+    df_giangday_hk2 = None
     if spreadsheet is not None:
         ws_giangday = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday'), None)
+        ws_giangday_hk2 = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday(HK2)'), None)
         if ws_giangday is not None:
-            df_giangday = pd.DataFrame(ws_giangday.get_all_records())
-            if not df_giangday.empty:
-                if 'Lớp_học' in df_giangday.columns:
-                    lop_list = list(sorted(df_giangday['Lớp_học'].dropna().unique()))
-                if 'Môn_học' in df_giangday.columns:
-                    mon_list = list(sorted(df_giangday['Môn_học'].dropna().unique()))
+            df_giangday_hk1 = pd.DataFrame(ws_giangday.get_all_records())
+            if not df_giangday_hk1.empty:
+                if 'Lớp_học' in df_giangday_hk1.columns:
+                    lop_list = list(sorted(df_giangday_hk1['Lớp_học'].dropna().unique()))
+                if 'Môn_học' in df_giangday_hk1.columns:
+                    mon_list = list(sorted(df_giangday_hk1['Môn_học'].dropna().unique()))
+        if ws_giangday_hk2 is not None:
+            df_giangday_hk2 = pd.DataFrame(ws_giangday_hk2.get_all_records())
     # Gán từng giá trị vào các dòng liên tiếp bắt đầu từ 185
     for idx, val in enumerate(lop_list):
         sheet.cell(row=185 + idx, column=2).value = val
     for idx, val in enumerate(mon_list):
         sheet.cell(row=185 + idx, column=4).value = val
+
+    # Nếu có dữ liệu output_giangday thì chuyển vào Ke_gio_HK1
+    if df_giangday_hk1 is not None and 'Ke_gio_HK1' in wb.sheetnames:
+        sheet_hk1 = wb['Ke_gio_HK1']
+        start_row = 8
+        for i, row in df_giangday_hk1.iterrows():
+            excel_row = int(start_row + i)
+            if excel_row < 1:
+                continue
+            try:
+                sheet_hk1.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
+                sheet_hk1.cell(row=excel_row, column=2).value = row.get('Lớp_học', '')  # B
+                sheet_hk1.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
+                sheet_hk1.cell(row=excel_row, column=4).value = row.get('Môn_học', '')  # D
+                sheet_hk1.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
+                sheet_hk1.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+                sheet_hk1.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
+                sheet_hk1.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
+                sheet_hk1.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
+                sheet_hk1.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
+            except Exception as e:
+                print(f"Lỗi ghi dòng HK1 từ output_giangday {excel_row}: {e}")
+                continue
+
+    # Nếu có dữ liệu output_giangday(HK2) thì chuyển vào Ke_gio_HK2_Cả_năm
+    if df_giangday_hk2 is not None and 'Ke_gio_HK2_Cả_năm' in wb.sheetnames:
+        sheet_hk2 = wb['Ke_gio_HK2_Cả_năm']
+        start_row = 8
+        for i, row in df_giangday_hk2.iterrows():
+            excel_row = int(start_row + i)
+            if excel_row < 1:
+                continue
+            try:
+                sheet_hk2.cell(row=excel_row, column=1).value = row.get('Tuần', '')      # A
+                sheet_hk2.cell(row=excel_row, column=2).value = row.get('Lớp_học', '')  # B
+                sheet_hk2.cell(row=excel_row, column=3).value = row.get('Sĩ số', '')    # C
+                sheet_hk2.cell(row=excel_row, column=4).value = row.get('Môn_học', '')  # D
+                sheet_hk2.cell(row=excel_row, column=5).value = row.get('HS TC/CĐ', '') # E
+                sheet_hk2.cell(row=excel_row, column=6).value = row.get('Tiết', '')     # F
+                sheet_hk2.cell(row=excel_row, column=7).value = row.get('Tiết_LT', '')  # G
+                sheet_hk2.cell(row=excel_row, column=8).value = row.get('Tiết_TH', '')  # H
+                sheet_hk2.cell(row=excel_row, column=9).value = row.get('HS_SS_LT', '') # I
+                sheet_hk2.cell(row=excel_row, column=10).value = row.get('HS_SS_TH', '')# J
+            except Exception as e:
+                print(f"Lỗi ghi dòng HK2 từ output_giangday(HK2) {excel_row}: {e}")
+                continue
     # --- Phân loại dữ liệu theo học kỳ và ghi vào từng sheet ---
     start_row = 8
     if spreadsheet is not None:
