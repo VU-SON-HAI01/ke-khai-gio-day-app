@@ -84,8 +84,6 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
         ws_hk2 = next((ws for ws in spreadsheet.worksheets() if ws.title == 'output_giangday(HK2)'), None)
         if ws_hk2 is not None and 'Ke_gio_HK2_Cả_năm' in wb.sheetnames:
             df_hk2 = pd.DataFrame(ws_hk2.get_all_records())
-            df_hk2 = pd.DataFrame(ws_hk2.get_all_records())
-            print(df_hk2)
             sheet_hk2 = wb['Ke_gio_HK2_Cả_năm']
             for i, row in df_hk2.iterrows():
                 excel_row = int(start_row + i)
