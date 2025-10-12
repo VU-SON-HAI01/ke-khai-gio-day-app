@@ -750,7 +750,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
             return ws
     spreadsheet = DummySpreadsheet(df_giangday, df_giangday_hk2, df_gv_info)
     from tonghop_kegio import export_giangday_to_excel
-    st.write(spreadsheet)
+    st.write("HK2:", spreadsheet._df_giangday_hk2)
     template_path = 'data_base/mau_kegio.xlsx'
     ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
     if ok:
