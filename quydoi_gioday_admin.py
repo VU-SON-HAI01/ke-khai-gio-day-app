@@ -538,8 +538,8 @@ if uploaded_file:
                     from googleapiclient.discovery import build
                     # Đọc thông tin từ secrets
                     creds_dict = st.secrets["gcp_service_account"]
-                    folder_id = st.secrets["target_folder_id"]
-                    template_file_id = st.secrets["template_file_id"]
+                    folder_id = st.secrets["google_sheet"]["target_folder_name"]
+                    template_file_id = st.secrets["google_sheet"]["template_file_id"]
                     ma_gv_sheet = str(ma_gv) if 'ma_gv' in locals() or 'ma_gv' in globals() else "output_giangday"
                     scopes = [
                         "https://www.googleapis.com/auth/drive",
