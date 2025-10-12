@@ -540,8 +540,6 @@ if uploaded_file:
         elif output_rows:
             st.markdown("### 2. Kết quả xử lý - Xuất file Excel")
             st.dataframe(bangtonghop_all)
-            st.info("Chi tiết kiểm tra từng dòng:")
-            st.dataframe(pd.DataFrame(debug_rows))
 
             # Nút lưu dữ liệu vào session_state và Google Sheet
             if st.button("Lưu dữ liệu"):
