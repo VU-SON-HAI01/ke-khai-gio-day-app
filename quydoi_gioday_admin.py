@@ -580,15 +580,47 @@ if uploaded_file:
                     st.error(f"Lỗi lưu Google Sheet: {e}")
 
             output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                bangtonghop_all.to_excel(writer, index=False, sheet_name="output_giangday")
-            output.seek(0)
-            st.download_button(
-                label="Tải file Excel kết quả",
-                data=output,
-                file_name="output_giangday.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+            from tonghop_kegio import export_giangday_to_excel
+            import tempfile
+            import shutil
+            # Tạo file tạm để xuất Excel
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                template_path = 'data_base/mau_kegio.xlsx'
+                output_path = f'{tmpdirname}/output_giangday.xlsx'
+                # Copy template sang thư mục tạm để không ghi đè file gốc
+                shutil.copy(template_path, output_path)
+                # Gọi hàm xuất dữ liệu
+                # df_mon lấy từ session_state nếu có
+                df_mon = st.session_state.get('df_mon', None)
+                # Tạo DataFrame đầu vào giống Google Sheet
+                class DummySpreadsheet:
+                    def worksheets(self):
+                        return []
+                # Tạo dummy spreadsheet với worksheet output_giangday
+                class DummyWorksheet:
+                    def __init__(self, df):
+                        self._df = df
+                        self.title = 'output_giangday'
+                    def get_all_records(self):
+                        return self._df.to_dict(orient='records')
+                class DummySpreadsheet:
+                    def __init__(self, df):
+                        self._df = df
+                    def worksheets(self):
+                        return [DummyWorksheet(self._df)]
+                spreadsheet = DummySpreadsheet(bangtonghop_all)
+                # Gọi hàm xuất
+                ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=output_path)
+                if ok:
+                    with open(file_path, 'rb') as f:
+                        st.download_button(
+                            label="Tải file Excel kết quả",
+                            data=f.read(),
+                            file_name="output_giangday.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                else:
+                    st.error(f"Lỗi xuất file Excel: {file_path}")
         else:
             st.warning("Không có dữ liệu kết quả sau xử lý.")
             st.info("Chi tiết kiểm tra từng dòng:")
