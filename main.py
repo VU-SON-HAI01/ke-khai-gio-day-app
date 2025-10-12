@@ -389,13 +389,15 @@ else:
                 st.Page("quydoi_giamgio.py", title="Kê Giảm trừ/Kiêm nhiệm", icon="⚖️"),
                 st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃"),
                 st.Page("quydoi_gioday_admin.py", title="Kê giờ dạy (Admin)", icon="🛠️")
-
             ],
             "Báo cáo": [
                 st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")
             ],
             "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")],
-            "Quản trị": [st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")]
+            "Quản trị": [
+                st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
+                st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧")
+            ]
         }
         pg = st.navigation(pages)
         pg.run()
