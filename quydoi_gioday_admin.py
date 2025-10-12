@@ -684,11 +684,8 @@ if uploaded_file:
                     df_gv_info = pd.read_excel(thongtin_gv_path)
                 else:
                     df_gv_info = None
-                # Luôn đọc bangtonghop_all từ output_giangday.xlsx
-                if os.path.exists(output_path):
-                    df_giangday = pd.read_excel(output_path)
-                else:
-                    df_giangday = bangtonghop_all
+                # Luôn lấy dữ liệu giảng dạy từ biến bangtonghop_all (đã xử lý từ Google Sheet)
+                df_giangday = bangtonghop_all
                 # Luôn đọc df_giangday_hk2 từ output_giangday(HK2).xlsx nếu có
                 if os.path.exists(output_hk2_path):
                     df_giangday_hk2 = pd.read_excel(output_hk2_path)
