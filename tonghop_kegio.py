@@ -304,7 +304,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
                 print(f"Lỗi ghi dòng {excel_row}: {e}")
                 continue
     wb.save(template_path)
-    return True, template_path,df_giangday_hk1,df_giangday_hk2
+    return True, template_path
 def tonghop_ketqua():
     # Nút tải dữ liệu từ Google Sheet của user (các sheet có tên bắt đầu bằng 'output_')
     if 'export_ready' not in st.session_state:

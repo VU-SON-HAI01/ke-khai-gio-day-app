@@ -754,9 +754,9 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
     #st.write("HK2:", spreadsheet._df_giangday_hk2)
     #st.write("GV info:", spreadsheet._df_gv_info)
     template_path = 'data_base/mau_kegio.xlsx'
-    ok, file_path, df_giangday_hk1, df_giangday_hk2 = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
-    st.write("HK1:", df_giangday_hk1)
-    st.write("HK2:", df_giangday_hk2)
+    ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
+    #st.write("HK1:", df_giangday_hk1)
+    #st.write("HK2:", df_giangday_hk2)
     if ok:
         with open(file_path, 'rb') as f:
             st.download_button(
