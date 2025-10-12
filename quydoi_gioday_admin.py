@@ -666,85 +666,97 @@ if uploaded_file:
             from tonghop_kegio import export_giangday_to_excel
             import tempfile
             # Tạo file tạm để xuất Excel
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                template_path = 'data_base/mau_kegio.xlsx'
-                # Lấy dữ liệu giảng dạy từ Google Sheet nếu có
-                df_giangday = None
-                df_giangday_hk2 = None
-                df_gv_info = None
-                spreadsheet_gs = st.session_state.get('spreadsheet')
-                if spreadsheet_gs is not None:
-                     # Load df_giangday from worksheet 'output_giangday'
+            template_path = 'data_base/mau_kegio.xlsx'
+            # Lấy dữ liệu giảng dạy từ Google Sheet nếu có
+            df_giangday = None
+            df_giangday_hk2 = None
+            df_gv_info = None
+            spreadsheet_gs = st.session_state.get('spreadsheet')
+            if spreadsheet_gs is not None:
+                st.write("Worksheet titles:", [ws.title for ws in spreadsheet_gs.worksheets()])
+                # Load df_giangday from worksheet 'output_giangday'
+                ws_giangday = None
+                try:
+                    ws_giangday = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday'), None)
+                except Exception as e:
+                    st.write("Error finding output_giangday:", e)
                     ws_giangday = None
+                if ws_giangday is not None:
                     try:
-                        ws_giangday = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday'), None)
-                    except Exception:
-                        ws_giangday = None
-                    if ws_giangday is not None:
-                        try:
-                            df_giangday = pd.DataFrame(ws_giangday.get_all_records())
-                        except Exception:
-                            df_giangday = None
-                    # Load df_giangday_hk2 from worksheet 'output_giangday(HK2)'
+                        records_giangday = ws_giangday.get_all_records()
+                        st.write("output_giangday records:", records_giangday)
+                        df_giangday = pd.DataFrame(records_giangday)
+                    except Exception as e:
+                        st.write("Error loading output_giangday records:", e)
+                        df_giangday = None
+                # Load df_giangday_hk2 from worksheet 'output_giangday(HK2)'
+                ws_giangday_hk2 = None
+                try:
+                    ws_giangday_hk2 = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday(HK2)'), None)
+                except Exception as e:
+                    st.write("Error finding output_giangday(HK2):", e)
                     ws_giangday_hk2 = None
+                if ws_giangday_hk2 is not None:
                     try:
-                        ws_giangday_hk2 = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday(HK2)'), None)
-                    except Exception:
-                        ws_giangday_hk2 = None
-                    if ws_giangday_hk2 is not None:
-                        try:
-                            df_giangday_hk2 = pd.DataFrame(ws_giangday_hk2.get_all_records())
-                        except Exception:
-                            df_giangday_hk2 = None
-                    # Load df_gv_info from worksheet 'thongtin_gv'
+                        records_giangday_hk2 = ws_giangday_hk2.get_all_records()
+                        st.write("output_giangday(HK2) records:", records_giangday_hk2)
+                        df_giangday_hk2 = pd.DataFrame(records_giangday_hk2)
+                    except Exception as e:
+                        st.write("Error loading output_giangday(HK2) records:", e)
+                        df_giangday_hk2 = None
+                # Load df_gv_info from worksheet 'thongtin_gv'
+                ws_gv_info = None
+                try:
+                    ws_gv_info = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'thongtin_gv'), None)
+                except Exception as e:
+                    st.write("Error finding thongtin_gv:", e)
                     ws_gv_info = None
+                if ws_gv_info is not None:
                     try:
-                        ws_gv_info = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'thongtin_gv'), None)
-                    except Exception:
-                        ws_gv_info = None
-                    if ws_gv_info is not None:
-                        try:
-                            df_gv_info = pd.DataFrame(ws_gv_info.get_all_records())
-                        except Exception:
-                            df_gv_info = None
-                st.write(df_giangday)
-                st.write(df_giangday_hk2)
-                # Nếu không có dữ liệu từ Google Sheet thì fallback sang dữ liệu đã xử lý
-                class DummyWorksheet:
-                    def __init__(self, df, title):
-                        self._df = df
-                        self.title = title
-                    def get_all_records(self):
-                        import pandas as pd
-                        if self._df is None or not isinstance(self._df, pd.DataFrame) or self._df.empty:
-                            return []
-                        return self._df.to_dict(orient='records')
-                # Tạo dummy spreadsheet với cả output_giangday, output_giangday(HK2) và thongtin_gv
-                class DummySpreadsheet:
-                    def __init__(self, df_giangday, df_giangday_hk2, df_gv_info):
-                        self._df_giangday = df_giangday
-                        self._df_giangday_hk2 = df_giangday_hk2
-                        self._df_gv_info = df_gv_info
-                    def worksheets(self):
-                        ws = [DummyWorksheet(self._df_giangday, 'output_giangday')]
-                        if self._df_giangday_hk2 is not None:
-                            ws.append(DummyWorksheet(self._df_giangday_hk2, 'output_giangday(HK2)'))
-                        if self._df_gv_info is not None:
-                            ws.append(DummyWorksheet(self._df_gv_info, 'thongtin_gv'))
-                        return ws
+                        records_gv_info = ws_gv_info.get_all_records()
+                        st.write("thongtin_gv records:", records_gv_info)
+                        df_gv_info = pd.DataFrame(records_gv_info)
+                    except Exception as e:
+                        st.write("Error loading thongtin_gv records:", e)
+                        df_gv_info = None
+            st.write(df_giangday)
+            st.write(df_giangday_hk2)
+            # Nếu không có dữ liệu từ Google Sheet thì fallback sang dữ liệu đã xử lý
+            class DummyWorksheet:
+                def __init__(self, df, title):
+                    self._df = df
+                    self.title = title
+                def get_all_records(self):
+                    import pandas as pd
+                    if self._df is None or not isinstance(self._df, pd.DataFrame) or self._df.empty:
+                        return []
+                    return self._df.to_dict(orient='records')
+            # Tạo dummy spreadsheet với cả output_giangday, output_giangday(HK2) và thongtin_gv
+            class DummySpreadsheet:
+                def __init__(self, df_giangday, df_giangday_hk2, df_gv_info):
+                    self._df_giangday = df_giangday
+                    self._df_giangday_hk2 = df_giangday_hk2
+                    self._df_gv_info = df_gv_info
+                def worksheets(self):
+                    ws = [DummyWorksheet(self._df_giangday, 'output_giangday')]
+                    if self._df_giangday_hk2 is not None:
+                        ws.append(DummyWorksheet(self._df_giangday_hk2, 'output_giangday(HK2)'))
+                    if self._df_gv_info is not None:
+                        ws.append(DummyWorksheet(self._df_gv_info, 'thongtin_gv'))
+                    return ws
 
-                spreadsheet = DummySpreadsheet(df_giangday, df_giangday_hk2, df_gv_info)
-                ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
-                if ok:
-                    with open(file_path, 'rb') as f:
-                        st.download_button(
-                            label="Tải file Excel kết quả",
-                            data=f.read(),
-                            file_name="output_giangday.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-                else:
-                    st.error(f"Lỗi xuất file Excel: {file_path}")
+            spreadsheet = DummySpreadsheet(df_giangday, df_giangday_hk2, df_gv_info)
+            ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=template_path)
+            if ok:
+                with open(file_path, 'rb') as f:
+                    st.download_button(
+                        label="Tải file Excel kết quả",
+                        data=f.read(),
+                        file_name="output_giangday.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+            else:
+                st.error(f"Lỗi xuất file Excel: {file_path}")
         else:
             st.warning("Không có dữ liệu kết quả sau xử lý.")
             if debug_rows:
