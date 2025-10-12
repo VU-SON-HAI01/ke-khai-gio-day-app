@@ -624,6 +624,10 @@ if uploaded_file:
                 df_mon = st.session_state.get('df_mon', None)
                 # Đọc file thongtin_gv.xlsx thành DataFrame
                 import os
+                # Luôn ghi df_gv_info từ session_state ra file trước khi đọc lại
+                df_gv_info_session = st.session_state.get('df_gv_info')
+                if df_gv_info_session is not None and not df_gv_info_session.empty:
+                    df_gv_info_session.to_excel(thongtin_gv_path, index=False)
                 if os.path.exists(thongtin_gv_path):
                     df_gv_info = pd.read_excel(thongtin_gv_path)
                 else:
