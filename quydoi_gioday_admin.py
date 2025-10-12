@@ -684,8 +684,23 @@ if uploaded_file:
                     df_gv_info = pd.read_excel(thongtin_gv_path)
                 else:
                     df_gv_info = None
-                # Luôn lấy dữ liệu giảng dạy từ biến bangtonghop_all (đã xử lý từ Google Sheet)
-                df_giangday = bangtonghop_all
+                # Lấy dữ liệu giảng dạy từ Google Sheet nếu có
+                df_giangday = None
+                spreadsheet_gs = st.session_state.get('spreadsheet')
+                if spreadsheet_gs is not None:
+                    ws_giangday = None
+                    try:
+                        ws_giangday = next((ws for ws in spreadsheet_gs.worksheets() if ws.title == 'output_giangday'), None)
+                    except Exception:
+                        ws_giangday = None
+                    if ws_giangday is not None:
+                        try:
+                            df_giangday = pd.DataFrame(ws_giangday.get_all_records())
+                        except Exception:
+                            df_giangday = None
+                # Nếu không có dữ liệu từ Google Sheet thì fallback sang dữ liệu đã xử lý
+                if df_giangday is None or df_giangday.empty:
+                    df_giangday = bangtonghop_all
                 # Luôn đọc df_giangday_hk2 từ output_giangday(HK2).xlsx nếu có
                 if os.path.exists(output_hk2_path):
                     df_giangday_hk2 = pd.read_excel(output_hk2_path)
