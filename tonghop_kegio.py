@@ -90,7 +90,7 @@ def export_giangday_to_excel(spreadsheet=None, df_mon=None, df_hk1=None, templat
             except Exception as e:
                 print(f"Lỗi ghi dòng HK1 từ output_giangday {excel_row}: {e}")
                 continue
-
+    
     # Ghi dữ liệu HK2 vào Ke_gio_HK2_Cả_năm từ df_giangday_hk2 nếu có
     if df_giangday_hk2 is not None and 'Ke_gio_HK2_Cả_năm' in wb.sheetnames:
         sheet_hk2 = wb['Ke_gio_HK2_Cả_năm']
