@@ -205,8 +205,10 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
         return pd.DataFrame(), {"error": "Không có tuần nào có dữ liệu tiết > 0."}
     
     st.write(f"Tuan bat dau: {tuanbatdau}, Tuan ket thuc: {tuanketthuc}")
-    # Chỉ lấy dữ liệu tuần trong khoảng này
-    arr_tiet = arr_tiet_list[ (tuanbatdau-1):(tuanketthuc) ]
+    # Chỉ lấy dữ liệu tuần trong khoảng này (chuyển về chỉ số mảng)
+    start_idx = tuanbatdau - week_offset
+    end_idx = tuanketthuc - week_offset
+    arr_tiet = arr_tiet_list[start_idx:end_idx+1]
     
     locdulieu_info = df_ngaytuan_g[(df_ngaytuan_g['Tuần'] >= tuanbatdau) & (df_ngaytuan_g['Tuần'] <= tuanketthuc)].copy()
     if len(locdulieu_info) != len(arr_tiet):
