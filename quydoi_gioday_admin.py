@@ -619,29 +619,33 @@ if uploaded_file:
             with tempfile.TemporaryDirectory() as tmpdirname:
                 template_path = 'data_base/mau_kegio.xlsx'
                 output_path = f'{tmpdirname}/output_giangday.xlsx'
-                # Copy template sang thư mục tạm để không ghi đè file gốc
+                thongtin_gv_path = f'{tmpdirname}/thongtin_gv.xlsx'
                 shutil.copy(template_path, output_path)
-                # Gọi hàm xuất dữ liệu
-                # df_mon lấy từ session_state nếu có
                 df_mon = st.session_state.get('df_mon', None)
-                # Tạo DataFrame đầu vào giống Google Sheet
-                class DummySpreadsheet:
-                    def worksheets(self):
-                        return []
-                # Tạo dummy spreadsheet với worksheet output_giangday
+                # Đọc file thongtin_gv.xlsx thành DataFrame
+                import os
+                if os.path.exists(thongtin_gv_path):
+                    df_gv_info = pd.read_excel(thongtin_gv_path)
+                else:
+                    df_gv_info = None
+                # Tạo dummy worksheet cho thongtin_gv
                 class DummyWorksheet:
-                    def __init__(self, df):
+                    def __init__(self, df, title):
                         self._df = df
-                        self.title = 'output_giangday'
+                        self.title = title
                     def get_all_records(self):
                         return self._df.to_dict(orient='records')
+                # Tạo dummy spreadsheet với cả output_giangday và thongtin_gv
                 class DummySpreadsheet:
-                    def __init__(self, df):
-                        self._df = df
+                    def __init__(self, df_giangday, df_gv_info):
+                        self._df_giangday = df_giangday
+                        self._df_gv_info = df_gv_info
                     def worksheets(self):
-                        return [DummyWorksheet(self._df)]
-                spreadsheet = DummySpreadsheet(bangtonghop_all)
-                # Gọi hàm xuất
+                        ws = [DummyWorksheet(self._df_giangday, 'output_giangday')]
+                        if self._df_gv_info is not None:
+                            ws.append(DummyWorksheet(self._df_gv_info, 'thongtin_gv'))
+                        return ws
+                spreadsheet = DummySpreadsheet(bangtonghop_all, df_gv_info)
                 ok, file_path = export_giangday_to_excel(spreadsheet=spreadsheet, df_mon=df_mon, template_path=output_path)
                 if ok:
                     with open(file_path, 'rb') as f:
