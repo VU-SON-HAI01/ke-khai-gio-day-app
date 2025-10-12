@@ -301,9 +301,9 @@ if uploaded_file:
                     ma_gv = matched_row['Magv'].iloc[0]
                 if 'Chức vụ_HT' in matched_row.columns:
                     chuc_vu_ht = matched_row['Chức vụ_HT'].iloc[0]
-        st.write(f"Giáo viên đã chọn: {selected_gv}")
-        st.write(f"Mã GV: {ma_gv}")
-        st.write(f"Chức vụ: {chuc_vu_ht}")
+        #st.write(f"Giáo viên đã chọn: {selected_gv}")
+        #st.write(f"Mã GV: {ma_gv}")
+        #st.write(f"Chức vụ: {chuc_vu_ht}")
         # Lấy ký tự đầu tiên của Magv, ánh xạ với Mã_khoa của df_khoa (đảm bảo kiểu dữ liệu đúng)
         khoa_phong_trungtam = ''
         debug_info = {}
@@ -320,7 +320,7 @@ if uploaded_file:
                     khoa_phong_trungtam = matched_khoa['Khoa/Phòng/Trung tâm'].iloc[0]
             except Exception as e:
                 debug_info['error'] = str(e)
-        st.write(f"Khoa/Phòng/Trung tâm: {khoa_phong_trungtam}")
+        #st.write(f"Khoa/Phòng/Trung tâm: {khoa_phong_trungtam}")
     # Chọn chuẩn giáo viên
     chuan_gv_selected = st.selectbox("Chuẩn GV", options=["CĐ", "CĐMC", "TC", "TCMC", "VH"], index=2)
     st.session_state['chuan_gv'] = chuan_gv_selected
@@ -359,7 +359,7 @@ if uploaded_file:
     #st.success("Đã upload dữ liệu. Xem trước bảng dữ liệu:")
     #st.dataframe(df_lop_g)
     # Hiển thị danh sách môn học phù hợp với từng lớp đã nhập
-    st.info("Danh sách môn học phù hợp với từng lớp đã nhập:")
+    #st.info("Danh sách môn học phù hợp với từng lớp đã nhập:")
     if 'lop_hoc' in df_input.columns:
         from difflib import get_close_matches
         # Thay thế các ký hiệu N1/N2/N3/Ca1/Ca2/Ca3 thành _1/_2/_3 trước khi xóa khoảng trắng
@@ -396,7 +396,7 @@ if uploaded_file:
         
         lop_hop_le_set = set(df_lop_g['Lớp']) if not df_lop_g.empty and 'Lớp' in df_lop_g.columns else set()
         for lop in df_input['lop_hoc'].drop_duplicates():
-            st.write(f"Lớp: {lop}")
+            #st.write(f"Lớp: {lop}")
             malop_info = df_lop_g[df_lop_g['Lớp'] == lop]
             if lop not in lop_hop_le_set:
                 st.error(f"Lớp '{lop}' không có trong danh sách lớp hợp lệ!")
