@@ -273,8 +273,7 @@ def process_mon_data(row_input_data, df_lop_g, df_mon, df_ngaytuan_g, df_hesosis
         th = timhesomon_siso(siso, is_heavy_duty, 'TH', df_hesosiso_g)
         heso_lt_list.append(lt)
         heso_th_list.append(th)
-    st.write(heso_lt_list)    
-    st.write(heso_th_list)    
+ 
     df_result['HS_SS_LT'] = heso_lt_list
     df_result['HS_SS_TH'] = heso_th_list
     df_result["QĐ thừa"] = (df_result["Tiết_LT"] * df_result["HS_SS_LT"]) + (df_result["Tiết_TH"] * df_result["HS_SS_TH"])
@@ -688,11 +687,43 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
     results = drive_service.files().list(q=query, fields="files(id, name)").execute()
     files = results.get('files', [])
     sheet_names = [f['name'] for f in files]
-    selected_sheet_name = st.selectbox("Chọn tên giảng viên (file Google Sheet) để tải dữ liệu:", options=sheet_names)
+    # Ánh xạ sheet_names từ ma_gv vào cột Magv của df_giaovien để lấy giá trị cột Tên giảng viên
+    magv_to_tengv = {}
+    if not df_giaovien.empty and 'Magv' in df_giaovien.columns and 'Tên giảng viên' in df_giaovien.columns:
+        for _, row in df_giaovien.iterrows():
+            magv = str(row['Magv'])
+            tengv = row['Tên giảng viên']
+            magv_to_tengv[magv] = tengv
+    # Tạo DataFrame ánh xạ sheet_names sang tên giảng viên
+    df_sheet_map = pd.DataFrame({
+        'Tên file Google Sheet': sheet_names,
+        'Tên giảng viên': [magv_to_tengv.get(name, '') for name in sheet_names]
+    })
+    st.write("Ánh xạ tên file Google Sheet sang tên giảng viên:")
+    st.dataframe(df_sheet_map)
+    
+    # Tạo list tên giảng viên từ ánh xạ
+    gv_names_list = df_sheet_map['Tên giảng viên'].tolist()
+    selected_gv_name = st.selectbox("Chọn tên giảng viên để tải dữ liệu:", options=gv_names_list)
+    # Tìm tên file Google Sheet tương ứng với tên giảng viên đã chọn
+    selected_sheet_name = ''
+    if selected_gv_name:
+        matched_row = df_sheet_map[df_sheet_map['Tên giảng viên'] == selected_gv_name]
+        if not matched_row.empty:
+            selected_sheet_name = matched_row['Tên file Google Sheet'].iloc[0]
     # Khi chọn tên sheet, load dữ liệu từ file đó
     df_giangday = None
     df_giangday_hk2 = None
     df_gv_info = None
+    def convert_comma_decimal(df, columns=None):
+        import pandas as pd
+        if df is None or df.empty:
+            return df
+        if columns is None:
+            columns = df.select_dtypes(include='object').columns
+        for col in columns:
+            df[col] = df[col].apply(lambda x: float(str(x).replace(',', '.')) if isinstance(x, str) and ',' in x and str(x).replace(',', '.').replace('.', '', 1).isdigit() else x)
+        return df
     if selected_sheet_name:
         file_obj = next((f for f in files if f['name'] == selected_sheet_name), None)
         if file_obj:
@@ -703,6 +734,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 ws_giangday = sh.worksheet('output_giangday')
                 records_giangday = ws_giangday.get_all_records()
                 df_giangday = pd.DataFrame(records_giangday)
+                df_giangday = convert_comma_decimal(df_giangday)
             except Exception as e:
                 st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday: {e}")
                 df_giangday = None
@@ -711,6 +743,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 ws_giangday_hk2 = sh.worksheet('output_giangday(HK2)')
                 records_giangday_hk2 = ws_giangday_hk2.get_all_records()
                 df_giangday_hk2 = pd.DataFrame(records_giangday_hk2)
+                df_giangday_hk2 = convert_comma_decimal(df_giangday_hk2)
             except Exception as e:
                 st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday(HK2): {e}")
                 df_giangday_hk2 = None
