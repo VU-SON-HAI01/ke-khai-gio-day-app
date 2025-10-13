@@ -770,7 +770,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 })
                 # Ánh xạ Môn học và MH/MĐ từ df_mon
                 mon_map = df_mon.set_index('Mã_môn_ngành')['Môn_học'] if ('Mã_môn_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns) else None
-                mdmh_map = df_mon.set_index('Mã_môn_ngành')['MĐ/MH'] if ('Mã_môn_ngành' in df_mon.columns and 'MĐ/MH' in df_mon.columns) else None
+                mdmh_map = df_mon.set_index('Mã_môn_ngành')['MH/MĐ'] if ('Mã_môn_ngành' in df_mon.columns and 'MH/MĐ' in df_mon.columns) else None
                 df_grouped_hk1['Môn_học'] = df_grouped_hk1['Mã_Môn_Ngành'].map(mon_map) if mon_map is not None else ''
                 df_grouped_hk1['MH/MĐ'] = df_grouped_hk1['Mã_Môn_Ngành'].map(mdmh_map) if mdmh_map is not None else ''
                 # Đổi tên cột QĐ thừa thành Tiết QĐ
@@ -797,7 +797,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                     'QĐ thừa': 'sum'
                 })
                 mon_map = df_mon.set_index('Mã_môn_ngành')['Môn_học'] if ('Mã_môn_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns) else None
-                mdmh_map = df_mon.set_index('Mã_môn_ngành')['MĐ/MH'] if ('Mã_môn_ngành' in df_mon.columns and 'MĐ/MH' in df_mon.columns) else None
+                mdmh_map = df_mon.set_index('Mã_môn_ngành')['MH/MĐ'] if ('Mã_môn_ngành' in df_mon.columns and 'MH/MĐ' in df_mon.columns) else None
                 df_grouped_hk2['Môn_học'] = df_grouped_hk2['Mã_Môn_Ngành'].map(mon_map) if mon_map is not None else ''
                 df_grouped_hk2['MH/MĐ'] = df_grouped_hk2['Mã_Môn_Ngành'].map(mdmh_map) if mdmh_map is not None else ''
                 df_grouped_hk2.rename(columns={'QĐ thừa': 'Tiết QĐ'}, inplace=True)
