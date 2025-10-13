@@ -796,7 +796,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 ten_gv = str(df_gv_info['Tên_gv'].iloc[0]).replace(' ', '_')
             if 'Mã_gv' in df_gv_info.columns and not df_gv_info.empty:
                 ma_gv = str(df_gv_info['Mã_gv'].iloc[0])
-        file_download_name = f"{ma_gv}-{ten_gv}.xlsx" if ma_gv and ten_gv else "output_giangday.xlsx"
+        file_download_name = f"{ma_gv}_{ten_gv}.xlsx" if ma_gv and ten_gv else "output_giangday.xlsx"
         with open(file_path, 'rb') as f:
             st.download_button(
                 label="Tải file Excel kết quả",
