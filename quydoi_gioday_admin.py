@@ -712,14 +712,21 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
     #st.dataframe(df_sheet_map)
     
     # Tạo list tên giảng viên từ ánh xạ
-    gv_names_list = df_sheet_map['Tên giảng viên'].tolist()
-    selected_gv_name = st.selectbox("Chọn tên giảng viên để tải dữ liệu:", options=gv_names_list)
-    # Tìm tên file Google Sheet tương ứng với tên giảng viên đã chọn
-    selected_sheet_name = ''
-    if selected_gv_name:
-        matched_row = df_sheet_map[df_sheet_map['Tên giảng viên'] == selected_gv_name]
-        if not matched_row.empty:
-            selected_sheet_name = matched_row['Tên file Google Sheet'].iloc[0]
+    # Tạo list giáo viên dạng 'magv - ten_gv' cho selectbox tải dữ liệu
+    gv_display_list = []
+    gv_map = {}
+    for idx, row in df_sheet_map.iterrows():
+        magv = ''
+        ten_gv = row['Tên giảng viên']
+        sheet_name = row['Tên file Google Sheet']
+        # Tìm magv từ sheet_name nếu có trong magv_to_tengv
+        if sheet_name in magv_to_tengv:
+            magv = sheet_name
+        display_name = f"{magv} - {ten_gv}" if magv else ten_gv
+        gv_display_list.append(display_name)
+        gv_map[display_name] = sheet_name
+    selected_gv_display = st.selectbox("Chọn tên giảng viên để tải dữ liệu:", options=sorted(gv_display_list))
+    selected_sheet_name = gv_map[selected_gv_display]
     # Khi chọn tên sheet, load dữ liệu từ file đó
     df_giangday = None
     df_giangday_hk2 = None
