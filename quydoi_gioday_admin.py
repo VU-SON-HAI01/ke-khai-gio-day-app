@@ -781,8 +781,8 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 st.write("#### Bảng tổng hợp giảng dạy HK1 (gộp theo lớp và môn)")
                 st.dataframe(df_grouped_hk1)
         # Hiển thị bảng gốc như cũ
-        st.write("#### Bảng chi tiết HK1 từ Google Sheet")
-        st.write(df_giangday)
+        #st.write("#### Bảng chi tiết HK1 từ Google Sheet")
+        #st.write(df_giangday)
     with st.expander("Xem dữ liệu giảng dạy HK2 từ Google Sheet"):
         # Tự động gom nhóm bảng HK2
         df_grouped_hk2 = None
@@ -805,8 +805,8 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 df_grouped_hk2 = df_grouped_hk2[[col for col in cols_show if col in df_grouped_hk2.columns]]
                 st.write("#### Bảng tổng hợp giảng dạy HK2 (gộp theo lớp và môn)")
                 st.dataframe(df_grouped_hk2)
-        st.write("#### Bảng chi tiết HK2 từ Google Sheet")
-        st.write(df_giangday_hk2)
+        #st.write("#### Bảng chi tiết HK2 từ Google Sheet")
+        #st.write(df_giangday_hk2)
     # Tạo dummy spreadsheet để xuất file Excel
     class DummyWorksheet:
         def __init__(self, df, title):
