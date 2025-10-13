@@ -800,6 +800,15 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 # Sắp xếp lại thứ tự cột
                 cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'MH/MĐ']
                 df_grouped_hk1 = df_grouped_hk1[[col for col in cols_show if col in df_grouped_hk1.columns]]
+                # Thêm dòng tổng cộng
+                total_row = {
+                    'Lớp_học': 'TỔNG',
+                    'Môn_học': '',
+                    'Tiết': df_grouped_hk1['Tiết'].sum(),
+                    'Tiết QĐ': df_grouped_hk1['Tiết QĐ'].sum(),
+                    'MH/MĐ': ''
+                }
+                df_grouped_hk1 = pd.concat([df_grouped_hk1, pd.DataFrame([total_row])], ignore_index=True)
                 st.write("#### Bảng tổng hợp giảng dạy HK1 (gộp theo lớp và môn)")
                 st.dataframe(df_grouped_hk1)
         # Hiển thị bảng gốc như cũ
@@ -825,6 +834,15 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 df_grouped_hk2.rename(columns={'QĐ thừa': 'Tiết QĐ'}, inplace=True)
                 cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'MH/MĐ']
                 df_grouped_hk2 = df_grouped_hk2[[col for col in cols_show if col in df_grouped_hk2.columns]]
+                # Thêm dòng tổng cộng
+                total_row = {
+                    'Lớp_học': 'TỔNG',
+                    'Môn_học': '',
+                    'Tiết': df_grouped_hk2['Tiết'].sum(),
+                    'Tiết QĐ': df_grouped_hk2['Tiết QĐ'].sum(),
+                    'MH/MĐ': ''
+                }
+                df_grouped_hk2 = pd.concat([df_grouped_hk2, pd.DataFrame([total_row])], ignore_index=True)
                 st.write("#### Bảng tổng hợp giảng dạy HK2 (gộp theo lớp và môn)")
                 st.dataframe(df_grouped_hk2)
         #st.write("#### Bảng chi tiết HK2 từ Google Sheet")
