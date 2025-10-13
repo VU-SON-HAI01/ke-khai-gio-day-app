@@ -789,11 +789,19 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
     #st.write("HK1:", df_giangday_hk1)
     #st.write("HK2:", df_giangday_hk2)
     if ok:
+        ten_gv = ''
+        ma_gv = ''
+        if df_gv_info is not None:
+            if 'Tên_gv' in df_gv_info.columns and not df_gv_info.empty:
+                ten_gv = str(df_gv_info['Tên_gv'].iloc[0]).replace(' ', '_')
+            if 'Mã_gv' in df_gv_info.columns and not df_gv_info.empty:
+                ma_gv = str(df_gv_info['Mã_gv'].iloc[0])
+        file_download_name = f"{ma_gv}-{ten_gv}.xlsx" if ma_gv and ten_gv else "output_giangday.xlsx"
         with open(file_path, 'rb') as f:
             st.download_button(
                 label="Tải file Excel kết quả",
                 data=f.read(),
-                file_name="output_giangday.xlsx",
+                file_name=file_download_name,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
         # Chỉ clear các biến session_state về giá trị mặc định để tránh xung đột khi chọn GV khác
