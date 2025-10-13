@@ -719,7 +719,9 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
         magv = ''
         ten_gv = row['Tên giảng viên']
         sheet_name = row['Tên file Google Sheet']
-        # Tìm magv từ sheet_name nếu có trong magv_to_tengv
+        # Loại bỏ entry nếu tên giảng viên trống
+        if not ten_gv or str(ten_gv).strip() == '':
+            continue
         if sheet_name in magv_to_tengv:
             magv = sheet_name
         display_name = f"{magv} - {ten_gv}" if magv else ten_gv
