@@ -322,10 +322,23 @@ with st.expander("Lưu trữ dữ kiệu giảng dạy của giảng viên từ 
                 gv_col = col
                 break
         if gv_col:
-            list_gv = sorted(df_input[gv_col].dropna().unique())
-            selected_gv = st.selectbox("Chọn giáo viên để lọc dữ liệu", options=list_gv)
+            # Tạo list giáo viên dạng 'magv - ten_gv'
+            gv_list_raw = df_input[gv_col].dropna().unique()
+            gv_display_list = []
+            gv_map = {}
+            for ten_gv in gv_list_raw:
+                magv = ''
+                if not df_giaovien.empty and 'Tên giảng viên' in df_giaovien.columns:
+                    matched_row = df_giaovien[df_giaovien['Tên giảng viên'] == ten_gv]
+                    if not matched_row.empty and 'Magv' in matched_row.columns:
+                        magv = str(matched_row['Magv'].iloc[0])
+                display_name = f"{magv} - {ten_gv}" if magv else ten_gv
+                gv_display_list.append(display_name)
+                gv_map[display_name] = ten_gv
+            selected_gv_display = st.selectbox("Chọn giáo viên để lọc dữ liệu", options=sorted(gv_display_list))
+            selected_gv = gv_map[selected_gv_display]
             df_input = df_input[df_input[gv_col] == selected_gv].copy()
-                # Ánh xạ selected_gv với df_giaovien để lấy Magv và Chức vụ_HT
+            # Ánh xạ selected_gv với df_giaovien để lấy Magv và Chức vụ_HT
             ma_gv = ''
             chuc_vu_ht = ''
             if not df_giaovien.empty and 'Tên giảng viên' in df_giaovien.columns:
