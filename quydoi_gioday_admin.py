@@ -754,8 +754,58 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
     with st.expander("Xem thông tin giảng viên"):
         st.write(df_gv_info)
     with st.expander("Xem dữ liệu giảng dạy HK1 từ Google Sheet"):
+        # Tự động gom nhóm bảng HK1
+        df_grouped_hk1 = None
+        if df_giangday is not None and not df_giangday.empty:
+            # Đảm bảo các cột cần thiết tồn tại
+            required_cols = ['Lớp_học', 'Mã_Môn_Ngành', 'Tiết', 'QĐ thừa']
+            missing_cols = [col for col in required_cols if col not in df_giangday.columns]
+            if missing_cols:
+                st.warning(f"Bảng giảng dạy HK1 thiếu các cột: {', '.join(missing_cols)}")
+            else:
+                # Gom nhóm theo Lớp_học và Mã_Môn_Ngành, tính tổng Tiết và QĐ thừa
+                df_grouped_hk1 = df_giangday.groupby(['Lớp_học', 'Mã_Môn_Ngành'], as_index=False).agg({
+                    'Tiết': 'sum',
+                    'QĐ thừa': 'sum'
+                })
+                # Ánh xạ Môn học và MH/MĐ từ df_mon
+                mon_map = df_mon.set_index('Mã_môn_ngành')['Môn_học'] if ('Mã_môn_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns) else None
+                mdmh_map = df_mon.set_index('Mã_môn_ngành')['MĐ/MH'] if ('Mã_môn_ngành' in df_mon.columns and 'MĐ/MH' in df_mon.columns) else None
+                df_grouped_hk1['Môn_học'] = df_grouped_hk1['Mã_Môn_Ngành'].map(mon_map) if mon_map is not None else ''
+                df_grouped_hk1['MH/MĐ'] = df_grouped_hk1['Mã_Môn_Ngành'].map(mdmh_map) if mdmh_map is not None else ''
+                # Đổi tên cột QĐ thừa thành Tiết QĐ
+                df_grouped_hk1.rename(columns={'QĐ thừa': 'Tiết QĐ'}, inplace=True)
+                # Sắp xếp lại thứ tự cột
+                cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'MH/MĐ']
+                df_grouped_hk1 = df_grouped_hk1[[col for col in cols_show if col in df_grouped_hk1.columns]]
+                st.write("#### Bảng tổng hợp giảng dạy HK1 (gộp theo lớp và môn)")
+                st.dataframe(df_grouped_hk1)
+        # Hiển thị bảng gốc như cũ
+        st.write("#### Bảng chi tiết HK1 từ Google Sheet")
         st.write(df_giangday)
     with st.expander("Xem dữ liệu giảng dạy HK2 từ Google Sheet"):
+        # Tự động gom nhóm bảng HK2
+        df_grouped_hk2 = None
+        if df_giangday_hk2 is not None and not df_giangday_hk2.empty:
+            required_cols = ['Lớp_học', 'Mã_Môn_Ngành', 'Tiết', 'QĐ thừa']
+            missing_cols = [col for col in required_cols if col not in df_giangday_hk2.columns]
+            if missing_cols:
+                st.warning(f"Bảng giảng dạy HK2 thiếu các cột: {', '.join(missing_cols)}")
+            else:
+                df_grouped_hk2 = df_giangday_hk2.groupby(['Lớp_học', 'Mã_Môn_Ngành'], as_index=False).agg({
+                    'Tiết': 'sum',
+                    'QĐ thừa': 'sum'
+                })
+                mon_map = df_mon.set_index('Mã_môn_ngành')['Môn_học'] if ('Mã_môn_ngành' in df_mon.columns and 'Môn_học' in df_mon.columns) else None
+                mdmh_map = df_mon.set_index('Mã_môn_ngành')['MĐ/MH'] if ('Mã_môn_ngành' in df_mon.columns and 'MĐ/MH' in df_mon.columns) else None
+                df_grouped_hk2['Môn_học'] = df_grouped_hk2['Mã_Môn_Ngành'].map(mon_map) if mon_map is not None else ''
+                df_grouped_hk2['MH/MĐ'] = df_grouped_hk2['Mã_Môn_Ngành'].map(mdmh_map) if mdmh_map is not None else ''
+                df_grouped_hk2.rename(columns={'QĐ thừa': 'Tiết QĐ'}, inplace=True)
+                cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'MH/MĐ']
+                df_grouped_hk2 = df_grouped_hk2[[col for col in cols_show if col in df_grouped_hk2.columns]]
+                st.write("#### Bảng tổng hợp giảng dạy HK2 (gộp theo lớp và môn)")
+                st.dataframe(df_grouped_hk2)
+        st.write("#### Bảng chi tiết HK2 từ Google Sheet")
         st.write(df_giangday_hk2)
     # Tạo dummy spreadsheet để xuất file Excel
     class DummyWorksheet:
