@@ -412,8 +412,8 @@ with col3:
     cap_nhat_input = st.text_input("Cập nhật", value="T8-2025")
 st.markdown("---")
 
-with st.container():
-    st.header("TẢI LÊN CÁC BIỂU MẪU CẦN THIẾT")
+with st.expander("Tải lên (file mẫu) cần thiết nếu không cần"):
+
     st.markdown("""
     [📥 Tải xuống Mẫu bảng điểm](data_base/Bang_diem_qua_trinh_(Mau).xlsx)
     """)
