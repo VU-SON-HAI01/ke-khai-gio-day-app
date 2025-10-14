@@ -74,6 +74,9 @@ if uploaded_gv_file:
                 df_result.dropna(how='all', inplace=True)
                 # Xóa các dòng mà cả 3 cột nội dung đều trống
                 df_result = df_result.dropna(subset=["Nội dung", "Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)", "Quy ra giờ"], how='all')
+                # Loại bỏ dòng tiêu đề (TT, NỘI DUNG, Tên..., Quy ra giờ)
+                df_result = df_result[~((df_result["TT"] == "TT") & (df_result["Nội dung"] == "NỘI DUNG"))]
+                df_result = df_result[~((df_result["TT"] == "TT") & (df_result["Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)"] == "Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)") & (df_result["Quy ra giờ"] == "Quy ra giờ"))]
                 st.subheader("Dữ liệu hoạt động khác quy ra giờ chuẩn")
                 st.dataframe(df_result)
             else:
