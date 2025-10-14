@@ -35,57 +35,38 @@ if uploaded_gv_file:
         wb_gv = openpyxl.load_workbook(gv_path, data_only=True)
         if sheet_name in wb_gv.sheetnames:
             ws_gv = wb_gv[sheet_name]
-            # Tìm vị trí dòng 'CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN' ở cột A
-            start_row = None
+            # Tìm vị trí dòng 'TT' ở cột A
+            tt_row = None
             for row in range(1, ws_gv.max_row + 1):
                 val = str(ws_gv.cell(row=row, column=1).value).strip() if ws_gv.cell(row=row, column=1).value is not None else ''
-                if val.upper() == 'CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN':
-                    start_row = row
+                if val == 'TT':
+                    tt_row = row
                     break
-            # Tìm vị trí dòng 'TT' ở cột A từ start_row xuống
-            end_row = None
-            if start_row is not None:
-                for row in range(start_row+1, ws_gv.max_row + 1):
-                    val = str(ws_gv.cell(row=row, column=1).value).strip() if ws_gv.cell(row=row, column=1).value is not None else ''
-                    if val == 'TT':
-                        end_row = row
+            # Nếu tìm thấy dòng TT, lấy dữ liệu từ dòng đó trở xuống đến khi gặp dòng trống ở cột A
+            data_rows = []
+            if tt_row is not None:
+                for row in range(tt_row, ws_gv.max_row + 1):
+                    val_a = ws_gv.cell(row=row, column=1).value
+                    if val_a is None or str(val_a).strip() == '':
                         break
-            # Tìm vị trí dòng trống ở cột B từ end_row+1 xuống
-            b_start = None
-            b_end = None
-            if end_row is not None:
-                b_start = end_row + 1
-                for row in range(b_start, ws_gv.max_row + 1):
-                    val = ws_gv.cell(row=row, column=2).value
-                    if val is None or str(val).strip() == '':
-                        b_end = row - 1
-                        break
-                if b_end is None:
-                    b_end = ws_gv.max_row
-            # Lấy dữ liệu từ start_row đến end_row ở cột A-L
-            df1 = None
-            if start_row is not None and end_row is not None:
-                data1 = []
-                for row in range(start_row, end_row+1):
-                    data1.append([ws_gv.cell(row=row, column=col).value for col in range(1,13)])
-                df1 = pd.DataFrame(data1)
-            # Lấy dữ liệu từ b_start đến b_end ở cột A-L
-            df2 = None
-            if b_start is not None and b_end is not None and b_end >= b_start:
-                data2 = []
-                for row in range(b_start, b_end+1):
-                    data2.append([ws_gv.cell(row=row, column=col).value for col in range(1,13)])
-                df2 = pd.DataFrame(data2)
-            # Ghép hai phần lại nếu có
+                    # Lấy các cột: TT (A), Nội dung (B), Tên/Tiêu đề hoạt động (D), Quy ra giờ (L)
+                    row_data = [ws_gv.cell(row=row, column=1).value,  # TT
+                                ws_gv.cell(row=row, column=2).value,  # Nội dung
+                                ws_gv.cell(row=row, column=4).value,  # Tên/Tiêu đề hoạt động
+                                ws_gv.cell(row=row, column=12).value] # Quy ra giờ
+                    # Nếu toàn bộ row_data đều trống thì bỏ qua
+                    if all(x is None or str(x).strip() == '' for x in row_data):
+                        continue
+                    data_rows.append(row_data)
+            # Tạo DataFrame và đặt tên cột
             df_result = None
-            if df1 is not None and df2 is not None:
-                df_result = pd.concat([df1, df2], ignore_index=True)
-            elif df1 is not None:
-                df_result = df1
-            elif df2 is not None:
-                df_result = df2
-            if df_result is not None:
-                st.subheader("Dữ liệu hoạt động khác quy ra giờ chuẩn (cột A-L)")
+            if data_rows:
+                df_result = pd.DataFrame(data_rows, columns=["TT", "Nội dung", "Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)", "Quy ra giờ"])
+                # Xóa các dòng trống hoàn toàn
+                df_result.dropna(how='all', inplace=True)
+                # Xóa các dòng mà cả 3 cột nội dung đều trống
+                df_result = df_result.dropna(subset=["Nội dung", "Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)", "Quy ra giờ"], how='all')
+                st.subheader("Dữ liệu hoạt động khác quy ra giờ chuẩn")
                 st.dataframe(df_result)
             else:
                 st.info("Không tìm thấy dữ liệu phù hợp trong sheet hoặc file GV.")
