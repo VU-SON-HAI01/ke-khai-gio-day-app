@@ -35,13 +35,21 @@ if uploaded_gv_file:
         wb_gv = openpyxl.load_workbook(gv_path, data_only=True)
         if sheet_name in wb_gv.sheetnames:
             ws_gv = wb_gv[sheet_name]
-            # Tìm vị trí dòng 'TT' ở cột A
-            tt_row = None
+            # Tìm vị trí dòng 'CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN' ở cột A
+            start_row = None
             for row in range(1, ws_gv.max_row + 1):
                 val = str(ws_gv.cell(row=row, column=1).value).strip() if ws_gv.cell(row=row, column=1).value is not None else ''
-                if val == 'TT':
-                    tt_row = row
+                if val.upper() == 'CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN':
+                    start_row = row
                     break
+            # Sau khi gặp dòng này, tìm dòng TT ở cột A phía dưới
+            tt_row = None
+            if start_row is not None:
+                for row in range(start_row+1, ws_gv.max_row + 1):
+                    val = str(ws_gv.cell(row=row, column=1).value).strip() if ws_gv.cell(row=row, column=1).value is not None else ''
+                    if val == 'TT':
+                        tt_row = row
+                        break
             # Nếu tìm thấy dòng TT, lấy dữ liệu từ dòng đó trở xuống đến khi gặp dòng trống ở cột A
             data_rows = []
             if tt_row is not None:
