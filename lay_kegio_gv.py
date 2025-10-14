@@ -6,19 +6,23 @@ import tempfile
 st.set_page_config(page_title="Lấy Kê Giờ GV", layout="wide")
 st.title("Lấy dữ liệu kê giờ từ file GV sang file tổng hợp Khoa")
 
+
 st.header("Bước 1: Upload file của Giáo viên")
 uploaded_gv_file = st.file_uploader("Tải lên file Excel của Giáo viên (xls/xlsx)", type=["xls", "xlsx"], key="gv_file")
 
 st.header("Bước 2: Upload file tổng hợp Khoa")
 uploaded_khoa_file = st.file_uploader("Tải lên file Excel tổng hợp Khoa (xls/xlsx)", type=["xls", "xlsx"], key="khoa_file")
 
+gv_path = None
+if uploaded_gv_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_gv:
+        tmp_gv.write(uploaded_gv_file.read())
+        gv_path = tmp_gv.name
+
 if uploaded_gv_file:
     # Hiển thị danh sách sheet của file GV
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_gv_sheet:
-            tmp_gv_sheet.write(uploaded_gv_file.read())
-            gv_path_sheet = tmp_gv_sheet.name
-        wb_gv_sheet = openpyxl.load_workbook(gv_path_sheet, data_only=True)
+        wb_gv_sheet = openpyxl.load_workbook(gv_path, data_only=True)
         sheet_list = wb_gv_sheet.sheetnames
         st.info(f"Các sheet trong file GV: {sheet_list}")
         if "Ke_gio_HK2_Cả_năm" not in sheet_list:
@@ -28,11 +32,7 @@ if uploaded_gv_file:
     st.header("Bước 4: Trích xuất dữ liệu hoạt động khác quy ra giờ chuẩn từ file GV")
     sheet_name = "Ke_gio_HK2_Cả_năm"
     try:
-        # Tạo file tạm từ uploaded_gv_file để openpyxl đọc
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_gv_extract:
-            tmp_gv_extract.write(uploaded_gv_file.read())
-            gv_path_extract = tmp_gv_extract.name
-        wb_gv = openpyxl.load_workbook(gv_path_extract, data_only=True)
+        wb_gv = openpyxl.load_workbook(gv_path, data_only=True)
         if sheet_name in wb_gv.sheetnames:
             ws_gv = wb_gv[sheet_name]
             # Tìm vị trí dòng 'CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN' ở cột A
@@ -93,10 +93,8 @@ if uploaded_gv_file:
             st.warning(f"Không tìm thấy sheet '{sheet_name}' trong file GV.")
     except Exception as e:
         st.error(f"Lỗi khi trích xuất dữ liệu hoạt động khác: {e}")
-    st.header("Bước 3: Lấy dữ liệu từ file GV và truyền vào file tổng hợp Khoa")
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_gv:
-        tmp_gv.write(uploaded_gv_file.read())
-        gv_path = tmp_gv.name
+    st.header("Bước 4: Lấy dữ liệu từ file GV và truyền vào file tổng hợp Khoa")
+    # gv_path đã được tạo ở trên, không cần tạo lại
     with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_khoa:
         tmp_khoa.write(uploaded_khoa_file.read())
         khoa_path = tmp_khoa.name
