@@ -811,6 +811,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                     'MH/MĐ': ''
                 }
                 df_grouped_hk1 = pd.concat([df_grouped_hk1, pd.DataFrame([total_row])], ignore_index=True)
+                st.session_state['df_grouped_hk1'] = df_grouped_hk1.copy()
                 st.write("#### Bảng tổng hợp giảng dạy HK1 (gộp theo lớp và môn)")
                 st.dataframe(df_grouped_hk1)
         # Hiển thị bảng gốc như cũ
@@ -845,6 +846,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                     'MH/MĐ': ''
                 }
                 df_grouped_hk2 = pd.concat([df_grouped_hk2, pd.DataFrame([total_row])], ignore_index=True)
+                st.session_state['df_grouped_hk2'] = df_grouped_hk2.copy()
                 st.write("#### Bảng tổng hợp giảng dạy HK2 (gộp theo lớp và môn)")
                 st.dataframe(df_grouped_hk2)
         #st.write("#### Bảng chi tiết HK2 từ Google Sheet")
