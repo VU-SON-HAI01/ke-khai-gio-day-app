@@ -776,6 +776,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 df_gv_info = None
     with st.expander("Xem thông tin giảng viên"):
         st.write(df_gv_info)
+        st.session_state['df_gv_info'] = df_gv_info
     with st.expander("Xem dữ liệu giảng dạy HK1 từ Google Sheet"):
         # Tự động gom nhóm bảng HK1
         df_grouped_hk1 = None
