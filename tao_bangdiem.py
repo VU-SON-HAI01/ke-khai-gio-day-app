@@ -412,30 +412,34 @@ with col3:
     cap_nhat_input = st.text_input("Cập nhật", value="T8-2025")
 st.markdown("---")
 
-left_column, right_column = st.columns((1, 1), gap="large")
-
-with left_column:
-    st.header("Bước 1: Tải lên các file cần thiết")
-    
+with st.container():
+    st.header("TẢI LÊN CÁC BIỂU MẪU CẦN THIẾT")
+    st.markdown("""
+    [📥 Tải xuống Mẫu bảng điểm](data_base/Bang_diem_qua_trinh_(Mau).xlsx)
+    """)
     uploaded_template_file = st.file_uploader(
         "1. 📂 Tải lên File Mẫu Bảng Điểm (.xlsx)",
         type=['xlsx'],
         key="template_uploader"
     )
 
+    st.markdown("""
+    [📥 Tải xuống Mẫu danh mục lớp](data_base/DS_LOP_(Mau).xlsx)
+    """)
     uploaded_danh_muc_file = st.file_uploader(
         "2. 📂 Tải lên File Danh mục Lớp (DS LOP(Mau).xlsx)",
         type=['xlsx'],
         key="danh_muc_uploader"
     )
 
+with st.container():
+    st.header("Bước 1: Tải dữ liệu danh sách sinh viên")
     uploaded_data_file = st.file_uploader(
-        "3. 📂 Tải lên File Dữ Liệu HSSV (.xlsx)",
-        type=['xlsx'],
-        key="data_uploader"
+    "1. 📂 Tải lên File Dữ Liệu HSSV (.xlsx)",
+    type=['xlsx'],
+    key="data_uploader"
     )
     
-with right_column:
     st.header("Bước 2: Kiểm tra & Xử lý")
     
     # Container để hiển thị kết quả kiểm tra
@@ -460,23 +464,30 @@ with right_column:
 
     if uploaded_template_file and uploaded_data_file and uploaded_danh_muc_file:
         if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True):
-            # Xóa file zip cũ khi xử lý lại
             st.session_state.zip_buffer = None
             try:
+                # Nếu không upload file mẫu thì dùng file mẫu mặc định
+                template_file_obj = uploaded_template_file
+                if template_file_obj is None:
+                    template_file_obj = open("data_base/Bang_diem_qua_trinh_(Mau).xlsx", "rb")
+                danh_muc_file_obj = uploaded_danh_muc_file
+                if danh_muc_file_obj is None:
+                    danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
                 with st.spinner("Đang xử lý... Vui lòng chờ trong giây lát."):
                     st.session_state.generated_files, st.session_state.skipped_sheets = process_excel_files(
-                        uploaded_template_file, 
+                        template_file_obj,
                         uploaded_data_file,
-                        uploaded_danh_muc_file,
+                        danh_muc_file_obj,
                         hoc_ky_input,
                         nam_hoc_input,
                         cap_nhat_input
                     )
-                
+                if uploaded_template_file is None:
+                    template_file_obj.close()
+                if uploaded_danh_muc_file is None:
+                    danh_muc_file_obj.close()
                 if st.session_state.generated_files:
                     st.success(f"✅ Hoàn thành! Đã xử lý và tạo ra {len(st.session_state.generated_files)} file.")
-                    
-                    # *** TẠO FILE ZIP ***
                     with st.spinner("Đang nén file..."):
                         zip_buffer = io.BytesIO()
                         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, False) as zf:
@@ -485,10 +496,8 @@ with right_column:
                         st.session_state.zip_buffer = zip_buffer
                 else:
                     st.warning("Quá trình xử lý hoàn tất nhưng không có file nào được tạo. Vui lòng kiểm tra lại các file đầu vào.")
-                
                 if st.session_state.skipped_sheets:
                     st.info(f"ℹ️ Các sheet sau đã bị bỏ qua vì không có trong danh mục: {', '.join(st.session_state.skipped_sheets)}")
-
             except Exception as e:
                 st.error(f"Đã xảy ra lỗi trong quá trình xử lý: {e}")
 
