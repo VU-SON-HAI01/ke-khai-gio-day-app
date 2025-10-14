@@ -517,8 +517,7 @@ with st.container():
             except Exception as e:
                 st.error(f"Đã xảy ra lỗi trong quá trình xử lý: {e}")
 
-    st.header("Bước 3: Tải xuống kết quả")
-    
+    st.subheader("Bước 3: Tải xuống kết quả", divider=True)
     if st.session_state.zip_buffer:
         st.download_button(
             label="📥 Tải xuống tất cả file (dạng .zip)",
