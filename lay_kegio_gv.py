@@ -79,6 +79,25 @@ if uploaded_gv_file:
                 df_result = df_result[~((df_result["TT"] == "TT") & (df_result["Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)"] == "Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)") & (df_result["Quy ra giờ"] == "Quy ra giờ"))]
                 st.subheader("Dữ liệu hoạt động khác quy ra giờ chuẩn")
                 st.dataframe(df_result)
+                st.markdown("---")
+                st.subheader("Chọn hoặc chỉnh sửa từng dòng hoạt động")
+                selected_rows = []
+                for idx, row in df_result.iterrows():
+                    col1, col2, col3, col4 = st.columns([1,2,3,1])
+                    with col1:
+                        tt_val = st.text_input(f"TT dòng {idx+1}", value=str(row["TT"]), key=f"tt_{idx}")
+                    with col2:
+                        nd_val = st.text_input(f"Nội dung dòng {idx+1}", value=str(row["Nội dung"]), key=f"nd_{idx}")
+                    with col3:
+                        ten_val = st.text_input(f"Tiêu đề hoạt động dòng {idx+1}", value=str(row["Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)"]), key=f"ten_{idx}")
+                    with col4:
+                        qg_val = st.text_input(f"Quy ra giờ dòng {idx+1}", value=str(row["Quy ra giờ"]), key=f"qg_{idx}")
+                    selected_rows.append({
+                        "TT": tt_val,
+                        "Nội dung": nd_val,
+                        "Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)": ten_val,
+                        "Quy ra giờ": qg_val
+                    })
             else:
                 st.info("Không tìm thấy dữ liệu phù hợp trong sheet hoặc file GV.")
         else:
