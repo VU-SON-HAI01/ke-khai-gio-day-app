@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -912,4 +913,75 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
             st.session_state[key] = val
     else:
         st.error(f"Lỗi xuất file Excel: {file_path}")
+            # --- Upload file tonghop.xlsx và ghi tổng Tiết, Tiết QĐ vào cột 0, hàng theo tên giáo viên ---
+    with st.expander("Cập nhật tổng Tiết và Tiết QĐ vào file tổng hợp"):
+        uploaded_tonghop_file = st.file_uploader("Tải lên file tổng hợp (tonghop.xlsx)", type=["xlsx"])
+        if uploaded_tonghop_file is not None:
+            import openpyxl
+            import tempfile
+            # Đọc tổng Tiết và Tiết QĐ từ bảng HK1
+            tong_tiet = None
+            tong_tiet_qd = None
+            df_grouped_hk1 = st.session_state.get('df_grouped_hk1')
+            if df_grouped_hk1 is not None:
+                tong_tiet = df_grouped_hk1['Tiết'].sum() if 'Tiết' in df_grouped_hk1.columns else None
+                tong_tiet_qd = df_grouped_hk1['Tiết QĐ'].sum() if 'Tiết QĐ' in df_grouped_hk1.columns else None
+            # Đọc tổng Tiết và Tiết QĐ từ bảng HK2
+            tong_tiet_hk2 = None
+            tong_tiet_qd_hk2 = None
+            df_grouped_hk2 = st.session_state.get('df_grouped_hk2')
+            if df_grouped_hk2 is not None:
+                tong_tiet_hk2 = df_grouped_hk2['Tiết'].sum() if 'Tiết' in df_grouped_hk2.columns else None
+                tong_tiet_qd_hk2 = df_grouped_hk2['Tiết QĐ'].sum() if 'Tiết QĐ' in df_grouped_hk2.columns else None
+            # Lấy tên giáo viên
+            ten_gv = ''
+            df_gv_info = st.session_state.get('df_gv_info')
+            if df_gv_info is not None and 'Tên_gv' in df_gv_info.columns and not df_gv_info.empty:
+                ten_gv = str(df_gv_info['Tên_gv'].iloc[0]).strip()
+            # Lưu file tạm để openpyxl xử lý
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmpfile:
+                tmpfile.write(uploaded_tonghop_file.read())
+                tmpfile_path = tmpfile.name
+            wb = openpyxl.load_workbook(tmpfile_path)
+            ws = wb.active
+            # Tìm hàng theo tên giáo viên trong cột HỌ VÀ TÊN
+            row_gv = None
+            col_hoten = None
+            for col in range(1, ws.max_column + 1):
+                cell_val = str(ws.cell(row=1, column=col).value).strip().upper()
+                if cell_val == 'HỌ VÀ TÊN':
+                    col_hoten = col
+                    break
+            if col_hoten is not None and ten_gv:
+                for row in range(2, ws.max_row + 1):
+                    cell_val = str(ws.cell(row=row, column=col_hoten).value).strip()
+                    if cell_val == ten_gv:
+                        row_gv = row
+                        break
+            if row_gv is not None:
+                # Ghi tổng Tiết vào cột AB (28), tổng Tiết QĐ vào cột O (15)
+                if tong_tiet is not None:
+                    ws.cell(row=row_gv, column=28).value = tong_tiet
+                if tong_tiet_qd is not None:
+                    ws.cell(row=row_gv, column=15).value = tong_tiet_qd
+                # Ghi tổng Tiết HK2 vào cột AC (29), tổng Tiết QĐ HK2 vào cột P (16)
+                if tong_tiet_hk2 is not None:
+                    ws.cell(row=row_gv, column=29).value = tong_tiet_hk2
+                if tong_tiet_qd_hk2 is not None:
+                    ws.cell(row=row_gv, column=16).value = tong_tiet_qd_hk2
+                wb.save(tmpfile_path)
+                with open(tmpfile_path, 'rb') as f:
+                    st.download_button(
+                        label="Tải xuống file tổng hợp đã cập nhật",
+                        data=f.read(),
+                        file_name="tonghop_capnhat.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+                st.success(f"Đã cập nhật tổng Tiết ({tong_tiet}) vào cột AB, Tiết QĐ ({tong_tiet_qd}) vào cột O, tổng Tiết HK2 ({tong_tiet_hk2}) vào cột AC, Tiết QĐ HK2 ({tong_tiet_qd_hk2}) vào cột P cho giáo viên '{ten_gv}' trong file tổng hợp.")
+            else:
+                st.error(f"Không tìm thấy tên giáo viên '{ten_gv}' trong cột 'HỌ VÀ TÊN' của file tổng hợp.")
+            import os
+            os.unlink(tmpfile_path)
+
+
 
