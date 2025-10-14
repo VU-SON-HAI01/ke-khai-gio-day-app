@@ -959,14 +959,14 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
             if row_gv is not None:
                 # Ghi tổng Tiết vào cột AB (28), tổng Tiết QĐ vào cột O (15)
                 if tong_tiet is not None:
-                    ws.cell(row=row_gv, column=28).value = tong_tiet
+                    ws.cell(row=row_gv, column=28).value = tong_tiet/2
                 if tong_tiet_qd is not None:
-                    ws.cell(row=row_gv, column=15).value = tong_tiet_qd
+                    ws.cell(row=row_gv, column=15).value = tong_tiet_qd/2
                 # Ghi tổng Tiết HK2 vào cột AC (29), tổng Tiết QĐ HK2 vào cột P (16)
                 if tong_tiet_hk2 is not None:
-                    ws.cell(row=row_gv, column=29).value = tong_tiet_hk2
+                    ws.cell(row=row_gv, column=29).value = tong_tiet_hk2/2
                 if tong_tiet_qd_hk2 is not None:
-                    ws.cell(row=row_gv, column=16).value = tong_tiet_qd_hk2
+                    ws.cell(row=row_gv, column=16).value = tong_tiet_qd_hk2/2
                 wb.save(tmpfile_path)
                 with open(tmpfile_path, 'rb') as f:
                     st.download_button(
