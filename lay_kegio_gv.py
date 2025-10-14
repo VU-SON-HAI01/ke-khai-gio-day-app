@@ -83,7 +83,7 @@ if uploaded_gv_file:
                 st.subheader("Chọn hoặc chỉnh sửa từng dòng hoạt động")
                 selected_rows = []
                 for idx, row in df_result.iterrows():
-                    col1, col2, col3, col4 = st.columns([1,2,3,1])
+                    col1, col2, col3, col4 = st.columns([1,4,5,1])
                     with col1:
                         tt_val = st.text_input(f"TT dòng {idx+1}", value=str(row["TT"]), key=f"tt_{idx}")
                     with col2:
