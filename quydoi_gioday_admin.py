@@ -938,6 +938,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
             df_gv_info = st.session_state.get('df_gv_info')
             if df_gv_info is not None and 'Tên_gv' in df_gv_info.columns and not df_gv_info.empty:
                 ten_gv = str(df_gv_info['Tên_gv'].iloc[0]).strip()
+            st.write(f"Tên giáo viên: {ten_gv}")
             # Lưu file tạm để openpyxl xử lý
             with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmpfile:
                 tmpfile.write(uploaded_tonghop_file.read())
