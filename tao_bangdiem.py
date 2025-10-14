@@ -402,14 +402,27 @@ if 'zip_buffer' not in st.session_state:
     st.session_state.zip_buffer = None
 
 
+import datetime
+
 st.header("Thông tin chung")
 col1, col2, col3 = st.columns(3)
+
+# Tính giá trị mặc định cho năm học và cập nhật
+now = datetime.datetime.now()
+current_year = now.year
+current_month = now.month
+if current_month >= 8 and current_month <= 12:
+    nam_hoc_default = f"{current_year}-{current_year+1}"
+else:
+    nam_hoc_default = f"{current_year-1}-{current_year}"
+cap_nhat_default = f"T{current_month}-{current_year}"
+
 with col1:
     hoc_ky_input = st.text_input("Học kỳ", value="1")
 with col2:
-    nam_hoc_input = st.text_input("Năm học", value="2024-2025")
+    nam_hoc_input = st.text_input("Năm học", value=nam_hoc_default)
 with col3:
-    cap_nhat_input = st.text_input("Cập nhật", value="T8-2025")
+    cap_nhat_input = st.text_input("Cập nhật", value=cap_nhat_default)
 st.markdown("---")
 
 with st.expander("Tải lên (file mẫu) khác với file mẫu mặc định"):
