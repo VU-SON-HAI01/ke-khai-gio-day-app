@@ -12,7 +12,7 @@ uploaded_gv_file = st.file_uploader("Tải lên file Excel của Giáo viên (xl
 st.header("Bước 2: Upload file tổng hợp Khoa")
 uploaded_khoa_file = st.file_uploader("Tải lên file Excel tổng hợp Khoa (xls/xlsx)", type=["xls", "xlsx"], key="khoa_file")
 
-if uploaded_gv_file and uploaded_khoa_file:
+if uploaded_gv_file:
     # Hiển thị danh sách sheet của file GV
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_gv_sheet:
