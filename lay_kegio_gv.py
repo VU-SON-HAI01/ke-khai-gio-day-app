@@ -87,7 +87,11 @@ if uploaded_gv_file:
                     with col1:
                         tt_val = st.text_input(f"TT dòng {idx+1}", value=str(row["TT"]), key=f"tt_{idx}")
                     with col2:
-                        nd_val = st.text_input(f"Nội dung dòng {idx+1}", value=str(row["Nội dung"]), key=f"nd_{idx}")
+                        if idx == 1:
+                            nd_options = df_result["Nội dung"].dropna().unique().tolist()
+                            nd_val = st.selectbox(f"Nội dung dòng {idx+1}", nd_options, index=nd_options.index(str(row["Nội dung"])) if str(row["Nội dung"]) in nd_options else 0, key=f"nd_{idx}")
+                        else:
+                            nd_val = st.text_input(f"Nội dung dòng {idx+1}", value=str(row["Nội dung"]), key=f"nd_{idx}")
                     with col3:
                         ten_val = st.text_input(f"Tiêu đề hoạt động dòng {idx+1}", value=str(row["Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)"]), key=f"ten_{idx}")
                     with col4:
