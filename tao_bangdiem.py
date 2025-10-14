@@ -446,15 +446,15 @@ with st.expander("Tải lên (file mẫu) khác với file mẫu mặc định")
     )
 
 with st.container():
-    st.header("Bước 1: Tải dữ liệu danh sách sinh viên")
+    st.subheader("Bước 1: Tải dữ liệu danh sách sinh viên", divider=True)
+
     uploaded_data_file = st.file_uploader(
     "1. 📂 Tải lên File Dữ Liệu HSSV (.xlsx)",
     type=['xlsx'],
     key="data_uploader"
     )
     
-    st.header("Bước 2: Kiểm tra & Xử lý")
-    
+    st.subheader("Bước 2: Kiểm tra & Xử lý", divider=True)
     # Container để hiển thị kết quả kiểm tra
     check_results_placeholder = st.container()
 
