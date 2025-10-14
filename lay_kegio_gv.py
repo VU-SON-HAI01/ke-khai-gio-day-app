@@ -13,6 +13,18 @@ st.header("Bước 2: Upload file tổng hợp Khoa")
 uploaded_khoa_file = st.file_uploader("Tải lên file Excel tổng hợp Khoa (xls/xlsx)", type=["xls", "xlsx"], key="khoa_file")
 
 if uploaded_gv_file and uploaded_khoa_file:
+    # Hiển thị danh sách sheet của file GV
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_gv_sheet:
+            tmp_gv_sheet.write(uploaded_gv_file.read())
+            gv_path_sheet = tmp_gv_sheet.name
+        wb_gv_sheet = openpyxl.load_workbook(gv_path_sheet, data_only=True)
+        sheet_list = wb_gv_sheet.sheetnames
+        st.info(f"Các sheet trong file GV: {sheet_list}")
+        if "Ke_gio_HK2_Cả_năm" not in sheet_list:
+            st.warning("Không tìm thấy sheet 'Ke_gio_HK2_Cả_năm' trong file GV. Vui lòng kiểm tra lại tên sheet hoặc file.")
+    except Exception as e:
+        st.error(f"Lỗi khi đọc sheet của file GV: {e}")
     st.header("Bước 4: Trích xuất dữ liệu hoạt động khác quy ra giờ chuẩn từ file GV")
     sheet_name = "Ke_gio_HK2_Cả_năm"
     try:
