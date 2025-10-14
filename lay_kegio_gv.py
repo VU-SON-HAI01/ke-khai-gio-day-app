@@ -16,7 +16,11 @@ if uploaded_gv_file and uploaded_khoa_file:
     st.header("Bước 4: Trích xuất dữ liệu hoạt động khác quy ra giờ chuẩn từ file GV")
     sheet_name = "Ke_gio_HK2_Cả_năm"
     try:
-        wb_gv = openpyxl.load_workbook(gv_path, data_only=True)
+        # Tạo file tạm từ uploaded_gv_file để openpyxl đọc
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_gv_extract:
+            tmp_gv_extract.write(uploaded_gv_file.read())
+            gv_path_extract = tmp_gv_extract.name
+        wb_gv = openpyxl.load_workbook(gv_path_extract, data_only=True)
         if sheet_name in wb_gv.sheetnames:
             ws_gv = wb_gv[sheet_name]
             # Tìm vị trí dòng 'CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN' ở cột A
