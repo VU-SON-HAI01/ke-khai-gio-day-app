@@ -975,7 +975,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                         file_name="tonghop_capnhat.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
-                st.success(f"Đã cập nhật tổng Tiết ({tong_tiet}) vào cột AB, Tiết QĐ ({tong_tiet_qd}) vào cột O, tổng Tiết HK2 ({tong_tiet_hk2}) vào cột AC, Tiết QĐ HK2 ({tong_tiet_qd_hk2}) vào cột P cho giáo viên '{ten_gv}' trong file tổng hợp.")
+                st.success(f"Đã cập nhật tổng Tiết ({tong_tiet/2}) vào cột AB, Tiết QĐ ({tong_tiet_qd/2}) vào cột O, tổng Tiết HK2 ({tong_tiet_hk2/2}) vào cột AC, Tiết QĐ HK2 ({tong_tiet_qd_hk2/2}) vào cột P cho giáo viên '{ten_gv}' trong file tổng hợp.")
             else:
                 st.error(f"Không tìm thấy tên giáo viên '{ten_gv}' trong cột 'HỌ VÀ TÊN' của file tổng hợp.")
             import os
