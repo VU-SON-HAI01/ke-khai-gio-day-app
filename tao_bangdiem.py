@@ -412,7 +412,7 @@ with col3:
     cap_nhat_input = st.text_input("Cập nhật", value="T8-2025")
 st.markdown("---")
 
-with st.expander("Tải lên (file mẫu) cần thiết nếu không cần"):
+with st.expander("Tải lên (file mẫu) khác với file mẫu mặc định"):
 
     st.markdown("""
     [📥 Tải xuống Mẫu bảng điểm](data_base/Bang_diem_qua_trinh_(Mau).xlsx)
@@ -445,19 +445,22 @@ with st.container():
     # Container để hiển thị kết quả kiểm tra
     check_results_placeholder = st.container()
 
-    if uploaded_data_file and uploaded_danh_muc_file:
+    if uploaded_data_file:
         if st.button("🔍 Kiểm tra dữ liệu", use_container_width=True):
-            sheets_not_in_danh_muc, danh_muc_not_in_sheets = check_data_consistency(uploaded_data_file, uploaded_danh_muc_file)
-            
+            # Nếu chưa upload danh mục thì dùng file mặc định
+            danh_muc_file_obj = uploaded_danh_muc_file
+            if danh_muc_file_obj is None:
+                danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
+            sheets_not_in_danh_muc, danh_muc_not_in_sheets = check_data_consistency(uploaded_data_file, danh_muc_file_obj)
+            if uploaded_danh_muc_file is None:
+                danh_muc_file_obj.close()
             with check_results_placeholder:
                 if sheets_not_in_danh_muc is not None:
                     if not sheets_not_in_danh_muc and not danh_muc_not_in_sheets:
                         st.success("✅ Dữ liệu hợp lệ! Tất cả các sheet đều khớp với danh mục.")
-                    
                     if sheets_not_in_danh_muc:
                         st.warning("⚠️ Các sheet sau có trong file dữ liệu nhưng không có trong danh mục và sẽ bị bỏ qua:")
                         st.json(list(sheets_not_in_danh_muc))
-                    
                     if danh_muc_not_in_sheets:
                         st.info("ℹ️ Các lớp sau có trong danh mục nhưng không có sheet tương ứng trong file dữ liệu:")
                         st.json(list(danh_muc_not_in_sheets))
