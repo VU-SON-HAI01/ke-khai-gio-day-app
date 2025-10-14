@@ -946,17 +946,11 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 tmpfile_path = tmpfile.name
             wb = openpyxl.load_workbook(tmpfile_path)
             ws = wb.active
-            # Tìm hàng theo tên giáo viên trong cột HỌ VÀ TÊN
+            # Tìm hàng theo tên giáo viên trong cột B (column 2)
             row_gv = None
-            col_hoten = None
-            for col in range(1, ws.max_column + 1):
-                cell_val = str(ws.cell(row=1, column=col).value).strip().upper()
-                if cell_val == 'HỌ VÀ TÊN':
-                    col_hoten = col
-                    break
-            if col_hoten is not None and ten_gv:
+            if ten_gv:
                 for row in range(2, ws.max_row + 1):
-                    cell_val = str(ws.cell(row=row, column=col_hoten).value).strip()
+                    cell_val = str(ws.cell(row=row, column=2).value).strip()
                     if cell_val == ten_gv:
                         row_gv = row
                         break
