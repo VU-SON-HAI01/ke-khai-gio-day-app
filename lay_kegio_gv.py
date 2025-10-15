@@ -33,7 +33,11 @@ if uploaded_gv_file:
     hoatdongquydoi = []
     ten_hd_list = []
     so_col_list = []
+    khoa_path = None
     if uploaded_khoa_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_khoa_hd:
+            tmp_khoa_hd.write(uploaded_khoa_file.read())
+            khoa_path = tmp_khoa_hd.name
         try:
             wb_khoa_hd = openpyxl.load_workbook(khoa_path, data_only=True)
             if "CAC_HOAT_DONG" in wb_khoa_hd.sheetnames:
