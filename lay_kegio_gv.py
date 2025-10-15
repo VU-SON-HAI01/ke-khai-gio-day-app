@@ -123,6 +123,12 @@ if uploaded_khoa_file:
                 st.markdown("---")
                 st.subheader("Chọn hoặc chỉnh sửa từng dòng hoạt động")
                 selected_rows = []
+                # Reset widget state khi thay đổi file GV
+                if "last_gv_file" not in st.session_state or st.session_state["last_gv_file"] != uploaded_gv_file:
+                    for idx, row in df_result.iterrows():
+                        st.session_state[f"ten_{idx}"] = str(row["Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)"])
+                        st.session_state[f"qg_{idx}"] = str(row["Quy ra giờ"])
+                    st.session_state["last_gv_file"] = uploaded_gv_file
                 for idx, row in df_result.iterrows():
                     col1, col2, col3, col4 = st.columns([1,4,4,1])
                     with col1:
@@ -130,9 +136,9 @@ if uploaded_khoa_file:
                     with col2:
                         nd_val = st.selectbox("Nội dung", ten_hd_list, index=ten_hd_list.index(str(row["Nội dung"])) if str(row["Nội dung"]) in ten_hd_list else 0, key=f"nd_{idx}")
                     with col3:
-                        ten_val = st.text_input("Tiêu đề hoạt động", value=str(row["Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)"]), key=f"ten_{idx}")
+                        ten_val = st.text_input("Tiêu đề hoạt động", value=st.session_state.get(f"ten_{idx}", str(row["Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)"])), key=f"ten_{idx}")
                     with col4:
-                        qg_val = st.text_input("Quy ra giờ", value=str(row["Quy ra giờ"]), key=f"qg_{idx}")
+                        qg_val = st.text_input("Quy ra giờ", value=st.session_state.get(f"qg_{idx}", str(row["Quy ra giờ"])), key=f"qg_{idx}")
                     selected_rows.append({
                         "TT": tt_val,
                         "Nội dung": nd_val,
