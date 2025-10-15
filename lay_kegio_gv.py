@@ -57,8 +57,8 @@ if uploaded_gv_file:
             wb_khoa_hd = openpyxl.load_workbook(khoa_path, data_only=True)
             if "CAC_HOAT_DONG" in wb_khoa_hd.sheetnames:
                 ws_hd = wb_khoa_hd["CAC_HOAT_DONG"]
-                # Lấy các giá trị từ cột E (5) đến cột AA (27) ở dòng 7
-                for col in range(5, 28):
+                # Lấy các giá trị từ cột E (5) đến cột AE (31) ở dòng 7
+                for col in range(5, 32):
                     ten_hd = ws_hd.cell(row=7, column=col).value
                     if ten_hd is not None and str(ten_hd).strip() != "":
                         hoatdongquydoi.append({"ten_hd": str(ten_hd), "so_col": col})
