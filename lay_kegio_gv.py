@@ -223,7 +223,7 @@ if uploaded_khoa_file:
         st.error(f"Lỗi đọc file tổng hợp Khoa: {e}")
         df_khoa = None
     # Thực hiện truyền dữ liệu (ví dụ: cập nhật theo tên GV)
-    if khoa_path and len(selected_rows) > 0 and 'selected_gv' in locals():
+    if khoa_path and len(selected_rows) > 0 and selected_gv:
         st.info("Thực hiện truyền dữ liệu từ file GV sang file tổng hợp Khoa theo giáo viên đã chọn và hoạt động quy đổi.")
         wb = openpyxl.load_workbook(khoa_path)
         ws_hd = wb["CAC_HOAT_DONG"] if "CAC_HOAT_DONG" in wb.sheetnames else wb.active
