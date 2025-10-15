@@ -138,6 +138,13 @@ if uploaded_gv_file:
                     })
                 st.markdown("---")
                 if st.button("Cập nhật dữ liệu GV vào bảng tổng hợp Khoa", key="btn_update_gv"):
+                    # Hiển thị bảng dữ liệu file tổng hợp Khoa sau khi cập nhật
+                    try:
+                        df_khoa_updated = pd.read_excel(khoa_path, engine='openpyxl')
+                        st.subheader(f"Xem trước dữ liệu file tổng hợp Khoa sau khi cập nhật cho giáo viên '{selected_gv}'")
+                        st.dataframe(df_khoa_updated)
+                    except Exception as e:
+                        st.error(f"Lỗi khi đọc lại file tổng hợp Khoa sau cập nhật: {e}")
                     if khoa_path and len(selected_rows) > 0 and 'selected_gv' in locals():
                         wb = openpyxl.load_workbook(khoa_path)
                         ws_hd = wb["CAC_HOAT_DONG"] if "CAC_HOAT_DONG" in wb.sheetnames else wb.active
