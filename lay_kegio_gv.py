@@ -148,7 +148,7 @@ if uploaded_khoa_file:
                 selected_gv = st.selectbox("Giáo viên", giaovien_list, key="chon_gv")
                 st.markdown("---")
                 if st.button("Cập nhật dữ liệu GV vào bảng tổng hợp Khoa", key="btn_update_gv"):
-                    if khoa_path and len(selected_rows) > 0 and 'selected_gv' in locals():
+                    if khoa_path and len(selected_rows) > 0 and selected_gv:
                         wb = openpyxl.load_workbook(khoa_path)
                         ws_hd = wb["CAC_HOAT_DONG"] if "CAC_HOAT_DONG" in wb.sheetnames else wb.active
                         # Tìm hàng theo tên GV đã chọn trong cột B
@@ -163,21 +163,27 @@ if uploaded_khoa_file:
                             for hd in hoatdongquydoi:
                                 col = hd["so_col"]
                                 ws_hd.cell(row=row_gv, column=col).value = None
-                            # Ghi dữ liệu Quy ra giờ vào cột tương ứng với hoạt động quy đổi
+                            # Cộng dồn các giá trị Quy ra giờ cho các dòng có cùng Nội dung
+                            hd_sum = {}
                             for r in selected_rows:
                                 ten_hd = r["Nội dung"]
                                 qg_val = r["Quy ra giờ"]
-                                # Tìm số cột tương ứng với ten_hd
+                                if ten_hd not in hd_sum:
+                                    hd_sum[ten_hd] = 0.0
+                                try:
+                                    val = float(qg_val) if qg_val not in [None, "", "nan"] else 0.0
+                                except:
+                                    val = 0.0
+                                hd_sum[ten_hd] += val
+                            # Ghi tổng Quy ra giờ vào cột tương ứng với hoạt động quy đổi
+                            for ten_hd, total_qg in hd_sum.items():
                                 so_col = None
                                 for hd in hoatdongquydoi:
                                     if hd["ten_hd"] == ten_hd:
                                         so_col = hd["so_col"]
                                         break
-                                if so_col is not None and qg_val not in [None, "", "nan"]:
-                                    try:
-                                        ws_hd.cell(row=row_gv, column=so_col).value = float(qg_val)
-                                    except:
-                                        ws_hd.cell(row=row_gv, column=so_col).value = qg_val
+                                if so_col is not None and total_qg > 0:
+                                    ws_hd.cell(row=row_gv, column=so_col).value = total_qg
                             wb.save(khoa_path)
                             st.success(f"Đã cập nhật dữ liệu hoạt động quy đổi cho giáo viên '{selected_gv}' vào bảng tổng hợp Khoa. Bạn có thể tiếp tục chọn giáo viên khác để cập nhật tiếp.")
                             # Hiển thị lại dữ liệu sheet CAC_HOAT_DONG sau khi đã cập nhật
