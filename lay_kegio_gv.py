@@ -168,7 +168,7 @@ if uploaded_gv_file:
                             st.success(f"Đã cập nhật dữ liệu hoạt động quy đổi cho giáo viên '{selected_gv}' vào bảng tổng hợp Khoa. Bạn có thể tiếp tục chọn giáo viên khác để cập nhật tiếp.")
                             # Hiển thị lại dữ liệu sheet CAC_HOAT_DONG sau khi đã cập nhật
                             try:
-                                df_khoa_updated = pd.read_excel(khoa_path, sheet_name="CAC_HOAT_DONG", header=7, engine='openpyxl')
+                                df_khoa_updated = pd.read_excel(khoa_path, sheet_name="CAC_HOAT_DONG", header=6, engine='openpyxl')
                                 st.subheader(f"Xem trước dữ liệu sheet CAC_HOAT_DONG sau khi cập nhật cho giáo viên '{selected_gv}'")
                                 st.dataframe(df_khoa_updated)
                             except Exception as e:
