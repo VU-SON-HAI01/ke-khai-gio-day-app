@@ -14,10 +14,15 @@ st.header("Bước 2: Upload file tổng hợp Khoa")
 uploaded_khoa_file = st.file_uploader("Tải lên file Excel tổng hợp Khoa (xls/xlsx)", type=["xls", "xlsx"], key="khoa_file")
 
 gv_path = None
+khoa_path = None
 if uploaded_gv_file:
     with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_gv:
         tmp_gv.write(uploaded_gv_file.read())
         gv_path = tmp_gv.name
+if uploaded_khoa_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_khoa:
+        tmp_khoa.write(uploaded_khoa_file.read())
+        khoa_path = tmp_khoa.name
 
 if uploaded_gv_file:
     # Hiển thị danh sách sheet của file GV
@@ -33,11 +38,21 @@ if uploaded_gv_file:
     hoatdongquydoi = []
     ten_hd_list = []
     so_col_list = []
-    khoa_path = None
-    if uploaded_khoa_file:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_khoa_hd:
-            tmp_khoa_hd.write(uploaded_khoa_file.read())
-            khoa_path = tmp_khoa_hd.name
+    if khoa_path:
+        # Khởi tạo ws_hd trước khi lấy danh sách giáo viên
+        wb_khoa_hd = openpyxl.load_workbook(khoa_path, data_only=True)
+        if "CAC_HOAT_DONG" in wb_khoa_hd.sheetnames:
+            ws_hd = wb_khoa_hd["CAC_HOAT_DONG"]
+            giaovien_list = []
+            for row in range(8, ws_hd.max_row + 1):
+                ten_gv = ws_hd.cell(row=row, column=2).value
+                if ten_gv is not None and str(ten_gv).strip() != "":
+                    giaovien_list.append(str(ten_gv).strip())
+            st.subheader("Chọn giáo viên để cập nhật dữ liệu")
+            selected_gv = st.selectbox("Giáo viên", giaovien_list, key="chon_gv")
+        else:
+            ws_hd = None
+            st.warning("Không tìm thấy sheet 'CAC_HOAT_DONG' trong file tổng hợp Khoa.")
         try:
             wb_khoa_hd = openpyxl.load_workbook(khoa_path, data_only=True)
             if "CAC_HOAT_DONG" in wb_khoa_hd.sheetnames:
@@ -128,18 +143,9 @@ if uploaded_gv_file:
     except Exception as e:
         st.error(f"Lỗi khi trích xuất dữ liệu hoạt động khác: {e}")
     st.header("Bước 4: Lấy dữ liệu từ file GV và truyền vào file tổng hợp Khoa")
-    # gv_path đã được tạo ở trên, không cần tạo lại
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_khoa:
-        tmp_khoa.write(uploaded_khoa_file.read())
-        khoa_path = tmp_khoa.name
+    # gv_path và khoa_path đã được tạo ở trên, không cần tạo lại hoặc ghi đè
     # Đọc dữ liệu từ file GV
-    try:
-        df_gv = pd.read_excel(gv_path)
-        st.subheader("Xem trước dữ liệu file GV")
-        st.dataframe(df_gv)
-    except Exception as e:
-        st.error(f"Lỗi đọc file GV: {e}")
-        df_gv = None
+    # Đã bỏ phần đọc và hiển thị dữ liệu file GV bằng pandas
     # Đọc dữ liệu từ file tổng hợp Khoa
     try:
         df_khoa = pd.read_excel(khoa_path, engine='openpyxl')
@@ -149,22 +155,15 @@ if uploaded_gv_file:
         st.error(f"Lỗi đọc file tổng hợp Khoa: {e}")
         df_khoa = None
     # Thực hiện truyền dữ liệu (ví dụ: cập nhật theo tên GV)
-    if df_gv is not None and df_khoa is not None:
-        st.info("Thực hiện truyền dữ liệu từ file GV sang file tổng hợp Khoa theo tên giáo viên và hoạt động quy đổi.")
-        ten_gv = ''
-        if 'Tên_gv' in df_gv.columns:
-            ten_gv = str(df_gv['Tên_gv'].iloc[0]).strip()
-        elif 'HỌ VÀ TÊN' in df_gv.columns:
-            ten_gv = str(df_gv['HỌ VÀ TÊN'].iloc[0]).strip()
-        # Mở file tổng hợp Khoa bằng openpyxl để ghi dữ liệu
+    if khoa_path and len(selected_rows) > 0 and 'selected_gv' in locals():
+        st.info("Thực hiện truyền dữ liệu từ file GV sang file tổng hợp Khoa theo giáo viên đã chọn và hoạt động quy đổi.")
         wb = openpyxl.load_workbook(khoa_path)
-        # Sheet hoạt động quy đổi
         ws_hd = wb["CAC_HOAT_DONG"] if "CAC_HOAT_DONG" in wb.sheetnames else wb.active
-        # Tìm hàng theo tên GV trong cột B (sheet hoạt động quy đổi)
+        # Tìm hàng theo tên GV đã chọn trong cột B
         row_gv = None
         for row in range(8, ws_hd.max_row + 1):
             cell_val = str(ws_hd.cell(row=row, column=2).value).strip() if ws_hd.cell(row=row, column=2).value else ""
-            if cell_val == ten_gv:
+            if cell_val == selected_gv:
                 row_gv = row
                 break
         if row_gv is not None:
@@ -191,9 +190,9 @@ if uploaded_gv_file:
                     file_name="tonghop_khoa_capnhat.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-            st.success(f"Đã truyền dữ liệu hoạt động quy đổi từ file GV sang file tổng hợp Khoa cho giáo viên '{ten_gv}'.")
+            st.success(f"Đã truyền dữ liệu hoạt động quy đổi từ file GV sang file tổng hợp Khoa cho giáo viên '{selected_gv}'.")
         else:
-            st.error(f"Không tìm thấy tên giáo viên '{ten_gv}' trong cột B của sheet CAC_HOAT_DONG.")
+            st.error(f"Không tìm thấy tên giáo viên '{selected_gv}' trong cột B của sheet CAC_HOAT_DONG.")
     import os
     os.unlink(gv_path)
     os.unlink(khoa_path)
