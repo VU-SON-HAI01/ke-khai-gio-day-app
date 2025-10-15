@@ -169,6 +169,7 @@ if uploaded_gv_file:
                             # Hiển thị lại dữ liệu sheet CAC_HOAT_DONG sau khi đã cập nhật
                             try:
                                 df_khoa_updated = pd.read_excel(khoa_path, sheet_name="CAC_HOAT_DONG", header=6, engine='openpyxl')
+                                df_khoa_updated = df_khoa_updated.where(pd.notnull(df_khoa_updated), "")
                                 st.subheader(f"Xem trước dữ liệu sheet CAC_HOAT_DONG sau khi cập nhật cho giáo viên '{selected_gv}'")
                                 st.dataframe(df_khoa_updated)
                             except Exception as e:
