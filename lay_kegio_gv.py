@@ -29,7 +29,26 @@ if uploaded_gv_file:
             st.warning("Không tìm thấy sheet 'Ke_gio_HK2_Cả_năm' trong file GV. Vui lòng kiểm tra lại tên sheet hoặc file.")
     except Exception as e:
         st.error(f"Lỗi khi đọc sheet của file GV: {e}")
-    st.header("Bước 4: Trích xuất dữ liệu hoạt động khác quy ra giờ chuẩn từ file GV")
+    st.header("Bước 3: Trích xuất hoạt động quy đổi từ file tổng hợp Khoa (sheet CAC_HOAT_DONG)")
+    hoatdongquydoi = []
+    ten_hd_list = []
+    so_col_list = []
+    if uploaded_khoa_file:
+        try:
+            wb_khoa_hd = openpyxl.load_workbook(khoa_path, data_only=True)
+            if "CAC_HOAT_DONG" in wb_khoa_hd.sheetnames:
+                ws_hd = wb_khoa_hd["CAC_HOAT_DONG"]
+                # Lấy các giá trị từ cột E (5) đến cột AA (27) ở dòng 7
+                for col in range(5, 28):
+                    ten_hd = ws_hd.cell(row=7, column=col).value
+                    if ten_hd is not None and str(ten_hd).strip() != "":
+                        hoatdongquydoi.append({"ten_hd": str(ten_hd), "so_col": col})
+                        ten_hd_list.append(str(ten_hd))
+                        so_col_list.append(col)
+            else:
+                st.warning("Không tìm thấy sheet 'CAC_HOAT_DONG' trong file tổng hợp Khoa.")
+        except Exception as e:
+            st.error(f"Lỗi khi đọc sheet CAC_HOAT_DONG: {e}")
     sheet_name = "Ke_gio_HK2_Cả_năm"
     try:
         wb_gv = openpyxl.load_workbook(gv_path, data_only=True)
@@ -87,8 +106,7 @@ if uploaded_gv_file:
                     with col1:
                         tt_val = st.text_input("TT", value=str(row["TT"]), key=f"tt_{idx}")
                     with col2:
-                        nd_options = df_result["Nội dung"].dropna().unique().tolist()
-                        nd_val = st.selectbox("Nội dung", nd_options, index=nd_options.index(str(row["Nội dung"])) if str(row["Nội dung"]) in nd_options else 0, key=f"nd_{idx}")
+                        nd_val = st.selectbox("Nội dung", ten_hd_list, index=ten_hd_list.index(str(row["Nội dung"])) if str(row["Nội dung"]) in ten_hd_list else 0, key=f"nd_{idx}")
                     with col3:
                         ten_val = st.text_input("Tiêu đề hoạt động", value=str(row["Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)"]), key=f"ten_{idx}")
                     with col4:
@@ -128,35 +146,39 @@ if uploaded_gv_file:
         df_khoa = None
     # Thực hiện truyền dữ liệu (ví dụ: cập nhật theo tên GV)
     if df_gv is not None and df_khoa is not None:
-        st.info("Thực hiện truyền dữ liệu từ file GV sang file tổng hợp Khoa theo tên giáo viên.")
-        # Ví dụ: lấy tổng Tiết từ file GV và ghi vào file Khoa theo tên GV ở cột B
+        st.info("Thực hiện truyền dữ liệu từ file GV sang file tổng hợp Khoa theo tên giáo viên và hoạt động quy đổi.")
         ten_gv = ''
         if 'Tên_gv' in df_gv.columns:
             ten_gv = str(df_gv['Tên_gv'].iloc[0]).strip()
         elif 'HỌ VÀ TÊN' in df_gv.columns:
             ten_gv = str(df_gv['HỌ VÀ TÊN'].iloc[0]).strip()
-        tong_tiet = None
-        if 'Tiết' in df_gv.columns:
-            tong_tiet = df_gv['Tiết'].sum()
-        tong_tiet_qd = None
-        if 'Tiết QĐ' in df_gv.columns:
-            tong_tiet_qd = df_gv['Tiết QĐ'].sum()
         # Mở file tổng hợp Khoa bằng openpyxl để ghi dữ liệu
         wb = openpyxl.load_workbook(khoa_path)
-        ws = wb.active
+        # Sheet hoạt động quy đổi
+        ws_hd = wb["CAC_HOAT_DONG"] if "CAC_HOAT_DONG" in wb.sheetnames else wb.active
+        # Tìm hàng theo tên GV trong cột B (sheet hoạt động quy đổi)
         row_gv = None
-        # Tìm hàng theo tên GV trong cột B
-        for row in range(2, ws.max_row + 1):
-            cell_val = str(ws.cell(row=row, column=2).value).strip()
+        for row in range(8, ws_hd.max_row + 1):
+            cell_val = str(ws_hd.cell(row=row, column=2).value).strip() if ws_hd.cell(row=row, column=2).value else ""
             if cell_val == ten_gv:
                 row_gv = row
                 break
         if row_gv is not None:
-            # Ghi tổng Tiết vào cột AB (28), tổng Tiết QĐ vào cột O (15)
-            if tong_tiet is not None:
-                ws.cell(row=row_gv, column=28).value = tong_tiet
-            if tong_tiet_qd is not None:
-                ws.cell(row=row_gv, column=15).value = tong_tiet_qd
+            # Ghi dữ liệu Quy ra giờ vào cột tương ứng với hoạt động quy đổi
+            for r in selected_rows:
+                ten_hd = r["Nội dung"]
+                qg_val = r["Quy ra giờ"]
+                # Tìm số cột tương ứng với ten_hd
+                so_col = None
+                for hd in hoatdongquydoi:
+                    if hd["ten_hd"] == ten_hd:
+                        so_col = hd["so_col"]
+                        break
+                if so_col is not None and qg_val not in [None, "", "nan"]:
+                    try:
+                        ws_hd.cell(row=row_gv, column=so_col).value = float(qg_val)
+                    except:
+                        ws_hd.cell(row=row_gv, column=so_col).value = qg_val
             wb.save(khoa_path)
             with open(khoa_path, 'rb') as f:
                 st.download_button(
@@ -165,9 +187,9 @@ if uploaded_gv_file:
                     file_name="tonghop_khoa_capnhat.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-            st.success(f"Đã truyền dữ liệu từ file GV sang file tổng hợp Khoa cho giáo viên '{ten_gv}'.")
+            st.success(f"Đã truyền dữ liệu hoạt động quy đổi từ file GV sang file tổng hợp Khoa cho giáo viên '{ten_gv}'.")
         else:
-            st.error(f"Không tìm thấy tên giáo viên '{ten_gv}' trong cột B của file tổng hợp Khoa.")
+            st.error(f"Không tìm thấy tên giáo viên '{ten_gv}' trong cột B của sheet CAC_HOAT_DONG.")
     import os
     os.unlink(gv_path)
     os.unlink(khoa_path)
