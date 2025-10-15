@@ -159,6 +159,10 @@ if uploaded_khoa_file:
                                 row_gv = row
                                 break
                         if row_gv is not None:
+                            # Xóa toàn bộ dữ liệu ở các cột hoạt động quy đổi không có giá trị (Quy ra giờ trống)
+                            for hd in hoatdongquydoi:
+                                col = hd["so_col"]
+                                ws_hd.cell(row=row_gv, column=col).value = None
                             # Ghi dữ liệu Quy ra giờ vào cột tương ứng với hoạt động quy đổi
                             for r in selected_rows:
                                 ten_hd = r["Nội dung"]
