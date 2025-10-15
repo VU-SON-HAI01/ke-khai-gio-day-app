@@ -169,8 +169,19 @@ if uploaded_gv_file:
                             # Hiển thị lại dữ liệu sheet CAC_HOAT_DONG sau khi đã cập nhật
                             try:
                                 df_khoa_updated = pd.read_excel(khoa_path, sheet_name="CAC_HOAT_DONG", header=6, engine='openpyxl')
-                                # Đặt lại tên cột bằng dòng đầu tiên, loại bỏ dòng này khỏi dữ liệu
-                                df_khoa_updated.columns = df_khoa_updated.iloc[0].fillna("")
+                                # Đặt lại tên cột bằng dòng đầu tiên, thay thế tên trống và trùng lặp
+                                raw_cols = df_khoa_updated.iloc[0].fillna("")
+                                cols = [col if col != "" else f"Col_{i}" for i, col in enumerate(raw_cols)]
+                                from collections import Counter
+                                counter = Counter()
+                                unique_cols = []
+                                for col in cols:
+                                    counter[col] += 1
+                                    if counter[col] > 1:
+                                        unique_cols.append(f"{col}_{counter[col]}")
+                                    else:
+                                        unique_cols.append(col)
+                                df_khoa_updated.columns = unique_cols
                                 df_khoa_updated = df_khoa_updated[1:].reset_index(drop=True)
                                 df_khoa_updated = df_khoa_updated.where(pd.notnull(df_khoa_updated), "")
                                 st.subheader(f"Xem trước dữ liệu sheet CAC_HOAT_DONG sau khi cập nhật cho giáo viên '{selected_gv}'")
