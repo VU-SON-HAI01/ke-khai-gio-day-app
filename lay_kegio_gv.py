@@ -142,7 +142,7 @@ if uploaded_gv_file:
         df_gv = None
     # Đọc dữ liệu từ file tổng hợp Khoa
     try:
-        df_khoa = pd.read_excel(khoa_path)
+        df_khoa = pd.read_excel(khoa_path, engine='openpyxl')
         st.subheader("Xem trước dữ liệu file tổng hợp Khoa")
         st.dataframe(df_khoa)
     except Exception as e:
