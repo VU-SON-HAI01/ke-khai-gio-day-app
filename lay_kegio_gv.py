@@ -136,6 +136,38 @@ if uploaded_gv_file:
                         "Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)": ten_val,
                         "Quy ra giờ": qg_val
                     })
+                st.markdown("---")
+                if st.button("Cập nhật dữ liệu GV vào bảng tổng hợp Khoa", key="btn_update_gv"):
+                    if khoa_path and len(selected_rows) > 0 and 'selected_gv' in locals():
+                        wb = openpyxl.load_workbook(khoa_path)
+                        ws_hd = wb["CAC_HOAT_DONG"] if "CAC_HOAT_DONG" in wb.sheetnames else wb.active
+                        # Tìm hàng theo tên GV đã chọn trong cột B
+                        row_gv = None
+                        for row in range(8, ws_hd.max_row + 1):
+                            cell_val = str(ws_hd.cell(row=row, column=2).value).strip() if ws_hd.cell(row=row, column=2).value else ""
+                            if cell_val == selected_gv:
+                                row_gv = row
+                                break
+                        if row_gv is not None:
+                            # Ghi dữ liệu Quy ra giờ vào cột tương ứng với hoạt động quy đổi
+                            for r in selected_rows:
+                                ten_hd = r["Nội dung"]
+                                qg_val = r["Quy ra giờ"]
+                                # Tìm số cột tương ứng với ten_hd
+                                so_col = None
+                                for hd in hoatdongquydoi:
+                                    if hd["ten_hd"] == ten_hd:
+                                        so_col = hd["so_col"]
+                                        break
+                                if so_col is not None and qg_val not in [None, "", "nan"]:
+                                    try:
+                                        ws_hd.cell(row=row_gv, column=so_col).value = float(qg_val)
+                                    except:
+                                        ws_hd.cell(row=row_gv, column=so_col).value = qg_val
+                            wb.save(khoa_path)
+                            st.success(f"Đã cập nhật dữ liệu hoạt động quy đổi cho giáo viên '{selected_gv}' vào bảng tổng hợp Khoa. Bạn có thể tiếp tục chọn giáo viên khác để cập nhật tiếp.")
+                        else:
+                            st.error(f"Không tìm thấy tên giáo viên '{selected_gv}' trong cột B của sheet CAC_HOAT_DONG.")
             else:
                 st.info("Không tìm thấy dữ liệu phù hợp trong sheet hoặc file GV.")
         else:
