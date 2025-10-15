@@ -42,6 +42,23 @@ if uploaded_khoa_file:
     ten_hd_list = []
     so_col_list = []
     if khoa_path:
+        # Đọc sheet THU_VIEN để lấy bảng từ khóa
+        tu_khoa_mapping = {}
+        try:
+            wb_khoa_tv = openpyxl.load_workbook(khoa_path, data_only=True)
+            if "THU_VIEN" in wb_khoa_tv.sheetnames:
+                ws_tv = wb_khoa_tv["THU_VIEN"]
+                # Giả sử dữ liệu bắt đầu từ dòng 2, cột 1 là Dữ liệu, cột 2-5 là Từ khóa 1-4
+                for row in range(2, ws_tv.max_row + 1):
+                    du_lieu = ws_tv.cell(row=row, column=1).value
+                    tu_khoa_1 = ws_tv.cell(row=row, column=2).value
+                    tu_khoa_2 = ws_tv.cell(row=row, column=3).value
+                    tu_khoa_3 = ws_tv.cell(row=row, column=4).value
+                    # Tạo danh sách từ khóa cho mỗi giá trị Dữ liệu
+                    if du_lieu:
+                        tu_khoa_mapping[str(du_lieu).strip()] = [str(x).strip() for x in [tu_khoa_1, tu_khoa_2, tu_khoa_3] if x and str(x).strip() != ""]
+        except Exception as e:
+            st.error(f"Lỗi khi đọc sheet THU_VIEN: {e}")
         # Khởi tạo ws_hd trước khi lấy danh sách giáo viên
         wb_khoa_hd = openpyxl.load_workbook(khoa_path, data_only=True)
         if "CAC_HOAT_DONG" in wb_khoa_hd.sheetnames:
@@ -132,8 +149,18 @@ if uploaded_khoa_file:
                     col1, col2, col3, col4 = st.columns([1,4,4,1])
                     with col1:
                         tt_val = st.text_input("TT", value=str(row["TT"]), key=f"tt_{idx}")
+                    # Gợi ý giá trị mặc định cho Nội dung dựa trên bảng từ khóa
+                    default_nd = str(row["Nội dung"])
+                    # Tìm các từ khóa tương ứng với giá trị Nội dung
+                    if tu_khoa_mapping:
+                        for du_lieu, tu_khoas in tu_khoa_mapping.items():
+                            if du_lieu in default_nd:
+                                # Nếu Nội dung chứa từ khóa trong bảng, lấy từ khóa đầu tiên làm mặc định
+                                if tu_khoas:
+                                    default_nd = tu_khoas[0]
+                                break
                     with col2:
-                        nd_val = st.selectbox("Nội dung", ten_hd_list, index=ten_hd_list.index(str(row["Nội dung"])) if str(row["Nội dung"]) in ten_hd_list else 0, key=f"nd_{idx}")
+                        nd_val = st.selectbox("Nội dung", ten_hd_list, index=ten_hd_list.index(default_nd) if default_nd in ten_hd_list else 0, key=f"nd_{idx}")
                     with col3:
                         ten_val = st.text_input("Tiêu đề hoạt động", value=st.session_state.get(f"ten_{idx}", str(row["Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)"])), key=f"ten_{idx}")
                     with col4:
