@@ -14,15 +14,18 @@ st.header("Bước 2: Upload file tổng hợp Khoa")
 uploaded_khoa_file = st.file_uploader("Tải lên file Excel tổng hợp Khoa (xls/xlsx)", type=["xls", "xlsx"], key="khoa_file")
 
 gv_path = None
-khoa_path = None
 if uploaded_gv_file:
     with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_gv:
         tmp_gv.write(uploaded_gv_file.read())
         gv_path = tmp_gv.name
-if uploaded_khoa_file:
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_khoa:
-        tmp_khoa.write(uploaded_khoa_file.read())
-        khoa_path = tmp_khoa.name
+
+# Lưu file tạm khoa_path vào session_state để giữ lại dữ liệu cập nhật nhiều GV
+if "khoa_path" not in st.session_state:
+    if uploaded_khoa_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_khoa:
+            tmp_khoa.write(uploaded_khoa_file.read())
+            st.session_state["khoa_path"] = tmp_khoa.name
+khoa_path = st.session_state.get("khoa_path", None)
 
 if uploaded_khoa_file:
     # Hiển thị danh sách sheet của file GV
@@ -248,5 +251,7 @@ if uploaded_khoa_file:
         else:
             st.error(f"Không tìm thấy tên giáo viên '{selected_gv}' trong cột B của sheet CAC_HOAT_DONG.")
     import os
-    os.unlink(gv_path)
-    os.unlink(khoa_path)
+    if gv_path:
+        import os
+        os.unlink(gv_path)
+    # Không xóa khoa_path để giữ lại dữ liệu cập nhật nhiều GV
