@@ -51,8 +51,7 @@ if uploaded_khoa_file:
                 ten_gv = ws_hd.cell(row=row, column=2).value
                 if ten_gv is not None and str(ten_gv).strip() != "":
                     giaovien_list.append(str(ten_gv).strip())
-            st.subheader("Chọn giáo viên để cập nhật dữ liệu")
-            selected_gv = st.selectbox("Giáo viên", giaovien_list, key="chon_gv")
+
         else:
             ws_hd = None
             st.warning("Không tìm thấy sheet 'CAC_HOAT_DONG' trong file tổng hợp Khoa.")
@@ -145,6 +144,8 @@ if uploaded_khoa_file:
                         "Tên/Tiêu đề hoạt động (Số QĐ ban hành/...)": ten_val,
                         "Quy ra giờ": qg_val
                     })
+                st.subheader("Chọn giáo viên để cập nhật dữ liệu")
+                selected_gv = st.selectbox("Giáo viên", giaovien_list, key="chon_gv")
                 st.markdown("---")
                 if st.button("Cập nhật dữ liệu GV vào bảng tổng hợp Khoa", key="btn_update_gv"):
                     if khoa_path and len(selected_rows) > 0 and 'selected_gv' in locals():
