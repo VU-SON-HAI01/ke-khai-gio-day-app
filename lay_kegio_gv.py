@@ -24,7 +24,7 @@ if uploaded_khoa_file:
         tmp_khoa.write(uploaded_khoa_file.read())
         khoa_path = tmp_khoa.name
 
-if uploaded_gv_file:
+if uploaded_khoa_file:
     # Hiển thị danh sách sheet của file GV
     try:
         wb_gv_sheet = openpyxl.load_workbook(gv_path, data_only=True)
