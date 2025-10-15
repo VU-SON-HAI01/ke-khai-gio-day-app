@@ -151,13 +151,16 @@ if uploaded_khoa_file:
                         tt_val = st.text_input("TT", value=str(row["TT"]), key=f"tt_{idx}")
                     # Gợi ý giá trị mặc định cho Nội dung dựa trên bảng từ khóa
                     default_nd = str(row["Nội dung"])
-                    # Tìm các từ khóa tương ứng với giá trị Nội dung
+                    # So sánh kiểu từ khóa: nếu Nội dung chứa bất kỳ từ khóa nào thì lấy từ khóa đó làm mặc định
                     if tu_khoa_mapping:
+                        found = False
                         for du_lieu, tu_khoas in tu_khoa_mapping.items():
-                            if du_lieu in default_nd:
-                                # Nếu Nội dung chứa từ khóa trong bảng, lấy từ khóa đầu tiên làm mặc định
-                                if tu_khoas:
-                                    default_nd = tu_khoas[0]
+                            for tk in tu_khoas:
+                                if tk and tk.lower() in default_nd.lower():
+                                    default_nd = tk
+                                    found = True
+                                    break
+                            if found:
                                 break
                     with col2:
                         nd_val = st.selectbox("Nội dung", ten_hd_list, index=ten_hd_list.index(default_nd) if default_nd in ten_hd_list else 0, key=f"nd_{idx}")
