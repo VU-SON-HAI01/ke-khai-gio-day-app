@@ -1061,27 +1061,35 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
         if df_excel_gv is not None:
             for idx, row in df_excel_gv.iterrows():
                 st.write(f"Xử lý dòng {idx}: {row}")
-                ten_gv = str(row['Họ và TÊN']).strip() if 'Họ và TÊN' in row else None
-                st.write(f"Tên giáo viên: {ten_gv}")
-                if not ten_gv:
-                    continue
-                # Tìm dòng trong file Excel upload, chỉ từ dòng 9 trở đi
-                row_gv = None
-                for r in range(start_row, ws.max_row + 1):
-                    cell_val = str(ws.cell(row=r, column=2).value).strip() if ws.cell(row=r, column=2).value else ""
-                    st.write(f"So sánh cell B{r}: '{cell_val}' với '{ten_gv}'")
-                    if cell_val == ten_gv:
-                        row_gv = r
-                        st.write(f"Tìm thấy giáo viên ở dòng {row_gv}")
+                # Lấy tên giáo viên từ cột Unnamed: 1 (hoặc tên cột đúng)
+                col_gv = None
+                for col in row.index:
+                    if 'Tên giảng viên' in col or 'Họ và TÊN' in col or 'Unnamed: 1' in col:
+                        col_gv = col
                         break
-                if row_gv is not None:
-                    # Chỉ ghi dữ liệu vào các cột từ 1 đến 27
-                    if 'QĐ thừa' in row:
-                        st.write(f"Ghi giá trị QĐ thừa: {row['QĐ thừa']} vào ô O{row_gv}")
-                        ws.cell(row=row_gv, column=15).value = row['QĐ thừa']
-                    # Có thể thêm các thao tác khác với các cột trong vùng AA nếu cần
+                ten_gv_row = str(row[col_gv]).strip() if col_gv and pd.notna(row[col_gv]) else None
+                st.write(f"Tên giáo viên dòng này: {ten_gv_row}")
+                # So sánh với tên giáo viên ánh xạ từ sheet
+                if ten_gv_from_sheet and ten_gv_row and ten_gv_row == ten_gv_from_sheet:
+                    # Tìm dòng trong file Excel upload, chỉ từ dòng 9 trở đi
+                    row_gv = None
+                    for r in range(start_row, ws.max_row + 1):
+                        cell_val = str(ws.cell(row=r, column=2).value).strip() if ws.cell(row=r, column=2).value else ""
+                        st.write(f"So sánh cell B{r}: '{cell_val}' với '{ten_gv_row}'")
+                        if cell_val == ten_gv_row:
+                            row_gv = r
+                            st.write(f"Tìm thấy giáo viên ở dòng {row_gv}")
+                            break
+                    if row_gv is not None:
+                        # Chỉ ghi dữ liệu vào các cột từ 1 đến 27
+                        if 'QĐ thừa' in row:
+                            st.write(f"Ghi giá trị QĐ thừa: {row['QĐ thừa']} vào ô O{row_gv}")
+                            ws.cell(row=row_gv, column=15).value = row['QĐ thừa']
+                        # Có thể thêm các thao tác khác với các cột trong vùng AA nếu cần
+                    else:
+                        st.write(f"Không tìm thấy giáo viên '{ten_gv_row}' trong file tổng hợp từ dòng {start_row} trở đi.")
                 else:
-                    st.write(f"Không tìm thấy giáo viên '{ten_gv}' trong file tổng hợp từ dòng {start_row} trở đi.")
+                    st.write(f"Tên giáo viên dòng này không trùng với tên giáo viên ánh xạ từ sheet: '{ten_gv_from_sheet}'")
         wb.save(tmpfile_path)
         st.write(f"Đã lưu file tạm: {tmpfile_path}")
         with open(tmpfile_path, 'rb') as f:
