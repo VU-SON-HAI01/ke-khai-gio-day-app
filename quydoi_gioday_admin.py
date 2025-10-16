@@ -988,6 +988,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
 ma_khoa = st.selectbox("Chọn mã khoa (1-9)", [str(i) for i in range(1, 10)], key="ma_khoa_google")
 
 # Kết nối Google Drive và tìm các file Google Sheet có mã khoa đầu
+on = st.toggle("Cập nhật tất")
 try:
     import gspread
     from google.oauth2.service_account import Credentials
@@ -1006,7 +1007,90 @@ try:
     results = drive_service.files().list(q=query, fields="files(id, name)").execute()
     sheets = results.get('files', [])
     sheet_names = [f"{s['name']} ({s['id']})" for s in sheets]
-    selected_sheet = st.selectbox("Chọn Google Sheet theo mã khoa", sheet_names, key="select_gsheet_by_khoa") if sheet_names else None
+    if on:
+        st.info("Đang cập nhật tất cả các sheet...")
+        df_tonghop = []
+        for sheet_info in sheet_names:
+            ma_gv = str(sheet_info).split(' ')[0]
+            sheet_id = sheet_info.split('(')[-1].replace(')', '')
+            ten_gv_from_sheet = None
+            if not df_giaovien.empty and 'Magv' in df_giaovien.columns and 'Tên giảng viên' in df_giaovien.columns:
+                match_row = df_giaovien[df_giaovien['Magv'].astype(str) == ma_gv]
+                if not match_row.empty:
+                    ten_gv_from_sheet = match_row['Tên giảng viên'].iloc[0]
+            # Đọc dữ liệu QĐ thừa từ Google Sheet
+            qd_thua_sheet_hk1, qd_thua_sheet_hk2 = None, None
+            try:
+                sh = gc.open_by_key(sheet_id)
+                # HK1
+                try:
+                    ws_giangday = sh.worksheet('output_giangday')
+                    records_giangday = ws_giangday.get_all_records()
+                    df_giangday_gsheet = pd.DataFrame(records_giangday)
+                    if 'QĐ thừa' in df_giangday_gsheet.columns:
+                        qd_thua_sheet_hk1 = df_giangday_gsheet['QĐ thừa'].sum()
+                except Exception as e:
+                    st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday: {e}")
+                # HK2
+                try:
+                    ws_giangday_hk2 = sh.worksheet('output_giangday(HK2)')
+                    records_giangday_hk2 = ws_giangday_hk2.get_all_records()
+                    df_giangday_gsheet_hk2 = pd.DataFrame(records_giangday_hk2)
+                    if 'QĐ thừa' in df_giangday_gsheet_hk2.columns:
+                        qd_thua_sheet_hk2 = df_giangday_gsheet_hk2['QĐ thừa'].sum()
+                except Exception as e:
+                    st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday(HK2): {e}")
+            except Exception as e:
+                st.write(f"Lỗi khi đọc Google Sheet {sheet_info}: {e}")
+            # Lưu vào danh sách tổng hợp
+            df_tonghop.append({
+                'ten_gv': ten_gv_from_sheet,
+                'QĐ_thừa_hk1': qd_thua_sheet_hk1,
+                'QĐ_thừa_hk2': qd_thua_sheet_hk2
+            })
+        df_tonghop = pd.DataFrame(df_tonghop)
+        st.dataframe(df_tonghop)
+        # Sau này, khi cập nhật file Excel tổng hợp giáo viên, dùng df_tonghop để ghi vào đúng dòng/cột
+    else:
+        df_tonghop = []
+        if selected_sheet:
+            ma_gv = str(selected_sheet).split(' ')[0]
+            sheet_id = selected_sheet.split('(')[-1].replace(')', '')
+            ten_gv_from_sheet = None
+            if not df_giaovien.empty and 'Magv' in df_giaovien.columns and 'Tên giảng viên' in df_giaovien.columns:
+                match_row = df_giaovien[df_giaovien['Magv'].astype(str) == ma_gv]
+                if not match_row.empty:
+                    ten_gv_from_sheet = match_row['Tên giảng viên'].iloc[0]
+            qd_thua_sheet_hk1, qd_thua_sheet_hk2 = None, None
+            try:
+                sh = gc.open_by_key(sheet_id)
+                # HK1
+                try:
+                    ws_giangday = sh.worksheet('output_giangday')
+                    records_giangday = ws_giangday.get_all_records()
+                    df_giangday_gsheet = pd.DataFrame(records_giangday)
+                    if 'QĐ thừa' in df_giangday_gsheet.columns:
+                        qd_thua_sheet_hk1 = df_giangday_gsheet['QĐ thừa'].sum()
+                except Exception as e:
+                    st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday: {e}")
+                # HK2
+                try:
+                    ws_giangday_hk2 = sh.worksheet('output_giangday(HK2)')
+                    records_giangday_hk2 = ws_giangday_hk2.get_all_records()
+                    df_giangday_gsheet_hk2 = pd.DataFrame(records_giangday_hk2)
+                    if 'QĐ thừa' in df_giangday_gsheet_hk2.columns:
+                        qd_thua_sheet_hk2 = df_giangday_gsheet_hk2['QĐ thừa'].sum()
+                except Exception as e:
+                    st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday(HK2): {e}")
+            except Exception as e:
+                st.write(f"Lỗi khi đọc Google Sheet {selected_sheet}: {e}")
+            df_tonghop.append({
+                'ten_gv': ten_gv_from_sheet,
+                'QĐ_thừa_hk1': qd_thua_sheet_hk1,
+                'QĐ_thừa_hk2': qd_thua_sheet_hk2
+            })
+        df_tonghop = pd.DataFrame(df_tonghop)
+        st.dataframe(df_tonghop)
 except Exception as e:
     st.error(f"Lỗi kết nối Google API: {e}")
 
@@ -1014,63 +1098,6 @@ except Exception as e:
 uploaded_excel_gv = st.file_uploader("Upload file Excel tổng hợp giáo viên (cột như hình)", type=["xls", "xlsx"], key="excel_gv_google")
 df_excel_gv = None
 
-# Lấy tên file Google Sheet đã chọn (ví dụ: 2001) để ánh xạ với Magv
-import gspread
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-
-# Đọc lại sheet Google Sheet theo mã đã chọn (ví dụ: 2012)
-qd_thua_sheet_hk1 = None
-qd_thua_sheet_hk2 = None
-if selected_sheet_name and 'google_sheet' in st.secrets:
-    creds_dict = st.secrets["gcp_service_account"]
-    scopes = ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-    gc = gspread.authorize(creds)
-    try:
-        # Tìm file id từ tên sheet đã chọn
-        folder_id = st.secrets["google_sheet"]["target_folder_id"]
-        drive_service = build('drive', 'v3', credentials=creds)
-        query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and name contains '{selected_sheet_name}'"
-        results = drive_service.files().list(q=query, fields="files(id, name)").execute()
-        sheets = results.get('files', [])
-        if sheets:
-            sheet_id = sheets[0]['id']
-            sh = gc.open_by_key(sheet_id)
-            # Đọc sheet output_giangday (HK1)
-            try:
-                ws_giangday = sh.worksheet('output_giangday')
-                records_giangday = ws_giangday.get_all_records()
-                df_giangday_gsheet = pd.DataFrame(records_giangday)
-                if 'QĐ thừa' in df_giangday_gsheet.columns:
-                    qd_thua_sheet_hk1 = df_giangday_gsheet['QĐ thừa'].sum()
-                    st.write(f"QĐ thừa tổng hợp HK1 từ Google Sheet '{selected_sheet_name}': {qd_thua_sheet_hk1}")
-            except Exception as e:
-                st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday: {e}")
-            # Đọc sheet output_giangday(HK2)
-            try:
-                ws_giangday_hk2 = sh.worksheet('output_giangday(HK2)')
-                records_giangday_hk2 = ws_giangday_hk2.get_all_records()
-                df_giangday_gsheet_hk2 = pd.DataFrame(records_giangday_hk2)
-                if 'QĐ thừa' in df_giangday_gsheet_hk2.columns:
-                    qd_thua_sheet_hk2 = df_giangday_gsheet_hk2['QĐ thừa'].sum()
-                    st.write(f"QĐ thừa tổng hợp HK2 từ Google Sheet '{selected_sheet_name}': {qd_thua_sheet_hk2}")
-            except Exception as e:
-                st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday(HK2): {e}")
-    except Exception as e:
-        st.write(f"Lỗi khi đọc Google Sheet: {e}")
-if 'selected_sheet' in locals():
-    # Nếu đã có biến selected_sheet (ví dụ: "2016 (id)")
-    ma_gv = str(selected_sheet).split(' ')[0]
-elif 'selected_sheet' in globals():
-    ma_gv = str(selected_sheet).split(' ')[0]
-# Ánh xạ mã giáo viên sang tên giáo viên qua df_giaovien
-ten_gv_from_sheet = None
-if 'ma_gv' in locals() and not df_giaovien.empty and 'Magv' in df_giaovien.columns and 'Tên giảng viên' in df_giaovien.columns:
-    match_row = df_giaovien[df_giaovien['Magv'].astype(str) == ma_gv]
-    if not match_row.empty:
-        ten_gv_from_sheet = match_row['Tên giảng viên'].iloc[0]
-st.write(f"Tên giáo viên ánh xạ từ mã khoa '{ma_gv}' là: {ten_gv_from_sheet}")
 # --- Sau khi cập nhật vào file Excel upload, cho phép tải lại file đã cập nhật ---
 if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại file Excel đã upload"):
     import openpyxl
@@ -1097,8 +1124,8 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
         start_row = 9
         end_col = 27
         st.write(f"Chỉ xử lý từ dòng {start_row} đến hết, cột 1 đến {end_col} (A-AA)")
-        # Duyệt từng giáo viên trong file excel
-        if df_excel_gv is not None:
+        # Duyệt từng giáo viên trong file excel, ghi dữ liệu từ df_tonghop
+        if df_excel_gv is not None and not df_tonghop.empty:
             for idx, row in df_excel_gv.iterrows():
                 # Lấy tên giáo viên từ cột Unnamed: 1 (hoặc tên cột đúng)
                 col_gv = None
@@ -1107,34 +1134,20 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
                         col_gv = col
                         break
                 ten_gv_row = str(row[col_gv]).strip() if col_gv and pd.notna(row[col_gv]) else None
-                # So sánh với tên giáo viên ánh xạ từ sheet
-                if ten_gv_from_sheet and ten_gv_row and ten_gv_row == ten_gv_from_sheet:
-                    # Tìm dòng trong file Excel upload, chỉ từ dòng 9 trở đi
-                    row_gv = None
-                    for r in range(start_row, ws.max_row + 1):
-                        cell_val = str(ws.cell(row=r, column=2).value).strip() if ws.cell(row=r, column=2).value else ""
-                        #st.write(f"So sánh cell B{r}: '{cell_val}' với '{ten_gv_row}'")
-                        if cell_val == ten_gv_row:
-                            row_gv = r
-                            st.write(f"Tìm thấy giáo viên ở dòng {row_gv}")
-                            break
-                    if row_gv is not None:
-                        # Ghi QĐ thừa HK1 vào cột 15, HK2 vào cột 16 của worksheet nếu có
-                        if qd_thua_sheet_hk1 is not None:
-                            st.write(f"Ghi QĐ thừa HK1 từ Google Sheet: {qd_thua_sheet_hk1} vào ô O{row_gv}")
-                            ws.cell(row=row_gv, column=15).value = qd_thua_sheet_hk1
-                            # Ghi vào DataFrame nếu có
-                            if 'df_excel_gv' in locals() and df_excel_gv is not None and df_excel_gv.shape[1] >= 15:
-                                df_excel_gv.iloc[idx, 14] = qd_thua_sheet_hk1
-                        if qd_thua_sheet_hk2 is not None:
-                            st.write(f"Ghi QĐ thừa HK2 từ Google Sheet: {qd_thua_sheet_hk2} vào ô P{row_gv}")
-                            ws.cell(row=row_gv, column=16).value = qd_thua_sheet_hk2
-                            # Ghi vào DataFrame nếu có
-                            if 'df_excel_gv' in locals() and df_excel_gv is not None and df_excel_gv.shape[1] >= 16:
-                                df_excel_gv.iloc[idx, 15] = qd_thua_sheet_hk2
-                        # Có thể thêm các thao tác khác với các cột trong vùng AA nếu cần
-                    else:
-                        st.write(f"Không tìm thấy giáo viên '{ten_gv_row}' trong file tổng hợp từ dòng {start_row} trở đi.")
+                # Tìm thông tin QĐ thừa từ df_tonghop
+                if ten_gv_row:
+                    match = df_tonghop[df_tonghop['ten_gv'] == ten_gv_row]
+                    if not match.empty:
+                        qd_thua_hk1 = match['QĐ_thừa_hk1'].iloc[0]
+                        qd_thua_hk2 = match['QĐ_thừa_hk2'].iloc[0]
+                        # Tìm dòng trong file Excel upload, chỉ từ dòng 9 trở đi
+                        for r in range(start_row, ws.max_row + 1):
+                            cell_val = str(ws.cell(row=r, column=2).value).strip() if ws.cell(row=r, column=2).value else ""
+                            if cell_val == ten_gv_row:
+                                # Ghi QĐ thừa HK1 vào cột 15, HK2 vào cột 16
+                                ws.cell(row=r, column=15).value = qd_thua_hk1
+                                ws.cell(row=r, column=16).value = qd_thua_hk2
+                                break
         wb.save(tmpfile_path)
         with open(tmpfile_path, 'rb') as f:
             st.download_button(
@@ -1146,7 +1159,6 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
         st.write("Đã tạo nút tải file thành công.")
     except Exception as e:
         st.write(f"Lỗi khi xử lý/ghi file Excel: {e}")
-    import os
     os.unlink(tmpfile_path)
 
 
