@@ -426,19 +426,34 @@ with col3:
 st.markdown("---")
 
 with st.expander("Tải lên (file mẫu) khác với file mẫu mặc định"):
-
-    st.markdown("""
-    [📥 Tải xuống Mẫu bảng điểm](data_base/Bang_diem_qua_trinh_(Mau).xlsx)
-    """)
+    import os
+    sample_path = "data_base/Bang_diem_qua_trinh_(Mau).xlsx"
+    if os.path.exists(sample_path):
+        with open(sample_path, "rb") as f:
+            st.download_button(
+                label="📥 Tải xuống Mẫu bảng điểm",
+                data=f.read(),
+                file_name="Bang_diem_qua_trinh_(Mau).xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    else:
+        st.warning(f"Không tìm thấy file mẫu: {sample_path}")
     uploaded_template_file = st.file_uploader(
         "1. 📂 Tải lên File Mẫu Bảng Điểm (.xlsx)",
         type=['xlsx'],
         key="template_uploader"
     )
-
-    st.markdown("""
-    [📥 Tải xuống Mẫu danh mục lớp](data_base/DS_LOP_(Mau).xlsx)
-    """)
+    sample_danhmuc_path = "data_base/DS_LOP_(Mau).xlsx"
+    if os.path.exists(sample_danhmuc_path):
+        with open(sample_danhmuc_path, "rb") as f:
+            st.download_button(
+                label="📥 Tải xuống Mẫu danh mục lớp",
+                data=f.read(),
+                file_name="DS_LOP_(Mau).xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    else:
+        st.warning(f"Không tìm thấy file mẫu: {sample_danhmuc_path}")
     uploaded_danh_muc_file = st.file_uploader(
         "2. 📂 Tải lên File Danh mục Lớp (DS LOP(Mau).xlsx)",
         type=['xlsx'],
