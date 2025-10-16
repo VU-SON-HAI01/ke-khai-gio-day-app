@@ -1060,11 +1060,17 @@ if selected_sheet_name and 'google_sheet' in st.secrets:
     except Exception as e:
         st.write(f"Lỗi khi đọc Google Sheet: {e}")
 if 'selected_sheet' in locals():
-    # Nếu đã có biến selected_sheet (ví dụ: "2001 (id)")
-    selected_sheet_name = str(selected_sheet).split(' ')[0]
+    # Nếu đã có biến selected_sheet (ví dụ: "2016 (id)")
+    ma_gv = str(selected_sheet).split(' ')[0]
 elif 'selected_sheet' in globals():
-    selected_sheet_name = str(selected_sheet).split(' ')[0]
+    ma_gv = str(selected_sheet).split(' ')[0]
+# Ánh xạ mã giáo viên sang tên giáo viên qua df_giaovien
 ten_gv_from_sheet = None
+if 'ma_gv' in locals() and not df_giaovien.empty and 'Magv' in df_giaovien.columns and 'Tên giảng viên' in df_giaovien.columns:
+    match_row = df_giaovien[df_giaovien['Magv'].astype(str) == ma_gv]
+    if not match_row.empty:
+        ten_gv_from_sheet = match_row['Tên giảng viên'].iloc[0]
+st.write(f"Tên giáo viên ánh xạ từ mã khoa '{ma_gv}' là: {ten_gv_from_sheet}")
 # --- Sau khi cập nhật vào file Excel upload, cho phép tải lại file đã cập nhật ---
 if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại file Excel đã upload"):
     import openpyxl
