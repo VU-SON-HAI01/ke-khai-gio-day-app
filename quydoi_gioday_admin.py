@@ -1029,6 +1029,24 @@ if selected_sheet_name and not df_giaovien.empty and 'Magv' in df_giaovien.colum
         ten_gv_from_sheet = match_row['Tên giảng viên'].iloc[0]
         st.write(f"Tên giáo viên ánh xạ từ sheet '{selected_sheet_name}' là: {ten_gv_from_sheet}")
 
+        # Hiển thị giá trị QĐ thừa tổng hợp từ Google Sheet nếu có
+        qd_thua_value = None
+        # Kiểm tra bảng tổng hợp HK1
+        df_grouped_hk1 = st.session_state.get('df_grouped_hk1')
+        if df_grouped_hk1 is not None and 'Lớp_học' in df_grouped_hk1.columns and 'Tiết QĐ' in df_grouped_hk1.columns:
+            # Tìm dòng của giáo viên này
+            row_gv = df_grouped_hk1[df_grouped_hk1['Lớp_học'] == ten_gv_from_sheet]
+            if not row_gv.empty:
+                qd_thua_value = row_gv['Tiết QĐ'].sum()
+        # Nếu không có, kiểm tra bảng tổng hợp HK2
+        if qd_thua_value is None:
+            df_grouped_hk2 = st.session_state.get('df_grouped_hk2')
+            if df_grouped_hk2 is not None and 'Lớp_học' in df_grouped_hk2.columns and 'Tiết QĐ' in df_grouped_hk2.columns:
+                row_gv = df_grouped_hk2[df_grouped_hk2['Lớp_học'] == ten_gv_from_sheet]
+                if not row_gv.empty:
+                    qd_thua_value = row_gv['Tiết QĐ'].sum()
+        st.write(f"QĐ thừa tổng hợp của giáo viên '{ten_gv_from_sheet}': {qd_thua_value}")
+
 # --- Sau khi cập nhật vào file Excel upload, cho phép tải lại file đã cập nhật ---
 if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại file Excel đã upload"):
     import openpyxl
