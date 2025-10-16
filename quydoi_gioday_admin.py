@@ -1096,7 +1096,6 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
         # Duyệt từng giáo viên trong file excel
         if df_excel_gv is not None:
             for idx, row in df_excel_gv.iterrows():
-                st.write(f"Xử lý dòng {idx}: {row}")
                 # Lấy tên giáo viên từ cột Unnamed: 1 (hoặc tên cột đúng)
                 col_gv = None
                 for col in row.index:
@@ -1104,14 +1103,13 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
                         col_gv = col
                         break
                 ten_gv_row = str(row[col_gv]).strip() if col_gv and pd.notna(row[col_gv]) else None
-                st.write(f"Tên giáo viên dòng này: {ten_gv_row}")
                 # So sánh với tên giáo viên ánh xạ từ sheet
                 if ten_gv_from_sheet and ten_gv_row and ten_gv_row == ten_gv_from_sheet:
                     # Tìm dòng trong file Excel upload, chỉ từ dòng 9 trở đi
                     row_gv = None
                     for r in range(start_row, ws.max_row + 1):
                         cell_val = str(ws.cell(row=r, column=2).value).strip() if ws.cell(row=r, column=2).value else ""
-                        st.write(f"So sánh cell B{r}: '{cell_val}' với '{ten_gv_row}'")
+                        #st.write(f"So sánh cell B{r}: '{cell_val}' với '{ten_gv_row}'")
                         if cell_val == ten_gv_row:
                             row_gv = r
                             st.write(f"Tìm thấy giáo viên ở dòng {row_gv}")
