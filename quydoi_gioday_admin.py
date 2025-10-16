@@ -1078,12 +1078,10 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
     import io
     file_bytes = uploaded_excel_gv.read()  # Đọc một lần
     # Đọc bằng pandas
-    # Debug: kiểm tra file_bytes
-    st.write(f"Kích thước file_bytes: {len(file_bytes)}")
     try:
         df_excel_gv = pd.read_excel(io.BytesIO(file_bytes))
-        st.write("Đã đọc file Excel bằng pandas:")
-        st.dataframe(df_excel_gv.head())
+        #st.write("Đã đọc file Excel bằng pandas:")
+        #st.dataframe(df_excel_gv.head())
     except Exception as e:
         st.write(f"Lỗi khi đọc file Excel bằng pandas: {e}")
         df_excel_gv = None
@@ -1138,7 +1136,6 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
                     else:
                         st.write(f"Không tìm thấy giáo viên '{ten_gv_row}' trong file tổng hợp từ dòng {start_row} trở đi.")
         wb.save(tmpfile_path)
-        st.write(f"Đã lưu file tạm: {tmpfile_path}")
         with open(tmpfile_path, 'rb') as f:
             st.download_button(
                 label="Tải xuống file Excel đã cập nhật",
