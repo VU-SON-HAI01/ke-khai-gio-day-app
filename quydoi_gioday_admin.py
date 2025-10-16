@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -980,6 +979,64 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 st.error(f"Không tìm thấy tên giáo viên '{ten_gv}' trong cột 'HỌ VÀ TÊN' của file tổng hợp.")
             import os
             os.unlink(tmpfile_path)
+    # --- Mục 2: Cập nhật dữ liệu giáo viên vào file tổng hợp Google Sheet ---
+    st.markdown("""
+### 2. Cập nhật dữ liệu giáo viên vào file tổng hợp Google Sheet
+""")
+# Mục 1: Chọn mã khoa
+ma_khoa = st.selectbox("Chọn mã khoa (1-9)", [str(i) for i in range(1, 10)], key="ma_khoa_google")
+
+# Kết nối Google Drive và tìm các file Google Sheet có mã khoa đầu
+try:
+    import gspread
+    from google.oauth2.service_account import Credentials
+    from googleapiclient.discovery import build
+    creds_dict = st.secrets["gcp_service_account"]
+    folder_id = st.secrets["google_sheet"]["target_folder_id"]
+    scopes = [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/spreadsheets"
+    ]
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    gc = gspread.authorize(creds)
+    drive_service = build('drive', 'v3', credentials=creds)
+    # Tìm các file Google Sheet có tên bắt đầu bằng mã khoa
+    query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and name contains '{ma_khoa}'"
+    results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+    sheets = results.get('files', [])
+    sheet_names = [f"{s['name']} ({s['id']})" for s in sheets]
+    selected_sheet = st.selectbox("Chọn Google Sheet theo mã khoa", sheet_names) if sheet_names else None
+except Exception as e:
+    st.error(f"Lỗi kết nối Google API: {e}")
+
+# Mục 2: Upload file excel có các cột như hình
+uploaded_excel_gv = st.file_uploader("Upload file Excel tổng hợp giáo viên (cột như hình)", type=["xls", "xlsx"], key="excel_gv_google")
+df_excel_gv = None
+if uploaded_excel_gv:
+    df_excel_gv = pd.read_excel(uploaded_excel_gv)
+
+# Cập nhật dữ liệu vào Google Sheet
+if st.button("Cập nhật dữ liệu vào Google Sheet tổng hợp") and selected_sheet and df_excel_gv is not None:
+    try:
+        sheet_id = selected_sheet.split('(')[-1].replace(')', '')
+        sh = gc.open_by_key(sheet_id)
+        ws = sh.worksheet("output_giangday")
+        data = ws.get_all_records()
+        df_gs = pd.DataFrame(data)
+        # Duyệt từng giáo viên trong file excel
+        for idx, row in df_excel_gv.iterrows():
+            ten_gv = str(row['Họ và TÊN']).strip() if 'Họ và TÊN' in row else None
+            if not ten_gv:
+                continue
+            # Tìm dòng trong Google Sheet
+            match = df_gs[df_gs['Họ và TÊN'].astype(str).str.strip() == ten_gv]
+            if not match.empty:
+                row_idx = match.index[0] + 2  # +2 vì get_all_records bỏ header và index bắt đầu từ 1
+                sum_qd_thua = match['QĐ thừa'].sum() if 'QĐ thừa' in match.columns else 0
+                ws.update_cell(row_idx, 15, sum_qd_thua)  # Cột O là số 15
+        st.success("Đã cập nhật dữ liệu vào Google Sheet tổng hợp thành công!")
+    except Exception as e:
+        st.error(f"Lỗi cập nhật Google Sheet: {e}")
 
 
 
