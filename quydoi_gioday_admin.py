@@ -1037,6 +1037,26 @@ if st.button("Cập nhật dữ liệu vào Google Sheet tổng hợp") and sele
         st.success("Đã cập nhật dữ liệu vào Google Sheet tổng hợp thành công!")
     except Exception as e:
         st.error(f"Lỗi cập nhật Google Sheet: {e}")
+# Sau khi cập nhật, cho phép tải về file Google Sheet đã cập nhật
+import tempfile
+if st.button("Tải về file Google Sheet đã cập nhật") and selected_sheet:
+    try:
+        sheet_id = selected_sheet.split('(')[-1].replace(')', '')
+        sh = gc.open_by_key(sheet_id)
+        ws = sh.worksheet("output_giangday")
+        data = ws.get_all_records()
+        df_gs = pd.DataFrame(data)
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmpfile:
+            df_gs.to_excel(tmpfile.name, index=False)
+            tmpfile.seek(0)
+            st.download_button(
+                label="Tải xuống file Google Sheet đã cập nhật",
+                data=tmpfile.read(),
+                file_name=f"output_giangday_{sheet_id}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    except Exception as e:
+        st.error(f"Lỗi tải file Google Sheet: {e}")
 
 
 
