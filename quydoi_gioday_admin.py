@@ -1064,22 +1064,7 @@ if 'selected_sheet' in locals():
     selected_sheet_name = str(selected_sheet).split(' ')[0]
 elif 'selected_sheet' in globals():
     selected_sheet_name = str(selected_sheet).split(' ')[0]
-
 ten_gv_from_sheet = None
-if selected_sheet_name and not df_giaovien.empty and 'Magv' in df_giaovien.columns and 'Tên giảng viên' in df_giaovien.columns:
-    match_row = df_giaovien[df_giaovien['Magv'].astype(str) == selected_sheet_name]
-    if not match_row.empty:
-        ten_gv_from_sheet = match_row['Tên giảng viên'].iloc[0]
-        st.write(f"Tên giáo viên ánh xạ từ sheet '{selected_sheet_name}' là: {ten_gv_from_sheet}")
-        # Nếu vẫn chưa có, lấy tổng QĐ thừa từ sheet output_giangday
-        if qd_thua_value is None:
-            df_giangday = None
-            if 'df_giangday' in st.session_state:
-                df_giangday = st.session_state['df_giangday']
-            if df_giangday is not None and 'QĐ thừa' in df_giangday.columns:
-                qd_thua_value = df_giangday['QĐ thừa'].sum()
-        st.write(f"QĐ thừa tổng hợp (sum QĐ thừa sheet output_giangday) của giáo viên '{ten_gv_from_sheet}': {qd_thua_value}")
-
 # --- Sau khi cập nhật vào file Excel upload, cho phép tải lại file đã cập nhật ---
 if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại file Excel đã upload"):
     import openpyxl
