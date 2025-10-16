@@ -1016,56 +1016,17 @@ df_excel_gv = None
 if uploaded_excel_gv:
     df_excel_gv = pd.read_excel(uploaded_excel_gv)
 
-# Cập nhật dữ liệu vào Google Sheet
-if st.button("Cập nhật dữ liệu vào Google Sheet tổng hợp") and selected_sheet and df_excel_gv is not None:
-    try:
-        sheet_id = selected_sheet.split('(')[-1].replace(')', '')
-        sh = gc.open_by_key(sheet_id)
-        ws = sh.worksheet("output_giangday")
-        data = ws.get_all_records()
-        df_gs = pd.DataFrame(data)
-        # Duyệt từng giáo viên trong file excel
-        for idx, row in df_excel_gv.iterrows():
-            ten_gv = str(row['Họ và TÊN']).strip() if 'Họ và TÊN' in row else None
-            if not ten_gv:
-                continue
-            # Tìm dòng trong Google Sheet
-            match = df_gs[df_gs['Họ và TÊN'].astype(str).str.strip() == ten_gv]
-            if not match.empty:
-                row_idx = match.index[0] + 2  # +2 vì get_all_records bỏ header và index bắt đầu từ 1
-                sum_qd_thua = match['QĐ thừa'].sum() if 'QĐ thừa' in match.columns else 0
-                ws.update_cell(row_idx, 15, sum_qd_thua)  # Cột O là số 15
-        st.success("Đã cập nhật dữ liệu vào Google Sheet tổng hợp thành công!")
-    except Exception as e:
-        st.error(f"Lỗi cập nhật Google Sheet: {e}")
-# Sau khi cập nhật, cho phép tải về file Google Sheet đã cập nhật
-import tempfile
-if st.button("Tải về file Google Sheet đã cập nhật") and selected_sheet:
-    try:
-        sheet_id = selected_sheet.split('(')[-1].replace(')', '')
-        sh = gc.open_by_key(sheet_id)
-        ws = sh.worksheet("output_giangday")
-        data = ws.get_all_records()
-        df_gs = pd.DataFrame(data)
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmpfile:
-            df_gs.to_excel(tmpfile.name, index=False)
-            tmpfile.seek(0)
-            st.download_button(
-                label="Tải xuống file Google Sheet đã cập nhật",
-                data=tmpfile.read(),
-                file_name=f"output_giangday_{sheet_id}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-    except Exception as e:
-        st.error(f"Lỗi tải file Google Sheet: {e}")
-
 # --- Sau khi cập nhật vào file Excel upload, cho phép tải lại file đã cập nhật ---
 if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại file Excel đã upload"):
     import openpyxl
     import tempfile
-    # Đọc file upload
+    import io
+    file_bytes = uploaded_excel_gv.read()  # Đọc một lần
+    # Đọc bằng pandas
+    df_excel_gv = pd.read_excel(io.BytesIO(file_bytes))
+    # Đọc bằng openpyxl
     with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmpfile:
-        tmpfile.write(uploaded_excel_gv.read())
+        tmpfile.write(file_bytes)
         tmpfile_path = tmpfile.name
     wb = openpyxl.load_workbook(tmpfile_path)
     ws = wb.active
