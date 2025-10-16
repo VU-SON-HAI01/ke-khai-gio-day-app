@@ -1046,6 +1046,14 @@ if selected_sheet_name and not df_giaovien.empty and 'Magv' in df_giaovien.colum
                 if not row_gv.empty:
                     qd_thua_value = row_gv['Tiết QĐ'].sum()
         st.write(f"QĐ thừa tổng hợp của giáo viên '{ten_gv_from_sheet}': {qd_thua_value}")
+        # Nếu vẫn chưa có, lấy tổng QĐ thừa từ sheet output_giangday
+        if qd_thua_value is None:
+            df_giangday = None
+            if 'df_giangday' in st.session_state:
+                df_giangday = st.session_state['df_giangday']
+            if df_giangday is not None and 'QĐ thừa' in df_giangday.columns:
+                qd_thua_value = df_giangday['QĐ thừa'].sum()
+        st.write(f"QĐ thừa tổng hợp (sum QĐ thừa sheet output_giangday) của giáo viên '{ten_gv_from_sheet}': {qd_thua_value}")
 
 # --- Sau khi cập nhật vào file Excel upload, cho phép tải lại file đã cập nhật ---
 if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại file Excel đã upload"):
