@@ -1083,6 +1083,7 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
                     if row_gv is not None:
                         # Chỉ ghi dữ liệu vào các cột từ 1 đến 27
                         if 'QĐ thừa' in row:
+                            st.write(f"Giá trị QĐ thừa tổng hợp lấy từ Google Sheet: {row['QĐ thừa']}")
                             st.write(f"Ghi giá trị QĐ thừa: {row['QĐ thừa']} vào ô O{row_gv}")
                             ws.cell(row=row_gv, column=15).value = row['QĐ thừa']
                         # Có thể thêm các thao tác khác với các cột trong vùng AA nếu cần
