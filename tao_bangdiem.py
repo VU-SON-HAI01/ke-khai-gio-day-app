@@ -493,7 +493,7 @@ with st.container():
                         st.info("ℹ️ Các lớp sau có trong danh mục nhưng không có sheet tương ứng trong file dữ liệu:")
                         st.json(list(danh_muc_not_in_sheets))
 
-    if uploaded_template_file and uploaded_data_file and uploaded_danh_muc_file:
+    if uploaded_data_file:
         if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True):
             st.session_state.zip_buffer = None
             try:
