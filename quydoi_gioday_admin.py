@@ -1137,8 +1137,6 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
                         # Có thể thêm các thao tác khác với các cột trong vùng AA nếu cần
                     else:
                         st.write(f"Không tìm thấy giáo viên '{ten_gv_row}' trong file tổng hợp từ dòng {start_row} trở đi.")
-                else:
-                    st.write(f"Tên giáo viên dòng này không trùng với tên giáo viên ánh xạ từ sheet: '{ten_gv_from_sheet}'")
         wb.save(tmpfile_path)
         st.write(f"Đã lưu file tạm: {tmpfile_path}")
         with open(tmpfile_path, 'rb') as f:
