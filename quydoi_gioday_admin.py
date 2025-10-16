@@ -1013,8 +1013,6 @@ except Exception as e:
 # Mục 2: Upload file excel có các cột như hình
 uploaded_excel_gv = st.file_uploader("Upload file Excel tổng hợp giáo viên (cột như hình)", type=["xls", "xlsx"], key="excel_gv_google")
 df_excel_gv = None
-if uploaded_excel_gv:
-    df_excel_gv = pd.read_excel(uploaded_excel_gv)
 
 # --- Sau khi cập nhật vào file Excel upload, cho phép tải lại file đã cập nhật ---
 if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại file Excel đã upload"):
