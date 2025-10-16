@@ -1024,7 +1024,7 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
     file_bytes = uploaded_excel_gv.read()  # Đọc một lần
     # Đọc bằng pandas
     df_excel_gv = pd.read_excel(io.BytesIO(file_bytes))
-    # Đọc bằng openpyxl
+    # Đọc bằng openpyxl từ file_bytes
     with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmpfile:
         tmpfile.write(file_bytes)
         tmpfile_path = tmpfile.name
