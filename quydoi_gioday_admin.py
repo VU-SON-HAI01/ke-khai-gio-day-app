@@ -994,6 +994,7 @@ ma_khoa = st.selectbox("Chọn mã khoa (1-9)", [str(i) for i in range(1, 10)], 
 on = st.toggle("Cập nhật tất cả")
 try:
     import gspread
+    import os
     from google.oauth2.service_account import Credentials
     from googleapiclient.discovery import build
     creds_dict = st.secrets["gcp_service_account"]
