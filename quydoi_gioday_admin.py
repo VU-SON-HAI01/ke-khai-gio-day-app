@@ -1020,7 +1020,8 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
 # Đọc lại sheet Google Sheet theo mã đã chọn (ví dụ: 2012)
-qd_thua_value_gsheet = None
+qd_thua_sheet_hk1 = None
+qd_thua_sheet_hk2 = None
 if selected_sheet_name and 'google_sheet' in st.secrets:
     creds_dict = st.secrets["gcp_service_account"]
     scopes = ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/spreadsheets"]
@@ -1036,19 +1037,28 @@ if selected_sheet_name and 'google_sheet' in st.secrets:
         if sheets:
             sheet_id = sheets[0]['id']
             sh = gc.open_by_key(sheet_id)
+            # Đọc sheet output_giangday (HK1)
             try:
                 ws_giangday = sh.worksheet('output_giangday')
                 records_giangday = ws_giangday.get_all_records()
                 df_giangday_gsheet = pd.DataFrame(records_giangday)
                 if 'QĐ thừa' in df_giangday_gsheet.columns:
-                    qd_thua_value_gsheet = df_giangday_gsheet['QĐ thừa'].sum()
-                    st.write(f"QĐ thừa tổng hợp từ Google Sheet '{selected_sheet_name}': {qd_thua_value_gsheet}")
+                    qd_thua_sheet_hk1 = df_giangday_gsheet['QĐ thừa'].sum()
+                    st.write(f"QĐ thừa tổng hợp HK1 từ Google Sheet '{selected_sheet_name}': {qd_thua_sheet_hk1}")
             except Exception as e:
                 st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday: {e}")
+            # Đọc sheet output_giangday(HK2)
+            try:
+                ws_giangday_hk2 = sh.worksheet('output_giangday(HK2)')
+                records_giangday_hk2 = ws_giangday_hk2.get_all_records()
+                df_giangday_gsheet_hk2 = pd.DataFrame(records_giangday_hk2)
+                if 'QĐ thừa' in df_giangday_gsheet_hk2.columns:
+                    qd_thua_sheet_hk2 = df_giangday_gsheet_hk2['QĐ thừa'].sum()
+                    st.write(f"QĐ thừa tổng hợp HK2 từ Google Sheet '{selected_sheet_name}': {qd_thua_sheet_hk2}")
+            except Exception as e:
+                st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday(HK2): {e}")
     except Exception as e:
         st.write(f"Lỗi khi đọc Google Sheet: {e}")
-st.write(f"QĐ thừa tổng hợp từ Google Sheet '{selected_sheet_name}': {qd_thua_value_gsheet}")
-selected_sheet_name = None
 if 'selected_sheet' in locals():
     # Nếu đã có biến selected_sheet (ví dụ: "2001 (id)")
     selected_sheet_name = str(selected_sheet).split(' ')[0]
@@ -1124,7 +1134,12 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
                     if row_gv is not None:
                         # Ghi giá trị QĐ thừa tổng hợp từ Google Sheet vào ô O{row_gv}
                         if 'qd_thua_value_gsheet' in locals() or 'qd_thua_value_gsheet' in globals():
-                            qd_value = qd_thua_value_gsheet if 'qd_thua_value_gsheet' in locals() else globals().get('qd_thua_value_gsheet', None)
+                            # Sử dụng giá trị QĐ thừa từ HK1 và HK2 nếu có
+                            qd_value = None
+                            if 'qd_thua_sheet_hk1' in locals() and qd_thua_sheet_hk1 is not None:
+                                qd_value = qd_thua_sheet_hk1
+                            elif 'qd_thua_sheet_hk2' in locals() and qd_thua_sheet_hk2 is not None:
+                                qd_value = qd_thua_sheet_hk2
                             st.write(f"Ghi giá trị QĐ thừa tổng hợp từ Google Sheet: {qd_value} vào ô O{row_gv}")
                             ws.cell(row=row_gv, column=15).value = qd_value
                         # Có thể thêm các thao tác khác với các cột trong vùng AA nếu cần
