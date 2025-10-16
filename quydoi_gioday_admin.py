@@ -1132,16 +1132,19 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
                             st.write(f"Tìm thấy giáo viên ở dòng {row_gv}")
                             break
                     if row_gv is not None:
-                        # Ghi giá trị QĐ thừa tổng hợp từ Google Sheet vào ô O{row_gv}
-                        if 'qd_thua_value_gsheet' in locals() or 'qd_thua_value_gsheet' in globals():
-                            # Sử dụng giá trị QĐ thừa từ HK1 và HK2 nếu có
-                            qd_value = None
-                            if 'qd_thua_sheet_hk1' in locals() and qd_thua_sheet_hk1 is not None:
-                                qd_value = qd_thua_sheet_hk1
-                            elif 'qd_thua_sheet_hk2' in locals() and qd_thua_sheet_hk2 is not None:
-                                qd_value = qd_thua_sheet_hk2
-                            st.write(f"Ghi giá trị QĐ thừa tổng hợp từ Google Sheet: {qd_value} vào ô O{row_gv}")
-                            ws.cell(row=row_gv, column=15).value = qd_value
+                        # Ghi QĐ thừa HK1 vào cột 15, HK2 vào cột 16 của worksheet nếu có
+                        if qd_thua_sheet_hk1 is not None:
+                            st.write(f"Ghi QĐ thừa HK1 từ Google Sheet: {qd_thua_sheet_hk1} vào ô O{row_gv}")
+                            ws.cell(row=row_gv, column=15).value = qd_thua_sheet_hk1
+                            # Ghi vào DataFrame nếu có
+                            if 'df_excel_gv' in locals() and df_excel_gv is not None and df_excel_gv.shape[1] >= 15:
+                                df_excel_gv.iloc[idx, 14] = qd_thua_sheet_hk1
+                        if qd_thua_sheet_hk2 is not None:
+                            st.write(f"Ghi QĐ thừa HK2 từ Google Sheet: {qd_thua_sheet_hk2} vào ô P{row_gv}")
+                            ws.cell(row=row_gv, column=16).value = qd_thua_sheet_hk2
+                            # Ghi vào DataFrame nếu có
+                            if 'df_excel_gv' in locals() and df_excel_gv is not None and df_excel_gv.shape[1] >= 16:
+                                df_excel_gv.iloc[idx, 15] = qd_thua_sheet_hk2
                         # Có thể thêm các thao tác khác với các cột trong vùng AA nếu cần
                     else:
                         st.write(f"Không tìm thấy giáo viên '{ten_gv_row}' trong file tổng hợp từ dòng {start_row} trở đi.")
