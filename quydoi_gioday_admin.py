@@ -1015,6 +1015,38 @@ uploaded_excel_gv = st.file_uploader("Upload file Excel tổng hợp giáo viên
 df_excel_gv = None
 
 # Lấy tên file Google Sheet đã chọn (ví dụ: 2001) để ánh xạ với Magv
+import gspread
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+
+# Đọc lại sheet Google Sheet theo mã đã chọn (ví dụ: 2012)
+qd_thua_value_gsheet = None
+if selected_sheet_name and 'google_sheet' in st.secrets:
+    creds_dict = st.secrets["gcp_service_account"]
+    scopes = ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/spreadsheets"]
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    gc = gspread.authorize(creds)
+    try:
+        # Tìm file id từ tên sheet đã chọn
+        folder_id = st.secrets["google_sheet"]["target_folder_id"]
+        drive_service = build('drive', 'v3', credentials=creds)
+        query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and name contains '{selected_sheet_name}'"
+        results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+        sheets = results.get('files', [])
+        if sheets:
+            sheet_id = sheets[0]['id']
+            sh = gc.open_by_key(sheet_id)
+            try:
+                ws_giangday = sh.worksheet('output_giangday')
+                records_giangday = ws_giangday.get_all_records()
+                df_giangday_gsheet = pd.DataFrame(records_giangday)
+                if 'QĐ thừa' in df_giangday_gsheet.columns:
+                    qd_thua_value_gsheet = df_giangday_gsheet['QĐ thừa'].sum()
+            except Exception as e:
+                st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday: {e}")
+    except Exception as e:
+        st.write(f"Lỗi khi đọc Google Sheet: {e}")
+st.write(f"QĐ thừa tổng hợp từ Google Sheet '{selected_sheet_name}': {qd_thua_value_gsheet}")
 selected_sheet_name = None
 if 'selected_sheet' in locals():
     # Nếu đã có biến selected_sheet (ví dụ: "2001 (id)")
