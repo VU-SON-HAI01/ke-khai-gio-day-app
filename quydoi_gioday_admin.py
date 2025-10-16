@@ -630,6 +630,7 @@ with st.expander("Lưu trữ dữ kiệu giảng dạy của giảng viên từ 
                         query = f"name='{ma_gv_sheet}' and '{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet'"
                         results = drive_service.files().list(q=query, fields="files(id, name)").execute()
                         files = results.get('files', [])
+
                         # Xác định tên sheet cần lưu dựa vào học kỳ
                         hocky = st.session_state.get('hocky', 'HK1')
                         sheet_title = 'output_giangday' if hocky == 'HK1' else 'output_giangday(HK2)'
@@ -1057,6 +1058,44 @@ if st.button("Tải về file Google Sheet đã cập nhật") and selected_shee
             )
     except Exception as e:
         st.error(f"Lỗi tải file Google Sheet: {e}")
+
+# --- Sau khi cập nhật vào file Excel upload, cho phép tải lại file đã cập nhật ---
+if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại file Excel đã upload"):
+    import openpyxl
+    import tempfile
+    # Đọc file upload
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmpfile:
+        tmpfile.write(uploaded_excel_gv.read())
+        tmpfile_path = tmpfile.name
+    wb = openpyxl.load_workbook(tmpfile_path)
+    ws = wb.active
+    # Duyệt từng giáo viên trong file excel
+    if df_excel_gv is not None:
+        for idx, row in df_excel_gv.iterrows():
+            ten_gv = str(row['Họ và TÊN']).strip() if 'Họ và TÊN' in row else None
+            if not ten_gv:
+                continue
+            # Tìm dòng trong file Excel upload
+            row_gv = None
+            for r in range(2, ws.max_row + 1):
+                cell_val = str(ws.cell(row=r, column=2).value).strip() if ws.cell(row=r, column=2).value else ""
+                if cell_val == ten_gv:
+                    row_gv = r
+                    break
+            if row_gv is not None:
+                # Ví dụ: cập nhật dữ liệu vào cột O (15) với tổng QĐ thừa
+                if 'QĐ thừa' in row:
+                    ws.cell(row=row_gv, column=15).value = row['QĐ thừa']
+    wb.save(tmpfile_path)
+    with open(tmpfile_path, 'rb') as f:
+        st.download_button(
+            label="Tải xuống file Excel đã cập nhật",
+            data=f.read(),
+            file_name="excel_gv_capnhat.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    import os
+    os.unlink(tmpfile_path)
 
 
 
