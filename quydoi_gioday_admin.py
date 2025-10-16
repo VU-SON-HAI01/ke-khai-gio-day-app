@@ -1028,7 +1028,16 @@ try:
         for sheet_info in sheet_names:
             import time
                 # Thêm delay giữa các lần gọi API để tránh vượt quota
-            time.sleep(5)
+            with st.status("Downloading data...", expanded=True) as status:
+                st.write("Searching for data...")
+                time.sleep(2)
+                st.write("Found URL.")
+                time.sleep(1)
+                st.write("Downloading data...")
+                time.sleep(1)
+                status.update(
+                    label=f"{sheet_info} - Download complete!", state="complete", expanded=False
+                )
             ma_gv = str(sheet_info).split(' ')[0]
             sheet_id = sheet_info.split('(')[-1].replace(')', '')
             ten_gv_from_sheet = None
