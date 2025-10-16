@@ -1014,6 +1014,21 @@ except Exception as e:
 uploaded_excel_gv = st.file_uploader("Upload file Excel tổng hợp giáo viên (cột như hình)", type=["xls", "xlsx"], key="excel_gv_google")
 df_excel_gv = None
 
+# Lấy tên file Google Sheet đã chọn (ví dụ: 2001) để ánh xạ với Magv
+selected_sheet_name = None
+if 'selected_sheet' in locals():
+    # Nếu đã có biến selected_sheet (ví dụ: "2001 (id)")
+    selected_sheet_name = str(selected_sheet).split(' ')[0]
+elif 'selected_sheet' in globals():
+    selected_sheet_name = str(selected_sheet).split(' ')[0]
+
+ten_gv_from_sheet = None
+if selected_sheet_name and not df_giaovien.empty and 'Magv' in df_giaovien.columns and 'Tên giảng viên' in df_giaovien.columns:
+    match_row = df_giaovien[df_giaovien['Magv'].astype(str) == selected_sheet_name]
+    if not match_row.empty:
+        ten_gv_from_sheet = match_row['Tên giảng viên'].iloc[0]
+        st.write(f"Tên giáo viên ánh xạ từ sheet '{selected_sheet_name}' là: {ten_gv_from_sheet}")
+
 # --- Sau khi cập nhật vào file Excel upload, cho phép tải lại file đã cập nhật ---
 if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại file Excel đã upload"):
     import openpyxl
@@ -1038,6 +1053,10 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
         wb = openpyxl.load_workbook(tmpfile_path)
         ws = wb.active
         st.write(f"Số dòng sheet: {ws.max_row}, Số cột: {ws.max_column}")
+        # Chỉ xử lý từ dòng 9 trở đi, cột 1 đến 27 (A đến AA)
+        start_row = 9
+        end_col = 27
+        st.write(f"Chỉ xử lý từ dòng {start_row} đến hết, cột 1 đến {end_col} (A-AA)")
         # Duyệt từng giáo viên trong file excel
         if df_excel_gv is not None:
             for idx, row in df_excel_gv.iterrows():
@@ -1046,9 +1065,9 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
                 st.write(f"Tên giáo viên: {ten_gv}")
                 if not ten_gv:
                     continue
-                # Tìm dòng trong file Excel upload
+                # Tìm dòng trong file Excel upload, chỉ từ dòng 9 trở đi
                 row_gv = None
-                for r in range(2, ws.max_row + 1):
+                for r in range(start_row, ws.max_row + 1):
                     cell_val = str(ws.cell(row=r, column=2).value).strip() if ws.cell(row=r, column=2).value else ""
                     st.write(f"So sánh cell B{r}: '{cell_val}' với '{ten_gv}'")
                     if cell_val == ten_gv:
@@ -1056,12 +1075,13 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
                         st.write(f"Tìm thấy giáo viên ở dòng {row_gv}")
                         break
                 if row_gv is not None:
-                    # Ví dụ: cập nhật dữ liệu vào cột O (15) với tổng QĐ thừa
+                    # Chỉ ghi dữ liệu vào các cột từ 1 đến 27
                     if 'QĐ thừa' in row:
                         st.write(f"Ghi giá trị QĐ thừa: {row['QĐ thừa']} vào ô O{row_gv}")
                         ws.cell(row=row_gv, column=15).value = row['QĐ thừa']
+                    # Có thể thêm các thao tác khác với các cột trong vùng AA nếu cần
                 else:
-                    st.write(f"Không tìm thấy giáo viên '{ten_gv}' trong file tổng hợp.")
+                    st.write(f"Không tìm thấy giáo viên '{ten_gv}' trong file tổng hợp từ dòng {start_row} trở đi.")
         wb.save(tmpfile_path)
         st.write(f"Đã lưu file tạm: {tmpfile_path}")
         with open(tmpfile_path, 'rb') as f:
