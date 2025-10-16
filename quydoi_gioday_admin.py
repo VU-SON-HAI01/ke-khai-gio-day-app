@@ -1010,10 +1010,25 @@ try:
     results = drive_service.files().list(q=query, fields="files(id, name)").execute()
     sheets = results.get('files', [])
     sheet_names = [f"{s['name']} ({s['id']})" for s in sheets]
+    sheet_display = []
+    sheet_display_map = {}
+    for s in sheets:
+        magv = str(s['name']).split(' ')[0]
+        ten_gv = None
+        if not df_giaovien.empty and 'Magv' in df_giaovien.columns and 'Tên giảng viên' in df_giaovien.columns:
+            match_row = df_giaovien[df_giaovien['Magv'].astype(str) == magv]
+            if not match_row.empty:
+                ten_gv = match_row['Tên giảng viên'].iloc[0]
+        display_name = f"{magv} - {ten_gv}" if ten_gv else magv
+        sheet_display.append(display_name)
+        sheet_display_map[display_name] = f"{s['name']} ({s['id']})"
     if on:
         st.info("Đang cập nhật tất cả các sheet...")
         df_tonghop = []
         for sheet_info in sheet_names:
+            import time
+                # Thêm delay giữa các lần gọi API để tránh vượt quota
+            time.sleep(1)
             ma_gv = str(sheet_info).split(' ')[0]
             sheet_id = sheet_info.split('(')[-1].replace(')', '')
             ten_gv_from_sheet = None
@@ -1056,44 +1071,45 @@ try:
         # Sau này, khi cập nhật file Excel tổng hợp giáo viên, dùng df_tonghop để ghi vào đúng dòng/cột
     else:
         df_tonghop = []
-        # Thêm selectbox chọn sheet Google nếu chưa có
-        selected_sheet = st.selectbox("Chọn Google Sheet cần xử lý:", sheet_names, key="select_gsheet_single") if sheet_names else None
-        if selected_sheet:
-                ma_gv = str(selected_sheet).split(' ')[0]
-                sheet_id = selected_sheet.split('(')[-1].replace(')', '')
-                ten_gv_from_sheet = None
-                if not df_giaovien.empty and 'Magv' in df_giaovien.columns and 'Tên giảng viên' in df_giaovien.columns:
-                    match_row = df_giaovien[df_giaovien['Magv'].astype(str) == ma_gv]
-                    if not match_row.empty:
-                        ten_gv_from_sheet = match_row['Tên giảng viên'].iloc[0]
-                qd_thua_sheet_hk1, qd_thua_sheet_hk2 = None, None
-                try:
-                    sh = gc.open_by_key(sheet_id)
-                    # HK1
-                    try:
-                        ws_giangday = sh.worksheet('output_giangday')
-                        records_giangday = ws_giangday.get_all_records()
-                        df_giangday_gsheet = pd.DataFrame(records_giangday)
-                        if 'QĐ thừa' in df_giangday_gsheet.columns:
-                            qd_thua_sheet_hk1 = df_giangday_gsheet['QĐ thừa'].sum()
-                    except Exception as e:
-                        st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday: {e}")
-                    # HK2
-                    try:
-                        ws_giangday_hk2 = sh.worksheet('output_giangday(HK2)')
-                        records_giangday_hk2 = ws_giangday_hk2.get_all_records()
-                        df_giangday_gsheet_hk2 = pd.DataFrame(records_giangday_hk2)
-                        if 'QĐ thừa' in df_giangday_gsheet_hk2.columns:
-                            qd_thua_sheet_hk2 = df_giangday_gsheet_hk2['QĐ thừa'].sum()
-                    except Exception as e:
-                        st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday(HK2): {e}")
-                except Exception as e:
-                    st.write(f"Lỗi khi đọc Google Sheet {selected_sheet}: {e}")
-                df_tonghop.append({
-                    'ten_gv': ten_gv_from_sheet,
-                    'QĐ_thừa_hk1': qd_thua_sheet_hk1,
-                    'QĐ_thừa_hk2': qd_thua_sheet_hk2
-                })
+    # Thêm selectbox chọn sheet Google, hiển thị sheet_display nhưng lấy giá trị từ sheet_names
+    selected_display = st.selectbox("Chọn Google Sheet cần xử lý:", sheet_display, key="select_gsheet_single") if sheet_display else None
+    selected_sheet = sheet_display_map[selected_display] if selected_display else None
+    if selected_sheet:
+        ma_gv = str(selected_sheet).split(' ')[0]
+        sheet_id = selected_sheet.split('(')[-1].replace(')', '')
+        ten_gv_from_sheet = None
+        if not df_giaovien.empty and 'Magv' in df_giaovien.columns and 'Tên giảng viên' in df_giaovien.columns:
+            match_row = df_giaovien[df_giaovien['Magv'].astype(str) == ma_gv]
+            if not match_row.empty:
+                ten_gv_from_sheet = match_row['Tên giảng viên'].iloc[0]
+        qd_thua_sheet_hk1, qd_thua_sheet_hk2 = None, None
+        try:
+            sh = gc.open_by_key(sheet_id)
+            # HK1
+            try:
+                ws_giangday = sh.worksheet('output_giangday')
+                records_giangday = ws_giangday.get_all_records()
+                df_giangday_gsheet = pd.DataFrame(records_giangday)
+                if 'QĐ thừa' in df_giangday_gsheet.columns:
+                    qd_thua_sheet_hk1 = df_giangday_gsheet['QĐ thừa'].sum()
+            except Exception as e:
+                st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday: {e}")
+            # HK2
+            try:
+                ws_giangday_hk2 = sh.worksheet('output_giangday(HK2)')
+                records_giangday_hk2 = ws_giangday_hk2.get_all_records()
+                df_giangday_gsheet_hk2 = pd.DataFrame(records_giangday_hk2)
+                if 'QĐ thừa' in df_giangday_gsheet_hk2.columns:
+                    qd_thua_sheet_hk2 = df_giangday_gsheet_hk2['QĐ thừa'].sum()
+            except Exception as e:
+                st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday(HK2): {e}")
+        except Exception as e:
+            st.write(f"Lỗi khi đọc Google Sheet {selected_sheet}: {e}")
+        df_tonghop.append({
+            'ten_gv': ten_gv_from_sheet,
+            'QĐ_thừa_hk1': qd_thua_sheet_hk1,
+            'QĐ_thừa_hk2': qd_thua_sheet_hk2
+        })
         df_tonghop = pd.DataFrame(df_tonghop)
         st.dataframe(df_tonghop)
 except Exception as e:
