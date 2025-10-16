@@ -1021,38 +1021,59 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
     import io
     file_bytes = uploaded_excel_gv.read()  # Đọc một lần
     # Đọc bằng pandas
-    df_excel_gv = pd.read_excel(io.BytesIO(file_bytes))
+    # Debug: kiểm tra file_bytes
+    st.write(f"Kích thước file_bytes: {len(file_bytes)}")
+    try:
+        df_excel_gv = pd.read_excel(io.BytesIO(file_bytes))
+        st.write("Đã đọc file Excel bằng pandas:")
+        st.dataframe(df_excel_gv.head())
+    except Exception as e:
+        st.write(f"Lỗi khi đọc file Excel bằng pandas: {e}")
+        df_excel_gv = None
     # Đọc bằng openpyxl từ file_bytes
     with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmpfile:
         tmpfile.write(file_bytes)
         tmpfile_path = tmpfile.name
-    wb = openpyxl.load_workbook(tmpfile_path)
-    ws = wb.active
-    # Duyệt từng giáo viên trong file excel
-    if df_excel_gv is not None:
-        for idx, row in df_excel_gv.iterrows():
-            ten_gv = str(row['Họ và TÊN']).strip() if 'Họ và TÊN' in row else None
-            if not ten_gv:
-                continue
-            # Tìm dòng trong file Excel upload
-            row_gv = None
-            for r in range(2, ws.max_row + 1):
-                cell_val = str(ws.cell(row=r, column=2).value).strip() if ws.cell(row=r, column=2).value else ""
-                if cell_val == ten_gv:
-                    row_gv = r
-                    break
-            if row_gv is not None:
-                # Ví dụ: cập nhật dữ liệu vào cột O (15) với tổng QĐ thừa
-                if 'QĐ thừa' in row:
-                    ws.cell(row=row_gv, column=15).value = row['QĐ thừa']
-    wb.save(tmpfile_path)
-    with open(tmpfile_path, 'rb') as f:
-        st.download_button(
-            label="Tải xuống file Excel đã cập nhật",
-            data=f.read(),
-            file_name="excel_gv_capnhat.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+    try:
+        wb = openpyxl.load_workbook(tmpfile_path)
+        ws = wb.active
+        st.write(f"Số dòng sheet: {ws.max_row}, Số cột: {ws.max_column}")
+        # Duyệt từng giáo viên trong file excel
+        if df_excel_gv is not None:
+            for idx, row in df_excel_gv.iterrows():
+                st.write(f"Xử lý dòng {idx}: {row}")
+                ten_gv = str(row['Họ và TÊN']).strip() if 'Họ và TÊN' in row else None
+                st.write(f"Tên giáo viên: {ten_gv}")
+                if not ten_gv:
+                    continue
+                # Tìm dòng trong file Excel upload
+                row_gv = None
+                for r in range(2, ws.max_row + 1):
+                    cell_val = str(ws.cell(row=r, column=2).value).strip() if ws.cell(row=r, column=2).value else ""
+                    st.write(f"So sánh cell B{r}: '{cell_val}' với '{ten_gv}'")
+                    if cell_val == ten_gv:
+                        row_gv = r
+                        st.write(f"Tìm thấy giáo viên ở dòng {row_gv}")
+                        break
+                if row_gv is not None:
+                    # Ví dụ: cập nhật dữ liệu vào cột O (15) với tổng QĐ thừa
+                    if 'QĐ thừa' in row:
+                        st.write(f"Ghi giá trị QĐ thừa: {row['QĐ thừa']} vào ô O{row_gv}")
+                        ws.cell(row=row_gv, column=15).value = row['QĐ thừa']
+                else:
+                    st.write(f"Không tìm thấy giáo viên '{ten_gv}' trong file tổng hợp.")
+        wb.save(tmpfile_path)
+        st.write(f"Đã lưu file tạm: {tmpfile_path}")
+        with open(tmpfile_path, 'rb') as f:
+            st.download_button(
+                label="Tải xuống file Excel đã cập nhật",
+                data=f.read(),
+                file_name="excel_gv_capnhat.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        st.write("Đã tạo nút tải file thành công.")
+    except Exception as e:
+        st.write(f"Lỗi khi xử lý/ghi file Excel: {e}")
     import os
     os.unlink(tmpfile_path)
 
