@@ -1060,24 +1060,6 @@ if selected_sheet_name and not df_giaovien.empty and 'Magv' in df_giaovien.colum
     if not match_row.empty:
         ten_gv_from_sheet = match_row['Tên giảng viên'].iloc[0]
         st.write(f"Tên giáo viên ánh xạ từ sheet '{selected_sheet_name}' là: {ten_gv_from_sheet}")
-
-        # Hiển thị giá trị QĐ thừa tổng hợp từ Google Sheet nếu có
-        qd_thua_value = None
-        # Kiểm tra bảng tổng hợp HK1
-        df_grouped_hk1 = st.session_state.get('df_grouped_hk1')
-        if df_grouped_hk1 is not None and 'Lớp_học' in df_grouped_hk1.columns and 'Tiết QĐ' in df_grouped_hk1.columns:
-            # Tìm dòng của giáo viên này
-            row_gv = df_grouped_hk1[df_grouped_hk1['Lớp_học'] == ten_gv_from_sheet]
-            if not row_gv.empty:
-                qd_thua_value = row_gv['Tiết QĐ'].sum()
-        # Nếu không có, kiểm tra bảng tổng hợp HK2
-        if qd_thua_value is None:
-            df_grouped_hk2 = st.session_state.get('df_grouped_hk2')
-            if df_grouped_hk2 is not None and 'Lớp_học' in df_grouped_hk2.columns and 'Tiết QĐ' in df_grouped_hk2.columns:
-                row_gv = df_grouped_hk2[df_grouped_hk2['Lớp_học'] == ten_gv_from_sheet]
-                if not row_gv.empty:
-                    qd_thua_value = row_gv['Tiết QĐ'].sum()
-        st.write(f"QĐ thừa tổng hợp của giáo viên '{ten_gv_from_sheet}': {qd_thua_value}")
         # Nếu vẫn chưa có, lấy tổng QĐ thừa từ sheet output_giangday
         if qd_thua_value is None:
             df_giangday = None
@@ -1139,11 +1121,11 @@ if uploaded_excel_gv is not None and st.button("Cập nhật và tải lại fil
                             st.write(f"Tìm thấy giáo viên ở dòng {row_gv}")
                             break
                     if row_gv is not None:
-                        # Chỉ ghi dữ liệu vào các cột từ 1 đến 27
-                        if 'QĐ thừa' in row:
-                            st.write(f"Giá trị QĐ thừa tổng hợp lấy từ Google Sheet: {row['QĐ thừa']}")
-                            st.write(f"Ghi giá trị QĐ thừa: {row['QĐ thừa']} vào ô O{row_gv}")
-                            ws.cell(row=row_gv, column=15).value = row['QĐ thừa']
+                        # Ghi giá trị QĐ thừa tổng hợp từ Google Sheet vào ô O{row_gv}
+                        if 'qd_thua_value_gsheet' in locals() or 'qd_thua_value_gsheet' in globals():
+                            qd_value = qd_thua_value_gsheet if 'qd_thua_value_gsheet' in locals() else globals().get('qd_thua_value_gsheet', None)
+                            st.write(f"Ghi giá trị QĐ thừa tổng hợp từ Google Sheet: {qd_value} vào ô O{row_gv}")
+                            ws.cell(row=row_gv, column=15).value = qd_value
                         # Có thể thêm các thao tác khác với các cột trong vùng AA nếu cần
                     else:
                         st.write(f"Không tìm thấy giáo viên '{ten_gv_row}' trong file tổng hợp từ dòng {start_row} trở đi.")
