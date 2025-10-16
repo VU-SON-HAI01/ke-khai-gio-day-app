@@ -1006,7 +1006,7 @@ try:
     results = drive_service.files().list(q=query, fields="files(id, name)").execute()
     sheets = results.get('files', [])
     sheet_names = [f"{s['name']} ({s['id']})" for s in sheets]
-    selected_sheet = st.selectbox("Chọn Google Sheet theo mã khoa", sheet_names) if sheet_names else None
+    selected_sheet = st.selectbox("Chọn Google Sheet theo mã khoa", sheet_names, key="select_gsheet_by_khoa") if sheet_names else None
 except Exception as e:
     st.error(f"Lỗi kết nối Google API: {e}")
 
@@ -1042,6 +1042,7 @@ if selected_sheet_name and 'google_sheet' in st.secrets:
                 df_giangday_gsheet = pd.DataFrame(records_giangday)
                 if 'QĐ thừa' in df_giangday_gsheet.columns:
                     qd_thua_value_gsheet = df_giangday_gsheet['QĐ thừa'].sum()
+                    st.write(f"QĐ thừa tổng hợp từ Google Sheet '{selected_sheet_name}': {qd_thua_value_gsheet}")
             except Exception as e:
                 st.write(f"Không tìm thấy hoặc lỗi worksheet output_giangday: {e}")
     except Exception as e:
