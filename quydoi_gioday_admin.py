@@ -1029,7 +1029,7 @@ try:
         for sheet_info in sheet_names:
             import time
             # Thêm delay giữa các lần gọi API để tránh vượt quota
-            time.sleep(1)
+            time.sleep(3)
             ma_gv = str(sheet_info).split(' ')[0]
             sheet_id = sheet_info.split('(')[-1].replace(')', '')
             ten_gv_from_sheet = None
