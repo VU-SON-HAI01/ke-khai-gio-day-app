@@ -1028,8 +1028,9 @@ try:
         df_tonghop = []
         for sheet_info in sheet_names:
             import time
-            # Thêm delay giữa các lần gọi API để tránh vượt quota
-            time.sleep(3)
+            # Hiển thị tiến trình load dữ liệu cho từng sheet
+            with st.spinner(f"Đang tải dữ liệu cho {sheet_info}..."):
+                time.sleep(4)  # hoặc code tải dữ liệu thực tế
             ma_gv = str(sheet_info).split(' ')[0]
             sheet_id = sheet_info.split('(')[-1].replace(')', '')
             ten_gv_from_sheet = None
