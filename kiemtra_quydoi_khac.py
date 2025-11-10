@@ -139,6 +139,8 @@ with pd.ExcelFile(excel_path) as xls:
             # Nếu xác định được các vị trí, cắt bảng và hiển thị
             if tt_row is not None and tong_row is not None and col_end is not None:
                 df_bang = df_sheet.iloc[tt_row:tong_row, 0:col_end+1]
+                st.write(df_bang)
+
                 # Đặt lại header
                 df_bang.columns = df_bang.iloc[0]
                 df_bang = df_bang[1:]  # Bỏ dòng header cũ
