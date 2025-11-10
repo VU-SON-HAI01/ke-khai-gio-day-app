@@ -21,12 +21,16 @@ with st.spinner('Đang tải dữ liệu...'):
         st.stop()
 
 # Kiểm tra cột tên giáo viên
+
 possible_columns = ['Tên giáo viên', 'ten_gv', 'Tên_GV', 'HoTen', 'GV', 'Teacher']
 teacher_col = None
 for col in possible_columns:
     if col in df.columns:
         teacher_col = col
         break
+# Nếu không tìm thấy, thử với 'Họ và tên'
+if not teacher_col and 'Họ và tên' in df.columns:
+    teacher_col = 'Họ và tên'
 if not teacher_col:
     st.error('Không tìm thấy cột tên giáo viên trong file Excel.')
     st.write('Các cột hiện có:', list(df.columns))
