@@ -46,6 +46,7 @@ if teacher_names is None:
 
 
 # Luôn hiển thị selectbox, nếu có file upload và lấy được tên GV thì tự động chọn đúng tên đó
+
 auto_gv_name = None
 selectbox_options = ['Tất cả'] + teacher_names
 selectbox_index = 0
@@ -63,7 +64,7 @@ if uploaded_file is not None:
                         selectbox_index = selectbox_options.index(auto_gv_name)
 if auto_gv_name:
     st.info(f"Tên GV (tự động từ file): :green[**{auto_gv_name}**]")
-selected_teacher = st.selectbox('Chọn tên giáo viên', selectbox_options, index=selectbox_index)
+selected_teacher = st.selectbox('Chọn tên giáo viên', selectbox_options, index=selectbox_index, key='gv_selectbox')
 
 if not selected_teacher or selected_teacher == 'Tất cả':
     st.info('Vui lòng chọn một giáo viên để xem tổng hợp dữ liệu từ các sheet.')
