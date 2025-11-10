@@ -135,6 +135,7 @@ with pd.ExcelFile(excel_path) as xls:
                     if isinstance(val, str) and val.strip().startswith('Quy ra gi'):
                         col_end = j
                         break
+            st.write(start_row)
             # Nếu xác định được các vị trí, cắt bảng và hiển thị
             if tt_row is not None and tong_row is not None and col_end is not None:
                 df_bang = df_sheet.iloc[tt_row:tong_row, 0:col_end+1]
@@ -142,11 +143,19 @@ with pd.ExcelFile(excel_path) as xls:
                 df_bang.columns = df_bang.iloc[0]
                 df_bang = df_bang[1:]  # Bỏ dòng header cũ
                 df_bang = df_bang.reset_index(drop=True)
-                # Xử lý tên cột trùng
-                cols = pd.Series(df_bang.columns)
-                for dup in cols[cols.duplicated()].unique():
-                    cols[cols[cols == dup].index.values.tolist()] = [f"{dup}_{i}" if i > 0 else dup for i in range(sum(cols == dup))]
-                df_bang.columns = cols
+                # Đảm bảo tên cột duy nhất
+                def make_unique_columns(cols):
+                    seen = {}
+                    new_cols = []
+                    for c in cols:
+                        if c not in seen:
+                            seen[c] = 0
+                            new_cols.append(c)
+                        else:
+                            seen[c] += 1
+                            new_cols.append(f"{c}_{seen[c]}")
+                    return new_cols
+                df_bang.columns = make_unique_columns(df_bang.columns)
                 st.subheader('Bảng CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN')
                 st.dataframe(df_bang, use_container_width=True)
             else:
