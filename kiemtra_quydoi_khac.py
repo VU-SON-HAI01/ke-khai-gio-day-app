@@ -92,12 +92,12 @@ else:
                 if col_name is None:
                     continue
                 # Chuẩn hóa tên để so sánh
-                def norm_name(s):
+                def normalize_name(s):
                     if pd.isna(s):
                         return ''
                     return str(s).strip().lower().replace('  ', ' ')
-                norm_selected = norm_name(selected_teacher)
-                norm_col = df_sheet[col_name].apply(norm_name)
+                norm_selected = normalize_name(selected_teacher)
+                norm_col = df_sheet[col_name].apply(normalize_name)
                 row = df_sheet[norm_col == norm_selected]
                 if not row.empty:
                     # Lấy giá trị Tổng_cộng hoặc Tổng cộng
