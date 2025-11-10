@@ -135,7 +135,7 @@ with pd.ExcelFile(excel_path) as xls:
                     if isinstance(val, str) and val.strip().startswith('Quy ra gi'):
                         col_end = j
                         break
-            st.write(start_row)
+            st.write(start_row,tong_row,col_end)
             # Nếu xác định được các vị trí, cắt bảng và hiển thị
             if tt_row is not None and tong_row is not None and col_end is not None:
                 df_bang = df_sheet.iloc[tt_row:tong_row, 0:col_end+1]
