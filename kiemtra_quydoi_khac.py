@@ -78,6 +78,9 @@ else:
                             break
                     if tong_cong_col:
                         val = row.iloc[0][tong_cong_col]
+                        # Làm tròn nếu là số
+                        if pd.api.types.is_number(val):
+                            val = round(val, 1)
                         ket_qua.append(f"{label}: {val}")
         # Hiển thị kết quả
         if ket_qua:
@@ -86,7 +89,7 @@ else:
                 # Tách nhãn và giá trị để bôi màu giá trị
                 if ':' in kq:
                     label, val = kq.split(':', 1)
-                    st.markdown(f"{label}: :green[**{val.strip()}**]")
+                    st.markdown(f"{label}: :green[{val.strip()}]")
                 else:
                     st.write(kq)
         else:
