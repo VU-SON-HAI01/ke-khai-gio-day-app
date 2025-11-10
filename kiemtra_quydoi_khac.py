@@ -3,7 +3,12 @@ import pandas as pd
 import os
 
 # Lấy df_giaovien từ session_state nếu có
-df_giaovien = st.session_state.get('df_giaovien', None)
+
+# Kiểm tra dữ liệu df_giaovien đã được nạp chưa
+if 'df_giaovien' not in st.session_state or st.session_state['df_giaovien'] is None or st.session_state['df_giaovien'].empty:
+    st.error('Dữ liệu giáo viên chưa được nạp vào hệ thống.\n\nVui lòng quay lại trang chính hoặc đăng nhập lại để hệ thống nạp dữ liệu nền trước khi sử dụng chức năng này!')
+    st.stop()
+df_giaovien = st.session_state['df_giaovien']
 
 st.title('Kiểm tra Quy Đổi Khác')
 
