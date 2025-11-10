@@ -54,10 +54,13 @@ if uploaded_file is not None:
         sheet_name = 'Ke_gio_HK2_Cả_năm'
         if sheet_name in xls.sheet_names:
             df_sheet = pd.read_excel(xls, sheet_name=sheet_name, header=None)
-            if df_sheet.shape[0] > 5 and df_sheet.shape[1] > 3:
-                auto_gv_name = str(df_sheet.iloc[4, 3]).strip()
-                if auto_gv_name in teacher_names:
-                    selectbox_index = selectbox_options.index(auto_gv_name)
+            # Lấy tên GV từ dòng 4 cột 3 (Excel: dòng 5 cột C, Python: 4,2)
+            if df_sheet.shape[0] > 4 and df_sheet.shape[1] > 2:
+                val = df_sheet.iloc[4, 2]
+                if pd.notna(val):
+                    auto_gv_name = str(val).strip()
+                    if auto_gv_name in teacher_names:
+                        selectbox_index = selectbox_options.index(auto_gv_name)
 if auto_gv_name:
     st.info(f"Tên GV (tự động từ file): :green[**{auto_gv_name}**]")
 selected_teacher = st.selectbox('Chọn tên giáo viên', selectbox_options, index=selectbox_index)
