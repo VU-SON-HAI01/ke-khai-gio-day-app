@@ -48,6 +48,12 @@ if teacher_names is None:
 # Luôn hiển thị selectbox, nếu có file upload và lấy được tên GV thì tự động chọn đúng tên đó
 
 
+
+def normalize_name(s):
+    if pd.isna(s):
+        return ''
+    return str(s).strip().lower().replace('  ', ' ')
+
 auto_gv_name = None
 selectbox_options = ['Tất cả'] + teacher_names
 selectbox_index = 0
@@ -62,8 +68,12 @@ if uploaded_file is not None:
                 val = df_sheet.iloc[3, 2]
                 if pd.notna(val):
                     auto_gv_name = str(val).strip()
-                    if auto_gv_name in teacher_names:
-                        selectbox_index = selectbox_options.index(auto_gv_name)
+                    # Chuẩn hóa tên để so khớp
+                    norm_auto = normalize_name(auto_gv_name)
+                    norm_teachers = [normalize_name(t) for t in teacher_names]
+                    if norm_auto in norm_teachers:
+                        idx = norm_teachers.index(norm_auto)
+                        selectbox_index = idx + 1  # +1 vì có 'Tất cả' ở đầu
                         disable_selectbox = True
 if auto_gv_name:
     st.info(f"Tên GV (tự động từ file): :green[**{auto_gv_name}**]")
