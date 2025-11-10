@@ -83,6 +83,11 @@ else:
         if ket_qua:
             st.subheader('Tổng hợp dữ liệu từ các sheet đặc biệt:')
             for kq in ket_qua:
-                st.write(kq)
+                # Tách nhãn và giá trị để bôi màu giá trị
+                if ':' in kq:
+                    label, val = kq.split(':', 1)
+                    st.markdown(f"{label}: :green[**{val.strip()}**]")
+                else:
+                    st.write(kq)
         else:
             st.info('Không tìm thấy dữ liệu phù hợp cho giáo viên này trong các sheet đặc biệt.')
