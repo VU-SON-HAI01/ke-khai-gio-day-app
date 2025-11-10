@@ -44,10 +44,25 @@ if teacher_names is None:
     st.error('Không tìm thấy danh sách giáo viên trong dữ liệu df_giaovien. Vui lòng kiểm tra lại dữ liệu.')
     st.stop()
 
-selected_teacher = st.selectbox('Chọn tên giáo viên', ['Tất cả'] + teacher_names)
 
+# Luôn hiển thị selectbox, nếu có file upload và lấy được tên GV thì tự động chọn đúng tên đó
+auto_gv_name = None
+selectbox_options = ['Tất cả'] + teacher_names
+selectbox_index = 0
+if uploaded_file is not None:
+    with pd.ExcelFile(excel_path) as xls:
+        sheet_name = 'Ke_gio_HK2_Cả_năm'
+        if sheet_name in xls.sheet_names:
+            df_sheet = pd.read_excel(xls, sheet_name=sheet_name, header=None)
+            if df_sheet.shape[0] > 5 and df_sheet.shape[1] > 3:
+                auto_gv_name = str(df_sheet.iloc[5, 3]).strip()
+                if auto_gv_name in teacher_names:
+                    selectbox_index = selectbox_options.index(auto_gv_name)
+if auto_gv_name:
+    st.info(f"Tên GV (tự động từ file): :green[**{auto_gv_name}**]")
+selected_teacher = st.selectbox('Chọn tên giáo viên', selectbox_options, index=selectbox_index)
 
-if selected_teacher == 'Tất cả':
+if not selected_teacher or selected_teacher == 'Tất cả':
     st.info('Vui lòng chọn một giáo viên để xem tổng hợp dữ liệu từ các sheet.')
 else:
     # Đọc lại toàn bộ sheet trong file Excel
@@ -143,7 +158,7 @@ with pd.ExcelFile(excel_path) as xls:
                 last_valid = df_bang[1].last_valid_index()
                 if last_valid is not None:
                     df_bang = df_bang.loc[:last_valid]
-                # Lấy lại các cột cần thiết: 1 (Nội dung), 3 (Ghi chú), 11 (Quy ra giờ)
+                # Lấy lại các cột cần thiết: 1 (Nội dung), 3 (Ghi chú), 11 (Quy ra gi   ờ)
                 df_bang = df_bang[[1, 3, 11]]
                 df_bang.columns = ['Nội dung', 'Ghi chú', 'Quy đổi']
                 df_bang = df_bang.reset_index(drop=True)
