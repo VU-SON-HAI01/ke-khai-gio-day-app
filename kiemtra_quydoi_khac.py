@@ -79,6 +79,9 @@ if auto_gv_name:
     st.info(f"Tên GV (tự động từ file): :green[**{auto_gv_name}**]")
 selected_teacher = st.selectbox('Chọn tên giáo viên', selectbox_options, index=selectbox_index, key='gv_selectbox', disabled=disable_selectbox)
 
+if auto_gv_name and disable_selectbox:
+    selected_teacher = auto_gv_name
+
 if not selected_teacher or selected_teacher == 'Tất cả':
     st.info('Vui lòng chọn một giáo viên để xem tổng hợp dữ liệu từ các sheet.')
 else:
