@@ -10,13 +10,18 @@ if 'df_giaovien' not in st.session_state or st.session_state['df_giaovien'] is N
     st.stop()
 df_giaovien = st.session_state['df_giaovien']
 
+
 st.title('Kiểm tra Quy Đổi Khác')
 
-# Đường dẫn file Excel
-excel_path = os.path.join('data_base', 'DULIEU_KEGIO2025.xlsx')
+# Cho phép tải lên file Excel
+uploaded_file = st.file_uploader('Tải lên file Excel dữ liệu (nếu có)', type=['xlsx'])
+if uploaded_file is not None:
+    excel_path = uploaded_file
+else:
+    excel_path = os.path.join('data_base', 'DULIEU_KEGIO2025.xlsx')
 
-# Kiểm tra file tồn tại
-if not os.path.exists(excel_path):
+# Kiểm tra file tồn tại (chỉ kiểm tra nếu dùng file mặc định)
+if uploaded_file is None and not os.path.exists(excel_path):
     st.error(f'Không tìm thấy file: {excel_path}')
     st.stop()
 
@@ -95,3 +100,51 @@ else:
                     st.write(kq)
         else:
             st.info('Không tìm thấy dữ liệu phù hợp cho giáo viên này trong các sheet đặc biệt.')
+
+# --- HIỂN THỊ BẢNG CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN ---
+with pd.ExcelFile(excel_path) as xls:
+    sheet_name = 'Ke_gio_HK2_Cả_năm'
+    if sheet_name in xls.sheet_names:
+        df_sheet = pd.read_excel(xls, sheet_name=sheet_name, header=None)
+        # Tìm dòng chứa 'CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN' ở cột A (0)
+        start_row = None
+        for i, val in enumerate(df_sheet[0]):
+            if isinstance(val, str) and 'CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN' in val.upper():
+                start_row = i
+                break
+        if start_row is not None:
+            # Tìm dòng có 'TT' đầu tiên sau start_row ở cột A
+            tt_row = None
+            for i in range(start_row+1, len(df_sheet)):
+                val = df_sheet.iloc[i, 0]
+                if isinstance(val, str) and val.strip().upper() == 'TT':
+                    tt_row = i
+                    break
+            # Tìm dòng có 'TỔNG' sau tt_row ở cột A
+            tong_row = None
+            for i in range(tt_row+1 if tt_row else start_row+1, len(df_sheet)):
+                val = df_sheet.iloc[i, 0]
+                if isinstance(val, str) and val.strip().upper().startswith('TỔNG'):
+                    tong_row = i
+                    break
+            # Tìm cột cuối: từ tt_row, quét sang phải, gặp cột có giá trị bắt đầu bằng 'Quy ra gi' thì lấy làm col_end
+            col_end = None
+            if tt_row is not None:
+                for j in range(1, df_sheet.shape[1]):
+                    val = df_sheet.iloc[tt_row, j]
+                    if isinstance(val, str) and val.strip().startswith('Quy ra gi'):
+                        col_end = j
+                        break
+            # Nếu xác định được các vị trí, cắt bảng và hiển thị
+            if tt_row is not None and tong_row is not None and col_end is not None:
+                df_bang = df_sheet.iloc[tt_row:tong_row, 0:col_end+1]
+                # Đặt lại header
+                df_bang.columns = df_bang.iloc[0]
+                df_bang = df_bang[1:]  # Bỏ dòng header cũ
+                df_bang = df_bang.reset_index(drop=True)
+                st.subheader('Bảng CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN')
+                st.dataframe(df_bang, use_container_width=True)
+            else:
+                st.info('Không xác định được vị trí bảng CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN trong sheet.')
+        else:
+            st.info('Không tìm thấy tiêu đề bảng CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN trong sheet.')
