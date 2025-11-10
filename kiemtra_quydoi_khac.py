@@ -142,6 +142,11 @@ with pd.ExcelFile(excel_path) as xls:
                 df_bang.columns = df_bang.iloc[0]
                 df_bang = df_bang[1:]  # Bỏ dòng header cũ
                 df_bang = df_bang.reset_index(drop=True)
+                # Xử lý tên cột trùng
+                cols = pd.Series(df_bang.columns)
+                for dup in cols[cols.duplicated()].unique():
+                    cols[cols[cols == dup].index.values.tolist()] = [f"{dup}_{i}" if i > 0 else dup for i in range(sum(cols == dup))]
+                df_bang.columns = cols
                 st.subheader('Bảng CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN')
                 st.dataframe(df_bang, use_container_width=True)
             else:
