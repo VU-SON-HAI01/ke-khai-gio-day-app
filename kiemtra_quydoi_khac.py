@@ -91,8 +91,14 @@ else:
                         break
                 if col_name is None:
                     continue
-                # Lọc theo tên GV
-                row = df_sheet[df_sheet[col_name] == selected_teacher]
+                # Chuẩn hóa tên để so sánh
+                def norm_name(s):
+                    if pd.isna(s):
+                        return ''
+                    return str(s).strip().lower().replace('  ', ' ')
+                norm_selected = norm_name(selected_teacher)
+                norm_col = df_sheet[col_name].apply(norm_name)
+                row = df_sheet[norm_col == norm_selected]
                 if not row.empty:
                     # Lấy giá trị Tổng_cộng hoặc Tổng cộng
                     tong_cong_col = None
@@ -153,7 +159,6 @@ with pd.ExcelFile(excel_path) as xls:
                     if isinstance(val, str) and val.strip().startswith('Quy ra gi'):
                         col_end = j
                         break
-            st.write(tt_row,tong_row,col_end)
             # Nếu xác định được các vị trí, cắt bảng và hiển thị
             if tt_row is not None and tong_row is not None and col_end is not None:
                 df_bang = df_sheet.iloc[tt_row+1:tong_row, :]
