@@ -56,7 +56,7 @@ if uploaded_file is not None:
             df_sheet = pd.read_excel(xls, sheet_name=sheet_name, header=None)
             # Lấy tên GV từ dòng 4 cột 3 (Excel: dòng 5 cột C, Python: 4,2)
             if df_sheet.shape[0] > 4 and df_sheet.shape[1] > 2:
-                val = df_sheet.iloc[4, 2]
+                val = df_sheet.iloc[3, 2]
                 if pd.notna(val):
                     auto_gv_name = str(val).strip()
                     if auto_gv_name in teacher_names:
