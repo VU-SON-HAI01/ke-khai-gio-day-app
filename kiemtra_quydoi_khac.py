@@ -41,17 +41,48 @@ if teacher_names is None:
 
 selected_teacher = st.selectbox('Chọn tên giáo viên', ['Tất cả'] + teacher_names)
 
-# Luôn khởi tạo filtered_df là DataFrame rỗng để tránh lỗi
-filtered_df = df.iloc[0:0]
+
 if selected_teacher == 'Tất cả':
-    filtered_df = df
+    st.info('Vui lòng chọn một giáo viên để xem tổng hợp dữ liệu từ các sheet.')
 else:
-    for col in ['Tên giáo viên', 'ten_gv', 'Tên_GV', 'HoTen', 'GV', 'Teacher', 'Họ và tên']:
-        if col in df.columns:
-            filtered_df = df[df[col] == selected_teacher]
-            break
-        
-if filtered_df.empty:
-    st.warning('Không có dữ liệu phù hợp với lựa chọn.')
-else:
-    st.dataframe(filtered_df, use_container_width=True)
+    # Đọc lại toàn bộ sheet trong file Excel
+    with pd.ExcelFile(excel_path) as xls:
+        sheet_names = xls.sheet_names
+        ket_qua = []
+        # Sheet đặc biệt và tên hiển thị
+        sheet_map = {
+            'COI_CHAM_THI_TN': 'Ra đề, chấm, coi thi tốt nghiệp',
+            'COI_CHAM_HK1': 'Ra đề, chấm, coi thi kết thúc HK1',
+            'COI_CHAM_HK2': 'Ra đề, chấm, coi thi kết thúc HK2',
+            'HOC_TAP_DN': 'Tổng tiết quy đổi Học tập doanh nghiệp'
+        }
+        for sheet, label in sheet_map.items():
+            if sheet in sheet_names:
+                df_sheet = pd.read_excel(xls, sheet_name=sheet)
+                # Tìm cột tên phù hợp
+                col_name = None
+                for c in ['Họ và tên', 'Tên giáo viên', 'ten_gv', 'Tên_GV', 'HoTen', 'GV', 'Teacher']:
+                    if c in df_sheet.columns:
+                        col_name = c
+                        break
+                if col_name is None:
+                    continue
+                # Lọc theo tên GV
+                row = df_sheet[df_sheet[col_name] == selected_teacher]
+                if not row.empty:
+                    # Lấy giá trị Tổng_cộng hoặc Tổng cộng
+                    tong_cong_col = None
+                    for tc in ['Tổng_cộng', 'Tổng cộng', 'Tổng', 'Tong_cong', 'Tong cong']:
+                        if tc in row.columns:
+                            tong_cong_col = tc
+                            break
+                    if tong_cong_col:
+                        val = row.iloc[0][tong_cong_col]
+                        ket_qua.append(f"{label}: {val}")
+        # Hiển thị kết quả
+        if ket_qua:
+            st.subheader('Tổng hợp dữ liệu từ các sheet đặc biệt:')
+            for kq in ket_qua:
+                st.write(kq)
+        else:
+            st.info('Không tìm thấy dữ liệu phù hợp cho giáo viên này trong các sheet đặc biệt.')
