@@ -81,7 +81,7 @@ selected_teacher = st.selectbox('Chọn tên giáo viên', selectbox_options, in
 
 if auto_gv_name and disable_selectbox:
     selected_teacher = auto_gv_name
-
+st.write(selected_teacher)
 if not selected_teacher or selected_teacher == 'Tất cả':
     st.info('Vui lòng chọn một giáo viên để xem tổng hợp dữ liệu từ các sheet.')
 else:
