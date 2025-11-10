@@ -43,14 +43,13 @@ if teacher_names is None:
 
 selected_teacher = st.selectbox('Chọn tên giáo viên', ['Tất cả'] + teacher_names)
 
-# Lọc dữ liệu: Nếu chọn "Tất cả" thì hiển thị toàn bộ, nếu không thì lọc theo tất cả các cột có thể
+# Luôn khởi tạo filtered_df là DataFrame rỗng để tránh lỗi
+filtered_df = df.iloc[0:0]
 if selected_teacher == 'Tất cả':
-    found = False
+    filtered_df = df
+else:
     for col in ['Tên giáo viên', 'ten_gv', 'Tên_GV', 'HoTen', 'GV', 'Teacher', 'Họ và tên']:
         if col in df.columns:
             filtered_df = df[df[col] == selected_teacher]
-            found = True
             break
-    if not found:
-        filtered_df = df.iloc[0:0]  # DataFrame rỗng
 st.dataframe(filtered_df, use_container_width=True)
