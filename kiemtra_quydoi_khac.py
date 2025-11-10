@@ -55,7 +55,7 @@ if uploaded_file is not None:
         if sheet_name in xls.sheet_names:
             df_sheet = pd.read_excel(xls, sheet_name=sheet_name, header=None)
             if df_sheet.shape[0] > 5 and df_sheet.shape[1] > 3:
-                auto_gv_name = str(df_sheet.iloc[5, 3]).strip()
+                auto_gv_name = str(df_sheet.iloc[4, 3]).strip()
                 if auto_gv_name in teacher_names:
                     selectbox_index = selectbox_options.index(auto_gv_name)
 if auto_gv_name:
