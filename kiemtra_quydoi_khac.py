@@ -1,5 +1,3 @@
-
-import streamlit as st
 import streamlit as st
 import pandas as pd
 import os
@@ -52,4 +50,8 @@ else:
         if col in df.columns:
             filtered_df = df[df[col] == selected_teacher]
             break
-st.dataframe(filtered_df, use_container_width=True)
+        
+if filtered_df.empty:
+    st.warning('Không có dữ liệu phù hợp với lựa chọn.')
+else:
+    st.dataframe(filtered_df, use_container_width=True)
