@@ -54,7 +54,8 @@ else:
             'COI_CHAM_THI_TN': 'Ra đề, chấm, coi thi tốt nghiệp',
             'COI_CHAM_HK1': 'Ra đề, chấm, coi thi kết thúc HK1',
             'COI_CHAM_HK2': 'Ra đề, chấm, coi thi kết thúc HK2',
-            'HOC_TAP_DN': 'Tổng tiết quy đổi Học tập doanh nghiệp'
+            'HOC_TAP_DN': 'Quy đổi Học tập tại doanh nghiệp',
+            'NGAN_HANG_DE': 'Biên soạn kho đề thi'
         }
         for sheet, label in sheet_map.items():
             if sheet in sheet_names:
