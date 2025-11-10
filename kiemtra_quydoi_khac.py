@@ -1,4 +1,6 @@
 
+import streamlit as st
+import streamlit as st
 import pandas as pd
 import os
 
@@ -18,10 +20,8 @@ excel_path = os.path.join('data_base', 'DULIEU_KEGIO2025.xlsx')
 # Kiểm tra file tồn tại
 if not os.path.exists(excel_path):
     st.error(f'Không tìm thấy file: {excel_path}')
-    import streamlit as st
     st.stop()
 
-# Đọc dữ liệu từ file Excel
 with st.spinner('Đang tải dữ liệu...'):
     try:
         df = pd.read_excel(excel_path)
