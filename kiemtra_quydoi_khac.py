@@ -80,7 +80,13 @@ if auto_gv_name:
 selected_teacher = st.selectbox('Chọn tên giáo viên', selectbox_options, index=selectbox_index, key='gv_selectbox', disabled=disable_selectbox)
 
 if auto_gv_name and disable_selectbox:
-    selected_teacher = auto_gv_name
+    # Đảm bảo selected_teacher lấy đúng tên gốc trong teacher_names (không phải raw string)
+    norm_auto = normalize_name(auto_gv_name)
+    norm_teachers = [normalize_name(t) for t in teacher_names]
+    if norm_auto in norm_teachers:
+        selected_teacher = teacher_names[norm_teachers.index(norm_auto)]
+    else:
+        selected_teacher = auto_gv_name
 st.write(selected_teacher)
 if not selected_teacher or selected_teacher == 'Tất cả':
     st.info('Vui lòng chọn một giáo viên để xem tổng hợp dữ liệu từ các sheet.')
