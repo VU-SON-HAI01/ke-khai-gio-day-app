@@ -138,26 +138,15 @@ with pd.ExcelFile(excel_path) as xls:
             st.write(tt_row,tong_row,col_end)
             # Nếu xác định được các vị trí, cắt bảng và hiển thị
             if tt_row is not None and tong_row is not None and col_end is not None:
-                df_bang = df_sheet.iloc[tt_row:tong_row, 0:col_end+1]
-                st.write(df_bang)
-
-                # Đặt lại header
-                df_bang.columns = df_bang.iloc[0]
-                df_bang = df_bang[1:]  # Bỏ dòng header cũ
+                df_bang = df_sheet.iloc[tt_row+1:tong_row, :]
+                # Xác định dòng cuối cùng có giá trị ở cột 1 (index 1)
+                last_valid = df_bang[1].last_valid_index()
+                if last_valid is not None:
+                    df_bang = df_bang.loc[:last_valid]
+                # Lấy lại các cột cần thiết: 1 (Nội dung), 3 (Ghi chú), 11 (Quy ra giờ)
+                df_bang = df_bang[[1, 3, 11]]
+                df_bang.columns = ['Nội dung', 'Ghi chú', 'Quy đổi']
                 df_bang = df_bang.reset_index(drop=True)
-                # Đảm bảo tên cột duy nhất
-                def make_unique_columns(cols):
-                    seen = {}
-                    new_cols = []
-                    for c in cols:
-                        if c not in seen:
-                            seen[c] = 0
-                            new_cols.append(c)
-                        else:
-                            seen[c] += 1
-                            new_cols.append(f"{c}_{seen[c]}")
-                    return new_cols
-                df_bang.columns = make_unique_columns(df_bang.columns)
                 st.subheader('Bảng CÁC HOẠT ĐỘNG KHÁC QUY RA GIỜ CHUẨN')
                 st.dataframe(df_bang, use_container_width=True)
             else:
