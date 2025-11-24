@@ -879,9 +879,24 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 if col in df_mon.columns:
                     ma_to_val = df_mon.set_index('Mã_môn_ngành')[col].to_dict()
                     df_md[col] = df_md['Mã_môn_ngành'].map(ma_to_val)
-        # Chỉ hiển thị các cột liên quan
-        cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'Mã_môn_ngành', 'Nặng_Nhọc', 'LT', 'TH', 'KT']
+        # Chỉ hiển thị các cột liên quan, bỏ Tiết QĐ, thêm Nặng_nhọc trước LT
+        # Đổi tên cột Nặng_Nhọc thành Nặng_nhọc nếu có
+        if 'Nặng_Nhọc' in df_md.columns:
+            df_md.rename(columns={'Nặng_Nhọc': 'Nặng_nhọc'}, inplace=True)
+        cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Mã_môn_ngành', 'Nặng_nhọc', 'LT', 'TH', 'KT']
         df_md_show = df_md[[c for c in cols_show if c in df_md.columns]].copy()
+        # Thêm dòng Tổng cho các cột Tiết, LT, TH, KT
+        total_row = {
+            'Lớp_học': 'TỔNG',
+            'Môn_học': '',
+            'Tiết': df_md_show['Tiết'].sum() if 'Tiết' in df_md_show.columns else '',
+            'Mã_môn_ngành': '',
+            'Nặng_nhọc': '',
+            'LT': df_md_show['LT'].sum() if 'LT' in df_md_show.columns else '',
+            'TH': df_md_show['TH'].sum() if 'TH' in df_md_show.columns else '',
+            'KT': df_md_show['KT'].sum() if 'KT' in df_md_show.columns else ''
+        }
+        df_md_show = pd.concat([df_md_show, pd.DataFrame([total_row])], ignore_index=True)
         st.write('#### Bảng tổng hợp Nặng nhọc độc hại (theo môn MĐ)')
         st.dataframe(df_md_show, use_container_width=True)
     else:
