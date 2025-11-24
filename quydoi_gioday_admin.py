@@ -870,11 +870,11 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
             mon_to_ma = df_mon.set_index('Môn_học')['Mã_môn_ngành'].to_dict()
             df_md['Mã_môn_ngành'] = df_md['Môn_học'].map(mon_to_ma)
             # Ánh xạ Nặng Nhọc
-            if 'Nặng_Nhọc' in df_mon.columns:
-                ma_to_nn = df_mon.set_index('Mã_môn_ngành')['Nặng_Nhọc'].to_dict()
-                df_md['Nặng_Nhọc'] = df_md['Mã_môn_ngành'].map(ma_to_nn)
+            if 'Nặng_nhọc' in df_mon.columns:
+                ma_to_nn = df_mon.set_index('Mã_môn_ngành')['Nặng_nhọc'].to_dict()
+                df_md['Nặng_nhọc'] = df_md['Mã_môn_ngành'].map(ma_to_nn)
         # Chỉ hiển thị các cột liên quan
-        cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'Mã_môn_ngành', 'Nặng_Nhọc']
+        cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'Mã_môn_ngành', 'Nặng_nhọc']
         df_md_show = df_md[[c for c in cols_show if c in df_md.columns]].copy()
         st.write('#### Bảng tổng hợp Nặng nhọc độc hại (theo môn MĐ)')
         st.dataframe(df_md_show, use_container_width=True)
