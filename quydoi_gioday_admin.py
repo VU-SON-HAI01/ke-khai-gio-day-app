@@ -802,8 +802,9 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 df_grouped_hk1['MH/MĐ'] = df_grouped_hk1['Mã_Môn_Ngành'].map(mdmh_map) if mdmh_map is not None else ''
                 # Đổi tên cột QĐ thừa thành Tiết QĐ
                 df_grouped_hk1.rename(columns={'QĐ thừa': 'Tiết QĐ'}, inplace=True)
-                # Sắp xếp lại thứ tự cột
-                cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'MH/MĐ']
+                # Sắp xếp lại thứ tự cột, thêm Mã_môn_ngành
+                df_grouped_hk1['Mã_môn_ngành'] = df_grouped_hk1['Mã_Môn_Ngành']
+                cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'MH/MĐ', 'Mã_môn_ngành']
                 df_grouped_hk1 = df_grouped_hk1[[col for col in cols_show if col in df_grouped_hk1.columns]]
                 # Thêm dòng tổng cộng
                 total_row = {
@@ -838,7 +839,9 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 df_grouped_hk2['Môn_học'] = df_grouped_hk2['Mã_Môn_Ngành'].map(mon_map) if mon_map is not None else ''
                 df_grouped_hk2['MH/MĐ'] = df_grouped_hk2['Mã_Môn_Ngành'].map(mdmh_map) if mdmh_map is not None else ''
                 df_grouped_hk2.rename(columns={'QĐ thừa': 'Tiết QĐ'}, inplace=True)
-                cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'MH/MĐ']
+                # Thêm cột Mã_môn_ngành
+                df_grouped_hk2['Mã_môn_ngành'] = df_grouped_hk2['Mã_Môn_Ngành']
+                cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'MH/MĐ', 'Mã_môn_ngành']
                 df_grouped_hk2 = df_grouped_hk2[[col for col in cols_show if col in df_grouped_hk2.columns]]
                 # Thêm dòng tổng cộng
                 total_row = {
