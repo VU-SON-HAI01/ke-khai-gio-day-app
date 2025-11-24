@@ -870,10 +870,13 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
         # Mã_môn_ngành đã có sẵn từ bảng tổng hợp HK1/HK2
         # Ánh xạ sang df_mon để lấy Nặng_Nhọc, LT, TH, KT
         if 'Mã_môn_ngành' in df_md.columns and 'Mã_môn_ngành' in df_mon.columns:
-            # Ánh xạ Nặng Nhọc
-            if 'Nặng_Nhọc' in df_mon.columns:
+            # Ánh xạ Nặng_nhọc từ df_mon theo Mã_môn_ngành
+            if 'Nặng_nhọc' in df_mon.columns:
+                ma_to_nn = df_mon.set_index('Mã_môn_ngành')['Nặng_nhọc'].to_dict()
+                df_md['Nặng_nhọc'] = df_md['Mã_môn_ngành'].map(ma_to_nn)
+            elif 'Nặng_Nhọc' in df_mon.columns:
                 ma_to_nn = df_mon.set_index('Mã_môn_ngành')['Nặng_Nhọc'].to_dict()
-                df_md['Nặng_Nhọc'] = df_md['Mã_môn_ngành'].map(ma_to_nn)
+                df_md['Nặng_nhọc'] = df_md['Mã_môn_ngành'].map(ma_to_nn)
             # Ánh xạ LT, TH, KT
             for col in ['LT', 'TH', 'KT']:
                 if col in df_mon.columns:
