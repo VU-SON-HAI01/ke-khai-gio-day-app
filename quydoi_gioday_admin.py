@@ -886,7 +886,7 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
         # Đổi tên cột Nặng_Nhọc thành Nặng_nhọc nếu có
         if 'Nặng_Nhọc' in df_md.columns:
             df_md.rename(columns={'Nặng_Nhọc': 'Nặng_nhọc'}, inplace=True)
-        cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Mã_môn_ngành', 'Nặng_nhọc', 'LT', 'TH', 'KT']
+        cols_show = ['Lớp_học', 'Môn_học', 'Mã_môn_ngành', 'Nặng_nhọc', 'Tiết', 'LT', 'TH', 'KT']
         df_md_show = df_md[[c for c in cols_show if c in df_md.columns]].copy()
         # Thêm dòng Tổng cho các cột Tiết, LT, TH, KT
         total_row = {
