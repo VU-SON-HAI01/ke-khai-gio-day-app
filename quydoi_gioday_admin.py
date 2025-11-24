@@ -854,6 +854,32 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
                 st.dataframe(df_grouped_hk2)
         #st.write("#### Bảng chi tiết HK2 từ Google Sheet")
         #st.write(df_giangday_hk2)
+
+    # --- BẢNG TỔNG HỢP NẶNG NHỌC ĐỘC HẠI ---
+    # Lấy dữ liệu HK1 và HK2 đã gộp
+    df_hk1 = st.session_state.get('df_grouped_hk1', None)
+    df_hk2 = st.session_state.get('df_grouped_hk2', None)
+    if df_hk1 is not None and not df_hk1.empty and df_hk2 is not None and not df_hk2.empty:
+        # Gộp HK1 và HK2
+        df_all = pd.concat([df_hk1, df_hk2], ignore_index=True)
+        # Lọc các môn có MH/MĐ = 'MĐ'
+        df_md = df_all[df_all['MH/MĐ'] == 'MĐ'].copy()
+        # Lấy mã môn ngành cho từng môn học
+        if 'Môn_học' in df_md.columns and 'Môn_học' in df_mon.columns and 'Mã_môn_ngành' in df_mon.columns:
+            # Ánh xạ mã môn ngành
+            mon_to_ma = df_mon.set_index('Môn_học')['Mã_môn_ngành'].to_dict()
+            df_md['Mã_môn_ngành'] = df_md['Môn_học'].map(mon_to_ma)
+            # Ánh xạ Nặng Nhọc
+            if 'Nặng_Nhọc' in df_mon.columns:
+                ma_to_nn = df_mon.set_index('Mã_môn_ngành')['Nặng_Nhọc'].to_dict()
+                df_md['Nặng_Nhọc'] = df_md['Mã_môn_ngành'].map(ma_to_nn)
+        # Chỉ hiển thị các cột liên quan
+        cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'Mã_môn_ngành', 'Nặng_Nhọc']
+        df_md_show = df_md[[c for c in cols_show if c in df_md.columns]].copy()
+        st.write('#### Bảng tổng hợp Nặng nhọc độc hại (theo môn MĐ)')
+        st.dataframe(df_md_show, use_container_width=True)
+    else:
+        st.info('Chưa có đủ dữ liệu HK1 và HK2 để tổng hợp Nặng nhọc độc hại.')
     # Tạo dummy spreadsheet để xuất file Excel
     class DummyWorksheet:
         def __init__(self, df, title):
