@@ -867,17 +867,20 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
         df_all = pd.concat([df_hk1, df_hk2], ignore_index=True)
         # Lọc các môn có MH/MĐ = 'MĐ'
         df_md = df_all[df_all['MH/MĐ'] == 'MĐ'].copy()
-        # Lấy mã môn ngành cho từng môn học
-        if 'Môn_học' in df_md.columns and 'Môn_học' in df_mon.columns and 'Mã_môn_ngành' in df_mon.columns:
-            # Ánh xạ mã môn ngành
-            mon_to_ma = df_mon.set_index('Môn_học')['Mã_môn_ngành'].to_dict()
-            df_md['Mã_môn_ngành'] = df_md['Môn_học'].map(mon_to_ma)
+        # Mã_môn_ngành đã có sẵn từ bảng tổng hợp HK1/HK2
+        # Ánh xạ sang df_mon để lấy Nặng_Nhọc, LT, TH, KT
+        if 'Mã_môn_ngành' in df_md.columns and 'Mã_môn_ngành' in df_mon.columns:
             # Ánh xạ Nặng Nhọc
-            if 'Nặng_nhọc' in df_mon.columns:
-                ma_to_nn = df_mon.set_index('Mã_môn_ngành')['Nặng_nhọc'].to_dict()
-                df_md['Nặng_nhọc'] = df_md['Mã_môn_ngành'].map(ma_to_nn)
+            if 'Nặng_Nhọc' in df_mon.columns:
+                ma_to_nn = df_mon.set_index('Mã_môn_ngành')['Nặng_Nhọc'].to_dict()
+                df_md['Nặng_Nhọc'] = df_md['Mã_môn_ngành'].map(ma_to_nn)
+            # Ánh xạ LT, TH, KT
+            for col in ['LT', 'TH', 'KT']:
+                if col in df_mon.columns:
+                    ma_to_val = df_mon.set_index('Mã_môn_ngành')[col].to_dict()
+                    df_md[col] = df_md['Mã_môn_ngành'].map(ma_to_val)
         # Chỉ hiển thị các cột liên quan
-        cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'Mã_môn_ngành', 'Nặng_nhọc']
+        cols_show = ['Lớp_học', 'Môn_học', 'Tiết', 'Tiết QĐ', 'Mã_môn_ngành', 'Nặng_Nhọc', 'LT', 'TH', 'KT']
         df_md_show = df_md[[c for c in cols_show if c in df_md.columns]].copy()
         st.write('#### Bảng tổng hợp Nặng nhọc độc hại (theo môn MĐ)')
         st.dataframe(df_md_show, use_container_width=True)
