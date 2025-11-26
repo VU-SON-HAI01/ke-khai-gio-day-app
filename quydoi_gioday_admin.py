@@ -886,18 +886,31 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
         # Đổi tên cột Nặng_Nhọc thành Nặng_nhọc nếu có
         if 'Nặng_Nhọc' in df_md.columns:
             df_md.rename(columns={'Nặng_Nhọc': 'Nặng_nhọc'}, inplace=True)
-        cols_show = ['Lớp_học', 'Môn_học', 'Mã_môn_ngành', 'Nặng_nhọc', 'Tiết', 'LT', 'TH', 'KT']
+        cols_show = ['Lớp_học', 'Môn_học', 'Mã_môn_ngành', 'Nặng_nhọc', 'Tiết', 'Chọn', 'LT', 'TH', 'KT']
         df_md_show = df_md[[c for c in cols_show if c in df_md.columns]].copy()
-        # Thêm dòng Tổng cho các cột Tiết, LT, TH, KT
+        # Thêm cột Chọn (checkbox) mặc định False, trừ dòng Tổng
+        if 'Chọn' not in df_md_show.columns:
+            df_md_show['Chọn'] = False
+        # Hiển thị checkbox cho từng dòng (trừ dòng Tổng)
+        for i in range(len(df_md_show)):
+            if df_md_show.at[i, 'Lớp_học'] != 'TỔNG':
+                df_md_show.at[i, 'Chọn'] = st.checkbox(f"Chọn dòng {i+1}", value=False, key=f"chon_md_{i}")
+        # Tính tổng các cột Tiết, LT, TH, KT, và tổng Tiết của các dòng được chọn
+        tong_tiet = df_md_show.loc[df_md_show['Lớp_học'] != 'TỔNG', 'Tiết'].sum() if 'Tiết' in df_md_show.columns else ''
+        tong_lt = df_md_show.loc[df_md_show['Lớp_học'] != 'TỔNG', 'LT'].sum() if 'LT' in df_md_show.columns else ''
+        tong_th = df_md_show.loc[df_md_show['Lớp_học'] != 'TỔNG', 'TH'].sum() if 'TH' in df_md_show.columns else ''
+        tong_kt = df_md_show.loc[df_md_show['Lớp_học'] != 'TỔNG', 'KT'].sum() if 'KT' in df_md_show.columns else ''
+        tong_chon = df_md_show.loc[(df_md_show['Lớp_học'] != 'TỔNG') & (df_md_show['Chọn'] == True), 'Tiết'].sum() if 'Tiết' in df_md_show.columns else ''
         total_row = {
             'Lớp_học': 'TỔNG',
             'Môn_học': '',
-            'Tiết': df_md_show['Tiết'].sum() if 'Tiết' in df_md_show.columns else '',
             'Mã_môn_ngành': '',
             'Nặng_nhọc': '',
-            'LT': df_md_show['LT'].sum() if 'LT' in df_md_show.columns else '',
-            'TH': df_md_show['TH'].sum() if 'TH' in df_md_show.columns else '',
-            'KT': df_md_show['KT'].sum() if 'KT' in df_md_show.columns else ''
+            'Tiết': tong_tiet,
+            'Chọn': tong_chon,
+            'LT': tong_lt,
+            'TH': tong_th,
+            'KT': tong_kt
         }
         df_md_show = pd.concat([df_md_show, pd.DataFrame([total_row])], ignore_index=True)
         st.write('#### Bảng tổng hợp Nặng nhọc độc hại (theo môn MĐ)')
