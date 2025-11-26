@@ -891,16 +891,21 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
         # Thêm cột Chọn (checkbox) mặc định False, trừ dòng Tổng
         if 'Chọn' not in df_md_show.columns:
             df_md_show['Chọn'] = False
-        # Hiển thị checkbox cho từng dòng (trừ dòng Tổng)
-        for i in range(len(df_md_show)):
-            if df_md_show.at[i, 'Lớp_học'] != 'TỔNG':
-                df_md_show.at[i, 'Chọn'] = st.checkbox(f"Chọn dòng {i+1}", value=False, key=f"chon_md_{i}")
+        # Sử dụng data_editor để cho phép chỉnh sửa trực tiếp cột Chọn
+        edited_df = st.data_editor(
+            df_md_show[df_md_show['Lớp_học'] != 'TỔNG'],
+            column_config={
+                "Chọn": st.column_config.CheckboxColumn("Chọn", default=False)
+            },
+            use_container_width=True,
+            disabled=[c for c in df_md_show.columns if c != 'Chọn']
+        )
         # Tính tổng các cột Tiết, LT, TH, KT, và tổng Tiết của các dòng được chọn
-        tong_tiet = df_md_show.loc[df_md_show['Lớp_học'] != 'TỔNG', 'Tiết'].sum() if 'Tiết' in df_md_show.columns else ''
-        tong_lt = df_md_show.loc[df_md_show['Lớp_học'] != 'TỔNG', 'LT'].sum() if 'LT' in df_md_show.columns else ''
-        tong_th = df_md_show.loc[df_md_show['Lớp_học'] != 'TỔNG', 'TH'].sum() if 'TH' in df_md_show.columns else ''
-        tong_kt = df_md_show.loc[df_md_show['Lớp_học'] != 'TỔNG', 'KT'].sum() if 'KT' in df_md_show.columns else ''
-        tong_chon = df_md_show.loc[(df_md_show['Lớp_học'] != 'TỔNG') & (df_md_show['Chọn'] == True), 'Tiết'].sum() if 'Tiết' in df_md_show.columns else ''
+        tong_tiet = edited_df['Tiết'].sum() if 'Tiết' in edited_df.columns else ''
+        tong_lt = edited_df['LT'].sum() if 'LT' in edited_df.columns else ''
+        tong_th = edited_df['TH'].sum() if 'TH' in edited_df.columns else ''
+        tong_kt = edited_df['KT'].sum() if 'KT' in edited_df.columns else ''
+        tong_chon = edited_df.loc[edited_df['Chọn'] == True, 'Tiết'].sum() if 'Tiết' in edited_df.columns else ''
         total_row = {
             'Lớp_học': 'TỔNG',
             'Môn_học': '',
@@ -912,9 +917,10 @@ with st.expander("Tạo file Excel tải về cho giảng viên"):
             'TH': tong_th,
             'KT': tong_kt
         }
-        df_md_show = pd.concat([df_md_show, pd.DataFrame([total_row])], ignore_index=True)
+        # Hiển thị bảng đã chỉnh sửa + dòng Tổng
+        df_md_final = pd.concat([edited_df, pd.DataFrame([total_row])], ignore_index=True)
         st.write('#### Bảng tổng hợp Nặng nhọc độc hại (theo môn MĐ)')
-        st.dataframe(df_md_show, use_container_width=True)
+        st.dataframe(df_md_final, use_container_width=True)
     else:
         st.info('Chưa có đủ dữ liệu HK1 và HK2 để tổng hợp Nặng nhọc độc hại.')
     # Tạo dummy spreadsheet để xuất file Excel
