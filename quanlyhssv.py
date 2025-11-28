@@ -57,13 +57,12 @@ fields = [
 
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
-with col1:  
+with col1:
     st.markdown(
         """
-        <div style='border:2px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px;'>
-            <span style='font-size:18px; color:#4CAF50; font-weight:bold;'>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
-            <div style='margin-top:10px;'>
-                """,
+        <div style='border:2px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px'>
+        <span style='font-size:18px; color:#4CAF50; font-weight:bold;'>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br><br>
+        """,
         unsafe_allow_html=True
     )
     trinh_do = st.radio(
@@ -71,7 +70,7 @@ with col1:
         ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
         horizontal=True
     )
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with col2:
     st.subheader("CƠ SỞ NHẬP HỌC")
