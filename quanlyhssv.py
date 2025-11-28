@@ -201,7 +201,7 @@ with col3:
             st.session_state["nv3"] = nv3
         st.form_submit_button("Xác nhận")
     # Nút lưu tổng cuối trang
-    st.divider()
+st.divider()
 if st.button("Lưu tất cả thông tin"):
     # Tập hợp dữ liệu từ session_state
     du_lieu = {
