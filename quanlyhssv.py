@@ -64,13 +64,15 @@ col1, col2, col3 = st.columns(3)
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
 with col1:
     with st.form("form_thong_tin_chung"):
-        st.subheader("Thông tin chung")
+        st.st.header("Thông tin chung")
         ho_ten = st.text_input("Họ và Tên")
         ngay_sinh = st.date_input("Ngày sinh", format="DD/MM/YYYY")
         gioi_tinh = st.selectbox("Giới tính", ["Nam", "Nữ"])
         st.divider()
+        st.subheader("NƠI SINH")
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
         noi_sinh_moi = st.selectbox("Nơi sinh (Tỉnh mới)", ["Đắk Lắk", "Khác"])
+        st.subheader("QUÊ QUÁN")
         que_quan_moi = st.selectbox("Quê quán (Tỉnh mới)", ["Đắk Lắk", "Khác"])
         que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
         st.divider()
