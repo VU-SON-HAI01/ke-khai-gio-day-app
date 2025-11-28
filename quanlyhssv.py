@@ -68,6 +68,7 @@ with col1:
         ho_ten = st.text_input(":green[**HỌ VÀ TÊN**]")
         ngay_sinh = st.date_input(":green[**NGÀY SINH**]", format="DD/MM/YYYY")
         gioi_tinh = st.selectbox(":green[**GIỚI TÍNH**]", ["Nam", "Nữ"])
+        so_dien_thoai = st.text_input(":green[**SỐ ĐIỆN THOẠI**]")
         st.divider()
         st.markdown(":green[**NƠI SINH**]")
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
@@ -82,21 +83,22 @@ with col1:
 
 with col2:
     with st.form("form_thong_tin_khác"):
-        st.subheader("Địa chỉ nơi ở")
+        st.subheader("THÔNG TIN GIA ĐÌNH")
+        cha = st.text_input(":green[**Cha**]")
+        me = st.text_input(":green[**Mẹ**]")
         st.text("Tỉnh, Huyện, Xã cũ")
         tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"])
         quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"])
-        xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"])
-        st.text("Tỉnh, Xã mới")
-        tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"])
-        xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"])
-        st.text("Địa chỉ cụ thể ")
-        thon_xom = st.text_input("Thôn/Xóm")
-        so_nha_to = st.text_input("Số nhà/Tổ")
-        st.subheader("Thông tin cha, mẹ, Tel")
-        cha = st.text_input("Cha")
-        me = st.text_input("Mẹ")
-        so_dien_thoai = st.text_input("Số điện thoại")
+        xa_phuong_cu = st.selectbox(":green[**Xã/Phường (Cũ)**]", ["P. Ea Tam", "Khác"])
+        st.text(":green[**Tỉnh, Xã mới**]")
+        tinh_tp_moi = st.selectbox(":green[**Tỉnh/TP (Mới)**]", ["Đắk Lắk", "Khác"])
+        xa_phuong_moi = st.selectbox(":green[**Xã/Phường (Mới)**]", ["P. Ea Tam", "Khác"])
+        st.text(":green[**Địa chỉ cụ thể**]")
+        thon_xom = st.text_input(":green[**Thôn/Xóm**]")
+        so_nha_to = st.text_input(":green[**Số nhà/Tổ**]")
+        st.subheader(":green[**Thông tin cha, mẹ, Tel**]")
+
+        
         submit_dia_chi = st.form_submit_button("Lưu thông tin địa chỉ")
 with col3:
     with st.form("form_hoc_tap_nganh_hoc_dang_ky"):
