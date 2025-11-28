@@ -107,19 +107,3 @@ target_folder_name_hssv = st.secrets["target_folder_name_hssv"] if "target_folde
 target_folder_id_hssv = st.secrets["target_folder_id_hssv"] if "target_folder_id_hssv" in st.secrets else None
 template_file_id_hssv = st.secrets["template_file_id_hssv"] if "template_file_id_hssv" in st.secrets else None
 target_sheet_name_hssv = "BIEN_CHE_LOP"
-
-if submitted:
-    # Cấu hình Google Sheets API
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_file(st.secrets["gcp_service_account"] if "gcp_service_account" in st.secrets else "google_service_account.json", scopes=scope)
-    gc = gspread.authorize(creds)
-    # Mở file theo ID và sheet theo tên
-    sh = gc.open_by_key(target_folder_id_hssv)
-    try:
-        worksheet = sh.worksheet(target_sheet_name_hssv)
-    except Exception:
-        worksheet = sh.sheet1
-    # Chuyển dữ liệu thành list
-    values = [str(data.get(label, "")) for label, _, *_ in fields]
-    worksheet.append_row(values)
-    st.success(f"Đã lưu thông tin HSSV vào Google Sheet: {target_sheet_name_hssv}!")
