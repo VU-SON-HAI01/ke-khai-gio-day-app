@@ -58,7 +58,14 @@ fields = [
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
 with col1:  
-    st.subheader("TRÌNH ĐỘ ĐĂNG KÝ HỌC")
+    st.markdown(
+        """
+        <div style="border:2px solid #4CAF50; border-radius:8px; padding:12px; margin-bottom:10px;">
+            <h4 style="color:#4CAF50;">TRÌNH ĐỘ ĐĂNG KÝ HỌC</h4>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     trinh_do = st.radio(
         "Chọn trình độ đăng ký học:",
         ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
@@ -67,7 +74,7 @@ with col1:
 with col2:
     st.subheader("CƠ SỞ NHẬP HỌC")
     co_so = st.radio(
-        "Chọn nới nộp hồ sơ:",
+        "Chọn nơi nộp hồ sơ:",
         ["Cơ sở chính", "Cơ sở 2 "],
         horizontal=True
     )
