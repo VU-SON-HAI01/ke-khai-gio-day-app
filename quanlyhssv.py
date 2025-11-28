@@ -99,12 +99,7 @@ with col2:
         submit_dia_chi = st.form_submit_button("Lưu thông tin địa chỉ")
 with col3:
     with st.form("form_hoc_tap_nganh_hoc_dang_ky"):
-        st.subheader("KẾT QUẢ HỌC TẬP")
-        hanh_kiem = st.selectbox(":green[**HẠNH KIỂM**]", ["Tốt", "Khá", "Trung bình", "Yếu"])
-        nam_tot_nghiep = st.selectbox(":green[**NĂM TỐT NGHIỆP**]", [str(y) for y in range(2010, 2031)])
-        diem_tb = st.number_input(":green[**ĐIỂM TRUNG BÌNH**]", min_value=0.0, max_value=10.0, step=0.01)
-        
-        st.subheader("TRÌNH ĐỘ VÀ CƠ SỞ NHẬP HỌC")
+        st.subheader("TRÌNH ĐỘ VÀ NƠI NHẬP HỌC")
         trinh_do = st.radio(
             ":green[**TRÌNH ĐỘ**]",
             ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
@@ -115,6 +110,11 @@ with col3:
             ["Cơ sở chính", "Cơ sở 2 "],
             horizontal=True
         )
+        st.subheader("KẾT QUẢ HỌC TẬP")
+        hanh_kiem = st.selectbox(":green[**HẠNH KIỂM**]", ["Tốt", "Khá", "Trung bình", "Yếu"])
+        nam_tot_nghiep = st.selectbox(":green[**NĂM TỐT NGHIỆP**]", [str(y) for y in range(2010, 2031)])
+        diem_tb = st.number_input(":green[**ĐIỂM TRUNG BÌNH**]", min_value=0.0, max_value=10.0, step=0.01)
+        
         st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
         nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
         nv1 = st.selectbox(":green[**NGUYỆN VỌNG 1**]", nganh_options)
