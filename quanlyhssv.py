@@ -112,6 +112,7 @@ with col3:
             ["Cơ sở chính", "Cơ sở 2 "],
             horizontal=True
         )
+        submit_nganh_hoc = st.form_submit_button("Lưu đăng ký trình độ")
     with st.form("form_kết_quả_học_tập_nguyện_vọng"):
         if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
             st.subheader("KẾT QUẢ HỌC TẬP")
@@ -137,9 +138,8 @@ with col3:
             nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
             nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options)
             nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options)
-            nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options)        
-
-    submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
+        submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")   
+    
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
 target_folder_name_hssv = st.secrets["target_folder_name_hssv"] if "target_folder_name_hssv" in st.secrets else "QUAN_LY_HSSV"
 target_folder_id_hssv = st.secrets["target_folder_id_hssv"] if "target_folder_id_hssv" in st.secrets else None
