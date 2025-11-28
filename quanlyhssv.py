@@ -58,7 +58,12 @@ fields = [
 
 
 # Hiển thị 3 form trên 3 cột song song
+
 col1, col2, col3 = st.columns(3)
+
+# Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
+dia_chi_option = st.radio("Chọn địa chỉ", ["Địa chỉ (Cũ)", "Địa chỉ (Mới)"])
+
 with col1:
     with st.form("form_thong_tin_chung"):
         st.subheader("Thông tin chung")
@@ -74,23 +79,23 @@ with col1:
         submit_chung = st.form_submit_button("Lưu thông tin chung")
 
 with col2:
-    with st.form("form_thong_tin_dia_chi"):
-        st.subheader("Thông tin địa chỉ")
-        dia_chi_option = st.radio("Chọn địa chỉ", ["Địa chỉ (Cũ)", "Địa chỉ (Mới)"])
-        if dia_chi_option == "Địa chỉ (Cũ)":
-            tinh_tp = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"])
-            quan_huyen = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"])
-            xa_phuong = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"])
-            thon_xom = st.text_input("Thôn/Xóm (Cũ)")
-            so_nha_to = st.text_input("Số nhà/Tổ (Cũ)")
-        else:
-            tinh_tp = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"])
-            xa_phuong = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"])
-            thon_xom = st.text_input("Thôn/Xóm (Mới)")
-            so_nha_to = st.text_input("Số nhà/Tổ (Mới)")
+    
+    with st.form("form_thong_tin_khác"):
+        st.subheader("Địa chỉ nơi ở Tỉnh, Huyện, Xã cũ")
+        tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"])
+        quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"])
+        xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"])
+        st.subheader("Địa chỉ nơi ở Tỉnh,Xã mới")
+        tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"])
+        xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"])
+        st.subheader("Địa chỉ cụ thể ")
+        thon_xom = st.text_input("Thôn/Xóm")
+        so_nha_to = st.text_input("Số nhà/Tổ")
+        st.subheader("Thông tin cha,mẹ")
         cha = st.text_input("Cha")
         me = st.text_input("Mẹ")
         so_dien_thoai = st.text_input("Số điện thoại")
+        st.subheader("Thông tin học tập")
         hanh_kiem = st.selectbox("Hạnh kiểm", ["Tốt", "Khá", "Trung bình", "Yếu"])
         nam_tot_nghiep = st.selectbox("Năm tốt nghiệp", [str(y) for y in range(2010, 2031)])
         diem_tb = st.number_input("Điểm trung bình", min_value=0.0, max_value=10.0, step=0.01)
