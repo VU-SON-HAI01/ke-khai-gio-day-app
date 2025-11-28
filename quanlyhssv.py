@@ -77,19 +77,19 @@ with col1:
         submit_chung = st.form_submit_button("Lưu thông tin chung")
 
 with col2:
-    
     with st.form("form_thong_tin_khác"):
-        st.subheader("Tỉnh, Huyện, Xã cũ")
+        st.subheader("Địa chỉ nơi ở")
+        st.text("Tỉnh, Huyện, Xã cũ")
         tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"])
         quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"])
         xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"])
-        st.subheader("Tỉnh, Xã mới")
+        st.text("Tỉnh, Xã mới")
         tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"])
         xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"])
-        st.subheader("Địa chỉ cụ thể ")
+        st.text("Địa chỉ cụ thể ")
         thon_xom = st.text_input("Thôn/Xóm")
         so_nha_to = st.text_input("Số nhà/Tổ")
-        st.subheader("Thông tin cha,mẹ")
+        st.subheader("Thông tin cha, mẹ, Tel")
         cha = st.text_input("Cha")
         me = st.text_input("Mẹ")
         so_dien_thoai = st.text_input("Số điện thoại")
@@ -106,8 +106,6 @@ with col3:
         nv2 = st.selectbox("Nguyện Vọng 2", nganh_options)
         nv3 = st.selectbox("Nguyện Vọng 3", nganh_options)
         submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
-
-
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
 target_folder_name_hssv = st.secrets["target_folder_name_hssv"] if "target_folder_name_hssv" in st.secrets else "QUAN_LY_HSSV"
 target_folder_id_hssv = st.secrets["target_folder_id_hssv"] if "target_folder_id_hssv" in st.secrets else None
