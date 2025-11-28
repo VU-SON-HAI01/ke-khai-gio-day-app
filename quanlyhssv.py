@@ -113,6 +113,7 @@ with col3:
             horizontal=True
         )
         submit_nganh_hoc = st.form_submit_button("Lưu đăng ký trình độ")
+    st.write(trinh_do)
     with st.form("form_kết_quả_học_tập_nguyện_vọng"):
         if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
             st.subheader("KẾT QUẢ HỌC TẬP")
