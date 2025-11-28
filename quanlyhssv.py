@@ -105,9 +105,9 @@ with col3:
         diem_tb = st.number_input(":green[**ĐIỂM TRUNG BÌNH**]", min_value=0.0, max_value=10.0, step=0.01)
         st.subheader("ĐĂNG KÝ NGUYỆN VỌNG")
         nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
-        nv1 = st.selectbox("NGUYỆN VỌNG 1", nganh_options)
-        nv2 = st.selectbox("NGUYỆN VỌNG 2", nganh_options)
-        nv3 = st.selectbox("NGUYỆN VỌNG 3", nganh_options)
+        nv1 = st.selectbox(":green[**NGUYỆN VỌNG 1**]", nganh_options)
+        nv2 = st.selectbox(":green[**NGUYỆN VỌNG 2**]", nganh_options)
+        nv3 = st.selectbox(":green[**NGUYỆN VỌNG 3**]", nganh_options)
         submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
 target_folder_name_hssv = st.secrets["target_folder_name_hssv"] if "target_folder_name_hssv" in st.secrets else "QUAN_LY_HSSV"
