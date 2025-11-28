@@ -87,7 +87,7 @@ with col2:
         cha = st.text_input(":green[**HỌ TÊN BỐ**]")
         me = st.text_input(":green[**HỌ TÊN MẸ**]")
         st.markdown(":green[**ĐỊA CHỈ NƠI Ở (TỈNH, HUYỆN, XÃ CŨ)**]")
-        tinh_tp_cu = st.selectbox(":green[**Tỉnh/TP (Cũ)**]", ["Đắk Lắk", "Khác"])
+        tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"])
         quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"])
         xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"])
         st.markdown(":green[**ĐỊA CHỈ NƠI Ở (TỈNH, XÃ MỚI)**]")
