@@ -79,7 +79,7 @@ with col2:
     unsafe_allow_html=True
     )
     co_so = st.radio(
-        "Chọn cơ sở nhận hồ sơ",
+        "Chọn cơ sở nhận hồ sơ:",
         ["Cơ sở chính (594 Lê Duẩn)", "Cơ sở 2 (30 Y Ngông)"],
         horizontal=True
     )
@@ -91,9 +91,9 @@ with col3:
     """,
     unsafe_allow_html=True
     )
-    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ", format="DD/MM/YYYY")
+    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:", format="DD/MM/YYYY")
 col1, col2, col3 = st.columns(3)
-
+st.divider()
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
 with col1:
     with st.form("form_thong_tin_chung"):
