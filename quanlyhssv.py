@@ -67,7 +67,11 @@ with col1:
         st.subheader("THÔNG TIN CHUNG")
         ho_ten = st.text_input(":green[HỌ VÀ TÊN]")
         ngay_sinh = st.date_input(":green[NGÀY SINH]", format="DD/MM/YYYY")
-        gioi_tinh = st.selectbox(":green[GIỚI TÍNH]", ["Nam", "Nữ"])
+        gioi_tinh = st.radio(
+            ":green[GIỚI TÍNH]",
+            ["Nam", "Nữ"],
+            horizontal=True
+        )
         so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]")
         st.markdown(":green[NƠI SINH]")
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
