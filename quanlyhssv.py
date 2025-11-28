@@ -130,7 +130,7 @@ with col1:
         st.session_state["dan_toc"] = dan_toc
         ton_giao = st.selectbox(":green[TÔN GIÁO]", ["Không", "Khác"], index=["Không", "Khác"].index(st.session_state.get("ton_giao", "Không")))
         st.session_state["ton_giao"] = ton_giao
-        # ...không có nút submit, dữ liệu sẽ lưu khi bấm nút tổng cuối trang
+        st.form_submit_button("Xác nhận")
 
 with col2:
     with st.form("form_thong_tin_khác"):
@@ -156,7 +156,7 @@ with col2:
         st.session_state["thon_xom"] = thon_xom
         so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
         st.session_state["so_nha_to"] = so_nha_to
-        # ...không có nút submit, dữ liệu sẽ lưu khi bấm nút tổng cuối trang
+        st.form_submit_button("Xác nhận")
 with col3:
     with st.form("form_kết_quả_học_tập_nguyện_vọng"):
         if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
@@ -199,7 +199,7 @@ with col3:
             st.session_state["nv2"] = nv2
             nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])))
             st.session_state["nv3"] = nv3
-        # ...không có nút submit, dữ liệu sẽ lưu khi bấm nút tổng cuối trang
+        st.form_submit_button("Xác nhận")
     # Nút lưu tổng cuối trang
     st.divider()
     if st.button("Lưu tất cả thông tin"):
