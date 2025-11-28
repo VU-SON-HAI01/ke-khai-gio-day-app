@@ -88,17 +88,14 @@ with col2:
         me = st.text_input(":green[**HỌ TÊN MẸ**]")
         st.markdown(":green[**ĐỊA CHỈ NƠI Ở (TỈNH, HUYỆN, XÃ CŨ)**]")
         tinh_tp_cu = st.selectbox(":green[**Tỉnh/TP (Cũ)**]", ["Đắk Lắk", "Khác"])
-        quan_huyen_cu = st.selectbox(":green[**Quận/Huyện (Cũ)**]", ["TP. Buôn Ma Thuột", "Khác"])
-        xa_phuong_cu = st.selectbox(":green[**Xã/Phường (Cũ)**]", ["P. Ea Tam", "Khác"])
-        st.markdown(":green[**ĐỊA CHỈ NƠI Ở (TỈNH, XÃ MỚI**]")
-        tinh_tp_moi = st.selectbox(":green[**Tỉnh/TP (Mới)**]", ["Đắk Lắk", "Khác"])
-        xa_phuong_moi = st.selectbox(":green[**Xã/Phường (Mới)**]", ["P. Ea Tam", "Khác"])
+        quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"])
+        xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"])
+        st.markdown(":green[**ĐỊA CHỈ NƠI Ở (TỈNH, XÃ MỚI)**]")
+        tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"])
+        xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"])
         st.markdown(":green[**ĐỊA CHỈ NƠI Ở CHI TIẾT**]")
-        thon_xom = st.text_input(":green[**Thôn/Xóm**]")
-        so_nha_to = st.text_input(":green[**Số nhà/Tổ**]")
-        st.subheader(":green[**Thông tin cha, mẹ, Tel**]")
-
-        
+        thon_xom = st.text_input("Thôn/Xóm")
+        so_nha_to = st.text_input("Số nhà/Tổ")
         submit_dia_chi = st.form_submit_button("Lưu thông tin địa chỉ")
 with col3:
     with st.form("form_hoc_tap_nganh_hoc_dang_ky"):
