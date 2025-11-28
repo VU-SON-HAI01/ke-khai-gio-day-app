@@ -156,7 +156,7 @@ with col2:
         st.session_state["thon_xom"] = thon_xom
         so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
         st.session_state["so_nha_to"] = so_nha_to
-        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         st.form_submit_button("Xác nhận")
 with col3:
     with st.form("form_kết_quả_học_tập_nguyện_vọng"):
