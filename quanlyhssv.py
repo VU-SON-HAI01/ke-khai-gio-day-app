@@ -62,8 +62,6 @@ fields = [
 col1, col2, col3 = st.columns(3)
 
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
-dia_chi_option = st.radio("Chọn địa chỉ", ["Địa chỉ (Cũ)", "Địa chỉ (Mới)"])
-
 with col1:
     with st.form("form_thong_tin_chung"):
         st.subheader("Thông tin chung")
@@ -81,11 +79,11 @@ with col1:
 with col2:
     
     with st.form("form_thong_tin_khác"):
-        st.subheader("Địa chỉ nơi ở Tỉnh, Huyện, Xã cũ")
+        st.subheader("Tỉnh, Huyện, Xã cũ")
         tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"])
         quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"])
         xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"])
-        st.subheader("Địa chỉ nơi ở Tỉnh,Xã mới")
+        st.subheader("Tỉnh,Xã mới")
         tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"])
         xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"])
         st.subheader("Địa chỉ cụ thể ")
