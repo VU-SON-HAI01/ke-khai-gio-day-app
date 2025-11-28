@@ -397,9 +397,9 @@ else:
             ],
             "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")],
             "Quản trị": [
-                
+                st.Page("quanlyhssv.py", title="Quản lý hoc sinh", icon="🛠️"),
                 st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
-                st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧")
+                st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧")  
             ]
         }
         pg = st.navigation(pages)
@@ -526,6 +526,5 @@ else:
             # Thêm trang admin nếu là admin
             if user_email == ADMIN_EMAIL:
                 pages["Quản trị"] = [st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")]
-                pages["Quản trị"].append(st.Page("quanlyhssv.py", title="Quản lý HSSV", icon="👨‍🎓"))
             pg = st.navigation(pages)
             pg.run()
