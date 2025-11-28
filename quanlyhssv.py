@@ -100,19 +100,17 @@ with col2:
         so_nha_to = st.text_input("Số nhà/Tổ")
         submit_dia_chi = st.form_submit_button("Lưu thông tin địa chỉ")
 with col3:
-    with st.form("form_đăng_ký_nhập_học"):
-        st.subheader("TRÌNH ĐỘ VÀ NƠI NHẬP HỌC")
-        trinh_do = st.radio(
-            ":green[TRÌNH ĐỘ]",
-            ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
-            horizontal=True
-        )
-        co_so = st.radio(
-            ":green[CƠ SỞ NHẬP HỌC]",
-            ["Cơ sở chính", "Cơ sở 2 "],
-            horizontal=True
-        )
-        submit_nganh_hoc = st.form_submit_button("Lưu đăng ký trình độ")
+    st.subheader("TRÌNH ĐỘ VÀ NƠI NHẬP HỌC")
+    trinh_do = st.radio(
+        ":green[TRÌNH ĐỘ]",
+        ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
+        horizontal=True
+    )
+    co_so = st.radio(
+        ":green[CƠ SỞ NHẬP HỌC]",
+        ["Cơ sở chính", "Cơ sở 2 "],
+        horizontal=True
+    )
     st.write(trinh_do)
     with st.form("form_kết_quả_học_tập_nguyện_vọng"):
         if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
