@@ -78,16 +78,16 @@ with col2:
         st.subheader("Thông tin địa chỉ")
         dia_chi_option = st.radio("Chọn địa chỉ", ["Địa chỉ (Cũ)", "Địa chỉ (Mới)"])
         if dia_chi_option == "Địa chỉ (Cũ)":
-            tinh_tp = st.selectbox("Tỉnh/TP", ["Đắk Lắk", "Khác"])
-            quan_huyen = st.selectbox("Quận/Huyện", ["TP. Buôn Ma Thuột", "Khác"])
-            xa_phuong = st.selectbox("Xã/Phường", ["P. Ea Tam", "Khác"])
-            thon_xom = st.text_input("Thôn/Xóm")
-            so_nha_to = st.text_input("Số nhà/Tổ")
+            tinh_tp = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"])
+            quan_huyen = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"])
+            xa_phuong = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"])
+            thon_xom = st.text_input("Thôn/Xóm (Cũ)")
+            so_nha_to = st.text_input("Số nhà/Tổ (Cũ)")
         else:
-            tinh_tp = st.selectbox("Tỉnh/TP", ["Đắk Lắk", "Khác"])
-            xa_phuong = st.selectbox("Xã/Phường", ["P. Ea Tam", "Khác"])
-            thon_xom = st.text_input("Thôn/Xóm")
-            so_nha_to = st.text_input("Số nhà/Tổ")
+            tinh_tp = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"])
+            xa_phuong = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"])
+            thon_xom = st.text_input("Thôn/Xóm (Mới)")
+            so_nha_to = st.text_input("Số nhà/Tổ (Mới)")
         cha = st.text_input("Cha")
         me = st.text_input("Mẹ")
         so_dien_thoai = st.text_input("Số điện thoại")
@@ -99,9 +99,10 @@ with col2:
 with col3:
     with st.form("form_nganh_hoc"):
         st.subheader("Đăng ký ngành học nhập học")
-        nv1 = st.text_input("Nguyện Vọng 1")
-        nv2 = st.text_input("Nguyện Vọng 2")
-        nv3 = st.text_input("Nguyện Vọng 3")
+        nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
+        nv1 = st.selectbox("Nguyện Vọng 1", nganh_options)
+        nv2 = st.selectbox("Nguyện Vọng 2", nganh_options)
+        nv3 = st.selectbox("Nguyện Vọng 3", nganh_options)
         submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
 
 
