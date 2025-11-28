@@ -156,6 +156,7 @@ with col2:
         st.session_state["thon_xom"] = thon_xom
         so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
         st.session_state["so_nha_to"] = so_nha_to
+        st.markdown("Dòng đầu tiên.<br>Dòng thứ hai sử dụng thẻ HTML.", unsafe_allow_html=True)
         st.form_submit_button("Xác nhận")
 with col3:
     with st.form("form_kết_quả_học_tập_nguyện_vọng"):
@@ -199,6 +200,9 @@ with col3:
             st.session_state["nv2"] = nv2
             nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])))
             st.session_state["nv3"] = nv3
+        st.markdown("Dòng đầu tiên.<br>Dòng thứ hai sử dụng thẻ HTML.", unsafe_allow_html=True)
+        st.markdown("Dòng đầu tiên.<br>Dòng thứ hai sử dụng thẻ HTML.", unsafe_allow_html=True)
+
         st.form_submit_button("Xác nhận")
     # Nút lưu tổng cuối trang
 st.divider()
