@@ -80,7 +80,7 @@ with col2:
     )
     co_so = st.radio(
         "Chọn cơ sở nhận hồ sơ",
-        ["Cơ sở chính", "Cơ sở 2 "],
+        ["Cơ sở chính (594 Lê Duẩn)", "Cơ sở 2 (30 Y Ngông)"],
         horizontal=True
     )
 with col3:
@@ -136,7 +136,7 @@ with col3:
     with st.form("form_kết_quả_học_tập_nguyện_vọng"):
         if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
             st.subheader("KẾT QUẢ HỌC TẬP")
-            trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Cao đẳng,Trung cấp","Khác"], horizontal=True)
+            trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Cao đẳng, TC","Khác"], horizontal=True)
             hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"])
             nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)])
             diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01)
