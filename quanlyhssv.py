@@ -55,10 +55,8 @@ fields = [
     ("Cancel", "button")
 ]
 
-
-
 # Hiển thị 3 form trên 3 cột song song
-col1, col2 = st.columns(2)
+col1, col2,col3 = st.columns(3)
 with col1:  
     st.subheader("TRÌNH ĐỘ ĐĂNG KÝ HỌC")
     trinh_do = st.radio(
@@ -69,11 +67,13 @@ with col1:
 with col2:
     st.subheader("CƠ SỞ NHẬP HỌC")
     co_so = st.radio(
-        "Chọn nộp hồ sơ:",
+        "Chọn nới nộp hồ sơ:",
         ["Cơ sở chính", "Cơ sở 2 "],
         horizontal=True
     )
-
+with col3:
+    st.subheader("THỜI GIAN NHẬN HỒ SƠ")
+    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ", format="DD/MM/YYYY")
 col1, col2, col3 = st.columns(3)
 
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
