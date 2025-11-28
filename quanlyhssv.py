@@ -66,7 +66,7 @@ with col1:
         unsafe_allow_html=True
     )
     trinh_do = st.radio(
-        "CHỌN TRÌNH ĐỘ",
+        "Chọn trình độ đăng ký học:",
         ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
         horizontal=True
     )
@@ -79,7 +79,7 @@ with col2:
     unsafe_allow_html=True
     )
     co_so = st.radio(
-        "CHỌN CƠ SỞ",
+        "Chọn cơ sở nhận hồ sơ",
         ["Cơ sở chính", "Cơ sở 2 "],
         horizontal=True
     )
