@@ -83,7 +83,7 @@ with col2:
         tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"])
         quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"])
         xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"])
-        st.subheader("Tỉnh,Xã mới")
+        st.subheader("Tỉnh, Xã mới")
         tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"])
         xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"])
         st.subheader("Địa chỉ cụ thể ")
@@ -93,14 +93,14 @@ with col2:
         cha = st.text_input("Cha")
         me = st.text_input("Mẹ")
         so_dien_thoai = st.text_input("Số điện thoại")
+
+with col3:
+    with st.form("form_hoc_tap_nganh_hoc_dang_ky"):
         st.subheader("Thông tin học tập")
         hanh_kiem = st.selectbox("Hạnh kiểm", ["Tốt", "Khá", "Trung bình", "Yếu"])
         nam_tot_nghiep = st.selectbox("Năm tốt nghiệp", [str(y) for y in range(2010, 2031)])
         diem_tb = st.number_input("Điểm trung bình", min_value=0.0, max_value=10.0, step=0.01)
         submit_dia_chi = st.form_submit_button("Lưu thông tin địa chỉ")
-
-with col3:
-    with st.form("form_nganh_hoc"):
         st.subheader("Đăng ký ngành học nhập học")
         nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
         nv1 = st.selectbox("Nguyện Vọng 1", nganh_options)
