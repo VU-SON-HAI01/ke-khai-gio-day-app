@@ -139,7 +139,7 @@ with col3:
             nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options)
             nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options)        
 
-        submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
+    submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
 target_folder_name_hssv = st.secrets["target_folder_name_hssv"] if "target_folder_name_hssv" in st.secrets else "QUAN_LY_HSSV"
 target_folder_id_hssv = st.secrets["target_folder_id_hssv"] if "target_folder_id_hssv" in st.secrets else None
