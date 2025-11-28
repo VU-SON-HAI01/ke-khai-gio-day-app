@@ -66,20 +66,31 @@ with col1:
         unsafe_allow_html=True
     )
     trinh_do = st.radio(
-        "",
+        "CHỌN TRÌNH ĐỘ",
         ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
         horizontal=True
     )
-
 with col2:
-    st.subheader("CƠ SỞ NHẬP HỌC")
+    st.markdown(
+    """
+    <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
+    <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>CƠ SỞ NHẬN HỒ SƠ</span><br>
+    """,
+    unsafe_allow_html=True
+    )
     co_so = st.radio(
-        "Chọn nơi nộp hồ sơ:",
+        "CHỌN CƠ SỞ",
         ["Cơ sở chính", "Cơ sở 2 "],
         horizontal=True
     )
 with col3:
-    st.subheader("THỜI GIAN NHẬN HỒ SƠ")
+    st.markdown(
+    """
+    <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
+    <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>THỜI GIAN NHẬN HỒ SƠ</span><br>
+    """,
+    unsafe_allow_html=True
+    )
     ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ", format="DD/MM/YYYY")
 col1, col2, col3 = st.columns(3)
 
