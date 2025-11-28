@@ -66,7 +66,7 @@ with col1:
         unsafe_allow_html=True
     )
     trinh_do = st.radio(
-        "Chọn trình độ đăng ký học:",
+        "",
         ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
         horizontal=True
     )
