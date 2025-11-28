@@ -65,7 +65,7 @@ col1, col2, col3 = st.columns(3)
 with col1:
     with st.form("form_thong_tin_chung"):
         st.subheader("THÔNG TIN CHUNG")
-        ho_ten = st.text_input("HỌ VÀ TÊN")
+        ho_ten = st.text_input(":green[HỌ VÀ TÊN]")
         ngay_sinh = st.date_input("NGÀY SINH", format="DD/MM/YYYY")
         gioi_tinh = st.selectbox("GIỚI TÍNH", ["Nam", "Nữ"])
         st.divider()
