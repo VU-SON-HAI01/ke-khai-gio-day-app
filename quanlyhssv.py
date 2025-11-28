@@ -157,8 +157,8 @@ with col2:
             ["Thôn", "Xóm", "Đường", "Khối"],
             horizontal=True,
         )
-
-        thon_xom = st.text_input("Thôn/Xóm", value= thon_xom_loai)
+        st.session_state["thon_xom_loai"] = thon_xom_loai
+        thon_xom = st.text_input("Thôn/Xóm", value=st.session_state.get("thon_xom", thon_xom_loai))
         st.session_state["thon_xom"] = thon_xom
         so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
         st.session_state["so_nha_to"] = so_nha_to
