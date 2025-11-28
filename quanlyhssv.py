@@ -114,6 +114,7 @@ with col3:
         )
         st.divider()
         st.subheader("KẾT QUẢ HỌC TẬP")
+        trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THSC", "THPT", "HT12","Khác"], horizontal=True)
         hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"])
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)])
         diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01)
