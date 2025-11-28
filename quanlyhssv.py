@@ -113,17 +113,31 @@ with col3:
             horizontal=True
         )
         st.divider()
-        st.subheader("KẾT QUẢ HỌC TẬP")
-        trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THSC", "THPT", "HT12","Khác"], horizontal=True)
-        hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"])
-        nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)])
-        diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01)
-        st.divider()
-        st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
-        nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
-        nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options)
-        nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options)
-        nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options)
+        if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
+            st.subheader("KẾT QUẢ HỌC TẬP")
+            trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Cao đẳng,Trung cấp","Khác"], horizontal=True)
+            hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"])
+            nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)])
+            diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01)
+            st.divider()
+            st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
+            nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
+            nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options)
+            nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options)
+            nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options)
+        else:
+            st.subheader("KẾT QUẢ HỌC TẬP")
+            trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","THCS", "HT12","Khác"], horizontal=True)
+            hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"])
+            nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)])
+            diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01)
+            st.divider()
+            st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
+            trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True)
+            nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
+            nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options)
+            nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options)
+            nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options)        
 
         submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
