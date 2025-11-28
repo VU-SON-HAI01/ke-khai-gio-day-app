@@ -103,19 +103,24 @@ with col3:
         hanh_kiem = st.selectbox(":green[**HẠNH KIỂM**]", ["Tốt", "Khá", "Trung bình", "Yếu"])
         nam_tot_nghiep = st.selectbox(":green[**NĂM TỐT NGHIỆP**]", [str(y) for y in range(2010, 2031)])
         diem_tb = st.number_input(":green[**ĐIỂM TRUNG BÌNH**]", min_value=0.0, max_value=10.0, step=0.01)
-        st.subheader("ĐĂNG KÝ NGUYỆN VỌNG")
         
-        nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
-        nv1 = st.selectbox(":green[**NGUYỆN VỌNG 1**]", nganh_options)
-        nv2 = st.selectbox(":green[**NGUYỆN VỌNG 2**]", nganh_options)
-        nv3 = st.selectbox(":green[**NGUYỆN VỌNG 3**]", nganh_options)
-
-        st.subheader("TRÌNH ĐỘ ĐĂNG KÝ")
+        st.subheader("TRÌNH ĐỘ VÀ CƠ SỞ NHẬP HỌC")
         trinh_do = st.radio(
             ":green[**TRÌNH ĐỘ**]",
             ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
             horizontal=True
         )
+        co_so = st.radio(
+            ":green[**CƠ SỞ NHẬP HỌC**]",
+            ["Cơ sở chính", "Cơ sở 2 "],
+            horizontal=True
+        )
+        st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
+        nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
+        nv1 = st.selectbox(":green[**NGUYỆN VỌNG 1**]", nganh_options)
+        nv2 = st.selectbox(":green[**NGUYỆN VỌNG 2**]", nganh_options)
+        nv3 = st.selectbox(":green[**NGUYỆN VỌNG 3**]", nganh_options)
+
         submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
 target_folder_name_hssv = st.secrets["target_folder_name_hssv"] if "target_folder_name_hssv" in st.secrets else "QUAN_LY_HSSV"
