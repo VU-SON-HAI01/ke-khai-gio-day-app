@@ -56,50 +56,53 @@ fields = [
 ]
 
 
-# --- FORM THÔNG TIN CHUNG (CỘT 1) ---
-with st.form("form_thong_tin_chung"):
-    st.subheader("Thông tin chung")
-    ho_ten = st.text_input("Họ và Tên")
-    ngay_sinh = st.date_input("Ngày sinh", format="DD/MM/YYYY")
-    gioi_tinh = st.selectbox("Giới tính", ["Nam", "Nữ"])
-    noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
-    noi_sinh_moi = st.selectbox("Nơi sinh (Tỉnh mới)", ["Đắk Lắk", "Khác"])
-    que_quan_moi = st.selectbox("Quê quán (Tỉnh mới)", ["Đắk Lắk", "Khác"])
-    que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
-    dan_toc = st.selectbox("Dân tộc", ["Kinh (Việt)", "Khác"])
-    ton_giao = st.selectbox("Tôn giáo", ["Không", "Khác"])
-    submit_chung = st.form_submit_button("Lưu thông tin chung")
 
-# --- FORM THÔNG TIN ĐỊA CHỈ (CỘT 2) ---
-with st.form("form_thong_tin_dia_chi"):
-    st.subheader("Thông tin địa chỉ")
-    dia_chi_option = st.radio("Chọn địa chỉ", ["Địa chỉ (Cũ)", "Địa chỉ (Mới)"])
-    if dia_chi_option == "Địa chỉ (Cũ)":
-        tinh_tp = st.selectbox("Tỉnh/TP", ["Đắk Lắk", "Khác"])
-        quan_huyen = st.selectbox("Quận/Huyện", ["TP. Buôn Ma Thuột", "Khác"])
-        xa_phuong = st.selectbox("Xã/Phường", ["P. Ea Tam", "Khác"])
-        thon_xom = st.text_input("Thôn/Xóm")
-        so_nha_to = st.text_input("Số nhà/Tổ")
-    else:
-        tinh_tp = st.selectbox("Tỉnh/TP", ["Đắk Lắk", "Khác"])
-        xa_phuong = st.selectbox("Xã/Phường", ["P. Ea Tam", "Khác"])
-        thon_xom = st.text_input("Thôn/Xóm")
-        so_nha_to = st.text_input("Số nhà/Tổ")
-    cha = st.text_input("Cha")
-    me = st.text_input("Mẹ")
-    so_dien_thoai = st.text_input("Số điện thoại")
-    hanh_kiem = st.selectbox("Hạnh kiểm", ["Tốt", "Khá", "Trung bình", "Yếu"])
-    nam_tot_nghiep = st.selectbox("Năm tốt nghiệp", [str(y) for y in range(2010, 2031)])
-    diem_tb = st.number_input("Điểm trung bình", min_value=0.0, max_value=10.0, step=0.01)
-    submit_dia_chi = st.form_submit_button("Lưu thông tin địa chỉ")
+# Hiển thị 3 form trên 3 cột song song
+col1, col2, col3 = st.columns(3)
+with col1:
+    with st.form("form_thong_tin_chung"):
+        st.subheader("Thông tin chung")
+        ho_ten = st.text_input("Họ và Tên")
+        ngay_sinh = st.date_input("Ngày sinh", format="DD/MM/YYYY")
+        gioi_tinh = st.selectbox("Giới tính", ["Nam", "Nữ"])
+        noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
+        noi_sinh_moi = st.selectbox("Nơi sinh (Tỉnh mới)", ["Đắk Lắk", "Khác"])
+        que_quan_moi = st.selectbox("Quê quán (Tỉnh mới)", ["Đắk Lắk", "Khác"])
+        que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
+        dan_toc = st.selectbox("Dân tộc", ["Kinh (Việt)", "Khác"])
+        ton_giao = st.selectbox("Tôn giáo", ["Không", "Khác"])
+        submit_chung = st.form_submit_button("Lưu thông tin chung")
 
-# --- FORM ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC (CỘT 3) ---
-with st.form("form_nganh_hoc"):
-    st.subheader("Đăng ký ngành học nhập học")
-    nv1 = st.text_input("Nguyện Vọng 1")
-    nv2 = st.text_input("Nguyện Vọng 2")
-    nv3 = st.text_input("Nguyện Vọng 3")
-    submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
+with col2:
+    with st.form("form_thong_tin_dia_chi"):
+        st.subheader("Thông tin địa chỉ")
+        dia_chi_option = st.radio("Chọn địa chỉ", ["Địa chỉ (Cũ)", "Địa chỉ (Mới)"])
+        if dia_chi_option == "Địa chỉ (Cũ)":
+            tinh_tp = st.selectbox("Tỉnh/TP", ["Đắk Lắk", "Khác"])
+            quan_huyen = st.selectbox("Quận/Huyện", ["TP. Buôn Ma Thuột", "Khác"])
+            xa_phuong = st.selectbox("Xã/Phường", ["P. Ea Tam", "Khác"])
+            thon_xom = st.text_input("Thôn/Xóm")
+            so_nha_to = st.text_input("Số nhà/Tổ")
+        else:
+            tinh_tp = st.selectbox("Tỉnh/TP", ["Đắk Lắk", "Khác"])
+            xa_phuong = st.selectbox("Xã/Phường", ["P. Ea Tam", "Khác"])
+            thon_xom = st.text_input("Thôn/Xóm")
+            so_nha_to = st.text_input("Số nhà/Tổ")
+        cha = st.text_input("Cha")
+        me = st.text_input("Mẹ")
+        so_dien_thoai = st.text_input("Số điện thoại")
+        hanh_kiem = st.selectbox("Hạnh kiểm", ["Tốt", "Khá", "Trung bình", "Yếu"])
+        nam_tot_nghiep = st.selectbox("Năm tốt nghiệp", [str(y) for y in range(2010, 2031)])
+        diem_tb = st.number_input("Điểm trung bình", min_value=0.0, max_value=10.0, step=0.01)
+        submit_dia_chi = st.form_submit_button("Lưu thông tin địa chỉ")
+
+with col3:
+    with st.form("form_nganh_hoc"):
+        st.subheader("Đăng ký ngành học nhập học")
+        nv1 = st.text_input("Nguyện Vọng 1")
+        nv2 = st.text_input("Nguyện Vọng 2")
+        nv3 = st.text_input("Nguyện Vọng 3")
+        submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
 
 
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
