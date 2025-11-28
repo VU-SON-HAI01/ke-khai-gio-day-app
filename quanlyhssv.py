@@ -65,35 +65,35 @@ col1, col2, col3 = st.columns(3)
 with col1:
     with st.form("form_thong_tin_chung"):
         st.subheader("THÔNG TIN CHUNG")
-        ho_ten = st.text_input("HỌ VÀ TÊN")
-        ngay_sinh = st.date_input("NGÀY SINH", format="DD/MM/YYYY")
-        gioi_tinh = st.selectbox("GIỚI TÍNH", ["Nam", "Nữ"])
-        so_dien_thoai = st.text_input("SỐ ĐIỆN THOẠI")
+        ho_ten = st.text_input(":green[HỌ VÀ TÊN]")
+        ngay_sinh = st.date_input(":green[NGÀY SINH]", format="DD/MM/YYYY")
+        gioi_tinh = st.selectbox(":green[GIỚI TÍNH]", ["Nam", "Nữ"])
+        so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]")
         st.divider()
-        st.markdown("NƠI SINH")
+        st.markdown(":green[NƠI SINH]")
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
         noi_sinh_moi = st.selectbox("Nơi sinh (Tỉnh mới)", ["Đắk Lắk", "Khác"])
-        st.markdown("QUÊ QUÁN")
+        st.markdown(":green[QUÊ QUÁN]")
         que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
         que_quan_moi = st.selectbox("Quê quán (Tỉnh mới)", ["Đắk Lắk", "Khác"])
         st.divider()
-        dan_toc = st.selectbox("DÂN TỘC", ["Kinh (Việt)", "Khác"])
-        ton_giao = st.selectbox("TÔN GIÁO", ["Không", "Khác"])
+        dan_toc = st.selectbox(":green[DÂN TỘC]", ["Kinh (Việt)", "Khác"])
+        ton_giao = st.selectbox(":green[TÔN GIÁO]", ["Không", "Khác"])
         submit_chung = st.form_submit_button("Lưu thông tin chung")
 
 with col2:
     with st.form("form_thong_tin_khác"):
         st.subheader("THÔNG TIN GIA ĐÌNH")
-        cha = st.text_input("HỌ TÊN BỐ")
-        me = st.text_input("HỌ TÊN MẸ")
-        st.markdown("ĐỊA CHỈ NƠI Ở (TỈNH, HUYỆN, XÃ CŨ)")
+        cha = st.text_input(":green[HỌ TÊN BỐ]")
+        me = st.text_input(":green[HỌ TÊN MẸ]")
+        st.markdown(":green[ĐỊA CHỈ NƠI Ở (TỈNH, HUYỆN, XÃ CŨ)]")
         tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"])
         quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"])
         xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"])
-        st.markdown("ĐỊA CHỈ NƠI Ở (TỈNH, XÃ MỚI)")
+        st.markdown(":green[ĐỊA CHỈ NƠI Ở (TỈNH, XÃ MỚI)]")
         tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"])
         xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"])
-        st.markdown("ĐỊA CHỈ NƠI Ở CHI TIẾT")
+        st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
         thon_xom = st.text_input("Thôn/Xóm")
         so_nha_to = st.text_input("Số nhà/Tổ")
         submit_dia_chi = st.form_submit_button("Lưu thông tin địa chỉ")
@@ -101,25 +101,25 @@ with col3:
     with st.form("form_hoc_tap_nganh_hoc_dang_ky"):
         st.subheader("TRÌNH ĐỘ VÀ NƠI NHẬP HỌC")
         trinh_do = st.radio(
-                "TRÌNH ĐỘ",
+            ":green[TRÌNH ĐỘ]",
             ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
             horizontal=True
         )
         co_so = st.radio(
-                "CƠ SỞ NHẬP HỌC",
+            ":green[CƠ SỞ NHẬP HỌC]",
             ["Cơ sở chính", "Cơ sở 2 "],
             horizontal=True
         )
         st.subheader("KẾT QUẢ HỌC TẬP")
-        hanh_kiem = st.selectbox("HẠNH KIỂM", ["Tốt", "Khá", "Trung bình", "Yếu"])
-        nam_tot_nghiep = st.selectbox("NĂM TỐT NGHIỆP", [str(y) for y in range(2010, 2031)])
-        diem_tb = st.number_input("ĐIỂM TRUNG BÌNH", min_value=0.0, max_value=10.0, step=0.01)
+        hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"])
+        nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)])
+        diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01)
         
         st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
         nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
-        nv1 = st.selectbox("NGUYỆN VỌNG 1", nganh_options)
-        nv2 = st.selectbox("NGUYỆN VỌNG 2", nganh_options)
-        nv3 = st.selectbox("NGUYỆN VỌNG 3", nganh_options)
+        nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options)
+        nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options)
+        nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options)
 
         submit_nganh_hoc = st.form_submit_button("Lưu đăng ký ngành học")
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
