@@ -100,7 +100,7 @@ with col2:
         so_nha_to = st.text_input("Số nhà/Tổ")
         submit_dia_chi = st.form_submit_button("Lưu thông tin địa chỉ")
 with col3:
-    with st.form("form_hoc_tap_nganh_hoc_dang_ky"):
+    with st.form("form_đăng_ký_nhập_học"):
         st.subheader("TRÌNH ĐỘ VÀ NƠI NHẬP HỌC")
         trinh_do = st.radio(
             ":green[TRÌNH ĐỘ]",
@@ -112,7 +112,7 @@ with col3:
             ["Cơ sở chính", "Cơ sở 2 "],
             horizontal=True
         )
-        st.divider()
+    with st.form("form_kết_quả_học_tập_nguyện_vọng"):
         if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
             st.subheader("KẾT QUẢ HỌC TẬP")
             trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Cao đẳng,Trung cấp","Khác"], horizontal=True)
