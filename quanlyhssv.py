@@ -76,8 +76,8 @@ with col1:
         que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
         que_quan_moi = st.selectbox("Quê quán (Tỉnh mới)", ["Đắk Lắk", "Khác"])
         st.divider()
-        dan_toc = st.selectbox("Dân tộc", ["Kinh (Việt)", "Khác"])
-        ton_giao = st.selectbox("Tôn giáo", ["Không", "Khác"])
+        dan_toc = st.selectbox("DÂN TỘC", ["Kinh (Việt)", "Khác"])
+        ton_giao = st.selectbox("TÔN GIÁO", ["Không", "Khác"])
         submit_chung = st.form_submit_button("Lưu thông tin chung")
 
 with col2:
