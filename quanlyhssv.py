@@ -69,14 +69,12 @@ with col1:
         ngay_sinh = st.date_input(":green[NGÀY SINH]", format="DD/MM/YYYY")
         gioi_tinh = st.selectbox(":green[GIỚI TÍNH]", ["Nam", "Nữ"])
         so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]")
-        st.divider()
         st.markdown(":green[NƠI SINH]")
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
         noi_sinh_moi = st.selectbox("Nơi sinh (Tỉnh mới)", ["Đắk Lắk", "Khác"])
         st.markdown(":green[QUÊ QUÁN]")
         que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", ["Đắk Lắk", "Khác"])
         que_quan_moi = st.selectbox("Quê quán (Tỉnh mới)", ["Đắk Lắk", "Khác"])
-        st.divider()
         dan_toc = st.selectbox(":green[DÂN TỘC]", ["Kinh (Việt)", "Khác"])
         ton_giao = st.selectbox(":green[TÔN GIÁO]", ["Không", "Khác"])
         submit_chung = st.form_submit_button("Lưu thông tin chung")
@@ -110,11 +108,12 @@ with col3:
             ["Cơ sở chính", "Cơ sở 2 "],
             horizontal=True
         )
+        st.divider()
         st.subheader("KẾT QUẢ HỌC TẬP")
         hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"])
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)])
         diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01)
-        
+        st.divider()
         st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
         nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
         nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options)
