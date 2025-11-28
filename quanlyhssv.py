@@ -92,8 +92,9 @@ with col3:
     unsafe_allow_html=True
     )
     ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:", format="DD/MM/YYYY")
-col1, col2, col3 = st.columns(3)
 st.divider()
+col1, col2, col3 = st.columns(3)
+
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
 with col1:
     with st.form("form_thong_tin_chung"):
