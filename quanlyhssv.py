@@ -117,15 +117,19 @@ with col1:
         so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
         st.session_state["so_dien_thoai"] = so_dien_thoai
         st.markdown(":green[NƠI SINH]")
+        
         df_danhmuc = pd.read_excel("data_base/Danh_muc.xlsx")
-        provinces_list = df_danhmuc["Danh mục tỉnh/thành phố"].dropna().astype(str).tolist()
+        provinces_list = df_danhmuc["Danh mục tỉnh/thành phố"].dropna().astype(str).tolist()[1:]
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", provinces_list, index=provinces_list.index(st.session_state.get("noi_sinh_cu", "Đắk Lắk")) if st.session_state.get("noi_sinh_cu", "Đắk Lắk") in provinces_list else 0)
         st.session_state["noi_sinh_cu"] = noi_sinh_cu
-        
-        noi_sinh_moi = st.selectbox("Nơi sinh (Tỉnh mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("noi_sinh_moi", "Đắk Lắk")))
+        # Dữ liệu tỉnh thành mới từ API
+        provinces_new = [
+            "Thành phố Hà Nội", "Tỉnh Cao Bằng", "Tỉnh Tuyên Quang", "Tỉnh Điện Biên", "Tỉnh Lai Châu", "Tỉnh Sơn La", "Tỉnh Lào Cai", "Tỉnh Thái Nguyên", "Tỉnh Lạng Sơn", "Tỉnh Quảng Ninh", "Tỉnh Bắc Ninh", "Tỉnh Phú Thọ", "Thành phố Hải Phòng", "Tỉnh Hưng Yên", "Tỉnh Ninh Bình", "Tỉnh Thanh Hóa", "Tỉnh Nghệ An", "Tỉnh Hà Tĩnh", "Tỉnh Quảng Trị", "Thành phố Huế", "Thành phố Đà Nẵng", "Tỉnh Quảng Ngãi", "Tỉnh Gia Lai", "Tỉnh Khánh Hòa", "Tỉnh Đắk Lắk", "Tỉnh Lâm Đồng", "Tỉnh Đồng Nai", "Thành phố Hồ Chí Minh", "Tỉnh Tây Ninh", "Tỉnh Đồng Tháp", "Tỉnh Vĩnh Long", "Tỉnh An Giang", "Thành phố Cần Thơ", "Tỉnh Cà Mau"
+        ]
+        noi_sinh_moi = st.selectbox("Nơi sinh (Tỉnh mới)", provinces_new, index=provinces_new.index(st.session_state.get("noi_sinh_moi", "Đắk Lắk")) if st.session_state.get("noi_sinh_moi", "Đắk Lắk") in provinces_new else 0)
         st.session_state["noi_sinh_moi"] = noi_sinh_moi
         st.markdown(":green[QUÊ QUÁN]")
-        que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("que_quan_cu", "Đắk Lắk")))
+        que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_list, index=provinces_list.index(st.session_state.get("que_quan_cu", "Đắk Lắk")) if st.session_state.get("que_quan_cu", "Đắk Lắk") in provinces_list else 0)
         st.session_state["que_quan_cu"] = que_quan_cu
         que_quan_moi = st.selectbox("Quê quán (Tỉnh mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("que_quan_moi", "Đắk Lắk")))
         st.session_state["que_quan_moi"] = que_quan_moi
