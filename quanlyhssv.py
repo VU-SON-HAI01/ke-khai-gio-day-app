@@ -118,7 +118,7 @@ with col1:
         so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
         st.session_state["so_dien_thoai"] = so_dien_thoai
         st.markdown(":green[NƠI SINH]")
-        provinces_list = [p["name"] for p in VietnamProvinces.get_provinces()]
+        provinces_list = [p["name"] for p in vietnam_provinces.VietnamProvinces.get_provinces()]
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", provinces_list, index=provinces_list.index(st.session_state.get("noi_sinh_cu", "Đắk Lắk")) if st.session_state.get("noi_sinh_cu", "Đắk Lắk") in provinces_list else 0)
         st.session_state["noi_sinh_cu"] = noi_sinh_cu
         noi_sinh_moi = st.selectbox("Nơi sinh (Tỉnh mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("noi_sinh_moi", "Đắk Lắk")))
