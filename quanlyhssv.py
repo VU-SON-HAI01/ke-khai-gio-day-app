@@ -120,10 +120,8 @@ with col1:
         st.session_state["so_dien_thoai"] = so_dien_thoai
         st.markdown(":green[NƠI SINH]")
 
-        with vietnam_provinces.NESTED_DIVISIONS_JSON_PATH.open() as f:
-            data = rapidjson.load(f)
-        st.write(data)
-        provinces_list = [p["name"] for p in data["provinces"]]
+        from vietnam_provinces import Province
+        provinces_list = [p.name for p in Province]
         
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", provinces_list, index=provinces_list.index(st.session_state.get("noi_sinh_cu", "Đắk Lắk")) if st.session_state.get("noi_sinh_cu", "Đắk Lắk") in provinces_list else 0)
         st.session_state["noi_sinh_cu"] = noi_sinh_cu
