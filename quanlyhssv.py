@@ -120,8 +120,8 @@ with col1:
         st.session_state["so_dien_thoai"] = so_dien_thoai
         st.markdown(":green[NƠI SINH]")
 
-        from vietnam_provinces import Province
-        provinces_list = [p.name for p in Province]
+        from vietnam_provinces import Province, ProvinceCode
+        provinces_list = [Province.from_code(code).name for code in ProvinceCode]
         
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", provinces_list, index=provinces_list.index(st.session_state.get("noi_sinh_cu", "Đắk Lắk")) if st.session_state.get("noi_sinh_cu", "Đắk Lắk") in provinces_list else 0)
         st.session_state["noi_sinh_cu"] = noi_sinh_cu
