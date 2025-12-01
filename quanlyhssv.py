@@ -153,7 +153,7 @@ with col2:
         st.session_state["xa_phuong_moi"] = xa_phuong_moi
         st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
         thon_xom_loai = st.radio(
-            ":green[Chọn cấp độ Thôn, Xóm, Đường, Khối]",
+            "Chọn cấp độ Thôn, Xóm, Đường, Khối",
             ["Thôn", "Xóm", "Đường", "Khối"],
             horizontal=True,
         )
@@ -195,7 +195,7 @@ with col3:
             diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_tb", 0.0))
             st.session_state["diem_tb"] = diem_tb
             st.divider()
-            st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
+            st.subheader("ĐĂNG KÝ NGÀNH HỌC")
             trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
             st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
             nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
