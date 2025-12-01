@@ -123,7 +123,7 @@ with col1:
         from vietnam_provinces import NESTED_DIVISIONS_JSON_PATH
         with NESTED_DIVISIONS_JSON_PATH.open() as f:
             data = rapidjson.load(f)
-        provinces_list = [p["name"] for p in list(data.values())]
+        provinces_list = [p["name"] for p in list(data.values()) if isinstance(p, dict) and "name" in p]
         
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", provinces_list, index=provinces_list.index(st.session_state.get("noi_sinh_cu", "Đắk Lắk")) if st.session_state.get("noi_sinh_cu", "Đắk Lắk") in provinces_list else 0)
         st.session_state["noi_sinh_cu"] = noi_sinh_cu
