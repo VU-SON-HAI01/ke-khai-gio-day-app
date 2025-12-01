@@ -1,5 +1,5 @@
 import streamlit as st
-from vietnam_provinces import VietnamProvinces
+import vietnam_provinces
 import gspread
 from google.oauth2.service_account import Credentials
 import streamlit as st
