@@ -22,6 +22,3 @@ thefuzz
 python-Levenshtein
 # Excel
 XlsxWriter
-# Thu vien tinh/huyen/xa o viet nam
-vietnam-provinces
-python-rapidjson
