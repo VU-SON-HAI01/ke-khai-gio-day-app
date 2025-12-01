@@ -122,8 +122,9 @@ with col1:
 
         with vietnam_provinces.NESTED_DIVISIONS_JSON_PATH.open() as f:
             data = rapidjson.load(f)
-        provinces_list = [p["name"] for p in data["provinces"]]
         st.write(data)
+        provinces_list = [p["name"] for p in data["provinces"]]
+        
         noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", provinces_list, index=provinces_list.index(st.session_state.get("noi_sinh_cu", "Đắk Lắk")) if st.session_state.get("noi_sinh_cu", "Đắk Lắk") in provinces_list else 0)
         st.session_state["noi_sinh_cu"] = noi_sinh_cu
         noi_sinh_moi = st.selectbox("Nơi sinh (Tỉnh mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("noi_sinh_moi", "Đắk Lắk")))
