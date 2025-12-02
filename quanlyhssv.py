@@ -126,20 +126,29 @@ with col1:
         # Loại bỏ trùng lặp cho danh sách mới
         provinces_new = list(dict.fromkeys(provinces_new))
         # Nơi sinh cũ
-        noi_sinh_cu = st.selectbox("Nơi sinh (Tỉnh cũ)", provinces_old, index=provinces_old.index(st.session_state.get("noi_sinh_cu", provinces_old[0])) if st.session_state.get("noi_sinh_cu", provinces_old[0]) in provinces_old else 0)
-        st.session_state["noi_sinh_cu"] = noi_sinh_cu
-        # Tự động chuyển đổi tỉnh mới khi chọn tỉnh cũ
         def convert_province(old_full, mapping):
             for item in mapping:
                 if f'{item["type"]} {item["old"]}' == old_full:
                     return f'{item["type"]} {item["new"]}'
             return provinces_new[0]
-        if "noi_sinh_cu" in st.session_state:
-            auto_new = convert_province(st.session_state["noi_sinh_cu"], mapping)
-            if st.session_state.get("noi_sinh_moi") != auto_new:
-                st.session_state["noi_sinh_moi"] = auto_new
-        # Nơi sinh mới
-        noi_sinh_moi = st.selectbox("Nơi sinh (Tỉnh mới)", provinces_new, index=provinces_new.index(st.session_state.get("noi_sinh_moi", provinces_new[0])) if st.session_state.get("noi_sinh_moi", provinces_new[0]) in provinces_new else 0)
+
+        # Chọn nơi sinh cũ và tự động ánh xạ nơi sinh mới
+        noi_sinh_cu = st.selectbox(
+            "Nơi sinh (Tỉnh cũ)",
+            provinces_old,
+            index=provinces_old.index(st.session_state.get("noi_sinh_cu", provinces_old[0])) if st.session_state.get("noi_sinh_cu", provinces_old[0]) in provinces_old else 0,
+            key="noi_sinh_cu_select"
+        )
+        st.session_state["noi_sinh_cu"] = noi_sinh_cu
+        # Ánh xạ tự động
+        auto_new = convert_province(noi_sinh_cu, mapping)
+        # Nơi sinh mới luôn lấy theo ánh xạ
+        noi_sinh_moi = st.selectbox(
+            "Nơi sinh (Tỉnh mới)",
+            provinces_new,
+            index=provinces_new.index(auto_new) if auto_new in provinces_new else 0,
+            key="noi_sinh_moi_select"
+        )
         st.session_state["noi_sinh_moi"] = noi_sinh_moi
         st.markdown(":green[QUÊ QUÁN]")
         que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(st.session_state.get("que_quan_cu", provinces_old[0])) if st.session_state.get("que_quan_cu", provinces_old[0]) in provinces_old else 0)
