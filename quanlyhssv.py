@@ -100,147 +100,131 @@ with col3:
 st.divider()
 col1, col2, col3 = st.columns(3)
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
-with col1:
-    with st.form("form_thong_tin_chung"):
-        st.subheader("THÔNG TIN CHUNG")
-        ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
-        st.session_state["ho_ten"] = ho_ten
-        ngay_sinh = st.date_input(":green[NGÀY SINH]", format="DD/MM/YYYY", value=st.session_state.get("ngay_sinh", None))
-        st.session_state["ngay_sinh"] = ngay_sinh
-        gioi_tinh = st.radio(
-            ":green[GIỚI TÍNH]",
-            ["Nam", "Nữ"],
-            horizontal=True,
-            index=["Nam", "Nữ"].index(st.session_state.get("gioi_tinh", "Nam")) if st.session_state.get("gioi_tinh") else 0
-        )
-        st.session_state["gioi_tinh"] = gioi_tinh
-        so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
-        st.session_state["so_dien_thoai"] = so_dien_thoai
-        st.markdown(":green[NƠI SINH]")
-        
-        import json
-        with open("data_base/viet_nam_tinh_thanh_mapping_objects.json", "r", encoding="utf-8") as f:
-            mapping = json.load(f)
-        provinces_old = [f'{item["type"]} {item["old"]}' for item in mapping]
-        provinces_new = [f'{item["type"]} {item["new"]}' for item in mapping]
-        # Loại bỏ trùng lặp cho danh sách mới
-        provinces_new = list(dict.fromkeys(provinces_new))
-        # Nơi sinh cũ
-        def convert_province(old_full, mapping):
-            for item in mapping:
-                if f'{item["type"]} {item["old"]}' == old_full:
-                    return f'{item["type"]} {item["new"]}'
-            return provinces_new[0]
 
-        # Chọn nơi sinh cũ và tự động ánh xạ nơi sinh mới
-        noi_sinh_cu = st.selectbox(
-            "Nơi sinh (Tỉnh cũ)",
-            provinces_old,
-            index=provinces_old.index(st.session_state.get("noi_sinh_cu", provinces_old[0])) if st.session_state.get("noi_sinh_cu", provinces_old[0]) in provinces_old else 0,
-            key="noi_sinh_cu_select"
-        )
-        st.session_state["noi_sinh_cu"] = noi_sinh_cu
-        # Ánh xạ tự động
-        auto_new = convert_province(noi_sinh_cu, mapping)
-        # Nơi sinh mới luôn lấy theo ánh xạ
-        noi_sinh_moi = st.selectbox(
-            "Nơi sinh (Tỉnh mới)",
-            provinces_new,
-            index=provinces_new.index(auto_new) if auto_new in provinces_new else 0,
-            key="noi_sinh_moi_select"
-        )
-        st.session_state["noi_sinh_moi"] = noi_sinh_moi
-        st.markdown(":green[QUÊ QUÁN]")
-        que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(st.session_state.get("que_quan_cu", provinces_old[0])) if st.session_state.get("que_quan_cu", provinces_old[0]) in provinces_old else 0)
-        st.session_state["que_quan_cu"] = que_quan_cu
-        # Tự động chuyển đổi tỉnh mới khi chọn tỉnh cũ cho quê quán
-        if "que_quan_cu" in st.session_state:
-            auto_new_qq = convert_province(st.session_state["que_quan_cu"], mapping)
-            if st.session_state.get("que_quan_moi") != auto_new_qq:
-                st.session_state["que_quan_moi"] = auto_new_qq
-        que_quan_moi = st.selectbox("Quê quán (Tỉnh mới)", provinces_new, index=provinces_new.index(st.session_state.get("que_quan_moi", provinces_new[0])) if st.session_state.get("que_quan_moi", provinces_new[0]) in provinces_new else 0)
-        st.session_state["que_quan_moi"] = que_quan_moi
-        dan_toc = st.selectbox(":green[DÂN TỘC]", ["Kinh (Việt)", "Khác"], index=["Kinh (Việt)", "Khác"].index(st.session_state.get("dan_toc", "Kinh (Việt)")))
-        st.session_state["dan_toc"] = dan_toc
-        ton_giao = st.selectbox(":green[TÔN GIÁO]", ["Không", "Khác"], index=["Không", "Khác"].index(st.session_state.get("ton_giao", "Không")))
-        st.session_state["ton_giao"] = ton_giao
-        st.form_submit_button("Xác nhận")
+with col1:
+    st.subheader("THÔNG TIN CHUNG")
+    ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
+    st.session_state["ho_ten"] = ho_ten
+    ngay_sinh = st.date_input(":green[NGÀY SINH]", format="DD/MM/YYYY", value=st.session_state.get("ngay_sinh", None))
+    st.session_state["ngay_sinh"] = ngay_sinh
+    gioi_tinh = st.radio(
+        ":green[GIỚI TÍNH]",
+        ["Nam", "Nữ"],
+        horizontal=True,
+        index=["Nam", "Nữ"].index(st.session_state.get("gioi_tinh", "Nam")) if st.session_state.get("gioi_tinh") else 0
+    )
+    st.session_state["gioi_tinh"] = gioi_tinh
+    so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
+    st.session_state["so_dien_thoai"] = so_dien_thoai
+    st.markdown(":green[NƠI SINH]")
+    import json
+    with open("data_base/viet_nam_tinh_thanh_mapping_objects.json", "r", encoding="utf-8") as f:
+        mapping = json.load(f)
+    provinces_old = [f'{item["type"]} {item["old"]}' for item in mapping]
+    provinces_new = [f'{item["type"]} {item["new"]}' for item in mapping]
+    provinces_new = list(dict.fromkeys(provinces_new))
+    def convert_province(old_full, mapping):
+        for item in mapping:
+            if f'{item["type"]} {item["old"]}' == old_full:
+                return f'{item["type"]} {item["new"]}'
+        return provinces_new[0]
+    noi_sinh_cu = st.selectbox(
+        "Nơi sinh (Tỉnh cũ)",
+        provinces_old,
+        index=provinces_old.index(st.session_state.get("noi_sinh_cu", provinces_old[0])) if st.session_state.get("noi_sinh_cu", provinces_old[0]) in provinces_old else 0,
+        key="noi_sinh_cu_select"
+    )
+    st.session_state["noi_sinh_cu"] = noi_sinh_cu
+    auto_new = convert_province(noi_sinh_cu, mapping)
+    noi_sinh_moi = st.selectbox(
+        "Nơi sinh (Tỉnh mới)",
+        provinces_new,
+        index=provinces_new.index(auto_new) if auto_new in provinces_new else 0,
+        key="noi_sinh_moi_select"
+    )
+    st.session_state["noi_sinh_moi"] = noi_sinh_moi
+    st.markdown(":green[QUÊ QUÁN]")
+    que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(st.session_state.get("que_quan_cu", provinces_old[0])) if st.session_state.get("que_quan_cu", provinces_old[0]) in provinces_old else 0)
+    st.session_state["que_quan_cu"] = que_quan_cu
+    auto_new_qq = convert_province(que_quan_cu, mapping)
+    que_quan_moi = st.selectbox("Quê quán (Tỉnh mới)", provinces_new, index=provinces_new.index(auto_new_qq) if auto_new_qq in provinces_new else 0)
+    st.session_state["que_quan_moi"] = que_quan_moi
+    dan_toc = st.selectbox(":green[DÂN TỘC]", ["Kinh (Việt)", "Khác"], index=["Kinh (Việt)", "Khác"].index(st.session_state.get("dan_toc", "Kinh (Việt)")))
+    st.session_state["dan_toc"] = dan_toc
+    ton_giao = st.selectbox(":green[TÔN GIÁO]", ["Không", "Khác"], index=["Không", "Khác"].index(st.session_state.get("ton_giao", "Không")))
+    st.session_state["ton_giao"] = ton_giao
 
 with col2:
-    with st.form("form_thong_tin_khác"):
-        st.subheader("THÔNG TIN GIA ĐÌNH")
-        cha = st.text_input(":green[HỌ TÊN BỐ]", value=st.session_state.get("cha", ""))
-        st.session_state["cha"] = cha
-        me = st.text_input(":green[HỌ TÊN MẸ]", value=st.session_state.get("me", ""))
-        st.session_state["me"] = me
-        st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ] :orange[ (CŨ)]")
-        tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_cu", "Đắk Lắk")))
-        st.session_state["tinh_tp_cu"] = tinh_tp_cu
-        quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"], index=["TP. Buôn Ma Thuột", "Khác"].index(st.session_state.get("quan_huyen_cu", "TP. Buôn Ma Thuột")))
-        st.session_state["quan_huyen_cu"] = quan_huyen_cu
-        xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"], index=["P. Ea Tam", "Khác"].index(st.session_state.get("xa_phuong_cu", "P. Ea Tam")))
-        st.session_state["xa_phuong_cu"] = xa_phuong_cu
-        st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, XÃ] :orange[(MỚI)]")
-        tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_moi", "Đắk Lắk")))
-        st.session_state["tinh_tp_moi"] = tinh_tp_moi
-        xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"], index=["P. Ea Tam", "Khác"].index(st.session_state.get("xa_phuong_moi", "P. Ea Tam")))
-        st.session_state["xa_phuong_moi"] = xa_phuong_moi
-        st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
-        thon_xom_loai = st.radio(
-            "Chọn cấp độ Thôn, Xóm, Đường, Khối",
-            ["Thôn", "Xóm", "Đường", "Khối"],
-            horizontal=True,
-        )
-        thon_xom = st.text_input("Thôn/Xóm", value=st.session_state.get("thon_xom", thon_xom_loai))
-        st.session_state["thon_xom"] = thon_xom
-        so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
-        st.session_state["so_nha_to"] = so_nha_to
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.form_submit_button("Xác nhận")
+    st.subheader("THÔNG TIN GIA ĐÌNH")
+    cha = st.text_input(":green[HỌ TÊN BỐ]", value=st.session_state.get("cha", ""))
+    st.session_state["cha"] = cha
+    me = st.text_input(":green[HỌ TÊN MẸ]", value=st.session_state.get("me", ""))
+    st.session_state["me"] = me
+    st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ] :orange[ (CŨ)]")
+    tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_cu", "Đắk Lắk")))
+    st.session_state["tinh_tp_cu"] = tinh_tp_cu
+    quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"], index=["TP. Buôn Ma Thuột", "Khác"].index(st.session_state.get("quan_huyen_cu", "TP. Buôn Ma Thuột")))
+    st.session_state["quan_huyen_cu"] = quan_huyen_cu
+    xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"], index=["P. Ea Tam", "Khác"].index(st.session_state.get("xa_phuong_cu", "P. Ea Tam")))
+    st.session_state["xa_phuong_cu"] = xa_phuong_cu
+    st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, XÃ] :orange[(MỚI)]")
+    tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_moi", "Đắk Lắk")))
+    st.session_state["tinh_tp_moi"] = tinh_tp_moi
+    xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"], index=["P. Ea Tam", "Khác"].index(st.session_state.get("xa_phuong_moi", "P. Ea Tam")))
+    st.session_state["xa_phuong_moi"] = xa_phuong_moi
+    st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
+    thon_xom_loai = st.radio(
+        "Chọn cấp độ Thôn, Xóm, Đường, Khối",
+        ["Thôn", "Xóm", "Đường", "Khối"],
+        horizontal=True,
+    )
+    thon_xom = st.text_input("Thôn/Xóm", value=st.session_state.get("thon_xom", thon_xom_loai))
+    st.session_state["thon_xom"] = thon_xom
+    so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
+    st.session_state["so_nha_to"] = so_nha_to
+    st.markdown("<br>", unsafe_allow_html=True)
 with col3:
-    with st.form("form_kết_quả_học_tập_nguyện_vọng"):
-        if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
-            st.subheader("KẾT QUẢ HỌC TẬP")
-            trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Cao đẳng, TC","Khác"], horizontal=True, index=["THPT","Cao đẳng, TC","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
-            st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
-            hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
-            st.session_state["hanh_kiem"] = hanh_kiem
-            nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
-            st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
-            diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_tb", 0.0))
-            st.session_state["diem_tb"] = diem_tb
-            st.divider()
-            st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
-            nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
-            nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])))
-            st.session_state["nv1"] = nv1
-            nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])))
-            st.session_state["nv2"] = nv2
-            nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])))
-            st.session_state["nv3"] = nv3
-        else:
-            st.subheader("KẾT QUẢ HỌC TẬP")
-            trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","THCS", "HT12","Khác"], horizontal=True, index=["THPT","THCS", "HT12","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
-            st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
-            hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
-            st.session_state["hanh_kiem"] = hanh_kiem
-            nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
-            st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
-            diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_tb", 0.0))
-            st.session_state["diem_tb"] = diem_tb
-            st.divider()
-            st.subheader("ĐĂNG KÝ NGÀNH HỌC")
-            trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
-            st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
-            nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
-            nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])))
-            st.session_state["nv1"] = nv1
-            nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])))
-            st.session_state["nv2"] = nv2
-            nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])))
-            st.session_state["nv3"] = nv3
-        st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
-        st.form_submit_button("Xác nhận")
+    if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
+        st.subheader("KẾT QUẢ HỌC TẬP")
+        trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Cao đẳng, TC","Khác"], horizontal=True, index=["THPT","Cao đẳng, TC","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
+        st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
+        hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
+        st.session_state["hanh_kiem"] = hanh_kiem
+        nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
+        st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
+        diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_tb", 0.0))
+        st.session_state["diem_tb"] = diem_tb
+        st.divider()
+        st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
+        nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
+        nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])))
+        st.session_state["nv1"] = nv1
+        nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])))
+        st.session_state["nv2"] = nv2
+        nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])))
+        st.session_state["nv3"] = nv3
+    else:
+        st.subheader("KẾT QUẢ HỌC TẬP")
+        trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","THCS", "HT12","Khác"], horizontal=True, index=["THPT","THCS", "HT12","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
+        st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
+        hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
+        st.session_state["hanh_kiem"] = hanh_kiem
+        nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
+        st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
+        diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_tb", 0.0))
+        st.session_state["diem_tb"] = diem_tb
+        st.divider()
+        st.subheader("ĐĂNG KÝ NGÀNH HỌC")
+        trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
+        st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
+        nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
+        nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])))
+        st.session_state["nv1"] = nv1
+        nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])))
+        st.session_state["nv2"] = nv2
+        nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])))
+        st.session_state["nv3"] = nv3
+    st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
     # Nút lưu tổng cuối trang
 st.divider()
 if st.button("Lưu tất cả thông tin"):
