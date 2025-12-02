@@ -140,7 +140,8 @@ with col1:
         "Nơi sinh (Tỉnh mới)",
         provinces_new,
         index=provinces_new.index(auto_new) if auto_new in provinces_new else 0,
-        key="noi_sinh_moi_select"
+        key="noi_sinh_moi_select",
+        disabled=True
     )
     st.session_state["noi_sinh_moi"] = noi_sinh_moi
     st.markdown(":green[QUÊ QUÁN]")
