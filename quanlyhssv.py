@@ -117,6 +117,7 @@ with col1:
     so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
     st.session_state["so_dien_thoai"] = so_dien_thoai
     st.markdown(":green[NƠI SINH]")
+
     import json
     with open("data_base/viet_nam_tinh_thanh_mapping_objects.json", "r", encoding="utf-8") as f:
         mapping = json.load(f)
@@ -128,6 +129,7 @@ with col1:
             if f'{item["type"]} {item["old"]}' == old_full:
                 return f'{item["type"]} {item["new"]}'
         return provinces_new[0]
+    
     noi_sinh_cu = st.selectbox(
         "Nơi sinh (Tỉnh cũ)",
         provinces_old,
@@ -136,11 +138,12 @@ with col1:
     )
     st.session_state["noi_sinh_cu"] = noi_sinh_cu
     auto_new = convert_province(noi_sinh_cu, mapping)
+    # Use a dynamic key to force re-render when noi_sinh_cu changes
     noi_sinh_moi = st.selectbox(
         "Nơi sinh (Tỉnh mới)",
         provinces_new,
         index=provinces_new.index(auto_new) if auto_new in provinces_new else 0,
-        key="noi_sinh_moi_select",
+        key=f"noi_sinh_moi_select_{auto_new}"
     )
     st.session_state["noi_sinh_moi"] = noi_sinh_moi
     st.markdown(":green[QUÊ QUÁN]")
