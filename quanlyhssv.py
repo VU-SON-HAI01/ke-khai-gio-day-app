@@ -143,7 +143,8 @@ with col1:
         "Nơi sinh (Tỉnh mới)",
         provinces_new,
         index=provinces_new.index(auto_new) if auto_new in provinces_new else 0,
-        key="noi_sinh_moi_select"
+        key="noi_sinh_moi_select",
+        disabled=True
     )
     st.markdown(":green[QUÊ QUÁN]")
     que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(st.session_state.get("que_quan_cu", provinces_old[0])) if st.session_state.get("que_quan_cu", provinces_old[0]) in provinces_old else 0)
