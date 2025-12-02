@@ -142,8 +142,8 @@ with col1:
     # Use a dynamic key to force re-render when noi_sinh_cu changes
     noi_sinh_moi = st.selectbox(
         "Nơi sinh (Tỉnh mới)",
-        st.session_state["noi_sinh_moi"],
-        index=provinces_new.index(auto_new) if auto_new in provinces_new else 0,
+        provinces_new,
+        index=provinces_new.index(st.session_state["noi_sinh_moi"]) if st.session_state["noi_sinh_moi"] in provinces_new else 0,
         key=f"noi_sinh_moi_select_{auto_new}"
     )
     
