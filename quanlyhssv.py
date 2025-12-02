@@ -138,14 +138,15 @@ with col1:
     )
     st.session_state["noi_sinh_cu"] = noi_sinh_cu
     auto_new = convert_province(noi_sinh_cu, mapping)
+    st.session_state["noi_sinh_moi"] = auto_new
     # Use a dynamic key to force re-render when noi_sinh_cu changes
     noi_sinh_moi = st.selectbox(
         "Nơi sinh (Tỉnh mới)",
-        provinces_new,
+        st.session_state["noi_sinh_moi"],
         index=provinces_new.index(auto_new) if auto_new in provinces_new else 0,
         key=f"noi_sinh_moi_select_{auto_new}"
     )
-    st.session_state["noi_sinh_moi"] = noi_sinh_moi
+    
     st.markdown(":green[QUÊ QUÁN]")
     que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(st.session_state.get("que_quan_cu", provinces_old[0])) if st.session_state.get("que_quan_cu", provinces_old[0]) in provinces_old else 0)
     st.session_state["que_quan_cu"] = que_quan_cu
