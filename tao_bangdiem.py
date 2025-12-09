@@ -543,3 +543,24 @@ with st.container():
         )
     else:
         st.info("Chưa có file nào được tạo. Vui lòng tải lên cả 3 file và nhấn nút 'Xử lý'.")
+    st.subheader("Bước 4: Gom toàn bộ dữ liệu các lớp vào một danh sách", divider=True)
+    # Gom dữ liệu từ các sheet đã xử lý vào một DataFrame
+    all_data = []
+    import pandas as pd
+    if st.session_state.get("generated_files"):
+        for sheet_name, file_bytes in st.session_state["generated_files"].items():
+            # Đọc file excel từng lớp
+            try:
+                df = pd.read_excel(file_bytes)
+                df["Tên lớp"] = sheet_name
+                all_data.append(df)
+            except Exception as e:
+                st.warning(f"Không đọc được dữ liệu lớp {sheet_name}: {e}")
+        if all_data:
+            df_all = pd.concat(all_data, ignore_index=True)
+            st.dataframe(df_all, use_container_width=True)
+        else:
+            st.info("Không có dữ liệu lớp nào để gom.")
+    else:
+        st.info("Chưa có file nào được tạo để gom dữ liệu.")
+
