@@ -559,6 +559,27 @@ with st.container():
         if all_data:
             df_all = pd.concat(all_data, ignore_index=True)
             st.dataframe(df_all, use_container_width=True)
+            mau_path = "data_base/mau_thong_tin_nguoi_hoc.xlsx"
+            if os.path.exists(mau_path):
+                if st.button("Cập nhật vào file mẫu", use_container_width=True):
+                    wb = load_workbook(mau_path)
+                    ws = wb.active
+                    # Xóa dữ liệu cũ (giữ header)
+                    ws.delete_rows(2, ws.max_row - 1)
+                    for r in dataframe_to_rows(df_all, index=False, header=False):
+                        ws.append(r)
+                    output = io.BytesIO()
+                    wb.save(output)
+                    st.session_state.updated_mau_file = output
+                    st.success("Đã cập nhật dữ liệu vào file mẫu!")
+            if st.session_state.get("updated_mau_file"):
+                st.download_button(
+                    label="Tải về file mau_thong_tin_nguoi_hoc.xlsx đã cập nhật",
+                    data=st.session_state.updated_mau_file.getvalue(),
+                    file_name="mau_thong_tin_nguoi_hoc.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
         else:
             st.info("Không có dữ liệu lớp nào để gom.")
     else:
