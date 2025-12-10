@@ -70,7 +70,8 @@ def find_student_data_in_sheet(worksheet):
 
     # 3. Đọc dữ liệu
     # Dừng lại nếu 2 dòng liên tiếp tiếp theo (cột 'TÊN') đều rỗng/None hoặc là số, hoặc 1 dòng là số và dòng sau là rỗng
-    rows = list(worksheet.iter_rows(min_row=header_row_index + 1, values_only=True))
+    # Giới hạn chỉ lấy tối đa 100 dòng dữ liệu để tránh xử lý phức tạp
+    rows = list(worksheet.iter_rows(min_row=header_row_index + 1, max_row=header_row_index + 100, values_only=True))
     i = 0
     while i < len(rows):
         row = rows[i]
