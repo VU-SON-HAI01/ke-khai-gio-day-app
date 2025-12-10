@@ -36,7 +36,7 @@ def find_student_data_in_sheet(worksheet):
             header_content = [str(cell).lower().strip() if cell is not None else '' for cell in row]
             break
     if header_row_index == -1:
-        st.warning(f"Không thể tìm thấy dòng tiêu đề (header) chứa 'STT' trong sheet '{worksheet.title}'.")
+        st.warning(f"Sheet '{worksheet.title}': Không thể tìm thấy dòng tiêu đề (header) chứa 'STT'. Vui lòng kiểm tra lại cấu trúc sheet này.")
         return None
 
     # 2. Xác định vị trí các cột cần thiết
