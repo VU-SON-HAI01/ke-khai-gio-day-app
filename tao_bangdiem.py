@@ -604,7 +604,7 @@ with st.container():
                         except Exception as e:
                             st.error(f"Đã xảy ra lỗi trong quá trình xử lý: {e}")
             except Exception as e:
-                st.warning(f"Không đọc được dữ liệu lớp: {e}")
+                st.warning("Không đọc được dữ liệu lớp.")
             from openpyxl.utils.dataframe import dataframe_to_rows
             # Chỉ gom dữ liệu đã được lọc theo khóa
             df_filtered = st.session_state.df_filtered if 'df_filtered' in st.session_state else pd.DataFrame()
