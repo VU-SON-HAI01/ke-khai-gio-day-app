@@ -96,8 +96,15 @@ def find_student_data_in_sheet(worksheet):
                 found_end_row = True
                 break
 
-        # Nếu dòng hiện tại là rỗng/None/number thì bỏ qua
-        if ten_cell is None or str(ten_cell).strip() == '' or isinstance(ten_cell, (int, float)):
+
+        # Nếu dòng hiện tại là rỗng/None/number hoặc là "Người lập" thì bỏ qua
+        ten_cell_str = str(ten_cell).strip() if ten_cell is not None else ''
+        if (
+            ten_cell is None
+            or ten_cell_str == ''
+            or isinstance(ten_cell, (int, float))
+            or ten_cell_str.lower() == 'người lập'
+        ):
             i += 1
             continue
 
