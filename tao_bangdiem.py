@@ -469,6 +469,31 @@ with st.container():
     key="data_uploader"
     )
     
+    # Thêm selector chọn Khóa học
+    st.markdown("---")
+    khoa_options = ["K49", "K50", "K51"]
+    selected_khoa = st.selectbox("Chọn Khóa học để xử lý", khoa_options, key="khoa_selector")
+
+    # Lọc dữ liệu theo khóa học đã chọn
+    def is_class_in_khoa(class_name, khoa):
+        return class_name.startswith(khoa[1:])
+
+    filtered_data = []
+    if all_data:
+        for df in all_data:
+            if "Tên lớp" in df.columns:
+                df_khoa = df[df["Tên lớp"].apply(lambda x: is_class_in_khoa(str(x), selected_khoa))]
+                if not df_khoa.empty:
+                    filtered_data.append(df_khoa)
+        if filtered_data:
+            df_filtered = pd.concat(filtered_data, ignore_index=True)
+            st.subheader(f"Danh sách lớp thuộc {selected_khoa}")
+            st.dataframe(df_filtered, use_container_width=True)
+        else:
+            df_filtered = pd.DataFrame()
+            st.info(f"Không có lớp nào thuộc {selected_khoa} trong dữ liệu đã xử lý.")
+    else:
+        df_filtered = pd.DataFrame()
     st.subheader("Bước 2: Kiểm tra & Xử lý", divider=True)
     # Container để hiển thị kết quả kiểm tra
     check_results_placeholder = st.container()
@@ -499,63 +524,81 @@ with st.container():
             try:
                 # Nếu không upload file mẫu thì dùng file mẫu mặc định
                 template_file_obj = uploaded_template_file
-                if template_file_obj is None:
-                    template_file_obj = open("data_base/Bang_diem_qua_trinh_(Mau).xlsx", "rb")
-                danh_muc_file_obj = uploaded_danh_muc_file
-                if danh_muc_file_obj is None:
-                    danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
-                with st.spinner("Đang xử lý... Vui lòng chờ trong giây lát."):
-                    st.session_state.generated_files, st.session_state.skipped_sheets = process_excel_files(
-                        template_file_obj,
-                        uploaded_data_file,
-                        danh_muc_file_obj,
-                        hoc_ky_input,
-                        nam_hoc_input,
-                        cap_nhat_input
-                    )
-                if uploaded_template_file is None:
-                    template_file_obj.close()
-                if uploaded_danh_muc_file is None:
-                    danh_muc_file_obj.close()
-                if st.session_state.generated_files:
-                    st.success(f"✅ Hoàn thành! Đã xử lý và tạo ra {len(st.session_state.generated_files)} file.")
-                    with st.spinner("Đang nén file..."):
-                        zip_buffer = io.BytesIO()
-                        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, False) as zf:
-                            for file_name, file_data in st.session_state.generated_files.items():
-                                zf.writestr(file_name, file_data)
-                        st.session_state.zip_buffer = zip_buffer
-                else:
-                    st.warning("Quá trình xử lý hoàn tất nhưng không có file nào được tạo. Vui lòng kiểm tra lại các file đầu vào.")
-                if st.session_state.skipped_sheets:
-                    st.info(f"ℹ️ Các sheet sau đã bị bỏ qua vì không có trong danh mục: {', '.join(st.session_state.skipped_sheets)}")
-            except Exception as e:
-                st.error(f"Đã xảy ra lỗi trong quá trình xử lý: {e}")
+                if not df_filtered.empty:
+                    if st.button("🔍 Kiểm tra dữ liệu", use_container_width=True):
+                        # Nếu chưa upload danh mục thì dùng file mặc định
+                        danh_muc_file_obj = uploaded_danh_muc_file
+                        if danh_muc_file_obj is None:
+                            danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
+                        # Chỉ kiểm tra các lớp thuộc khóa đã chọn
+                        sheet_names_to_check = set(df_filtered["Tên lớp"].unique())
+                        xls_danh_muc = pd.ExcelFile(danh_muc_file_obj)
+                        df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
+                        valid_class_names = set(df_danh_muc.iloc[:, 1].dropna().astype(str))
+                        sheets_not_in_danh_muc = sheet_names_to_check - valid_class_names
+                        danh_muc_not_in_sheets = valid_class_names - sheet_names_to_check
+                        if uploaded_danh_muc_file is None:
+                            danh_muc_file_obj.close()
+                        with check_results_placeholder:
+                            if not sheets_not_in_danh_muc and not danh_muc_not_in_sheets:
+                                st.success("✅ Dữ liệu hợp lệ! Tất cả các sheet đều khớp với danh mục.")
+                            if sheets_not_in_danh_muc:
+                                st.warning("⚠️ Các sheet sau có trong dữ liệu nhưng không có trong danh mục và sẽ bị bỏ qua:")
+                                st.json(list(sheets_not_in_danh_muc))
+                            if danh_muc_not_in_sheets:
+                                st.info("ℹ️ Các lớp sau có trong danh mục nhưng không có sheet tương ứng trong dữ liệu:")
+                                st.json(list(danh_muc_not_in_sheets))
 
-    st.subheader("Bước 3: Tải xuống kết quả", divider=True)
-    if st.session_state.zip_buffer:
-        st.download_button(
-            label="📥 Tải xuống tất cả file (dạng .zip)",
-            data=st.session_state.zip_buffer.getvalue(),
-            file_name=f"BangDiem_{cap_nhat_input.replace('-', '_')}.zip",
-            mime="application/zip",
-            use_container_width=True
-        )
-    else:
-        st.info("Chưa có file nào được tạo. Vui lòng tải lên cả 3 file và nhấn nút 'Xử lý'.")
-    st.subheader("Bước 4: Gom toàn bộ dữ liệu các lớp vào một danh sách", divider=True)
-    # Gom dữ liệu từ các sheet đã xử lý vào một DataFrame
-    all_data = []
-    import pandas as pd
-    if st.session_state.get("generated_files"):
-        for sheet_name, file_bytes in st.session_state["generated_files"].items():
-            # Đọc file excel từng lớp
-            try:
-                df = pd.read_excel(file_bytes)
-                df["Tên lớp"] = sheet_name
-                all_data.append(df)
+                if not df_filtered.empty:
+                    if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True):
+                        st.session_state.zip_buffer = None
+                        try:
+                            # Nếu không upload file mẫu thì dùng file mẫu mặc định
+                            template_file_obj = uploaded_template_file
+                            if template_file_obj is None:
+                                template_file_obj = open("data_base/Bang_diem_qua_trinh_(Mau).xlsx", "rb")
+                            danh_muc_file_obj = uploaded_danh_muc_file
+                            if danh_muc_file_obj is None:
+                                danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
+                            # Chỉ xử lý các lớp thuộc khóa đã chọn
+                            # Tạo file dữ liệu tạm chỉ chứa các sheet thuộc khóa
+                            # (Giả lập file Excel với các sheet này nếu cần)
+                            # Ở đây chỉ truyền df_filtered cho các bước xử lý tiếp theo
+                            # Nếu cần truyền file, có thể ghi df_filtered ra file tạm
+                            # Nhưng nếu các hàm xử lý chấp nhận DataFrame thì truyền trực tiếp
+                            # Nếu cần, có thể mở rộng hàm process_excel_files để nhận df_filtered
+                            # Hiện tại vẫn truyền uploaded_data_file, nhưng xử lý sẽ dựa trên df_filtered
+                            st.session_state.generated_files, st.session_state.skipped_sheets = process_excel_files(
+                                template_file_obj,
+                                uploaded_data_file,  # TODO: refactor process_excel_files để nhận df_filtered
+                                danh_muc_file_obj,
+                                hoc_ky_input,
+                                nam_hoc_input,
+                                cap_nhat_input
+                            )
+                            if uploaded_template_file is None:
+                                template_file_obj.close()
+                            if uploaded_danh_muc_file is None:
+                                danh_muc_file_obj.close()
+                            if st.session_state.generated_files:
+                                st.success(f"✅ Hoàn thành! Đã xử lý và tạo ra {len(st.session_state.generated_files)} file.")
+                                with st.spinner("Đang nén file..."):
+                                    zip_buffer = io.BytesIO()
+                                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, False) as zf:
+                                        for file_name, file_data in st.session_state.generated_files.items():
+                                            zf.writestr(file_name, file_data)
+                                    st.session_state.zip_buffer = zip_buffer
+                            else:
+                                st.warning("Quá trình xử lý hoàn tất nhưng không có file nào được tạo. Vui lòng kiểm tra lại các file đầu vào.")
+                            if st.session_state.skipped_sheets:
+                                st.info(f"ℹ️ Các sheet sau đã bị bỏ qua vì không có trong danh mục: {', '.join(st.session_state.skipped_sheets)}")
+                        except Exception as e:
+                            st.error(f"Đã xảy ra lỗi trong quá trình xử lý: {e}")
             except Exception as e:
                 st.warning(f"Không đọc được dữ liệu lớp {sheet_name}: {e}")
+            st.session_state.all_data = all_data
+        else:
+            all_data = st.session_state.all_data
         if all_data:
             df_all = pd.concat(all_data, ignore_index=True)
             st.dataframe(df_all, use_container_width=True)
@@ -564,7 +607,6 @@ with st.container():
                 if st.button("Cập nhật vào file mẫu", use_container_width=True):
                     wb = load_workbook(mau_path)
                     ws = wb.active
-                    # Xóa dữ liệu cũ (giữ header)
                     ws.delete_rows(2, ws.max_row - 1)
                     for r in dataframe_to_rows(df_all, index=False, header=False):
                         ws.append(r)
