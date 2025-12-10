@@ -521,9 +521,11 @@ with st.container():
             # Đọc danh mục
             xls_danh_muc = pd.ExcelFile(danh_muc_file_obj)
             df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
+            # Chỉ lấy các lớp trong danh mục thuộc khóa đã chọn
             valid_class_names = set(df_danh_muc.iloc[:, 1].dropna().astype(str))
-            sheets_not_in_danh_muc = set(sheet_names_to_check) - valid_class_names
-            danh_muc_not_in_sheets = valid_class_names - set(sheet_names_to_check)
+            valid_class_names_khoa = set([name for name in valid_class_names if str(name).startswith(khoa_prefix)])
+            sheets_not_in_danh_muc = set(sheet_names_to_check) - valid_class_names_khoa
+            danh_muc_not_in_sheets = valid_class_names_khoa - set(sheet_names_to_check)
             if uploaded_danh_muc_file is None:
                 danh_muc_file_obj.close()
             with check_results_placeholder:
