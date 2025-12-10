@@ -508,7 +508,7 @@ with st.container():
     check_results_placeholder = st.container()
 
     if uploaded_data_file:
-        if st.button("🔍 Kiểm tra dữ liệu", use_container_width=True):
+        if st.button("🔍 Kiểm tra dữ liệu", use_container_width=True, key="btn_kiem_tra_du_lieu_main"):
             # Nếu chưa upload danh mục thì dùng file mặc định
             danh_muc_file_obj = uploaded_danh_muc_file
             if danh_muc_file_obj is None:
@@ -539,13 +539,13 @@ with st.container():
                     st.json(list(danh_muc_not_in_sheets))
     
     if uploaded_data_file:
-        if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True):
+        if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True, key="btn_xuly_tao_files_main"):
             st.session_state.zip_buffer = None
             try:
                 # Nếu không upload file mẫu thì dùng file mẫu mặc định
                 template_file_obj = uploaded_template_file
                 if not df_filtered.empty:
-                    if st.button("🔍 Kiểm tra dữ liệu", use_container_width=True):
+                        if st.button("🔍 Kiểm tra dữ liệu", use_container_width=True, key="btn_kiem_tra_du_lieu_inner"):
                         # Nếu chưa upload danh mục thì dùng file mặc định
                         danh_muc_file_obj = uploaded_danh_muc_file
                         if danh_muc_file_obj is None:
@@ -593,7 +593,7 @@ with st.container():
                         st.session_state.df_filtered = df_filtered
                         st.session_state.all_data = []
                     if not df_filtered.empty:
-                        if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True):
+                        if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True, key="btn_xuly_tao_files_inner"):
                             st.session_state.zip_buffer = None
                             try:
                                 template_file_obj = uploaded_template_file
@@ -638,7 +638,7 @@ with st.container():
             st.dataframe(df_filtered, use_container_width=True)
             mau_path = "data_base/mau_thong_tin_nguoi_hoc.xlsx"
             if os.path.exists(mau_path):
-                if st.button("Gom dữ liệu", use_container_width=True):
+                if st.button("Gom dữ liệu", use_container_width=True, key="btn_gom_du_lieu"):
                     # Gom dữ liệu học sinh đã được xử lý/chuẩn hóa từ từng sheet (dùng find_student_data_in_sheet)
                     if uploaded_data_file is not None:
                         xls_data = pd.ExcelFile(uploaded_data_file)
