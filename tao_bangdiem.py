@@ -4,6 +4,7 @@ import openpyxl
 from openpyxl.worksheet.datavalidation import DataValidation
 # Sửa lỗi chính tả 'impoart' -> 'import'
 from openpyxl.styles import Border, Side, Font
+from openpyxl import load_workbook
 import io
 import re
 import zipfile
@@ -604,19 +605,18 @@ with st.container():
                             st.error(f"Đã xảy ra lỗi trong quá trình xử lý: {e}")
             except Exception as e:
                 st.warning(f"Không đọc được dữ liệu lớp {sheet_name}: {e}")
-            st.session_state.all_data = all_data
-        else:
-            all_data = st.session_state.all_data
-        if st.session_state.df_filtered is not None and not st.session_state.df_filtered.empty:
-            df_all = st.session_state.df_filtered
-            st.dataframe(df_all, use_container_width=True)
+        from openpyxl.utils.dataframe import dataframe_to_rows
+        # Chỉ gom dữ liệu đã được lọc theo khóa
+        df_filtered = st.session_state.df_filtered if 'df_filtered' in st.session_state else pd.DataFrame()
+        if df_filtered is not None and not df_filtered.empty:
+            st.dataframe(df_filtered, use_container_width=True)
             mau_path = "data_base/mau_thong_tin_nguoi_hoc.xlsx"
             if os.path.exists(mau_path):
                 if st.button("Cập nhật vào file mẫu", use_container_width=True):
                     wb = load_workbook(mau_path)
                     ws = wb.active
                     ws.delete_rows(2, ws.max_row - 1)
-                    for r in dataframe_to_rows(df_all, index=False, header=False):
+                    for r in dataframe_to_rows(df_filtered, index=False, header=False):
                         ws.append(r)
                     output = io.BytesIO()
                     wb.save(output)
