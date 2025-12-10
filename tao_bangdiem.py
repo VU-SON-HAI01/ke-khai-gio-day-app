@@ -613,9 +613,19 @@ with st.container():
                     df_all_students = pd.concat(all_student_rows, ignore_index=True)
                     wb = load_workbook(mau_path)
                     ws = wb.active
-                    ws.delete_rows(2, ws.max_row - 1)
-                    for r in dataframe_to_rows(df_all_students, index=False, header=False):
-                        ws.append(r)
+                    # Xóa dữ liệu từ dòng thứ 4 trở đi
+                    if ws.max_row >= 4:
+                        ws.delete_rows(4, ws.max_row - 3)
+                    # Đưa dữ liệu vào từ dòng thứ 4, nối TÊN ĐỆM và TÊN vào cột B
+                    for idx, row in df_all_students.iterrows():
+                        full_name = f"{row['TÊN ĐỆM']} {row['TÊN']}".strip()
+                        excel_row = 4 + idx
+                        ws.cell(row=excel_row, column=2).value = full_name
+                        # Nếu muốn thêm ngày sinh vào cột C:
+                        ws.cell(row=excel_row, column=3).value = row['NGÀY SINH']
+                        # Nếu muốn thêm tên lớp vào cột D:
+                        if 'Tên lớp' in row:
+                            ws.cell(row=excel_row, column=4).value = row['Tên lớp']
                     output = io.BytesIO()
                     wb.save(output)
                     st.session_state.updated_mau_file = output
