@@ -547,7 +547,7 @@ with st.container():
                 if not df_filtered.empty:
                         if st.button("🔍 Kiểm tra dữ liệu", use_container_width=True, key="btn_kiem_tra_du_lieu_inner"):
                         # Nếu chưa upload danh mục thì dùng file mặc định
-                        danh_muc_file_obj = uploaded_danh_muc_file
+                            danh_muc_file_obj = uploaded_danh_muc_file
                         if danh_muc_file_obj is None:
                             danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
                         # Chỉ kiểm tra các lớp thuộc khóa đã chọn
