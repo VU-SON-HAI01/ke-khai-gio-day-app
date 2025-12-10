@@ -548,26 +548,26 @@ with st.container():
                         if st.button("🔍 Kiểm tra dữ liệu", use_container_width=True, key="btn_kiem_tra_du_lieu_inner"):
                         # Nếu chưa upload danh mục thì dùng file mặc định
                             danh_muc_file_obj = uploaded_danh_muc_file
-                        if danh_muc_file_obj is None:
-                            danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
-                        # Chỉ kiểm tra các lớp thuộc khóa đã chọn
-                        sheet_names_to_check = set(df_filtered["Tên lớp"].unique())
-                        xls_danh_muc = pd.ExcelFile(danh_muc_file_obj)
-                        df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
-                        valid_class_names = set(df_danh_muc.iloc[:, 1].dropna().astype(str))
-                        sheets_not_in_danh_muc = sheet_names_to_check - valid_class_names
-                        danh_muc_not_in_sheets = valid_class_names - sheet_names_to_check
-                        if uploaded_danh_muc_file is None:
-                            danh_muc_file_obj.close()
-                        with check_results_placeholder:
-                            if not sheets_not_in_danh_muc and not danh_muc_not_in_sheets:
-                                st.success("✅ Dữ liệu hợp lệ! Tất cả các sheet đều khớp với danh mục.")
-                            if sheets_not_in_danh_muc:
-                                st.warning("⚠️ Các sheet sau có trong dữ liệu nhưng không có trong danh mục và sẽ bị bỏ qua:")
-                                st.json(list(sheets_not_in_danh_muc))
-                            if danh_muc_not_in_sheets:
-                                st.info("ℹ️ Các lớp sau có trong danh mục nhưng không có sheet tương ứng trong dữ liệu:")
-                                st.json(list(danh_muc_not_in_sheets))
+                            if danh_muc_file_obj is None:
+                                danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
+                            # Chỉ kiểm tra các lớp thuộc khóa đã chọn
+                            sheet_names_to_check = set(df_filtered["Tên lớp"].unique())
+                            xls_danh_muc = pd.ExcelFile(danh_muc_file_obj)
+                            df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
+                            valid_class_names = set(df_danh_muc.iloc[:, 1].dropna().astype(str))
+                            sheets_not_in_danh_muc = sheet_names_to_check - valid_class_names
+                            danh_muc_not_in_sheets = valid_class_names - sheet_names_to_check
+                            if uploaded_danh_muc_file is None:
+                                danh_muc_file_obj.close()
+                            with check_results_placeholder:
+                                if not sheets_not_in_danh_muc and not danh_muc_not_in_sheets:
+                                    st.success("✅ Dữ liệu hợp lệ! Tất cả các sheet đều khớp với danh mục.")
+                                if sheets_not_in_danh_muc:
+                                    st.warning("⚠️ Các sheet sau có trong dữ liệu nhưng không có trong danh mục và sẽ bị bỏ qua:")
+                                    st.json(list(sheets_not_in_danh_muc))
+                                if danh_muc_not_in_sheets:
+                                    st.info("ℹ️ Các lớp sau có trong danh mục nhưng không có sheet tương ứng trong dữ liệu:")
+                                    st.json(list(danh_muc_not_in_sheets))
 
                 if uploaded_data_file is not None:
                     # Lọc chỉ các sheet thuộc khóa đã chọn
