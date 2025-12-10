@@ -581,52 +581,51 @@ with st.container():
                     st.info("Không có dữ liệu lớp nào để gom.")
             except Exception as e:
                 st.error(f"Không đọc được dữ liệu lớp. Chi tiết lỗi: {e}")
-            from openpyxl.utils.dataframe import dataframe_to_rows
-            df_filtered = st.session_state.df_filtered if 'df_filtered' in st.session_state else pd.DataFrame()
-            st.dataframe(df_filtered, use_container_width=True)
-            mau_path = "data_base/mau_thong_tin_nguoi_hoc.xlsx"
-            if os.path.exists(mau_path):
-                if st.button("Gom dữ liệu", use_container_width=True, key="btn_gom_du_lieu"):
-                    if uploaded_data_file is not None:
-                        xls_data = pd.ExcelFile(uploaded_data_file)
-                        all_sheet_names = xls_data.sheet_names
-                        khoa_prefix = selected_khoa[1:]
-                        sheet_names_to_process = [name for name in all_sheet_names if str(name).startswith(khoa_prefix)]
-                        danh_muc_file_obj = uploaded_danh_muc_file
-                        if danh_muc_file_obj is None:
-                            danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
-                        xls_danh_muc = pd.ExcelFile(danh_muc_file_obj)
-                        df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
-                        valid_class_names = set(df_danh_muc.iloc[:, 1].dropna().astype(str))
-                        valid_class_names_khoa = set([name for name in valid_class_names if str(name).startswith(khoa_prefix)])
-                        sheet_names_to_process = [name for name in sheet_names_to_process if name in valid_class_names_khoa]
-                        import openpyxl
-                        wb_data = openpyxl.load_workbook(uploaded_data_file, data_only=True)
-                        all_student_rows = []
-                        for sheet in sheet_names_to_process:
-                            ws = wb_data[sheet]
-                            df_students = find_student_data_in_sheet(ws)
-                            if df_students is not None and not df_students.empty:
-                                df_students = df_students.copy()
-                                df_students["Tên lớp"] = sheet
-                                all_student_rows.append(df_students)
-                        if all_student_rows:
-                            df_all_students = pd.concat(all_student_rows, ignore_index=True)
-                            wb = load_workbook(mau_path)
-                            ws = wb.active
-                            ws.delete_rows(2, ws.max_row - 1)
-                            for r in dataframe_to_rows(df_all_students, index=False, header=False):
-                                ws.append(r)
-                            output = io.BytesIO()
-                            wb.save(output)
-                            st.session_state.updated_mau_file = output
-                            st.success("Đã gom dữ liệu học sinh đã chuẩn hóa vào file mẫu!")
-                        else:
-                            st.warning("Không có dữ liệu học sinh hợp lệ nào để gom.")
-                        if uploaded_danh_muc_file is None:
-                            danh_muc_file_obj.close()
-                    else:
-                        st.warning("Không có file dữ liệu lớp nào để gom.")
+        from openpyxl.utils.dataframe import dataframe_to_rows
+        df_filtered = st.session_state.df_filtered if 'df_filtered' in st.session_state else pd.DataFrame()
+        st.dataframe(df_filtered, use_container_width=True)
+        mau_path = "data_base/mau_thong_tin_nguoi_hoc.xlsx"
+        if st.button("Gom dữ liệu", use_container_width=True, key="btn_gom_du_lieu"):
+            if uploaded_data_file is not None:
+                xls_data = pd.ExcelFile(uploaded_data_file)
+                all_sheet_names = xls_data.sheet_names
+                khoa_prefix = selected_khoa[1:]
+                sheet_names_to_process = [name for name in all_sheet_names if str(name).startswith(khoa_prefix)]
+                danh_muc_file_obj = uploaded_danh_muc_file
+                if danh_muc_file_obj is None:
+                    danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
+                xls_danh_muc = pd.ExcelFile(danh_muc_file_obj)
+                df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
+                valid_class_names = set(df_danh_muc.iloc[:, 1].dropna().astype(str))
+                valid_class_names_khoa = set([name for name in valid_class_names if str(name).startswith(khoa_prefix)])
+                sheet_names_to_process = [name for name in sheet_names_to_process if name in valid_class_names_khoa]
+                import openpyxl
+                wb_data = openpyxl.load_workbook(uploaded_data_file, data_only=True)
+                all_student_rows = []
+                for sheet in sheet_names_to_process:
+                    ws = wb_data[sheet]
+                    df_students = find_student_data_in_sheet(ws)
+                    if df_students is not None and not df_students.empty:
+                        df_students = df_students.copy()
+                        df_students["Tên lớp"] = sheet
+                        all_student_rows.append(df_students)
+                if all_student_rows:
+                    df_all_students = pd.concat(all_student_rows, ignore_index=True)
+                    wb = load_workbook(mau_path)
+                    ws = wb.active
+                    ws.delete_rows(2, ws.max_row - 1)
+                    for r in dataframe_to_rows(df_all_students, index=False, header=False):
+                        ws.append(r)
+                    output = io.BytesIO()
+                    wb.save(output)
+                    st.session_state.updated_mau_file = output
+                    st.success("Đã gom dữ liệu học sinh đã chuẩn hóa vào file mẫu!")
+                else:
+                    st.warning("Không có dữ liệu học sinh hợp lệ nào để gom.")
+                if uploaded_danh_muc_file is None:
+                    danh_muc_file_obj.close()
+            else:
+                st.warning("Không có file dữ liệu lớp nào để gom.")
             if st.session_state.get("updated_mau_file"):
                 st.download_button(
                     label="Tải về file mau_thong_tin_nguoi_hoc.xlsx đã gom",
