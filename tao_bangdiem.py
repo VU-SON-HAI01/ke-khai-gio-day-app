@@ -513,19 +513,28 @@ with st.container():
             danh_muc_file_obj = uploaded_danh_muc_file
             if danh_muc_file_obj is None:
                 danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
-            sheets_not_in_danh_muc, danh_muc_not_in_sheets = check_data_consistency(uploaded_data_file, danh_muc_file_obj)
+            # Lọc chỉ các sheet thuộc khóa đã chọn
+            xls_data = pd.ExcelFile(uploaded_data_file)
+            all_sheet_names = xls_data.sheet_names
+            khoa_prefix = selected_khoa[1:]  # VD: 'K51' -> '51'
+            sheet_names_to_check = [name for name in all_sheet_names if str(name).startswith(khoa_prefix)]
+            # Đọc danh mục
+            xls_danh_muc = pd.ExcelFile(danh_muc_file_obj)
+            df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
+            valid_class_names = set(df_danh_muc.iloc[:, 1].dropna().astype(str))
+            sheets_not_in_danh_muc = set(sheet_names_to_check) - valid_class_names
+            danh_muc_not_in_sheets = valid_class_names - set(sheet_names_to_check)
             if uploaded_danh_muc_file is None:
                 danh_muc_file_obj.close()
             with check_results_placeholder:
-                if sheets_not_in_danh_muc is not None:
-                    if not sheets_not_in_danh_muc and not danh_muc_not_in_sheets:
-                        st.success("✅ Dữ liệu hợp lệ! Tất cả các sheet đều khớp với danh mục.")
-                    if sheets_not_in_danh_muc:
-                        st.warning("⚠️ Các sheet sau có trong file dữ liệu nhưng không có trong danh mục và sẽ bị bỏ qua:")
-                        st.json(list(sheets_not_in_danh_muc))
-                    if danh_muc_not_in_sheets:
-                        st.info("ℹ️ Các lớp sau có trong danh mục nhưng không có sheet tương ứng trong file dữ liệu:")
-                        st.json(list(danh_muc_not_in_sheets))
+                if not sheets_not_in_danh_muc and not danh_muc_not_in_sheets:
+                    st.success("✅ Dữ liệu hợp lệ! Tất cả các sheet đều khớp với danh mục.")
+                if sheets_not_in_danh_muc:
+                    st.warning("⚠️ Các sheet sau có trong file dữ liệu nhưng không có trong danh mục và sẽ bị bỏ qua:")
+                    st.json(list(sheets_not_in_danh_muc))
+                if danh_muc_not_in_sheets:
+                    st.info("ℹ️ Các lớp sau có trong danh mục nhưng không có sheet tương ứng trong file dữ liệu:")
+                    st.json(list(danh_muc_not_in_sheets))
 
     if uploaded_data_file:
         if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True):
