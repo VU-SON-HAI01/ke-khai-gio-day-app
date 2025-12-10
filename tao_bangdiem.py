@@ -631,7 +631,7 @@ with st.container():
                     else:
                         st.info("Không có dữ liệu lớp nào để gom.")
             except Exception as e:
-                st.warning("Không đọc được dữ liệu lớp.")
+                st.error(f"Không đọc được dữ liệu lớp. Chi tiết lỗi: {e}")
             from openpyxl.utils.dataframe import dataframe_to_rows
             # Chỉ gom dữ liệu đã được lọc theo khóa
             df_filtered = st.session_state.df_filtered if 'df_filtered' in st.session_state else pd.DataFrame()
