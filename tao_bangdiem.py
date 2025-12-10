@@ -479,21 +479,29 @@ with st.container():
         return class_name.startswith(khoa[1:])
 
     filtered_data = []
-    if all_data:
-        for df in all_data:
+    if 'all_data' not in st.session_state:
+        st.session_state.all_data = []
+    if st.session_state.all_data:
+        for df in st.session_state.all_data:
             if "Tên lớp" in df.columns:
                 df_khoa = df[df["Tên lớp"].apply(lambda x: is_class_in_khoa(str(x), selected_khoa))]
                 if not df_khoa.empty:
                     filtered_data.append(df_khoa)
         if filtered_data:
             df_filtered = pd.concat(filtered_data, ignore_index=True)
+            st.session_state.filtered_data = filtered_data
+            st.session_state.df_filtered = df_filtered
             st.subheader(f"Danh sách lớp thuộc {selected_khoa}")
             st.dataframe(df_filtered, use_container_width=True)
         else:
             df_filtered = pd.DataFrame()
+            st.session_state.filtered_data = []
+            st.session_state.df_filtered = df_filtered
             st.info(f"Không có lớp nào thuộc {selected_khoa} trong dữ liệu đã xử lý.")
     else:
         df_filtered = pd.DataFrame()
+        st.session_state.filtered_data = []
+        st.session_state.df_filtered = df_filtered
     st.subheader("Bước 2: Kiểm tra & Xử lý", divider=True)
     # Container để hiển thị kết quả kiểm tra
     check_results_placeholder = st.container()
@@ -599,8 +607,8 @@ with st.container():
             st.session_state.all_data = all_data
         else:
             all_data = st.session_state.all_data
-        if all_data:
-            df_all = pd.concat(all_data, ignore_index=True)
+        if st.session_state.df_filtered is not None and not st.session_state.df_filtered.empty:
+            df_all = st.session_state.df_filtered
             st.dataframe(df_all, use_container_width=True)
             mau_path = "data_base/mau_thong_tin_nguoi_hoc.xlsx"
             if os.path.exists(mau_path):
