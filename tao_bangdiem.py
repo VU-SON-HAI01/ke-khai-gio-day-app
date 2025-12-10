@@ -475,34 +475,6 @@ with st.container():
     khoa_options = ["K49", "K50", "K51"]
     selected_khoa = st.selectbox("Chọn Khóa học để xử lý", khoa_options, key="khoa_selector")
 
-    # Lọc dữ liệu theo khóa học đã chọn
-    def is_class_in_khoa(class_name, khoa):
-        return class_name.startswith(khoa[1:])
-
-    filtered_data = []
-    if 'all_data' not in st.session_state:
-        st.session_state.all_data = []
-    if st.session_state.all_data:
-        for df in st.session_state.all_data:
-            if "Tên lớp" in df.columns:
-                df_khoa = df[df["Tên lớp"].apply(lambda x: is_class_in_khoa(str(x), selected_khoa))]
-                if not df_khoa.empty:
-                    filtered_data.append(df_khoa)
-        if filtered_data:
-            df_filtered = pd.concat(filtered_data, ignore_index=True)
-            st.session_state.filtered_data = filtered_data
-            st.session_state.df_filtered = df_filtered
-            st.subheader(f"Danh sách lớp thuộc {selected_khoa}")
-            st.dataframe(df_filtered, use_container_width=True)
-        else:
-            df_filtered = pd.DataFrame()
-            st.session_state.filtered_data = []
-            st.session_state.df_filtered = df_filtered
-            st.info(f"Không có lớp nào thuộc {selected_khoa} trong dữ liệu đã xử lý.")
-    else:
-        df_filtered = pd.DataFrame()
-        st.session_state.filtered_data = []
-        st.session_state.df_filtered = df_filtered
     st.subheader("Bước 2: Kiểm tra & Xử lý", divider=True)
     # Container để hiển thị kết quả kiểm tra
     check_results_placeholder = st.container()
@@ -510,6 +482,33 @@ with st.container():
     if uploaded_data_file:
         if st.button("🔍 Kiểm tra dữ liệu", use_container_width=True, key="btn_kiem_tra_du_lieu_main"):
             # Nếu chưa upload danh mục thì dùng file mặc định
+                # Lọc dữ liệu theo khóa học đã chọn
+            # Lấy dữ liệu học sinh đã chuẩn hóa từ các sheet thuộc Khoa
+            import openpyxl
+            filtered_student_data = []
+            if uploaded_data_file is not None:
+                wb_data = openpyxl.load_workbook(uploaded_data_file, data_only=True)
+                khoa_prefix = selected_khoa[1:]
+                sheet_names_to_check = [name for name in wb_data.sheetnames if str(name).startswith(khoa_prefix)]
+                for sheet in sheet_names_to_check:
+                    ws = wb_data[sheet]
+                    df_students = find_student_data_in_sheet(ws)
+                    if df_students is not None and not df_students.empty:
+                        df_students = df_students.copy()
+                        df_students["Tên lớp"] = sheet
+                        filtered_student_data.append(df_students)
+            if filtered_student_data:
+                df_filtered = pd.concat(filtered_student_data, ignore_index=True)
+                st.session_state.filtered_data = filtered_student_data
+                st.session_state.df_filtered = df_filtered
+                st.subheader(f"Danh sách học sinh các lớp thuộc {selected_khoa}")
+                st.dataframe(df_filtered, use_container_width=True)
+            else:
+                df_filtered = pd.DataFrame()
+                st.session_state.filtered_data = []
+                st.session_state.df_filtered = df_filtered
+                st.info(f"Không có dữ liệu học sinh nào thuộc {selected_khoa} trong file đã tải lên.")
+
             danh_muc_file_obj = uploaded_danh_muc_file
             if danh_muc_file_obj is None:
                 danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
