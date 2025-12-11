@@ -728,10 +728,6 @@ with st.container():
                 if all_student_rows:
                     df_all_students = pd.concat(all_student_rows, ignore_index=True)
                     st.dataframe(df_all_students)
-                else:
-                    st.info("Không có dữ liệu học sinh hợp lệ để hiển thị.")
-                if all_student_rows:
-                    df_all_students = pd.concat(all_student_rows, ignore_index=True)
                     wb = load_workbook(mau_path)
                     ws = wb.active
                     # Xóa dữ liệu từ dòng thứ 4 trở đi
