@@ -178,6 +178,7 @@ def find_student_data_for_aggregation(worksheet):
     dantoc_col_index = find_col_idx(["dân tộc", "dan toc"])
     nguyenquan_col_index = find_col_idx(["nguyên quán", "nguyen quan", "quê quán", "que quan"])
     sdt_col_index = find_col_idx(["sđt", "sdt", "số điện thoại", "so dien thoai"])
+    tongiao_col_index = find_col_idx(["tôn giáo", "ton giao"])
 
     if ten_dem_col_index is None or ten_col_index is None or dob_col_index is None:
         st.error(f"Sheet '{worksheet.title}': Thiếu cột bắt buộc (Họ đệm/Họ và tên, Tên, Năm sinh/Ngày sinh).")
@@ -196,6 +197,7 @@ def find_student_data_for_aggregation(worksheet):
         dantoc_cell = row[dantoc_col_index - 1] if dantoc_col_index else ''
         nguyenquan_cell = row[nguyenquan_col_index - 1] if nguyenquan_col_index else ''
         sdt_cell = row[sdt_col_index - 1] if sdt_col_index else ''
+        tongiao_cell = row[tongiao_col_index - 1] if 'tongiao_col_index' in locals() and tongiao_col_index else ''
 
         # Kiểm tra điều kiện dừng như hàm gốc
         stop = False
@@ -244,7 +246,8 @@ def find_student_data_for_aggregation(worksheet):
             "NƠI SINH": str(noisinh_cell or '').strip(),
             "DÂN TỘC": str(dantoc_cell or '').strip(),
             "NGUYÊN QUÁN": str(nguyenquan_cell or '').strip(),
-            "SĐT": str(sdt_cell or '').strip()
+            "SĐT": str(sdt_cell or '').strip(),
+            "TÔN GIÁO": str(tongiao_cell or '').strip()
         })
         i += 1
 
