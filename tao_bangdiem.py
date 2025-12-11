@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import openpyxl
@@ -136,6 +137,121 @@ def find_student_data_in_sheet(worksheet):
 
     return pd.DataFrame(student_data)
 
+# Hàm gom dữ liệu mở rộng cho các trường thông tin khác
+def find_student_data_for_aggregation(worksheet):
+    """
+    Tìm và trích xuất dữ liệu học sinh từ một sheet có cấu trúc không cố định, dùng cho gom dữ liệu.
+    Lấy thêm các trường: Giới tính, Nơi sinh, Dân tộc, Nguyên Quán/Quê quán, SĐT/Số điện thoại.
+    """
+    header_row_index = -1
+    student_data = []
+    found_end_row = False
+
+    # 1. Tìm dòng header
+    for i, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10, values_only=True), 1):
+        col_a_val = str(row[0]).lower().strip() if len(row) > 0 and row[0] is not None else ''
+        col_b_val = str(row[1]).lower().strip() if len(row) > 1 and row[1] is not None else ''
+        if 'stt' in col_a_val or 'stt' in col_b_val:
+            header_row_index = i
+            header_content = [str(cell).lower().strip() if cell is not None else '' for cell in row]
+            break
+    if header_row_index == -1:
+        st.warning(f"Sheet '{worksheet.title}': Không thể tìm thấy dòng tiêu đề (header) chứa 'STT'. Vui lòng kiểm tra lại cấu trúc sheet này.")
+        return None
+
+    # 2. Xác định vị trí các cột cần thiết
+    def find_col_idx(possible_names):
+        for idx, col in enumerate(header_content):
+            if col in possible_names:
+                return idx + 1
+        return None
+
+    ten_dem_col_index = find_col_idx(["họ đệm", "họ dem"])
+    if ten_dem_col_index is None:
+        ten_dem_col_index = find_col_idx(["họ và tên", "ho va ten"])
+    ten_col_index = ten_dem_col_index + 1 if ten_dem_col_index else None
+    dob_col_index = find_col_idx(["năm sinh", "nam sinh"])
+    if dob_col_index is None:
+        dob_col_index = find_col_idx(["ngày sinh", "ngay sinh"])
+    gioitinh_col_index = find_col_idx(["giới tính", "gioi tinh"])
+    noisinh_col_index = find_col_idx(["nơi sinh", "noi sinh"])
+    dantoc_col_index = find_col_idx(["dân tộc", "dan toc"])
+    nguyenquan_col_index = find_col_idx(["nguyên quán", "nguyen quan", "quê quán", "que quan"])
+    sdt_col_index = find_col_idx(["sđt", "sdt", "số điện thoại", "so dien thoai"])
+
+    if ten_dem_col_index is None or ten_col_index is None or dob_col_index is None:
+        st.error(f"Sheet '{worksheet.title}': Thiếu cột bắt buộc (Họ đệm/Họ và tên, Tên, Năm sinh/Ngày sinh).")
+        return None
+
+    # 3. Đọc dữ liệu (giới hạn 100 dòng)
+    rows = list(worksheet.iter_rows(min_row=header_row_index + 1, max_row=header_row_index + 100, values_only=True))
+    i = 0
+    while i < len(rows):
+        row = rows[i]
+        ten_dem_cell = row[ten_dem_col_index - 1]
+        ten_cell = row[ten_col_index - 1]
+        dob_cell = row[dob_col_index - 1]
+        gioitinh_cell = row[gioitinh_col_index - 1] if gioitinh_col_index else ''
+        noisinh_cell = row[noisinh_col_index - 1] if noisinh_col_index else ''
+        dantoc_cell = row[dantoc_col_index - 1] if dantoc_col_index else ''
+        nguyenquan_cell = row[nguyenquan_col_index - 1] if nguyenquan_col_index else ''
+        sdt_cell = row[sdt_col_index - 1] if sdt_col_index else ''
+
+        # Kiểm tra điều kiện dừng như hàm gốc
+        stop = False
+        if i + 1 < len(rows):
+            next_row1 = rows[i]
+            next_row2 = rows[i + 1]
+            ten1 = next_row1[ten_col_index - 1]
+            ten2 = next_row2[ten_col_index - 1]
+            ten1_empty_or_number = (ten1 is None or str(ten1).strip() == '' or isinstance(ten1, (int, float)))
+            ten2_empty_or_number = (ten2 is None or str(ten2).strip() == '' or isinstance(ten2, (int, float)))
+            if ten1_empty_or_number and ten2_empty_or_number:
+                found_end_row = True
+                break
+            if (isinstance(ten1, (int, float)) and (ten2 is None or str(ten2).strip() == '')):
+                found_end_row = True
+                break
+
+        ten_cell_str = str(ten_cell).strip() if ten_cell is not None else ''
+        if (
+            ten_cell is None
+            or ten_cell_str == ''
+            or isinstance(ten_cell, (int, float))
+            or ten_cell_str.lower() == 'người lập'
+        ):
+            i += 1
+            continue
+
+        ten_dem_str = re.sub(r'\s+', ' ', str(ten_dem_cell or '')).strip()
+        ten_str = re.sub(r'\s+', ' ', str(ten_cell or '')).strip()
+        formatted_dob = ''
+        if dob_cell is not None:
+            try:
+                dt_object = pd.to_datetime(dob_cell, errors='coerce')
+                if pd.notna(dt_object):
+                    formatted_dob = dt_object.strftime('%d/%m/%Y')
+                else:
+                    formatted_dob = str(dob_cell).strip()
+            except Exception:
+                formatted_dob = str(dob_cell).strip()
+
+        student_data.append({
+            "TÊN ĐỆM": ten_dem_str,
+            "TÊN": ten_str,
+            "NGÀY SINH": formatted_dob,
+            "GIỚI TÍNH": str(gioitinh_cell or '').strip(),
+            "NƠI SINH": str(noisinh_cell or '').strip(),
+            "DÂN TỘC": str(dantoc_cell or '').strip(),
+            "NGUYÊN QUÁN": str(nguyenquan_cell or '').strip(),
+            "SĐT": str(sdt_cell or '').strip()
+        })
+        i += 1
+
+    if not found_end_row and len(student_data) == 0:
+        st.warning(f"Không tìm thấy dữ liệu học sinh hợp lệ trong sheet '{worksheet.title}'.")
+
+    return pd.DataFrame(student_data)
 
 def check_data_consistency(data_file, danh_muc_file):
     """
@@ -604,7 +720,7 @@ with st.container():
                 all_student_rows = []
                 for sheet in sheet_names_to_process:
                     ws = wb_data[sheet]
-                    df_students = find_student_data_in_sheet(ws)
+                    df_students = find_student_data_for_aggregation(ws)
                     if df_students is not None and not df_students.empty:
                         df_students = df_students.copy()
                         df_students["Tên lớp"] = sheet
@@ -621,11 +737,22 @@ with st.container():
                         full_name = f"{row['TÊN ĐỆM']} {row['TÊN']}".strip()
                         excel_row = 4 + idx
                         ws.cell(row=excel_row, column=2).value = full_name
-                        # Nếu muốn thêm ngày sinh vào cột C:
-                        ws.cell(row=excel_row, column=3).value = row['NGÀY SINH']
-                        # Nếu muốn thêm tên lớp vào cột D:
+                        # Đưa ngày sinh vào cột C dưới dạng text dd/mm/yyyy
+                        dob = str(row['NGÀY SINH']).strip()
+                        import re
+                        if not re.match(r"^\d{2}/\d{2}/\d{4}$", dob):
+                            try:
+                                import pandas as pd
+                                dt = pd.to_datetime(dob, errors='coerce')
+                                if pd.notna(dt):
+                                    dob = dt.strftime('%d/%m/%Y')
+                            except Exception:
+                                pass
+                        ws.cell(row=excel_row, column=3).value = dob
+                        ws.cell(row=excel_row, column=3).number_format = '@'  # text format
+                        # Đưa tên lớp vào cột U (column 21)
                         if 'Tên lớp' in row:
-                            ws.cell(row=excel_row, column=4).value = row['Tên lớp']
+                            ws.cell(row=excel_row, column=21).value = row['Tên lớp']
                     output = io.BytesIO()
                     wb.save(output)
                     st.session_state.updated_mau_file = output
