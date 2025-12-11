@@ -725,6 +725,7 @@ with st.container():
                         df_students = df_students.copy()
                         df_students["Tên lớp"] = sheet
                         all_student_rows.append(df_students)
+                st.dataframe(all_student_rows)
                 if all_student_rows:
                     df_all_students = pd.concat(all_student_rows, ignore_index=True)
                     wb = load_workbook(mau_path)
@@ -737,7 +738,7 @@ with st.container():
                         full_name = f"{row['TÊN ĐỆM']} {row['TÊN']}".strip()
                         excel_row = 4 + idx
                         ws.cell(row=excel_row, column=2).value = full_name
-                        # Đưa ngày sinh vào cột C dưới dạng text dd/mm/yyyy
+                        # Ngày sinh vào cột C
                         dob = str(row['NGÀY SINH']).strip()
                         import re
                         if not re.match(r"^\d{2}/\d{2}/\d{4}$", dob):
@@ -749,8 +750,20 @@ with st.container():
                             except Exception:
                                 pass
                         ws.cell(row=excel_row, column=3).value = dob
-                        ws.cell(row=excel_row, column=3).number_format = '@'  # text format
-                        # Đưa tên lớp vào cột U (column 21)
+                        ws.cell(row=excel_row, column=3).number_format = '@'
+                        # Giới tính vào cột D
+                        ws.cell(row=excel_row, column=4).value = row.get('GIỚI TÍNH', '')
+                        # SĐT vào cột F
+                        ws.cell(row=excel_row, column=6).value = row.get('SĐT', '')
+                        # Dân tộc vào cột J
+                        ws.cell(row=excel_row, column=10).value = row.get('DÂN TỘC', '')
+                        # Tôn giáo vào cột K (nếu có trường này, nếu không thì để trống)
+                        ws.cell(row=excel_row, column=11).value = row.get('TÔN GIÁO', '')
+                        # Nơi sinh vào cột P
+                        ws.cell(row=excel_row, column=16).value = row.get('NƠI SINH', '')
+                        # Nguyên quán vào cột Q
+                        ws.cell(row=excel_row, column=17).value = row.get('NGUYÊN QUÁN', '')
+                        # Tên lớp vào cột U
                         if 'Tên lớp' in row:
                             ws.cell(row=excel_row, column=21).value = row['Tên lớp']
                     output = io.BytesIO()
