@@ -725,7 +725,11 @@ with st.container():
                         df_students = df_students.copy()
                         df_students["Tên lớp"] = sheet
                         all_student_rows.append(df_students)
-                st.dataframe(all_student_rows)
+                if all_student_rows:
+                    df_all_students = pd.concat(all_student_rows, ignore_index=True)
+                    st.dataframe(df_all_students)
+                else:
+                    st.info("Không có dữ liệu học sinh hợp lệ để hiển thị.")
                 if all_student_rows:
                     df_all_students = pd.concat(all_student_rows, ignore_index=True)
                     wb = load_workbook(mau_path)
