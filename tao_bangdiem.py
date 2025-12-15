@@ -759,7 +759,16 @@ with st.container():
                         ws.delete_rows(4, ws.max_row - 3)
                     # Đưa dữ liệu vào từ dòng thứ 4, nối TÊN ĐỆM và TÊN vào cột B
                     for idx, row in df_all_students.iterrows():
-                        full_name = f"{row['TÊN ĐỆM']} {row['TÊN']}".strip()
+                        ten_dem = str(row.get('TÊN ĐỆM', '') or '').strip()
+                        ten = str(row.get('TÊN', '') or '').strip()
+                        if ten and ten_dem:
+                            full_name = f"{ten_dem} {ten}"
+                        elif ten:
+                            full_name = ten
+                        elif ten_dem:
+                            full_name = ten_dem
+                        else:
+                            full_name = ''
                         excel_row = 4 + idx
                         ws.cell(row=excel_row, column=2).value = full_name
                         # Ngày sinh vào cột C (đảm bảo định dạng dd/mm/yyyy text)
