@@ -229,14 +229,35 @@ def find_student_data_for_aggregation(worksheet):
         ten_str = re.sub(r'\s+', ' ', str(ten_cell or '')).strip()
         formatted_dob = ''
         if dob_cell is not None:
-            try:
-                dt_object = pd.to_datetime(dob_cell, errors='coerce')
-                if pd.notna(dt_object):
+            # Nếu là kiểu số (Excel date) hoặc datetime, chuyển sang dd/mm/yyyy
+            import pandas as pd
+            import datetime
+            if isinstance(dob_cell, (int, float)):
+                try:
+                    # Excel date: số ngày từ 1899-12-30
+                    excel_start = datetime.datetime(1899, 12, 30)
+                    dt_object = excel_start + datetime.timedelta(days=float(dob_cell))
                     formatted_dob = dt_object.strftime('%d/%m/%Y')
+                except Exception:
+                    formatted_dob = str(dob_cell)
+            elif isinstance(dob_cell, (datetime.datetime, datetime.date)):
+                formatted_dob = dob_cell.strftime('%d/%m/%Y')
+            else:
+                dob_str = str(dob_cell).strip()
+                # Nếu là text đúng định dạng dd/mm/yyyy thì giữ nguyên
+                import re
+                if re.match(r"^\d{2}/\d{2}/\d{4}$", dob_str):
+                    formatted_dob = dob_str
                 else:
-                    formatted_dob = str(dob_cell).strip()
-            except Exception:
-                formatted_dob = str(dob_cell).strip()
+                    # Thử parse theo pandas, ưu tiên dayfirst
+                    try:
+                        dt = pd.to_datetime(dob_str, errors='coerce', dayfirst=True)
+                        if pd.notna(dt):
+                            formatted_dob = dt.strftime('%d/%m/%Y')
+                        else:
+                            formatted_dob = dob_str
+                    except Exception:
+                        formatted_dob = dob_str
 
         student_data.append({
             "TÊN ĐỆM": ten_dem_str,
@@ -741,18 +762,30 @@ with st.container():
                         full_name = f"{row['TÊN ĐỆM']} {row['TÊN']}".strip()
                         excel_row = 4 + idx
                         ws.cell(row=excel_row, column=2).value = full_name
-                        # Ngày sinh vào cột C
+                        # Ngày sinh vào cột C (đảm bảo định dạng dd/mm/yyyy text)
                         dob = str(row['NGÀY SINH']).strip()
                         import re
-                        if not re.match(r"^\d{2}/\d{2}/\d{4}$", dob):
-                            try:
-                                import pandas as pd
-                                dt = pd.to_datetime(dob, errors='coerce')
-                                if pd.notna(dt):
-                                    dob = dt.strftime('%d/%m/%Y')
-                            except Exception:
-                                pass
-                        ws.cell(row=excel_row, column=3).value = dob
+                        import pandas as pd
+                        # Nếu là số (Excel date), chuyển sang datetime
+                        dob_value = dob
+                        dob_ok = False
+                        if dob:
+                            # Nếu đúng định dạng dd/mm/yyyy thì giữ nguyên
+                            if re.match(r"^\d{2}/\d{2}/\d{4}$", dob):
+                                dob_value = dob
+                                dob_ok = True
+                            else:
+                                # Thử parse theo pandas, ưu tiên dayfirst
+                                try:
+                                    dt = pd.to_datetime(dob, errors='coerce', dayfirst=True)
+                                    if pd.notna(dt):
+                                        dob_value = dt.strftime('%d/%m/%Y')
+                                        dob_ok = True
+                                except Exception:
+                                    pass
+                        if not dob_ok:
+                            dob_value = ''
+                        ws.cell(row=excel_row, column=3).value = dob_value
                         ws.cell(row=excel_row, column=3).number_format = '@'
                         # Giới tính vào cột D
                         ws.cell(row=excel_row, column=4).value = row.get('GIỚI TÍNH', '')
