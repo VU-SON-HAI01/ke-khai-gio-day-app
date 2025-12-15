@@ -146,7 +146,7 @@ def find_student_data_for_aggregation(worksheet):
     header_row_index = -1
     student_data = []
     found_end_row = False
-
+    import re
     # 1. Tìm dòng header
     for i, row in enumerate(worksheet.iter_rows(min_row=1, max_row=10, values_only=True), 1):
         col_a_val = str(row[0]).lower().strip() if len(row) > 0 and row[0] is not None else ''
