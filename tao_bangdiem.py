@@ -843,6 +843,17 @@ with st.container():
             for row in range(4, num_rows+1):
                 val = ws.cell(row=row, column=10).value
                 if val:
+                    # M' Nông, M'Nông, m'nông, m' nong, m nong... -> Mnông
+                    val_str_mn = val_str.lower().replace("'", "").replace(" ", "")
+                    if val_str_mn in ["mnong", "mnông"]:
+                        ws.cell(row=row, column=10).value = "Mnông"
+                        num_fixed += 1
+                        replaced_rows.append({
+                            'Dân tộc cũ': val_str,
+                            'Dân tộc mới': "Mnông",
+                            'Tỉ lệ so khớp': '1.00 (đặc biệt)'
+                        })
+                        continue
                     val_str = str(val).strip()
                     # Xử lý đặc biệt
                     # H'Mông, H' Mông, H Mông -> Hmông
