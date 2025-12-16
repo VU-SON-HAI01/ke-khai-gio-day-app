@@ -842,8 +842,9 @@ with st.container():
             replaced_rows = []
             for row in range(4, num_rows+1):
                 # Gia rai, Giá rai, Giarai, Giárai... -> Gia-rai
-                val_str_giarai = val_str.lower().replace(' ', '').replace('á', 'a').replace('à', 'a').replace('ả', 'a').replace('ã', 'a').replace('ạ', 'a')
-                if val_str_giarai in ["giarai", "giárai", "giàrai", "giảrai", "giãrai", "giạrai"] or val_str.lower() in ["gia rai", "giá rai"]:
+                val_str_safe = str(val_str)
+                val_str_giarai = val_str_safe.lower().replace(' ', '').replace('á', 'a').replace('à', 'a').replace('ả', 'a').replace('ã', 'a').replace('ạ', 'a')
+                if val_str_giarai in ["giarai", "giárai", "giàrai", "giảrai", "giãrai", "giạrai"] or val_str_safe.lower() in ["gia rai", "giá rai"]:
                     ws.cell(row=row, column=10).value = "Gia-rai"
                     num_fixed += 1
                     replaced_rows.append({
