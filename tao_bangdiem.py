@@ -824,9 +824,8 @@ with st.container():
             if st.session_state.get("updated_mau_file"):
                 # Nút điều chỉnh Dân tộc
                 import difflib
+                # Nếu vừa nhấn nút thì thực hiện điều chỉnh và lưu replaced_rows vào session
                 if st.button("🛠️ Điều chỉnh Dân tộc theo danh mục", use_container_width=True, key="btn_chinh_dan_toc"):
-                    # Đọc file danh mục dân tộc
-                    st.write(f"Đã tải mục dân tộc từ danh mục.")
                     try:
                         dan_toc_path = "data_base/Danh_muc_phanmem_gd.xlsx"
                         dan_toc_df = pd.read_excel(dan_toc_path, sheet_name="DAN_TOC", usecols="B", header=0)
@@ -834,14 +833,11 @@ with st.container():
                     except Exception as e:
                         st.error(f"Không đọc được danh mục dân tộc: {e}")
                         dan_toc_list = []
-                    
-                    # Đọc lại file đã gom
                     from openpyxl import load_workbook
                     import io
                     mau_bytes = st.session_state.updated_mau_file.getvalue()
                     wb = load_workbook(io.BytesIO(mau_bytes))
                     ws = wb.active
-                    # Dân tộc ở cột J (10), bắt đầu từ dòng 4
                     num_rows = ws.max_row
                     num_fixed = 0
                     replaced_rows = []
@@ -849,11 +845,9 @@ with st.container():
                         val = ws.cell(row=row, column=10).value
                         if val:
                             val_str = str(val).strip()
-                            # So khớp gần đúng, lấy tỉ lệ cao nhất
                             best = difflib.get_close_matches(val_str, dan_toc_list, n=1, cutoff=0.8)
                             if best:
                                 best_match = best[0]
-                                # Tính tỉ lệ so khớp
                                 ratio = difflib.SequenceMatcher(None, val_str.lower(), best_match.lower()).ratio()
                                 if best_match != val_str:
                                     ws.cell(row=row, column=10).value = best_match
@@ -863,11 +857,16 @@ with st.container():
                                         'Dân tộc mới': best_match,
                                         'Tỉ lệ so khớp': f"{ratio:.2f}"
                                     })
-                    # Lưu lại vào session
                     output = io.BytesIO()
                     wb.save(output)
                     st.session_state.updated_mau_file = output
-                    # Hiển thị kết quả dù có thay thế hay không
+                    st.session_state.dan_toc_replaced_rows = replaced_rows
+                    st.session_state.dan_toc_num_fixed = num_fixed
+                    st.session_state.dan_toc_checked = True
+                # Luôn hiển thị kết quả điều chỉnh Dân tộc nếu đã thực hiện
+                if st.session_state.get("dan_toc_checked"):
+                    replaced_rows = st.session_state.get("dan_toc_replaced_rows", [])
+                    num_fixed = st.session_state.get("dan_toc_num_fixed", 0)
                     if replaced_rows:
                         st.success(f"Đã rà soát và điều chỉnh {num_fixed} giá trị Dân tộc theo danh mục.")
                         st.markdown("### Bảng các giá trị Dân tộc đã thay thế:")
