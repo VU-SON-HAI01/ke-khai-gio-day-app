@@ -826,7 +826,6 @@ with st.container():
                 import difflib
                 if st.button("🛠️ Điều chỉnh Dân tộc theo danh mục", use_container_width=True, key="btn_chinh_dan_toc"):
                     # Đọc file danh mục dân tộc
-                    import pandas as pd
                     try:
                         dan_toc_path = "data_base/Danh_muc_phanmem_gd.xlsx"
                         dan_toc_df = pd.read_excel(dan_toc_path, sheet_name="DAN_TOC", usecols="B", header=0)
@@ -866,10 +865,13 @@ with st.container():
                     output = io.BytesIO()
                     wb.save(output)
                     st.session_state.updated_mau_file = output
-                    st.success(f"Đã rà soát và điều chỉnh {num_fixed} giá trị Dân tộc theo danh mục.")
+                    # Hiển thị kết quả dù có thay thế hay không
                     if replaced_rows:
+                        st.success(f"Đã rà soát và điều chỉnh {num_fixed} giá trị Dân tộc theo danh mục.")
                         st.markdown("### Bảng các giá trị Dân tộc đã thay thế:")
                         st.dataframe(pd.DataFrame(replaced_rows))
+                    else:
+                        st.info("Không có giá trị Dân tộc nào cần điều chỉnh. Tất cả đã đúng theo danh mục hoặc không có dữ liệu phù hợp.")
                 st.download_button(
                     label="Tải về file mau_thong_tin_nguoi_hoc.xlsx đã gom",
                     data=st.session_state.updated_mau_file.getvalue(),
