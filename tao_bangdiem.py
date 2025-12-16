@@ -844,7 +844,8 @@ with st.container():
                 val = ws.cell(row=row, column=10).value
                 if val:
                     # M' Nông, M'Nông, m'nông, m' nong, m nong... -> Mnông
-                    val_str_mn = val_str.lower().replace("'", "").replace(" ", "")
+                    val_str_safe = str(val_str) if not isinstance(val_str, str) else val_str
+                    val_str_mn = val_str_safe.lower().replace("'", "").replace(" ", "")
                     if val_str_mn in ["mnong", "mnông"]:
                         ws.cell(row=row, column=10).value = "Mnông"
                         num_fixed += 1
