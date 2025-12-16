@@ -833,6 +833,7 @@ with st.container():
                     except Exception as e:
                         st.error(f"Không đọc được danh mục dân tộc: {e}")
                         dan_toc_list = []
+                    st.write(f"Đã tải {len(dan_toc_list)} mục dân tộc từ danh mục.")
                     # Đọc lại file đã gom
                     from openpyxl import load_workbook
                     import io
