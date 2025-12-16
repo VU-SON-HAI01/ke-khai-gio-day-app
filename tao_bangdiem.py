@@ -1010,14 +1010,20 @@ with st.container():
             if st.session_state.get("dan_toc_checked"):
                 replaced_rows = st.session_state.get("dan_toc_replaced_rows", [])
                 num_fixed = st.session_state.get("dan_toc_num_fixed", 0)
-                # Hiển thị kết quả thay thế
+                # Hiển thị kết quả thay thế Dân tộc
                 if replaced_rows:
                     st.success(f"Đã rà soát và điều chỉnh {num_fixed} giá trị Dân tộc theo danh mục.")
                     st.markdown("### Bảng các giá trị Dân tộc đã thay thế:")
                     st.dataframe(pd.DataFrame(replaced_rows))
                 else:
                     st.info("Không có giá trị Dân tộc nào cần điều chỉnh. Tất cả đã đúng theo danh mục hoặc không có dữ liệu phù hợp.")
-                # Liệt kê các giá trị không tồn tại trong danh mục
+                # Hiển thị kết quả thay thế Nơi sinh, Quê quán
+                replaced_rows_tinh = st.session_state.get("tinh_replaced_rows", [])
+                if replaced_rows_tinh:
+                    st.success(f"Đã rà soát và điều chỉnh {len(replaced_rows_tinh)} giá trị Nơi sinh/Quê quán theo danh mục.")
+                    st.markdown("### Bảng các giá trị Nơi sinh/Quê quán đã thay thế:")
+                    st.dataframe(pd.DataFrame(replaced_rows_tinh))
+                # Liệt kê các giá trị không tồn tại trong danh mục Dân tộc
                 if st.session_state.get("updated_mau_file"):
                     from openpyxl import load_workbook
                     import io
