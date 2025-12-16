@@ -841,6 +841,17 @@ with st.container():
             num_fixed = 0
             replaced_rows = []
             for row in range(4, num_rows+1):
+                # Gia rai, Giá rai, Giarai, Giárai... -> Gia-rai
+                val_str_giarai = val_str.lower().replace(' ', '').replace('á', 'a').replace('à', 'a').replace('ả', 'a').replace('ã', 'a').replace('ạ', 'a')
+                if val_str_giarai in ["giarai", "giárai", "giàrai", "giảrai", "giãrai", "giạrai"] or val_str.lower() in ["gia rai", "giá rai"]:
+                    ws.cell(row=row, column=10).value = "Gia-rai"
+                    num_fixed += 1
+                    replaced_rows.append({
+                        'Dân tộc cũ': val_str,
+                        'Dân tộc mới': "Gia-rai",
+                        'Tỉ lệ so khớp': '1.00 (đặc biệt)'
+                    })
+                    continue
                 val = ws.cell(row=row, column=10).value
                 val_str = str(val).strip()
                 # M' Nông, M'Nông, m'nông, m' nong, m nong... -> Mnông
