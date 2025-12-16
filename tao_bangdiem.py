@@ -960,7 +960,7 @@ with st.container():
                 st.error(f"Không đọc được danh mục tỉnh/huyện/xã: {e}")
                 tinh_list = []
             replaced_rows_tinh = []
-            # Nơi sinh (cột 16)
+            not_in_tinh = []
             for row in range(4, num_rows+1):
                 val = ws.cell(row=row, column=16).value
                 val_str = str(val).strip()
@@ -975,9 +975,10 @@ with st.container():
                 if best:
                     best_match = best[0]
                     ratio = difflib.SequenceMatcher(None, val_compare.lower(), best_match.lower()).ratio()
-                    # Luôn gán giá trị chuẩn hóa vào file Excel xuất ra
                     ws.cell(row=row, column=16).value = best_match
                     replaced_rows_tinh.append({'Trường': 'Nơi sinh', 'Giá trị cũ': val_str, 'Giá trị mới': best_match, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
+                else:
+                    not_in_tinh.append({'Trường': 'Nơi sinh', 'Giá trị không có trong danh mục': val_str})
             # Nguyên quán/Quê quán (cột 17)
             for row in range(4, num_rows+1):
                 val = ws.cell(row=row, column=17).value
@@ -995,6 +996,8 @@ with st.container():
                     ratio = difflib.SequenceMatcher(None, val_compare.lower(), best_match.lower()).ratio()
                     ws.cell(row=row, column=17).value = best_match
                     replaced_rows_tinh.append({'Trường': 'Nguyên quán/Quê quán', 'Giá trị cũ': val_str, 'Giá trị mới': best_match, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
+                else:
+                    not_in_tinh.append({'Trường': 'Nguyên quán/Quê quán', 'Giá trị không có trong danh mục': val_str})
             output = io.BytesIO()
             wb.save(output)
             st.session_state.updated_mau_file = output
@@ -1002,6 +1005,7 @@ with st.container():
             st.session_state.dan_toc_num_fixed = num_fixed
             st.session_state.dan_toc_checked = True
             st.session_state.tinh_replaced_rows = replaced_rows_tinh
+            st.session_state.tinh_not_in_danhmuc = not_in_tinh
             # Luôn hiển thị kết quả điều chỉnh Dân tộc nếu đã thực hiện
             if st.session_state.get("dan_toc_checked"):
                 replaced_rows = st.session_state.get("dan_toc_replaced_rows", [])
@@ -1044,6 +1048,11 @@ with st.container():
                     if not_in_danh_muc:
                         st.warning("Các giá trị Dân tộc sau không tồn tại trong danh mục:")
                         st.dataframe(pd.DataFrame({"Dân tộc không có trong danh mục": not_in_danh_muc}))
+                # Liệt kê các giá trị Nơi sinh, Quê quán không có trong danh mục
+                tinh_not_in_danhmuc = st.session_state.get("tinh_not_in_danhmuc", [])
+                if tinh_not_in_danhmuc:
+                    st.warning("Các giá trị Nơi sinh/Quê quán sau không tồn tại trong danh mục và không được thay thế:")
+                    st.dataframe(pd.DataFrame(tinh_not_in_danhmuc))
             # Nút tải về chỉ hiển thị nếu còn file gom dữ liệu
             if st.session_state.get("updated_mau_file"):
                 st.download_button(
