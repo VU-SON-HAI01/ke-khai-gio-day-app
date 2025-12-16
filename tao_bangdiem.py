@@ -823,67 +823,64 @@ with st.container():
                 st.warning("Không có file dữ liệu lớp nào để gom.")
             import difflib
             # Luôn hiển thị nút và kết quả nếu đã từng điều chỉnh hoặc đã có file gom dữ liệu
-            show_dan_toc_tools = st.session_state.get("updated_mau_file") or st.session_state.get("dan_toc_checked")
-            if show_dan_toc_tools:
-                # Nút chỉ hiển thị nếu còn file gom dữ liệu
-                if st.session_state.get("updated_mau_file"):
-                    if st.button("🛠️ Điều chỉnh Dân tộc theo danh mục", use_container_width=True, key="btn_chinh_dan_toc"):
-                        try:
-                            dan_toc_path = "data_base/Danh_muc_phanmem_gd.xlsx"
-                            dan_toc_df = pd.read_excel(dan_toc_path, sheet_name="DAN_TOC", usecols="B", header=0)
-                            dan_toc_list = dan_toc_df.iloc[:,0].dropna().astype(str).str.strip().tolist()
-                        except Exception as e:
-                            st.error(f"Không đọc được danh mục dân tộc: {e}")
-                            dan_toc_list = []
-                        from openpyxl import load_workbook
-                        import io
-                        mau_bytes = st.session_state.updated_mau_file.getvalue()
-                        wb = load_workbook(io.BytesIO(mau_bytes))
-                        ws = wb.active
-                        num_rows = ws.max_row
-                        num_fixed = 0
-                        replaced_rows = []
-                        for row in range(4, num_rows+1):
-                            val = ws.cell(row=row, column=10).value
-                            if val:
-                                val_str = str(val).strip()
-                                best = difflib.get_close_matches(val_str, dan_toc_list, n=1, cutoff=0.8)
-                                if best:
-                                    best_match = best[0]
-                                    ratio = difflib.SequenceMatcher(None, val_str.lower(), best_match.lower()).ratio()
-                                    if best_match != val_str:
-                                        ws.cell(row=row, column=10).value = best_match
-                                        num_fixed += 1
-                                        replaced_rows.append({
-                                            'Dân tộc cũ': val_str,
-                                            'Dân tộc mới': best_match,
-                                            'Tỉ lệ so khớp': f"{ratio:.2f}"
-                                        })
-                        output = io.BytesIO()
-                        wb.save(output)
-                        st.session_state.updated_mau_file = output
-                        st.session_state.dan_toc_replaced_rows = replaced_rows
-                        st.session_state.dan_toc_num_fixed = num_fixed
-                        st.session_state.dan_toc_checked = True
-                # Luôn hiển thị kết quả điều chỉnh Dân tộc nếu đã thực hiện
-                if st.session_state.get("dan_toc_checked"):
-                    replaced_rows = st.session_state.get("dan_toc_replaced_rows", [])
-                    num_fixed = st.session_state.get("dan_toc_num_fixed", 0)
-                    if replaced_rows:
-                        st.success(f"Đã rà soát và điều chỉnh {num_fixed} giá trị Dân tộc theo danh mục.")
-                        st.markdown("### Bảng các giá trị Dân tộc đã thay thế:")
-                        st.dataframe(pd.DataFrame(replaced_rows))
-                    else:
-                        st.info("Không có giá trị Dân tộc nào cần điều chỉnh. Tất cả đã đúng theo danh mục hoặc không có dữ liệu phù hợp.")
-                # Nút tải về chỉ hiển thị nếu còn file gom dữ liệu
-                if st.session_state.get("updated_mau_file"):
-                    st.download_button(
-                        label="Tải về file mau_thong_tin_nguoi_hoc.xlsx đã gom",
-                        data=st.session_state.updated_mau_file.getvalue(),
-                        file_name="mau_thong_tin_nguoi_hoc.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True
-                    )
+            #if st.session_state.get("updated_mau_file"):
+            if st.button("🛠️ Điều chỉnh Dân tộc theo danh mục", use_container_width=True, key="btn_chinh_dan_toc"):
+                try:
+                    dan_toc_path = "data_base/Danh_muc_phanmem_gd.xlsx"
+                    dan_toc_df = pd.read_excel(dan_toc_path, sheet_name="DAN_TOC", usecols="B", header=0)
+                    dan_toc_list = dan_toc_df.iloc[:,0].dropna().astype(str).str.strip().tolist()
+                except Exception as e:
+                    st.error(f"Không đọc được danh mục dân tộc: {e}")
+                    dan_toc_list = []
+                from openpyxl import load_workbook
+                import io
+                mau_bytes = st.session_state.updated_mau_file.getvalue()
+                wb = load_workbook(io.BytesIO(mau_bytes))
+                ws = wb.active
+                num_rows = ws.max_row
+                num_fixed = 0
+                replaced_rows = []
+                for row in range(4, num_rows+1):
+                    val = ws.cell(row=row, column=10).value
+                    if val:
+                        val_str = str(val).strip()
+                        best = difflib.get_close_matches(val_str, dan_toc_list, n=1, cutoff=0.8)
+                        if best:
+                            best_match = best[0]
+                            ratio = difflib.SequenceMatcher(None, val_str.lower(), best_match.lower()).ratio()
+                            if best_match != val_str:
+                                ws.cell(row=row, column=10).value = best_match
+                                num_fixed += 1
+                                replaced_rows.append({
+                                    'Dân tộc cũ': val_str,
+                                    'Dân tộc mới': best_match,
+                                    'Tỉ lệ so khớp': f"{ratio:.2f}"
+                                })
+                output = io.BytesIO()
+                wb.save(output)
+                st.session_state.updated_mau_file = output
+                st.session_state.dan_toc_replaced_rows = replaced_rows
+                st.session_state.dan_toc_num_fixed = num_fixed
+                st.session_state.dan_toc_checked = True
+            # Luôn hiển thị kết quả điều chỉnh Dân tộc nếu đã thực hiện
+            if st.session_state.get("dan_toc_checked"):
+                replaced_rows = st.session_state.get("dan_toc_replaced_rows", [])
+                num_fixed = st.session_state.get("dan_toc_num_fixed", 0)
+                if replaced_rows:
+                    st.success(f"Đã rà soát và điều chỉnh {num_fixed} giá trị Dân tộc theo danh mục.")
+                    st.markdown("### Bảng các giá trị Dân tộc đã thay thế:")
+                    st.dataframe(pd.DataFrame(replaced_rows))
+                else:
+                    st.info("Không có giá trị Dân tộc nào cần điều chỉnh. Tất cả đã đúng theo danh mục hoặc không có dữ liệu phù hợp.")
+            # Nút tải về chỉ hiển thị nếu còn file gom dữ liệu
+            if st.session_state.get("updated_mau_file"):
+                st.download_button(
+                    label="Tải về file mau_thong_tin_nguoi_hoc.xlsx đã gom",
+                    data=st.session_state.updated_mau_file.getvalue(),
+                    file_name="mau_thong_tin_nguoi_hoc.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
     else:
         st.info("Chưa có file nào được tạo để gom dữ liệu.")
 
