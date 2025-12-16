@@ -826,6 +826,7 @@ with st.container():
                 import difflib
                 if st.button("🛠️ Điều chỉnh Dân tộc theo danh mục", use_container_width=True, key="btn_chinh_dan_toc"):
                     # Đọc file danh mục dân tộc
+                    st.write(f"Đã tải mục dân tộc từ danh mục.")
                     try:
                         dan_toc_path = "data_base/Danh_muc_phanmem_gd.xlsx"
                         dan_toc_df = pd.read_excel(dan_toc_path, sheet_name="DAN_TOC", usecols="B", header=0)
@@ -833,7 +834,7 @@ with st.container():
                     except Exception as e:
                         st.error(f"Không đọc được danh mục dân tộc: {e}")
                         dan_toc_list = []
-                    st.write(f"Đã tải {len(dan_toc_list)} mục dân tộc từ danh mục.")
+                    
                     # Đọc lại file đã gom
                     from openpyxl import load_workbook
                     import io
