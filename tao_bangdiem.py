@@ -975,9 +975,9 @@ with st.container():
                 if best:
                     best_match = best[0]
                     ratio = difflib.SequenceMatcher(None, val_compare.lower(), best_match.lower()).ratio()
-                    if best_match != val_compare:
-                        ws.cell(row=row, column=16).value = best_match
-                        replaced_rows_tinh.append({'Trường': 'Nơi sinh', 'Giá trị cũ': val_str, 'Giá trị mới': best_match, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
+                    # Luôn gán giá trị chuẩn hóa vào file Excel xuất ra
+                    ws.cell(row=row, column=16).value = best_match
+                    replaced_rows_tinh.append({'Trường': 'Nơi sinh', 'Giá trị cũ': val_str, 'Giá trị mới': best_match, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
             # Nguyên quán/Quê quán (cột 17)
             for row in range(4, num_rows+1):
                 val = ws.cell(row=row, column=17).value
@@ -993,9 +993,8 @@ with st.container():
                 if best:
                     best_match = best[0]
                     ratio = difflib.SequenceMatcher(None, val_compare.lower(), best_match.lower()).ratio()
-                    if best_match != val_compare:
-                        ws.cell(row=row, column=17).value = best_match
-                        replaced_rows_tinh.append({'Trường': 'Nguyên quán/Quê quán', 'Giá trị cũ': val_str, 'Giá trị mới': best_match, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
+                    ws.cell(row=row, column=17).value = best_match
+                    replaced_rows_tinh.append({'Trường': 'Nguyên quán/Quê quán', 'Giá trị cũ': val_str, 'Giá trị mới': best_match, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
             output = io.BytesIO()
             wb.save(output)
             st.session_state.updated_mau_file = output
