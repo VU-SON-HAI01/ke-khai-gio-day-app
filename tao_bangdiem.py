@@ -844,6 +844,35 @@ with st.container():
                 val = ws.cell(row=row, column=10).value
                 if val:
                     val_str = str(val).strip()
+                    # Xử lý đặc biệt
+                    if val_str == "Mông":
+                        ws.cell(row=row, column=10).value = "Hmông"
+                        num_fixed += 1
+                        replaced_rows.append({
+                            'Dân tộc cũ': val_str,
+                            'Dân tộc mới': "Hmông",
+                            'Tỉ lệ so khớp': '1.00 (đặc biệt)'
+                        })
+                        continue
+                    if val_str == "Kinh (Viêt)":
+                        ws.cell(row=row, column=10).value = "Kinh"
+                        num_fixed += 1
+                        replaced_rows.append({
+                            'Dân tộc cũ': val_str,
+                            'Dân tộc mới': "Kinh",
+                            'Tỉ lệ so khớp': '1.00 (đặc biệt)'
+                        })
+                        continue
+                    if val_str.lower().replace(' ', '') in ["êđê", "êde", "edê", "ede"] or val_str.lower() == "ê đê":
+                        ws.cell(row=row, column=10).value = "Ê-đê"
+                        num_fixed += 1
+                        replaced_rows.append({
+                            'Dân tộc cũ': val_str,
+                            'Dân tộc mới': "Ê-đê",
+                            'Tỉ lệ so khớp': '1.00 (đặc biệt)'
+                        })
+                        continue
+                    # So khớp gần đúng cho các trường hợp còn lại
                     best = difflib.get_close_matches(val_str, dan_toc_list, n=1, cutoff=0.8)
                     if best:
                         best_match = best[0]
@@ -866,12 +895,38 @@ with st.container():
             if st.session_state.get("dan_toc_checked"):
                 replaced_rows = st.session_state.get("dan_toc_replaced_rows", [])
                 num_fixed = st.session_state.get("dan_toc_num_fixed", 0)
+                # Hiển thị kết quả thay thế
                 if replaced_rows:
                     st.success(f"Đã rà soát và điều chỉnh {num_fixed} giá trị Dân tộc theo danh mục.")
                     st.markdown("### Bảng các giá trị Dân tộc đã thay thế:")
                     st.dataframe(pd.DataFrame(replaced_rows))
                 else:
                     st.info("Không có giá trị Dân tộc nào cần điều chỉnh. Tất cả đã đúng theo danh mục hoặc không có dữ liệu phù hợp.")
+                # Liệt kê các giá trị không tồn tại trong danh mục
+                if st.session_state.get("updated_mau_file"):
+                    from openpyxl import load_workbook
+                    import io
+                    import pandas as pd
+                    mau_bytes = st.session_state.updated_mau_file.getvalue()
+                    wb = load_workbook(io.BytesIO(mau_bytes))
+                    ws = wb.active
+                    # Lấy lại danh mục dân tộc
+                    try:
+                        dan_toc_path = "data_base/Danh_muc_phanmem_gd.xlsx"
+                        dan_toc_df = pd.read_excel(dan_toc_path, sheet_name="DAN_TOC", usecols="B", header=0)
+                        dan_toc_list = dan_toc_df.iloc[:,0].dropna().astype(str).str.strip().tolist()
+                    except Exception:
+                        dan_toc_list = []
+                    # Duyệt lại cột Dân tộc
+                    values = set()
+                    for row in range(4, ws.max_row+1):
+                        val = ws.cell(row=row, column=10).value
+                        if val:
+                            values.add(str(val).strip())
+                    not_in_danh_muc = sorted([v for v in values if v not in dan_toc_list])
+                    if not_in_danh_muc:
+                        st.warning("Các giá trị Dân tộc sau không tồn tại trong danh mục:")
+                        st.dataframe(pd.DataFrame({"Dân tộc không có trong danh mục": not_in_danh_muc}))
             # Nút tải về chỉ hiển thị nếu còn file gom dữ liệu
             if st.session_state.get("updated_mau_file"):
                 st.download_button(
