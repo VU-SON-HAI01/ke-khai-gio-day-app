@@ -844,7 +844,7 @@ with st.container():
                 val = ws.cell(row=row, column=10).value
                 val_str = str(val).strip()
                 # Gia rai, Giá rai, Giarai, Giárai... -> Gia-rai
-                if val_str_giarai in ["giarai", "giárai", "giàrai", "giảrai", "giãrai", "giạrai"] or val_str.lower() in ["gia rai", "giá rai"]:
+                if val_str in ["giarai", "giárai", "giàrai", "giảrai", "giãrai", "giạrai"] or val_str.lower() in ["gia rai", "giá rai"]:
                     ws.cell(row=row, column=10).value = "Gia-rai"
                     num_fixed += 1
                     replaced_rows.append({
