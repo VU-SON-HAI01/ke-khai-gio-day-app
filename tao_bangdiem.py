@@ -840,6 +840,7 @@ with st.container():
             num_rows = ws.max_row
             num_fixed = 0
             replaced_rows = []
+            # Chuẩn hóa Dân tộc
             for row in range(4, num_rows+1):
                 val = ws.cell(row=row, column=10).value
                 val_str = str(val).strip()
@@ -950,12 +951,61 @@ with st.container():
                             'Dân tộc mới': best_match,
                             'Tỉ lệ so khớp': f"{ratio:.2f}"
                         })
+            # --- Chuẩn hóa Nơi sinh và Nguyên quán/Quê quán ---
+            try:
+                tinh_path = "data_base/Danh_muc_phanmem_gd.xlsx"
+                tinh_df = pd.read_excel(tinh_path, sheet_name="TINH_HUYEN_XA", usecols="B", header=0)
+                tinh_list = tinh_df.iloc[:,0].dropna().astype(str).str.strip().tolist()
+            except Exception as e:
+                st.error(f"Không đọc được danh mục tỉnh/huyện/xã: {e}")
+                tinh_list = []
+            replaced_rows_tinh = []
+            # Nơi sinh (cột 16)
+            for row in range(4, num_rows+1):
+                val = ws.cell(row=row, column=16).value
+                val_str = str(val).strip()
+                if not val_str:
+                    continue
+                best = difflib.get_close_matches(val_str, tinh_list, n=1, cutoff=0.8)
+                if best:
+                    best_match = best[0]
+                    ratio = difflib.SequenceMatcher(None, val_str.lower(), best_match.lower()).ratio()
+                    # Nếu là thành phố trực thuộc TW thì thêm 'Thành phố' phía trước
+                    tp_list = ["Hà Nội", "Hải Phòng", "Đà Nẵng", "Hồ Chí Minh", "Cần Thơ"]
+                    prefix = f"Thành phố {best_match}" if best_match in tp_list else f"Tỉnh {best_match}"
+                    if not val_str.startswith(prefix):
+                        new_val = f"{prefix}, {val_str}" if prefix not in val_str else val_str
+                    else:
+                        new_val = val_str
+                    if new_val != val_str:
+                        ws.cell(row=row, column=16).value = new_val
+                        replaced_rows_tinh.append({'Trường': 'Nơi sinh', 'Giá trị cũ': val_str, 'Giá trị mới': new_val, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
+            # Nguyên quán/Quê quán (cột 17)
+            for row in range(4, num_rows+1):
+                val = ws.cell(row=row, column=17).value
+                val_str = str(val).strip()
+                if not val_str:
+                    continue
+                best = difflib.get_close_matches(val_str, tinh_list, n=1, cutoff=0.8)
+                if best:
+                    best_match = best[0]
+                    ratio = difflib.SequenceMatcher(None, val_str.lower(), best_match.lower()).ratio()
+                    tp_list = ["Hà Nội", "Hải Phòng", "Đà Nẵng", "Hồ Chí Minh", "Cần Thơ"]
+                    prefix = f"Thành phố {best_match}" if best_match in tp_list else f"Tỉnh {best_match}"
+                    if not val_str.startswith(prefix):
+                        new_val = f"{prefix}, {val_str}" if prefix not in val_str else val_str
+                    else:
+                        new_val = val_str
+                    if new_val != val_str:
+                        ws.cell(row=row, column=17).value = new_val
+                        replaced_rows_tinh.append({'Trường': 'Nguyên quán/Quê quán', 'Giá trị cũ': val_str, 'Giá trị mới': new_val, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
             output = io.BytesIO()
             wb.save(output)
             st.session_state.updated_mau_file = output
             st.session_state.dan_toc_replaced_rows = replaced_rows
             st.session_state.dan_toc_num_fixed = num_fixed
             st.session_state.dan_toc_checked = True
+            st.session_state.tinh_replaced_rows = replaced_rows_tinh
             # Luôn hiển thị kết quả điều chỉnh Dân tộc nếu đã thực hiện
             if st.session_state.get("dan_toc_checked"):
                 replaced_rows = st.session_state.get("dan_toc_replaced_rows", [])
