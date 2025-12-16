@@ -845,6 +845,16 @@ with st.container():
                 if val:
                     val_str = str(val).strip()
                     # Xử lý đặc biệt
+                    # H'Mông, H' Mông, H Mông -> Hmông
+                    if val_str.replace("'", "").replace(" ", "").lower() in ["hmong", "hmông"]:
+                        ws.cell(row=row, column=10).value = "Hmông"
+                        num_fixed += 1
+                        replaced_rows.append({
+                            'Dân tộc cũ': val_str,
+                            'Dân tộc mới': "Hmông",
+                            'Tỉ lệ so khớp': '1.00 (đặc biệt)'
+                        })
+                        continue
                     if val_str == "Mông":
                         ws.cell(row=row, column=10).value = "Hmông"
                         num_fixed += 1
@@ -854,7 +864,12 @@ with st.container():
                             'Tỉ lệ so khớp': '1.00 (đặc biệt)'
                         })
                         continue
-                    if val_str == "Kinh (Viêt)":
+                    # Kinh (Việt) các loại chữ hoa/thường/khoảng trắng/dấu
+                    import unicodedata
+                    def remove_accents(input_str):
+                        return ''.join(c for c in unicodedata.normalize('NFD', input_str) if unicodedata.category(c) != 'Mn')
+                    val_str_noacc = remove_accents(val_str.lower().replace(' ', ''))
+                    if val_str_noacc in ["kinh(viet)", "kinh(viet)", "kinh(viet)"]:
                         ws.cell(row=row, column=10).value = "Kinh"
                         num_fixed += 1
                         replaced_rows.append({
@@ -863,12 +878,43 @@ with st.container():
                             'Tỉ lệ so khớp': '1.00 (đặc biệt)'
                         })
                         continue
+                    # Ê đê các kiểu -> Ê-đê
                     if val_str.lower().replace(' ', '') in ["êđê", "êde", "edê", "ede"] or val_str.lower() == "ê đê":
                         ws.cell(row=row, column=10).value = "Ê-đê"
                         num_fixed += 1
                         replaced_rows.append({
                             'Dân tộc cũ': val_str,
                             'Dân tộc mới': "Ê-đê",
+                            'Tỉ lệ so khớp': '1.00 (đặc biệt)'
+                        })
+                        continue
+                    # Xơ Đăng -> Xơ-đăng
+                    if val_str.lower().replace(' ', '') in ["xơđăng", "xodang"] or val_str.lower() == "xơ đăng":
+                        ws.cell(row=row, column=10).value = "Xơ-đăng"
+                        num_fixed += 1
+                        replaced_rows.append({
+                            'Dân tộc cũ': val_str,
+                            'Dân tộc mới': "Xơ-đăng",
+                            'Tỉ lệ so khớp': '1.00 (đặc biệt)'
+                        })
+                        continue
+                    # Cao Lan -> Sán Chay
+                    if val_str.lower().replace(' ', '') == "caolan":
+                        ws.cell(row=row, column=10).value = "Sán Chay"
+                        num_fixed += 1
+                        replaced_rows.append({
+                            'Dân tộc cũ': val_str,
+                            'Dân tộc mới': "Sán Chay",
+                            'Tỉ lệ so khớp': '1.00 (đặc biệt)'
+                        })
+                        continue
+                    # Hán -> Hoa
+                    if val_str.lower().replace(' ', '') == "hán" or val_str.lower().replace(' ', '') == "han":
+                        ws.cell(row=row, column=10).value = "Hoa"
+                        num_fixed += 1
+                        replaced_rows.append({
+                            'Dân tộc cũ': val_str,
+                            'Dân tộc mới': "Hoa",
                             'Tỉ lệ so khớp': '1.00 (đặc biệt)'
                         })
                         continue
