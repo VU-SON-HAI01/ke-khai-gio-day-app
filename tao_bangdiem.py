@@ -966,39 +966,36 @@ with st.container():
                 val_str = str(val).strip()
                 if not val_str:
                     continue
-                best = difflib.get_close_matches(val_str, tinh_list, n=1, cutoff=0.8)
+                tp_list = ["Hà Nội", "Hải Phòng", "Đà Nẵng", "Hồ Chí Minh", "Cần Thơ"]
+                if val_str in tp_list:
+                    val_compare = f"Thành phố {val_str}"
+                else:
+                    val_compare = f"Tỉnh {val_str}"
+                best = difflib.get_close_matches(val_compare, tinh_list, n=1, cutoff=0.8)
                 if best:
                     best_match = best[0]
-                    ratio = difflib.SequenceMatcher(None, val_str.lower(), best_match.lower()).ratio()
-                    # Nếu là thành phố trực thuộc TW thì thêm 'Thành phố' phía trước
-                    tp_list = ["Hà Nội", "Hải Phòng", "Đà Nẵng", "Hồ Chí Minh", "Cần Thơ"]
-                    prefix = f"Thành phố {best_match}" if best_match in tp_list else f"Tỉnh {best_match}"
-                    if not val_str.startswith(prefix):
-                        new_val = f"{prefix}, {val_str}" if prefix not in val_str else val_str
-                    else:
-                        new_val = val_str
-                    if new_val != val_str:
-                        ws.cell(row=row, column=16).value = new_val
-                        replaced_rows_tinh.append({'Trường': 'Nơi sinh', 'Giá trị cũ': val_str, 'Giá trị mới': new_val, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
+                    ratio = difflib.SequenceMatcher(None, val_compare.lower(), best_match.lower()).ratio()
+                    if best_match != val_compare:
+                        ws.cell(row=row, column=16).value = best_match
+                        replaced_rows_tinh.append({'Trường': 'Nơi sinh', 'Giá trị cũ': val_str, 'Giá trị mới': best_match, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
             # Nguyên quán/Quê quán (cột 17)
             for row in range(4, num_rows+1):
                 val = ws.cell(row=row, column=17).value
                 val_str = str(val).strip()
                 if not val_str:
                     continue
-                best = difflib.get_close_matches(val_str, tinh_list, n=1, cutoff=0.8)
+                tp_list = ["Hà Nội", "Hải Phòng", "Đà Nẵng", "Hồ Chí Minh", "Cần Thơ"]
+                if val_str in tp_list:
+                    val_compare = f"Thành phố {val_str}"
+                else:
+                    val_compare = f"Tỉnh {val_str}"
+                best = difflib.get_close_matches(val_compare, tinh_list, n=1, cutoff=0.8)
                 if best:
                     best_match = best[0]
-                    ratio = difflib.SequenceMatcher(None, val_str.lower(), best_match.lower()).ratio()
-                    tp_list = ["Hà Nội", "Hải Phòng", "Đà Nẵng", "Hồ Chí Minh", "Cần Thơ"]
-                    prefix = f"Thành phố {best_match}" if best_match in tp_list else f"Tỉnh {best_match}"
-                    if not val_str.startswith(prefix):
-                        new_val = f"{prefix}, {val_str}" if prefix not in val_str else val_str
-                    else:
-                        new_val = val_str
-                    if new_val != val_str:
-                        ws.cell(row=row, column=17).value = new_val
-                        replaced_rows_tinh.append({'Trường': 'Nguyên quán/Quê quán', 'Giá trị cũ': val_str, 'Giá trị mới': new_val, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
+                    ratio = difflib.SequenceMatcher(None, val_compare.lower(), best_match.lower()).ratio()
+                    if best_match != val_compare:
+                        ws.cell(row=row, column=17).value = best_match
+                        replaced_rows_tinh.append({'Trường': 'Nguyên quán/Quê quán', 'Giá trị cũ': val_str, 'Giá trị mới': best_match, 'Tỉ lệ so khớp': f"{ratio:.2f}"})
             output = io.BytesIO()
             wb.save(output)
             st.session_state.updated_mau_file = output
