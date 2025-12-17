@@ -30,6 +30,7 @@ if data:
         danh_muc_path = os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx")
         try:
             df_danhmuc = load_danh_muc_tinh_huyen_xa(danh_muc_path)
+            st.write(df_danhmuc)
             results = df.apply(lambda row: match_diachi_row(row, df_danhmuc), axis=1, result_type='expand')
             # Danh sách đã khớp hoàn toàn
             matched = results[(results["Tỉnh gốc"] == results["Tỉnh chuẩn"]) &
