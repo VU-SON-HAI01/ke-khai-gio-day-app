@@ -967,7 +967,9 @@ with st.container():
                 if not val_str:
                     continue
                 tp_list = ["Hà Nội", "Hải Phòng", "Đà Nẵng", "Hồ Chí Minh", "Cần Thơ"]
-                if val_str in tp_list:
+                if val_str.strip().lower() == "huế" or val_str.strip().lower() == "hue":
+                    val_compare = "Tỉnh Thừa Thiên Huế"
+                elif val_str in tp_list:
                     val_compare = f"Thành phố {val_str}"
                 else:
                     val_compare = f"Tỉnh {val_str}"
@@ -986,7 +988,9 @@ with st.container():
                 if not val_str:
                     continue
                 tp_list = ["Hà Nội", "Hải Phòng", "Đà Nẵng", "Hồ Chí Minh", "Cần Thơ"]
-                if val_str in tp_list:
+                if val_str.strip().lower() == "huế" or val_str.strip().lower() == "hue":
+                    val_compare = "Tỉnh Thừa Thiên Huế"
+                elif val_str in tp_list:
                     val_compare = f"Thành phố {val_str}"
                 else:
                     val_compare = f"Tỉnh {val_str}"
