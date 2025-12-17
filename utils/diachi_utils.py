@@ -2,7 +2,9 @@ import pandas as pd
 import difflib
 
 def load_danh_muc_tinh_huyen_xa(path):
-    df = pd.read_excel(path, sheet_name="TINH_HUYEN_XA", usecols="K:M", header=0)
+    df_full = pd.read_excel(path, sheet_name="TINH_HUYEN_XA", header=0)
+    # Lấy cột 11, 12, 13 (chỉ số 10, 11, 12)
+    df = df_full.iloc[:, [10, 11, 12]].copy()
     df = df.dropna(subset=[df.columns[0], df.columns[1], df.columns[2]])
     df.columns = ["Tỉnh", "Huyện", "Xã"]
     return df
