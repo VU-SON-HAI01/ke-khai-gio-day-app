@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from utils.diachi_utils import load_danh_muc_tinh_huyen_xa, match_diachi_row
+from utils.diachi_utils import load_danh_muc_tinh_huyen_xa
 
 # Hàm chuẩn hóa địa chỉ theo yêu cầu
 def chuan_hoa_diachi(df):
@@ -59,21 +59,47 @@ if data:
             df_danhmuc = load_danh_muc_tinh_huyen_xa(danh_muc_path)
             st.write("II. Danh mục hiển thị")
             st.write(df_danhmuc)
-            # Sử dụng cutoff=0.9 cho so khớp gần đúng
-            def match90(row):
-                return match_diachi_row(row, df_danhmuc, cutoff=0.9)
-            results = df_chuanhoa.apply(match90, axis=1, result_type='expand')
+            # So khớp gần đúng toàn bộ chuỗi Tỉnh/Huyện/Xã với danh mục
+            import difflib
+            def join_row(row):
+                return f"{row['Tỉnh']}|{row['Huyện']}|{row['Xã']}"
+            danhmuc_joined = df_danhmuc.apply(join_row, axis=1)
+            def match_full_row(row):
+                input_joined = join_row(row)
+                matches = difflib.get_close_matches(input_joined, danhmuc_joined, n=1, cutoff=0.9)
+                if matches:
+                    idx = danhmuc_joined[danhmuc_joined == matches[0]].index[0]
+                    best = df_danhmuc.loc[idx]
+                    t_ratio = difflib.SequenceMatcher(None, str(row['Tỉnh']), str(best['Tỉnh'])).ratio()
+                    h_ratio = difflib.SequenceMatcher(None, str(row['Huyện']), str(best['Huyện'])).ratio()
+                    x_ratio = difflib.SequenceMatcher(None, str(row['Xã']), str(best['Xã'])).ratio()
+                    return {
+                        'Tỉnh gốc': row['Tỉnh'],
+                        'Huyện gốc': row['Huyện'],
+                        'Xã gốc': row['Xã'],
+                        'Tỉnh chuẩn': best['Tỉnh'],
+                        'Huyện chuẩn': best['Huyện'],
+                        'Xã chuẩn': best['Xã'],
+                        'Tỉ lệ tỉnh': t_ratio,
+                        'Tỉ lệ huyện': h_ratio,
+                        'Tỉ lệ xã': x_ratio,
+                        'Đã chỉnh': (row['Tỉnh'] != best['Tỉnh']) or (row['Huyện'] != best['Huyện']) or (row['Xã'] != best['Xã'])
+                    }
+                else:
+                    return {
+                        'Tỉnh gốc': row['Tỉnh'],
+                        'Huyện gốc': row['Huyện'],
+                        'Xã gốc': row['Xã'],
+                        'Tỉnh chuẩn': None,
+                        'Huyện chuẩn': None,
+                        'Xã chuẩn': None,
+                        'Tỉ lệ tỉnh': 0,
+                        'Tỉ lệ huyện': 0,
+                        'Tỉ lệ xã': 0,
+                        'Đã chỉnh': True
+                    }
+            results = df_chuanhoa.apply(match_full_row, axis=1, result_type='expand')
 
-            # Đánh giá tỷ lệ gần đúng từng trường
-            def calc_ratio(a, b):
-                import difflib
-                return difflib.SequenceMatcher(None, str(a), str(b)).ratio() if pd.notna(a) and pd.notna(b) else 0
-
-            results["Tỉ lệ tỉnh"] = results.apply(lambda r: calc_ratio(r["Tỉnh gốc"], r["Tỉnh chuẩn"]), axis=1)
-            results["Tỉ lệ huyện"] = results.apply(lambda r: calc_ratio(r["Huyện gốc"], r["Huyện chuẩn"]), axis=1)
-            results["Tỉ lệ xã"] = results.apply(lambda r: calc_ratio(r["Xã gốc"], r["Xã chuẩn"]), axis=1)
-
-            # Chỉ nhận các dòng có tỉ lệ >= 0.9 ở cả 3 trường là chuyển đổi được
             matched = results[(results["Tỉnh gốc"] == results["Tỉnh chuẩn"]) &
                               (results["Huyện gốc"] == results["Huyện chuẩn"]) &
                               (results["Xã gốc"] == results["Xã chuẩn"])]
@@ -82,7 +108,10 @@ if data:
                                 (results["Huyện chuẩn"].notna()) &
                                 (results["Xã chuẩn"].notna()) &
                                 (results["Tỉ lệ tỉnh"] >= 0.9) & (results["Tỉ lệ huyện"] >= 0.9) & (results["Tỉ lệ xã"] >= 0.9)]
-            unmatched = results[(results["Tỉ lệ tỉnh"] < 0.9) | (results["Tỉ lệ huyện"] < 0.9) | (results["Tỉ lệ xã"] < 0.9)]
+            unmatched = results[(results["Tỉnh chuẩn"].isna()) |
+                                (results["Huyện chuẩn"].isna()) |
+                                (results["Xã chuẩn"].isna()) |
+                                (results["Tỉ lệ tỉnh"] < 0.9) | (results["Tỉ lệ huyện"] < 0.9) | (results["Tỉ lệ xã"] < 0.9)]
 
             st.markdown("### 1. Danh sách đã khớp đúng danh mục:")
             st.dataframe(matched, use_container_width=True, hide_index=True)
