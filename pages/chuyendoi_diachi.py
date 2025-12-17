@@ -85,6 +85,18 @@ if data:
             st.markdown("### 3. Danh sách không thể chuyển đổi:")
             st.dataframe(unmatched, use_container_width=True, hide_index=True)
             st.error(f"Số dòng không thể chuyển đổi: {len(unmatched)}")
+
+            # Phần xuất danh sách đã tinh chỉnh (chuẩn hóa) gồm 3 cột, copy-paste Excel
+            st.markdown("""
+            ### 4. Danh sách đã tinh chỉnh (chuẩn hóa) để copy vào Excel:
+            *Bạn có thể bôi đen, copy toàn bộ bảng này và dán vào Excel.*
+            """)
+            df_tinh_chinh = results[["Tỉnh chuẩn", "Huyện chuẩn", "Xã chuẩn"]].rename(columns={
+                "Tỉnh chuẩn": "Tỉnh",
+                "Huyện chuẩn": "Huyện",
+                "Xã chuẩn": "Xã"
+            })
+            st.dataframe(df_tinh_chinh, use_container_width=True, hide_index=True)
         except Exception as e:
             st.error(f"Không đọc được danh mục địa chỉ hoặc lỗi xử lý: {e}")
 else:
