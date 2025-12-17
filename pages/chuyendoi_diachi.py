@@ -24,12 +24,14 @@ if data:
         st.error("Dữ liệu phải có đúng 3 cột!")
     else:
         df.columns = ["Tỉnh", "Huyện", "Xã"]
+        st.write("I. Dữ liệu đã nhập:")
         st.dataframe(df, use_container_width=True)
         st.success(f"Đã nhập {len(df)} dòng dữ liệu.")
         # Kiểm tra và chuyển đổi địa chỉ theo danh mục
         danh_muc_path = os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx")
         try:
             df_danhmuc = load_danh_muc_tinh_huyen_xa(danh_muc_path)
+            st.write("II. Danh mục hiển thị")
             st.write(df_danhmuc)
             results = df.apply(lambda row: match_diachi_row(row, df_danhmuc), axis=1, result_type='expand')
             # Danh sách đã khớp hoàn toàn
