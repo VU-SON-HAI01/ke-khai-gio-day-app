@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from _diachi_utils import load_danh_muc_tinh_huyen_xa, match_diachi_row
+from utils.diachi_utils import load_danh_muc_tinh_huyen_xa, match_diachi_row
 
 st.title("Chuyển đổi Địa chỉ theo danh mục chuẩn")
 
