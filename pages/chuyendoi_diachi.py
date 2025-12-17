@@ -6,9 +6,12 @@ from utils.diachi_utils import load_danh_muc_tinh_huyen_xa
 
 # Hàm chuẩn hóa địa chỉ theo yêu cầu
 def chuan_hoa_diachi(df):
+    tp_dac_biet = ["Hà Nội", "Hải Phòng", "Đà Nẵng", "Hồ Chí Minh", "Cần Thơ"]
     def chuan_hoa_tinh(tinh):
         tinh = str(tinh).strip()
         if not tinh.startswith("Tỉnh") and not tinh.startswith("Thành phố"):
+            if tinh in tp_dac_biet:
+                return f"Thành phố {tinh}"
             return f"Tỉnh {tinh}"
         return tinh
     def chuan_hoa_huyen(huyen):
