@@ -95,6 +95,13 @@ if data:
             st.write("I.1. Dữ liệu đã chuẩn hóa:")
             st.dataframe(results, use_container_width=True)
             st.success(f"Đã chuẩn hóa và so khớp {len(results)} dòng dữ liệu tỉnh.")
+            # Phần xuất danh sách đã hiệu chỉnh thành chuẩn theo danh mục để copy vào Excel
+            st.markdown("""
+            ### 2. Danh sách đã hiệu chỉnh (chuẩn) để copy vào Excel:
+            *Bạn có thể bôi đen, copy toàn bộ bảng này và dán vào Excel.*
+            """)
+            df_tinh_chuan = results[["Tỉnh chuẩn danh mục"]].rename(columns={"Tỉnh chuẩn danh mục": "Tỉnh"})
+            st.dataframe(df_tinh_chuan, use_container_width=True, hide_index=True)
         except Exception as e:
             st.error(f"Không đọc được danh mục địa chỉ hoặc lỗi xử lý: {e}")
     elif df.shape[1] != 3:
