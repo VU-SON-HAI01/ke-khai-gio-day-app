@@ -399,7 +399,6 @@ else:
             "Quản trị": [
                 st.Page("quanlyhssv.py", title="Quản lý hoc sinh", icon="🛠️"),
                 st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
-                st.Page("chuyendoi_diachi.py", title="Chuyển đổi Địa chỉ", icon="🔎"),
                 st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧")  
             ]
         }
