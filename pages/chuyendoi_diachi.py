@@ -54,8 +54,51 @@ if data:
     rows = [row for row in data.strip().splitlines() if row.strip()]
     parsed = [r.split('\t') if '\t' in r else r.split(',') for r in rows]
     df = pd.DataFrame(parsed)
-    if df.shape[1] != 3:
-        st.error("Dữ liệu phải có đúng 3 cột!")
+    if df.shape[1] == 1:
+        # Xử lý dữ liệu 1 cột: xem như là Tỉnh
+        df.columns = ["Tỉnh"]
+        df["Tỉnh"] = df["Tỉnh"].astype(str).str.strip()
+        # Chuẩn hóa tên tỉnh
+        tp_dac_biet = ["Hà Nội", "Hải Phòng", "Đà Nẵng", "Hồ Chí Minh", "Cần Thơ"]
+        def chuan_hoa_tinh_only(tinh):
+            if not tinh.startswith("Tỉnh") and not tinh.startswith("Thành phố"):
+                if tinh in tp_dac_biet:
+                    return f"Thành phố {tinh}"
+                return f"Tỉnh {tinh}"
+            return tinh
+        df["Tỉnh chuẩn hóa"] = df["Tỉnh"].apply(chuan_hoa_tinh_only)
+        # Đọc danh mục
+        danh_muc_path = os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx")
+        try:
+            df_danhmuc = load_danh_muc_tinh_huyen_xa(danh_muc_path)
+            unique_tinh = df_danhmuc["Tỉnh"].unique()
+            import difflib
+            def match_tinh(row):
+                matches = difflib.get_close_matches(row["Tỉnh chuẩn hóa"], unique_tinh, n=1, cutoff=0.8)
+                if matches:
+                    best = matches[0]
+                    ratio = difflib.SequenceMatcher(None, row["Tỉnh chuẩn hóa"], best).ratio()
+                    return pd.Series({
+                        "Tỉnh gốc": row["Tỉnh"],
+                        "Tỉnh chuẩn hóa": row["Tỉnh chuẩn hóa"],
+                        "Tỉnh chuẩn danh mục": best,
+                        "Tỉ lệ khớp": ratio
+                    })
+                else:
+                    return pd.Series({
+                        "Tỉnh gốc": row["Tỉnh"],
+                        "Tỉnh chuẩn hóa": row["Tỉnh chuẩn hóa"],
+                        "Tỉnh chuẩn danh mục": None,
+                        "Tỉ lệ khớp": 0
+                    })
+            results = df.apply(match_tinh, axis=1)
+            st.write("I.1. Dữ liệu đã chuẩn hóa:")
+            st.dataframe(results, use_container_width=True)
+            st.success(f"Đã chuẩn hóa và so khớp {len(results)} dòng dữ liệu tỉnh.")
+        except Exception as e:
+            st.error(f"Không đọc được danh mục địa chỉ hoặc lỗi xử lý: {e}")
+    elif df.shape[1] != 3:
+        st.error("Dữ liệu phải có đúng 3 cột hoặc 1 cột (Tỉnh)!")
     else:
         df.columns = ["Tỉnh", "Huyện", "Xã"]
         # Bước 1: Chuẩn hóa dữ liệu đầu vào
