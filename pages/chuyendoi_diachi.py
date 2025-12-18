@@ -18,16 +18,23 @@ def chuan_hoa_diachi(df):
         huyen = str(huyen).strip()
         if huyen.startswith("TP."):
             return huyen.replace("TP.", "Thành phố", 1).replace("  ", " ").strip()
-        elif huyen.startswith("TT."):
-            return huyen.replace("TT.", "Thị trấn", 1).replace("  ", " ").strip()
         elif huyen.startswith("TX."):
             return huyen.replace("TX.", "Thị xã", 1).replace("  ", " ").strip()
-        elif not (huyen.startswith("Thành phố") or huyen.startswith("Thị trấn") or huyen.startswith("Thị xã") or huyen.startswith("Huyện")):
+        elif (
+            not (huyen.startswith("Thành phố") or huyen.startswith("Thị trấn") or huyen.startswith("Thị xã") or huyen.startswith("Huyện"))
+            and "Quận" not in huyen
+        ):
             return f"Huyện {huyen}"
         return huyen
+    def chuan_hoa_xa(xa):
+        xa = str(xa).strip()
+        if xa.startswith("TT."):
+            return xa.replace("TT.", "Thị trấn", 1).replace("  ", " ").strip()
+        return xa
     df = df.copy()
     df["Tỉnh"] = df["Tỉnh"].apply(chuan_hoa_tinh)
     df["Huyện"] = df["Huyện"].apply(chuan_hoa_huyen)
+    df["Xã"] = df["Xã"].apply(chuan_hoa_xa)
     return df
 
 st.title("Chuyển đổi Địa chỉ theo danh mục chuẩn")
@@ -69,7 +76,7 @@ if data:
             danhmuc_joined = df_danhmuc.apply(join_row, axis=1)
             def match_full_row(row):
                 input_joined = join_row(row)
-                matches = difflib.get_close_matches(input_joined, danhmuc_joined, n=1, cutoff=0.9)
+                matches = difflib.get_close_matches(input_joined, danhmuc_joined, n=1, cutoff=0.8)
                 if matches:
                     idx = danhmuc_joined[danhmuc_joined == matches[0]].index[0]
                     best = df_danhmuc.loc[idx]
@@ -110,11 +117,11 @@ if data:
                                 (results["Tỉnh chuẩn"].notna()) &
                                 (results["Huyện chuẩn"].notna()) &
                                 (results["Xã chuẩn"].notna()) &
-                                (results["Tỉ lệ tỉnh"] >= 0.9) & (results["Tỉ lệ huyện"] >= 0.9) & (results["Tỉ lệ xã"] >= 0.9)]
+                                (results["Tỉ lệ tỉnh"] >= 0.8) & (results["Tỉ lệ huyện"] >= 0.8) & (results["Tỉ lệ xã"] >= 0.8)]
             unmatched = results[(results["Tỉnh chuẩn"].isna()) |
                                 (results["Huyện chuẩn"].isna()) |
                                 (results["Xã chuẩn"].isna()) |
-                                (results["Tỉ lệ tỉnh"] < 0.9) | (results["Tỉ lệ huyện"] < 0.9) | (results["Tỉ lệ xã"] < 0.9)]
+                                (results["Tỉ lệ tỉnh"] < 0.8) | (results["Tỉ lệ huyện"] < 0.8) | (results["Tỉ lệ xã"] < 0.8)]
 
             st.markdown("### 1. Danh sách đã khớp đúng danh mục:")
             st.dataframe(matched, use_container_width=True, hide_index=True)
