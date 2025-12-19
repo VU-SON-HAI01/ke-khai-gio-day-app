@@ -87,6 +87,30 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
 
 # --- PAGE UI ---
 st.title("Tạo người dùng Google Sheet hàng loạt cho Admin")
+
+# --- HƯỚNG DẪN OUTLOOK CHO ADMIN ---
+with st.expander("📧 Hướng dẫn gửi thông báo qua Outlook cho Admin", expanded=False):
+    st.markdown("""
+**Bước 1:** Tải file danh sách email đã tạo ở dưới về máy.
+
+**Bước 2:** Mở Outlook, tạo email mới.
+
+**Bước 3:**
+- Nhấn vào nút **To/Cc/Bcc** để chọn người nhận.
+- Dán toàn bộ danh sách email vào trường **Bcc** để gửi ẩn danh.
+
+**Bước 4:** Nhập tiêu đề và nội dung thông báo (có thể copy mẫu nội dung bên dưới).
+
+**Bước 5:** Đính kèm file hướng dẫn hoặc tài liệu cần thiết (nếu có).
+
+**Bước 6:** Nhấn **Send** để gửi thông báo cho toàn bộ người dùng mới.
+
+---
+**Mẫu nội dung:**
+> Kính gửi Quý Thầy/Cô,\
+> Tài khoản Google Sheet đã được tạo thành công. Vui lòng kiểm tra email và đăng nhập theo hướng dẫn.\
+> Nếu có vấn đề, liên hệ admin để được hỗ trợ.
+""")
 ADMIN_EMAIL = st.secrets["gcp_service_account"]["client_email"]
 TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"]
 if 'token' not in st.session_state:

@@ -30,6 +30,8 @@ def chuan_hoa_diachi(df):
         xa = str(xa).strip()
         if xa.startswith("TT."):
             return xa.replace("TT.", "Thị trấn", 1).replace("  ", " ").strip()
+        if xa.startswith("P."):
+            return xa.replace("P.", "Phường", 1).replace("  ", " ").strip()
         return xa
     df = df.copy()
     df["Tỉnh"] = df["Tỉnh"].apply(chuan_hoa_tinh)
