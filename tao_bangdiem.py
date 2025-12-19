@@ -179,7 +179,7 @@ def find_student_data_for_aggregation(worksheet):
     nguyenquan_col_index = find_col_idx(["nguyên quán", "nguyen quan", "quê quán", "que quan"])
     sdt_col_index = find_col_idx(["sđt", "sdt", "số điện thoại", "so dien thoai"])
     tongiao_col_index = find_col_idx(["tôn giáo", "ton giao"])
-
+    hokhau_col_index = find_col_idx(["hộ khẩu thường trú", "ho khau thuong tru"])
     if ten_dem_col_index is None or ten_col_index is None or dob_col_index is None:
         st.error(f"Sheet '{worksheet.title}': Thiếu cột bắt buộc (Họ đệm/Họ và tên, Tên, Năm sinh/Ngày sinh).")
         return None
@@ -198,6 +198,13 @@ def find_student_data_for_aggregation(worksheet):
         nguyenquan_cell = row[nguyenquan_col_index - 1] if nguyenquan_col_index else ''
         sdt_cell = row[sdt_col_index - 1] if sdt_col_index else ''
         tongiao_cell = row[tongiao_col_index - 1] if 'tongiao_col_index' in locals() and tongiao_col_index else ''
+        # Lấy dữ liệu Hộ khẩu thường trú nếu có
+        thon_hokhau = xa_hokhau = huyen_hokhau = tinh_hokhau = ''
+        if hokhau_col_index:
+            thon_hokhau = row[hokhau_col_index - 1] if len(row) >= hokhau_col_index else ''
+            xa_hokhau = row[hokhau_col_index] if len(row) >= hokhau_col_index + 1 else ''
+            huyen_hokhau = row[hokhau_col_index + 1] if len(row) >= hokhau_col_index + 2 else ''
+            tinh_hokhau = row[hokhau_col_index + 2] if len(row) >= hokhau_col_index + 3 else ''
 
         # Kiểm tra điều kiện dừng như hàm gốc
         stop = False
@@ -268,7 +275,11 @@ def find_student_data_for_aggregation(worksheet):
             "DÂN TỘC": str(dantoc_cell or '').strip(),
             "NGUYÊN QUÁN": str(nguyenquan_cell or '').strip(),
             "SĐT": str(sdt_cell or '').strip(),
-            "TÔN GIÁO": str(tongiao_cell or '').strip()
+            "TÔN GIÁO": str(tongiao_cell or '').strip(),
+            "THÔN HỘ KHẨU": str(thon_hokhau or '').strip(),
+            "XÃ HỘ KHẨU": str(xa_hokhau or '').strip(),
+            "HUYỆN HỘ KHẨU": str(huyen_hokhau or '').strip(),
+            "TỈNH HỘ KHẨU": str(tinh_hokhau or '').strip()
         })
         i += 1
 
@@ -804,6 +815,10 @@ with st.container():
                         ws.cell(row=excel_row, column=10).value = row.get('DÂN TỘC', '')
                         # Tôn giáo vào cột K (nếu có trường này, nếu không thì để trống)
                         ws.cell(row=excel_row, column=11).value = row.get('TÔN GIÁO', '')
+                        # Thêm Tỉnh vào cột M (13), Huyện vào cột N (14), Xã vào cột O (15)
+                        ws.cell(row=excel_row, column=13).value = row.get('TỈNH HỘ KHẨU', '')
+                        ws.cell(row=excel_row, column=14).value = row.get('HUYỆN HỘ KHẨU', '')
+                        ws.cell(row=excel_row, column=15).value = row.get('XÃ HỘ KHẨU', '')
                         # Nơi sinh vào cột P
                         ws.cell(row=excel_row, column=16).value = row.get('NƠI SINH', '')
                         # Nguyên quán vào cột Q
@@ -811,6 +826,7 @@ with st.container():
                         # Tên lớp vào cột U
                         if 'Tên lớp' in row:
                             ws.cell(row=excel_row, column=21).value = row['Tên lớp']
+                            
                     output = io.BytesIO()
                     wb.save(output)
                     st.session_state.updated_mau_file = output
