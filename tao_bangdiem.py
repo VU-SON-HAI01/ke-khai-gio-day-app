@@ -726,7 +726,8 @@ with st.container():
                     )
                     if uploaded_template_file is None:
                         template_file_obj.close()
-                    if danh_muc_file_is_temp:
+                    # Đảm bảo luôn định nghĩa biến trước khi dùng
+                    if 'danh_muc_file_is_temp' in locals() and danh_muc_file_is_temp:
                         danh_muc_file_obj.close()
                     if st.session_state.generated_files:
                         st.success(f"✅ Hoàn thành! Đã xử lý và tạo ra {len(st.session_state.generated_files)} file.")
