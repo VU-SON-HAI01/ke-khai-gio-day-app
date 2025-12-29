@@ -699,6 +699,8 @@ with st.container():
                     st.json(list(danh_muc_not_in_sheets))
     
     if uploaded_data_file:
+        # Đảm bảo df_filtered luôn có giá trị trước khi dùng
+        df_filtered = st.session_state.df_filtered if 'df_filtered' in st.session_state else pd.DataFrame()
         if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True, key="btn_xuly_tao_files_main"):
             st.session_state.zip_buffer = None
             try:
