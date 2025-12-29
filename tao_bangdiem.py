@@ -705,20 +705,20 @@ with st.container():
         df_filtered = st.session_state.df_filtered if 'df_filtered' in st.session_state else pd.DataFrame()
         if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True, key="btn_xuly_tao_files_main"):
             st.session_state.zip_buffer = None
-            # Đảm bảo luôn khai báo biến trước khi dùng
+            # Luôn khai báo biến trước khi dùng
             danh_muc_file_obj = None
             danh_muc_file_is_temp = False
             try:
                 template_file_obj = uploaded_template_file
                 if template_file_obj is None:
                     template_file_obj = open("data_base/Bang_diem_qua_trinh_(Mau).xlsx", "rb")
+                # Xử lý file danh mục lớp: nếu không upload thì mở file mặc định (luôn khai báo biến)
+                danh_muc_file_obj = uploaded_danh_muc_file
+                danh_muc_file_is_temp = False
+                if danh_muc_file_obj is None:
+                    danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
+                    danh_muc_file_is_temp = True
                 if not df_filtered.empty:
-                    # Xử lý file danh mục lớp: nếu không upload thì mở file mặc định
-                    danh_muc_file_obj = uploaded_danh_muc_file
-                    danh_muc_file_is_temp = False
-                    if danh_muc_file_obj is None:
-                        danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
-                        danh_muc_file_is_temp = True
                     st.session_state.generated_files, st.session_state.skipped_sheets = process_excel_files(
                         template_file_obj,
                         uploaded_data_file,
@@ -753,6 +753,9 @@ with st.container():
                         st.info(f"ℹ️ Các sheet sau đã bị bỏ qua vì không có trong danh mục: {', '.join(st.session_state.skipped_sheets)}")
                 else:
                     st.info("Không có dữ liệu lớp nào để gom.")
+                # Đóng file danh mục nếu là file tạm, kể cả khi không có dữ liệu lớp
+                if danh_muc_file_is_temp and danh_muc_file_obj:
+                    danh_muc_file_obj.close()
             except Exception as e:
                 st.error(f"Không đọc được dữ liệu lớp. Chi tiết lỗi: {e}")
         from openpyxl.utils.dataframe import dataframe_to_rows
