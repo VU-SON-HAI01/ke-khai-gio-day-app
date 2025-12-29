@@ -705,6 +705,9 @@ with st.container():
         df_filtered = st.session_state.df_filtered if 'df_filtered' in st.session_state else pd.DataFrame()
         if st.button("🚀 Xử lý và Tạo Files", type="primary", use_container_width=True, key="btn_xuly_tao_files_main"):
             st.session_state.zip_buffer = None
+            # Đảm bảo luôn khai báo biến trước khi dùng
+            danh_muc_file_obj = None
+            danh_muc_file_is_temp = False
             try:
                 template_file_obj = uploaded_template_file
                 if template_file_obj is None:
@@ -726,8 +729,7 @@ with st.container():
                     )
                     if uploaded_template_file is None:
                         template_file_obj.close()
-                    # Đảm bảo luôn định nghĩa biến trước khi dùng
-                    if 'danh_muc_file_is_temp' in locals() and danh_muc_file_is_temp:
+                    if danh_muc_file_is_temp:
                         danh_muc_file_obj.close()
                     if st.session_state.generated_files:
                         st.success(f"✅ Hoàn thành! Đã xử lý và tạo ra {len(st.session_state.generated_files)} file.")
