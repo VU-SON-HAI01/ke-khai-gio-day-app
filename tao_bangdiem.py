@@ -669,8 +669,10 @@ with st.container():
                 st.info(f"Không có dữ liệu học sinh nào thuộc {selected_khoa} trong file đã tải lên.")
 
             danh_muc_file_obj = uploaded_danh_muc_file
+            danh_muc_file_is_temp = False
             if danh_muc_file_obj is None:
                 danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
+                danh_muc_file_is_temp = True
             # Lọc chỉ các sheet thuộc khóa đã chọn
             xls_data = pd.ExcelFile(uploaded_data_file)
             all_sheet_names = xls_data.sheet_names
@@ -686,7 +688,7 @@ with st.container():
             # Chỉ kiểm tra các lớp thuộc khóa đã chọn
             sheets_not_in_danh_muc = set(sheet_names_to_check) - valid_class_names_khoa
             danh_muc_not_in_sheets = valid_class_names_khoa - set(sheet_names_to_check)
-            if uploaded_danh_muc_file is None:
+            if danh_muc_file_is_temp:
                 danh_muc_file_obj.close()
             with check_results_placeholder:
                 if not sheets_not_in_danh_muc and not danh_muc_not_in_sheets:
@@ -747,8 +749,10 @@ with st.container():
                 khoa_prefix = selected_khoa[1:]
                 sheet_names_to_process = [name for name in all_sheet_names if str(name).startswith(khoa_prefix)]
                 danh_muc_file_obj = uploaded_danh_muc_file
+                danh_muc_file_is_temp = False
                 if danh_muc_file_obj is None:
                     danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
+                    danh_muc_file_is_temp = True
                 xls_danh_muc = pd.ExcelFile(danh_muc_file_obj)
                 df_danh_muc = pd.read_excel(xls_danh_muc, sheet_name="DANH_MUC")
                 valid_class_names = set(df_danh_muc.iloc[:, 1].dropna().astype(str))
@@ -764,6 +768,8 @@ with st.container():
                         df_students = df_students.copy()
                         df_students["Tên lớp"] = sheet
                         all_student_rows.append(df_students)
+                if danh_muc_file_is_temp:
+                    danh_muc_file_obj.close()
                 if all_student_rows:
                     df_all_students = pd.concat(all_student_rows, ignore_index=True)
                     st.dataframe(df_all_students)
