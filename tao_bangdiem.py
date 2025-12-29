@@ -710,17 +710,23 @@ with st.container():
                 if template_file_obj is None:
                     template_file_obj = open("data_base/Bang_diem_qua_trinh_(Mau).xlsx", "rb")
                 if not df_filtered.empty:
+                    # Xử lý file danh mục lớp: nếu không upload thì mở file mặc định
+                    danh_muc_file_obj = uploaded_danh_muc_file
+                    danh_muc_file_is_temp = False
+                    if danh_muc_file_obj is None:
+                        danh_muc_file_obj = open("data_base/DS_LOP_(Mau).xlsx", "rb")
+                        danh_muc_file_is_temp = True
                     st.session_state.generated_files, st.session_state.skipped_sheets = process_excel_files(
                         template_file_obj,
                         uploaded_data_file,
-                        uploaded_danh_muc_file if uploaded_danh_muc_file is not None else open("data_base/DS_LOP_(Mau).xlsx", "rb"),
+                        danh_muc_file_obj,
                         hoc_ky_input,
                         nam_hoc_input,
                         cap_nhat_input
                     )
                     if uploaded_template_file is None:
                         template_file_obj.close()
-                    if uploaded_danh_muc_file is None:
+                    if danh_muc_file_is_temp:
                         danh_muc_file_obj.close()
                     if st.session_state.generated_files:
                         st.success(f"✅ Hoàn thành! Đã xử lý và tạo ra {len(st.session_state.generated_files)} file.")
