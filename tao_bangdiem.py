@@ -730,6 +730,14 @@ with st.container():
                                 for file_name, file_data in st.session_state.generated_files.items():
                                     zf.writestr(file_name, file_data)
                             st.session_state.zip_buffer = zip_buffer
+                        # Thêm nút tải về file .rar
+                        st.download_button(
+                            label="📦 Tải về file .rar chứa các bảng điểm",
+                            data=st.session_state.zip_buffer.getvalue(),
+                            file_name="bang_diem_lop.rar",
+                            mime="application/x-rar-compressed",
+                            use_container_width=True
+                        )
                     else:
                         st.warning("Quá trình xử lý hoàn tất nhưng không có file nào được tạo. Vui lòng kiểm tra lại các file đầu vào.")
                     if st.session_state.skipped_sheets:
