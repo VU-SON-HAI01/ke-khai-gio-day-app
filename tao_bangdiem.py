@@ -705,6 +705,8 @@ with st.container():
             st.session_state.zip_buffer = None
             try:
                 template_file_obj = uploaded_template_file
+                if template_file_obj is None:
+                    template_file_obj = open("data_base/Bang_diem_qua_trinh_(Mau).xlsx", "rb")
                 if not df_filtered.empty:
                     st.session_state.generated_files, st.session_state.skipped_sheets = process_excel_files(
                         template_file_obj,
