@@ -381,6 +381,14 @@ else:
                 st.success("Đã tải dữ liệu quản trị thành công!")
 
         # Giao diện của Admin sử dụng navigation giống user, có thêm trang Quản trị
+        # --- PHÂN QUYỀN TUYỂN SINH ---
+        # Ví dụ: danh sách email hoặc điều kiện xác định quyền Tuyển sinh
+        TUYENSINH_EMAILS = [
+            "haiyen1305.cdn@gmail.com",
+            # Thêm các email được phân quyền Tuyển sinh tại đây
+        ]
+        is_tuyensinh = user_email in TUYENSINH_EMAILS
+
         pages = {
             "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
             "Kê khai": [
@@ -396,12 +404,22 @@ else:
                 st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")
             ],
             "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")],
-            "Quản trị": [
-                st.Page("quanlyhssv.py", title="Quản lý hoc sinh", icon="🛠️"),
-                st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
-                st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧")  
-            ]
         }
+        # Thêm trang Quản lý học sinh cho quyền Tuyển sinh hoặc Admin
+        if is_tuyensinh or user_email == ADMIN_EMAIL:
+            if "Quản trị" not in pages:
+                pages["Quản trị"] = []
+            # Đảm bảo không thêm trùng trang nếu là admin
+            if not any(p.title == "Quản lý hoc sinh" for p in pages["Quản trị"]):
+                pages["Quản trị"].insert(0, st.Page("quanlyhssv.py", title="Quản lý hoc sinh", icon="🛠️"))
+        # Thêm các trang quản trị khác chỉ cho admin
+        if user_email == ADMIN_EMAIL:
+            if "Quản trị" not in pages:
+                pages["Quản trị"] = []
+            if not any(p.title == "Tạo bảng điểm" for p in pages["Quản trị"]):
+                pages["Quản trị"].append(st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"))
+            if not any(p.title == "Tạo user/email hàng loạt" for p in pages["Quản trị"]):
+                pages["Quản trị"].append(st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧"))
         pg = st.navigation(pages)
         pg.run()
 
