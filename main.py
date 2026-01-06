@@ -420,15 +420,6 @@ else:
                 pages["Quản trị"].append(st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"))
             if not any(p.title == "Tạo user/email hàng loạt" for p in pages["Quản trị"]):
                 pages["Quản trị"].append(st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧"))
-        with st.sidebar:
-            # Nút Đăng xuất luôn hiển thị ở đầu sidebar, ngoài mọi điều kiện phân quyền
-            if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
-                st.session_state.clear()
-                st.rerun()
-            st.divider()
-        # ...existing code...
-        pg = st.navigation(pages)
-
     else:
         # --- GIAO DIỆN CỦA USER THƯỜNG ---
         if 'initialized' not in st.session_state:
@@ -511,9 +502,6 @@ else:
                 st.write(f"**Chuẩn GV:** :green[{st.session_state.get('chuangv', '')}]")
                 st.write(f"**Chức vụ:** :green[{st.session_state.get('ten_chucvu', '')}]")
                 st.divider()
-                if st.button("Đăng xuất", use_container_width=True, key="user_logout"):
-                    st.session_state.clear()
-                    st.rerun()
             
             # <<<--- BẮT ĐẦU PHẦN CODE MỚI --- >>>
             # LOGIC ĐỂ TỰ ĐỘNG TẢI LẠI DỮ LIỆU KHI CHUYỂN TRANG
@@ -552,3 +540,10 @@ else:
                 pages["Quản trị"] = [st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")]
             pg = st.navigation(pages)
             pg.run()
+with st.sidebar:
+    # Nút Đăng xuất luôn hiển thị ở đầu sidebar, ngoài mọi điều kiện phân quyền
+    if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+        st.session_state.clear()
+        st.rerun()
+    st.divider()
+pg = st.navigation(pages)
