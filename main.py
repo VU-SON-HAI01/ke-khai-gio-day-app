@@ -420,6 +420,12 @@ else:
                 pages["Quản trị"].append(st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"))
             if not any(p.title == "Tạo user/email hàng loạt" for p in pages["Quản trị"]):
                 pages["Quản trị"].append(st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧"))
+        # Luôn hiển thị nút Đăng xuất ở sidebar cho phép chuyển đổi tài khoản
+        with st.sidebar:
+            st.divider()
+            if st.button("Đăng xuất", use_container_width=True, key="admin_logout"):
+                st.session_state.clear()
+                st.rerun()
         pg = st.navigation(pages)
         pg.run()
 
