@@ -422,10 +422,11 @@ else:
                 pages["Quản trị"].append(st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧"))
         # Luôn hiển thị nút Đăng xuất ở sidebar cho phép chuyển đổi tài khoản
         with st.sidebar:
-            st.divider()
-            if st.button("Đăng xuất", use_container_width=True, key="admin_logout"):
+            # Nút Đăng xuất luôn hiển thị ở đầu sidebar
+            if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
                 st.session_state.clear()
                 st.rerun()
+            st.divider()
         pg = st.navigation(pages)
         pg.run()
 
