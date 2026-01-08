@@ -67,11 +67,23 @@ def connect_as_service_account():
 try:
     sa_gspread_client, _ = connect_as_service_account()
     mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-    df_users = pd.DataFrame(mapping_sheet.get_all_records())
-    st.subheader(":blue[Danh sách user trong USER_MAPPING_WORKSHEET]")
-    st.dataframe(df_users)
+    records = mapping_sheet.get_all_records()
+    if isinstance(records, list) and records:
+        df_users = pd.DataFrame(records)
+        st.subheader(":blue[Danh sách user trong USER_MAPPING_WORKSHEET]")
+        st.dataframe(df_users)
+    elif isinstance(records, list) and not records:
+        st.warning("Sheet không có dữ liệu user.")
+    else:
+        st.warning(f"Sheet trả về dữ liệu không hợp lệ: {records}")
 except Exception as e:
-    st.warning(f"Không thể đọc danh sách user: {e}")
+    import traceback
+    if hasattr(e, 'content'):
+        st.warning(f"Không thể đọc danh sách user: {e.content}")
+    elif hasattr(e, 'response'):
+        st.warning(f"Không thể đọc danh sách user: {e.response}")
+    else:
+        st.warning(f"Không thể đọc danh sách user: {e}\n{traceback.format_exc()}")
 
 @st.cache_resource
 def connect_as_user(_token):
