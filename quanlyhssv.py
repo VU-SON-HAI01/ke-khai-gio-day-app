@@ -137,7 +137,7 @@ with col1:
     import json
     with open("data_base/viet_nam_tinh_thanh_mapping_objects.json", "r", encoding="utf-8") as f:
         mapping = json.load(f)
-    provinces_old = [f'{item["type"]} {item["old"]}' for item in mapping]
+    provinces_old = [""] + [f'{item["type"]} {item["old"]}' for item in mapping]
     provinces_new = [f'{item["type"]} {item["new"]}' for item in mapping]
     provinces_new = list(dict.fromkeys(provinces_new))
     def convert_province(old_full, mapping):
@@ -146,14 +146,15 @@ with col1:
                 return f'{item["type"]} {item["new"]}'
         return provinces_new[0]
     
+    noi_sinh_cu_default = "Tỉnh Đắk Lắk" if "noi_sinh_cu" not in st.session_state or not st.session_state["noi_sinh_cu"] else st.session_state["noi_sinh_cu"]
     noi_sinh_cu = st.selectbox(
         "Nơi sinh (Tỉnh cũ)",
         provinces_old,
-        index=provinces_old.index(st.session_state.get("noi_sinh_cu", provinces_old[0])) if st.session_state.get("noi_sinh_cu", provinces_old[0]) in provinces_old else 0,
+        index=provinces_old.index(noi_sinh_cu_default) if noi_sinh_cu_default in provinces_old else 0,
         key="noi_sinh_cu_select"
     )
     st.session_state["noi_sinh_cu"] = noi_sinh_cu
-    auto_new = convert_province(noi_sinh_cu, mapping)
+    auto_new = convert_province(noi_sinh_cu, mapping) if noi_sinh_cu else provinces_new[0]
     st.session_state["noi_sinh_moi"] = auto_new
     # Use a dynamic key to force re-render when noi_sinh_cu changes
     noi_sinh_moi = st.selectbox(
