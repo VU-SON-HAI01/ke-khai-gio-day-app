@@ -81,7 +81,14 @@ def connect_as_user(_token):
         st.session_state.token = None
         st.rerun()
         return None, None
-
+def map_role_label(role_code):
+    mapping = {
+        "giaovien": "Giảng viên",
+        "tuyensinh": "Tuyển sinh & HSSV",
+        "daotao": "Đào tạo & HSSV",
+        "admin": "Quản trị viên"
+    }
+    return mapping.get(role_code, role_code)
 
 def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uploaded_file):
     try:
@@ -272,7 +279,7 @@ else:
             ],
             "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")],
             "Quản trị": [
-                st.Page("quanlyhssv.py", title="Quản lý học sinh", icon="🛠️"),
+                st.Page("quanlyhssv.py", title="Nhập thông tin HSSV", icon="🛠️"),
                 st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
                 st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧")
             ]
@@ -386,6 +393,7 @@ else:
                 st.write(f"**Khoa/Phòng:** :green[{st.session_state.get('ten_khoa', ten_khoa)}]")
                 st.write(f"**Giờ chuẩn:** :green[{st.session_state.get('giochuan', '')}]")
                 st.write(f"**Chuẩn GV:** :green[{st.session_state.get('chuangv', '')}]")
+                st.write(f"**Chức năng:** :green[{map_role_label(st.session_state.get('phanquyen_user', ''))}]")
                 st.write(f"**Chức vụ:** :green[{st.session_state.get('ten_chucvu', '')}]")
                 st.divider()
             current_page_title = st.query_params.get("page", "Trang chủ")
@@ -424,12 +432,12 @@ else:
             else:
                 st.header(":green[THÔNG TIN ĐĂNG NHẬP]")
             st.write(f"**Tên:** :green[{st.session_state.get('ten_user', '')}]")
-            st.write(f"**Chức năng:** :green[{st.session_state.get('phanquyen_user', '')}]")
+            st.write(f"**Chức năng:** :green[{map_role_label(st.session_state.get('phanquyen_user', ''))}]")
             st.write(f"**Email:** :green[{user_email}]")
             st.divider()
         pages = {
             "Quản trị": [
-                st.Page("quanlyhssv.py", title="Quản lý học sinh", icon="🛠️"),
+                st.Page("quanlyhssv.py", title="Nhập thông tin HSSV", icon="🛠️"),
                 st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")
             ]
         }
