@@ -538,7 +538,9 @@ else:
             if phanquyen == "tuyensinh":
                 st.header(":green[THÔNG TIN TUYỂN SINH]")
             else:
-                st.header(":green[THÔNG TIN ĐÀO TẠO]")
+                st.header(":green[THÔNG TIN ĐĂNG NHẬP]")
+            st.write(f"**Tên:** :green[{st.session_state.get('ten_user', '')}]")
+            st.write(f"**Chức năng:** :green[{st.session_state.get('phanquyen_user', '')}]")
             st.write(f"**Email:** :green[{user_email}]")
             st.divider()
         pages = {
