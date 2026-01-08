@@ -96,199 +96,128 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
             df_upload['email'].str.strip().ne('') & df_upload['email'].str.lower().ne('nan')].last_valid_index()
 
         if last_valid_index is None:
-            st.warning("Không tìm thấy email hợp lệ nào trong file được tải lên.")
-            return
+            phanquyen = st.session_state.get('phanquyen', '').lower()
 
-        df_to_process = df_upload.loc[:last_valid_index]
-        st.info(f"Đã tìm thấy dữ liệu. Sẽ xử lý {len(df_to_process)} dòng.")
+            # Giao diện cho admin
+            if phanquyen == 'admin' or user_email == ADMIN_EMAIL:
+                with st.sidebar:
+                    if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+                        st.session_state.clear()
+                        st.rerun()
+                    st.header(":green[THÔNG TIN ADMIN]")
+                    st.write(f"**Email:** :green[{user_email}]")
+                    st.divider()
+                pages = {
+                    "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
+                    "Kê khai": [
+                        st.Page("quydoi_gioday.py", title="Kê giờ dạy", icon="✍️"),
+                        st.Page("quydoi_thiketthuc.py", title="Kê Thi kết thúc", icon="📝"),
+                        st.Page("quydoi_giamgio.py", title="Kê Giảm trừ/Kiêm nhiệm", icon="⚖️"),
+                        st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃"),
+                        st.Page("quydoi_gioday_admin.py", title="Kê giờ dạy (Admin)", icon="🛠️"),
+                        st.Page("lay_kegio_gv.py", title="Lấy kê giờ của GV (Admin)", icon="📧"),
+                        st.Page("kiemtra_quydoi_khac.py", title="Kiểm tra Quy Đổi Khác", icon="🔎")
+                    ],
+                    "Báo cáo": [
+                        st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")
+                    ],
+                    "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")],
+                    "Quản trị": [
+                        st.Page("quanlyhssv.py", title="Quản lý học sinh", icon="🛠️"),
+                        st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
+                        st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧")
+                    ]
+                }
+                pg = st.navigation(pages)
+                pg.run()
 
-        mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-        records = mapping_sheet.get_all_records()
-        df_map = pd.DataFrame(records)
+            # Giao diện cho giáo viên
+            elif phanquyen == 'giaovien':
+                # ...existing code xử lý dữ liệu và session_state...
+                if st.session_state.get('initialized'):
+                    ten_khoa = st.session_state.get('ten_khoa', '')
+                    magv = st.session_state.get('magv', '')
+                    df_khoa = st.session_state.get('df_khoa', pd.DataFrame())
+                    if magv and isinstance(df_khoa, pd.DataFrame) and not df_khoa.empty:
+                        ma_khoa = str(magv)[0]
+                        df_khoa['Mã_khoa'] = df_khoa['Mã_khoa'].astype(str)
+                        row = df_khoa[df_khoa['Mã_khoa'] == str(ma_khoa)]
+                        if not row.empty:
+                            ten_khoa = row.iloc[0]['Khoa/Phòng/Trung tâm']
+                    st.session_state.ten_khoa = ten_khoa
+                    with st.sidebar:
+                        if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+                            st.session_state.clear()
+                            st.rerun()
+                        st.header(":green[THÔNG TIN GIÁO VIÊN]")
+                        st.write(f"**Tên GV:** :green[{st.session_state.get('tengv', '')}]")
+                        st.write(f"**Mã GV:** :green[{st.session_state.get('magv', '')}]")
+                        st.write(f"**Khoa/Phòng:** :green[{st.session_state.get('ten_khoa', ten_khoa)}]")
+                        st.write(f"**Giờ chuẩn:** :green[{st.session_state.get('giochuan', '')}]")
+                        st.write(f"**Chuẩn GV:** :green[{st.session_state.get('chuangv', '')}]")
+                        st.write(f"**Chức vụ:** :green[{st.session_state.get('ten_chucvu', '')}]")
+                        st.divider()
+                    pages = {
+                        "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
+                        "Kê khai": [
+                            st.Page("quydoi_gioday.py", title="Kê giờ dạy", icon="✍️"),
+                            st.Page("quydoi_thiketthuc.py", title="Kê Thi kết thúc", icon="📝"),
+                            st.Page("quydoi_giamgio.py", title="Kê Giảm trừ/Kiêm nhiệm", icon="⚖️"),
+                            st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃"),
+                        ],
+                        "Báo cáo": [
+                            st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")
+                        ],
+                        "Trợ giúp": [
+                            st.Page("huongdan.py", title="Hướng dẫn", icon="❓"),
+                            st.Page("tao_lopghep_tach.py", title="Tạo lớp ghép hoặc chia ca", icon="🧩")
+                        ]
+                    }
+                    pg = st.navigation(pages)
+                    pg.run()
 
-        existing_files_q = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
-        response = admin_drive_service.files().list(q=existing_files_q, fields='files(name)').execute()
-        existing_filenames = {file['name'] for file in response.get('files', [])}
+            # Giao diện cho tuyển sinh
+            elif phanquyen == 'tuyensinh':
+                with st.sidebar:
+                    if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+                        st.session_state.clear()
+                        st.rerun()
+                    st.header(":green[THÔNG TIN TUYỂN SINH]")
+                    st.write(f"**Email:** :green[{user_email}]")
+                    st.divider()
+                pages = {
+                    "Quản trị": [
+                        st.Page("quanlyhssv.py", title="Quản lý học sinh", icon="🛠️"),
+                        st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")
+                    ]
+                }
+                pg = st.navigation(pages)
+                pg.run()
 
-        st.write("--- Bắt đầu xử lý ---")
-        progress_bar = st.progress(0)
-        status_area = st.container()
-        log_messages = []
-        rows_to_add = []
-
-        for index, row in df_to_process.iterrows():
-            new_email = str(row.get('email', '')).strip()
-            new_magv_str = str(row.get('magv', '')).strip()
-
-            if not new_email or not new_magv_str or new_email.lower() == 'nan':
-                continue
-
-            if new_magv_str not in existing_filenames:
-                copied_file_metadata = {'name': new_magv_str, 'parents': [folder_id]}
-                copied_file = admin_drive_service.files().copy(fileId=TEMPLATE_FILE_ID,
-                                                               body=copied_file_metadata).execute()
-                admin_drive_service.permissions().create(
-                    fileId=copied_file.get('id'),
-                    body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
-                    sendNotificationEmail=True
-                ).execute()
-                log_messages.append(f"✅ Đã tạo file '{new_magv_str}' và chia sẻ cho {new_email}.")
-                existing_filenames.add(new_magv_str)
-
-            email_exists = not df_map.empty and new_email in df_map['email'].values
-            magv_exists = not df_map.empty and new_magv_str in df_map['magv'].astype(str).values
-
-            if not email_exists and not magv_exists:
-                rows_to_add.append([new_email, new_magv_str])
-                log_messages.append(f"✅ Sẽ thêm vào bảng phân quyền: {new_email} -> {new_magv_str}.")
-
-            status_area.info("\n".join(log_messages[-5:]))
-            progress_bar.progress((index + 1) / len(df_to_process))
-
-        if rows_to_add:
-            mapping_sheet.append_rows(rows_to_add)
-            st.success(f"Đã thêm thành công {len(rows_to_add)} người dùng mới vào bảng phân quyền.")
-
-        st.success("--- Xử lý hàng loạt hoàn tất! ---")
-        st.balloons()
-
-    except Exception as e:
-        st.error(f"Đã xảy ra lỗi trong quá trình xử lý hàng loạt: {e}")
-
-
-def update_user_email(admin_drive_service, sa_gspread_client, magv_to_update, old_email, new_email):
-    # (Hàm này được giữ nguyên, không thay đổi)
-    try:
-        spreadsheet = sa_gspread_client.open(magv_to_update)
-        file_id = spreadsheet.id
-
-        permissions = admin_drive_service.permissions().list(fileId=file_id,
-                                                             fields="permissions(id, emailAddress)").execute()
-        permission_id_to_delete = None
-        for p in permissions.get('permissions', []):
-            if p.get('emailAddress') == old_email:
-                permission_id_to_delete = p.get('id')
-                break
-
-        if permission_id_to_delete:
-            admin_drive_service.permissions().delete(fileId=file_id, permissionId=permission_id_to_delete).execute()
-
-        admin_drive_service.permissions().create(
-            fileId=file_id,
-            body={'type': 'user', 'role': 'writer', 'emailAddress': new_email},
-            sendNotificationEmail=True
-        ).execute()
-
-        mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-        cell = mapping_sheet.find(old_email)
-        if cell:
-            mapping_sheet.update_cell(cell.row, cell.col, new_email)
-
-        return True, f"Đã cập nhật thành công email cho Mã GV '{magv_to_update}' từ '{old_email}' sang '{new_email}'."
-
-    except gspread.exceptions.SpreadsheetNotFound:
-        return False, f"Lỗi: Không tìm thấy file Google Sheet có tên '{magv_to_update}'."
-    except Exception as e:
-        return False, f"Đã xảy ra lỗi trong quá trình cập nhật: {e}"
-
-@st.cache_data(ttl=600)
-def load_all_base_data(_sa_gspread_client, _sa_drive_service, base_path='data_base/'):
-    """
-    Tải tất cả các file dữ liệu nền từ Google Sheet quản trị và một số file Parquet cục bộ.
-    """
-    loaded_dfs = {}
-
-    # --- Định nghĩa các nguồn dữ liệu ---
-    # Các file template Parquet tải từ local
-    local_parquet_templates = {
-        'mau_kelop': 'mau_kelop.parquet',
-        'mau_quydoi': 'mau_quydoi.parquet'
-    }
-
-    # Các sheet dữ liệu chính tải từ Google Sheet "DATA_KEGIO"
-    sheets_to_load = {
-        'df_giaovien': 'DS_GIAOVIEN',
-        'df_hesosiso': 'HESOSISO',
-        'df_khoa': 'MA_KHOA',
-        'df_mon': 'DSMON',
-        'df_nangnhoc': 'NANG_NHOC',
-        'df_ngaytuan': 'TUAN_NGAY',
-        'df_lop': 'DSLOP',
-        'df_lopghep': 'DSLOP_GHEP',
-        'df_loptach': 'DSLOP_TACH',
-        'df_lopsc': 'DSLOP_SC',
-        'df_quydoi_hd': 'QUYDOI_HD',
-        'df_quydoi_hd_them': 'QUYDOIKHAC',
-        'df_giochuan': 'GIO_CHUAN'
-    }
-
-    total_items = len(local_parquet_templates) + len(sheets_to_load)
-    progress_bar = st.progress(0, text="Đang khởi tạo tải dữ liệu...")
-    items_processed = 0
-
-    # --- 1. Tải các file Parquet template cục bộ ---
-    for df_key, file_name in local_parquet_templates.items():
-        items_processed += 1
-        progress_text = f"Đang tải template {file_name}..."
-        progress_bar.progress(items_processed / total_items, text=progress_text)
-        try:
-            df = pd.read_parquet(os.path.join(base_path, file_name), engine='pyarrow')
-            loaded_dfs[df_key] = df
-        except Exception as e:
-            st.warning(f"Không thể tải file template cục bộ '{file_name}': {e}")
-            loaded_dfs[df_key] = pd.DataFrame()  # Khởi tạo DF rỗng nếu lỗi
-
-    # --- 2. Tải dữ liệu từ Google Sheet ---
-    try:
-        # Tìm ID của folder "DỮ_LIỆU_QUẢN_TRỊ"
-        folder_query = f"mimeType='application/vnd.google-apps.folder' and name='{ADMIN_DATA_FOLDER_NAME}' and trashed=false"
-        folder_response = _sa_drive_service.files().list(q=folder_query, fields='files(id)').execute()
-        folders = folder_response.get('files', [])
-        if not folders:
-            raise FileNotFoundError(f"Không tìm thấy thư mục quản trị có tên '{ADMIN_DATA_FOLDER_NAME}'.")
-        folder_id = folders[0].get('id')
-
-        # Tìm ID của file "DATA_KEGIO" bên trong folder đó
-        file_query = f"name='{ADMIN_DATA_SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and '{folder_id}' in parents and trashed=false"
-        file_response = _sa_drive_service.files().list(q=file_query, fields='files(id)').execute()
-        files = file_response.get('files', [])
-        if not files:
-            raise FileNotFoundError(f"Không tìm thấy file '{ADMIN_DATA_SHEET_NAME}' trong thư mục '{ADMIN_DATA_FOLDER_NAME}'.")
-        file_id = files[0].get('id')
-
-        # Mở file bằng ID
-        admin_data_sheet = _sa_gspread_client.open_by_key(file_id)
-
-        # Tải lần lượt các sheet đã định nghĩa
-        for df_key, sheet_name in sheets_to_load.items():
-            items_processed += 1
-            progress_text = f"Đang tải sheet '{sheet_name}'..."
-            progress_bar.progress(items_processed / total_items, text=progress_text)
-            try:
-                worksheet = admin_data_sheet.worksheet(sheet_name)
-                df = pd.DataFrame(worksheet.get_all_records())
-                loaded_dfs[df_key] = df
-            except gspread.exceptions.WorksheetNotFound:
-                st.warning(f"Không tìm thấy sheet '{sheet_name}' trong file '{ADMIN_DATA_SHEET_NAME}'.")
-                loaded_dfs[df_key] = pd.DataFrame()  # Khởi tạo DF rỗng nếu lỗi
-            except Exception as e_sheet:
-                st.error(f"Lỗi khi tải sheet '{sheet_name}': {e_sheet}")
-                loaded_dfs[df_key] = pd.DataFrame()  # Khởi tạo DF rỗng nếu lỗi
+            # Giao diện cho đào tạo
+            elif phanquyen == 'daotao':
+                with st.sidebar:
+                    if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+                        st.session_state.clear()
+                        st.rerun()
+                    st.header(":green[THÔNG TIN ĐÀO TẠO]")
+                    st.write(f"**Email:** :green[{user_email}]")
+                    st.divider()
+                pages = {
+                    "Quản trị": [
+                        st.Page("quanlyhssv.py", title="Quản lý học sinh", icon="🛠️"),
+                        st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")
+                    ]
+                }
+                pg = st.navigation(pages)
+                pg.run()
 
     except (gspread.exceptions.SpreadsheetNotFound, FileNotFoundError) as e:
         st.error(f"Lỗi truy cập file dữ liệu quản trị '{ADMIN_DATA_SHEET_NAME}': {e}")
-        # Khởi tạo tất cả các DF rỗng nếu không tìm thấy file chính
-        for df_key in sheets_to_load.keys():
-            if df_key not in loaded_dfs:
-                loaded_dfs[df_key] = pd.DataFrame()
+        return {}
     except Exception as e_main:
         st.error(f"Lỗi không xác định khi tải dữ liệu từ Google Sheet: {e_main}")
-        for df_key in sheets_to_load.keys():
-            if df_key not in loaded_dfs:
-                loaded_dfs[df_key] = pd.DataFrame()
-
-    progress_bar.empty()
-    return loaded_dfs
+        return {}
 
 
 def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
@@ -384,161 +313,137 @@ else:
         with st.sidebar:
             if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
                 st.session_state.clear()
-            elif phanquyen in ["tuyensinh", "daotao"]:
-                # Chỉ cho phép truy cập 2 page đặc biệt
-                with st.sidebar:
-                    if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
-                        st.session_state.clear()
-                        st.rerun()
-                    st.header(":green[THÔNG TIN NGƯỜI DÙNG]")
-                    st.write(f"**Email:** :green[{user_email}]")
-                    st.write(f"**Phân quyền:** :green[{phanquyen}]")
-                    st.divider()
-                pages = {
-                    "Quản trị": [
-                        st.Page("quanlyhssv.py", title="Quản lý học sinh", icon="🛠️"),
-                        st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")
-                    ]
-                }
-                pg = st.navigation(pages)
-                pg.run()
-            else:
-                # --- GIAO DIỆN CỦA USER THƯỜNG ---
-                if 'initialized' not in st.session_state:
-                    with st.spinner("Đang kiểm tra quyền và tải dữ liệu..."):
-                        sa_gspread_client, sa_drive_service = connect_as_service_account()
-                        if not sa_gspread_client or not sa_drive_service: st.stop()
+        st.header(":green[THÔNG TIN ADMIN]")
+        st.write(f"**Email:** :green[{user_email}]")
+        st.divider()
+        # Chức năng upload file Excel tạo user/email hàng loạt
+        st.subheader(":blue[Upload file Excel tạo user/email hàng loạt]")
+        uploaded_file = st.file_uploader("Chọn file Excel (có cột email, magv)", type=["xlsx", "xls"], key="admin_upload_excel")
+        if uploaded_file is not None:
+            sa_gspread_client, sa_drive_service = connect_as_service_account()
+            folder_id = None  # Nếu cần folder_id, có thể lấy từ config hoặc secrets
+            bulk_provision_users(sa_drive_service, sa_gspread_client, folder_id, uploaded_file)
+        st.divider()
+        # Navigation cho admin như cũ
+        pages = {
+            "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
+            "Kê khai": [
+                st.Page("quydoi_gioday.py", title="Kê giờ dạy", icon="✍️"),
+                st.Page("quydoi_thiketthuc.py", title="Kê Thi kết thúc", icon="📝"),
+                st.Page("quydoi_giamgio.py", title="Kê Giảm trừ/Kiêm nhiệm", icon="⚖️"),
+                st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃"),
+                st.Page("quydoi_gioday_admin.py", title="Kê giờ dạy (Admin)", icon="🛠️"),
+                st.Page("lay_kegio_gv.py", title="Lấy kê giờ của GV (Admin)", icon="📧"),
+                st.Page("kiemtra_quydoi_khac.py", title="Kiểm tra Quy Đổi Khác", icon="🔎")
+            ],
+            "Báo cáo": [
+                st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")
+            ],
+            "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")],
+            "Quản trị": [
+                st.Page("quanlyhssv.py", title="Quản lý học sinh", icon="🛠️"),
+                st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
+                st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧")
+            ]
+        }
+        pg = st.navigation(pages)
+        pg.run()
+    elif phanquyen == "giaovien":
+        # Giao diện giáo viên (sidebar/navigation chi tiết)
+        if 'initialized' not in st.session_state:
+            with st.spinner("Đang kiểm tra quyền và tải dữ liệu..."):
+                sa_gspread_client, sa_drive_service = connect_as_service_account()
+                if not sa_gspread_client or not sa_drive_service:
+                    st.stop()
 
-                        magv, spreadsheet = get_user_spreadsheet(sa_gspread_client, user_email)
+                magv, spreadsheet = get_user_spreadsheet(sa_gspread_client, user_email)
 
-                        # Lấy phân quyền từ sheet
+                # Lấy phân quyền từ sheet
+                try:
+                    mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+                    df_map = pd.DataFrame(mapping_sheet.get_all_records())
+                    user_row = df_map[df_map['email'] == user_email]
+                    if not user_row.empty:
+                        phanquyen = user_row.iloc[0].get('phanquyen', '').strip().lower()
+                        st.session_state.phanquyen = phanquyen
+                    else:
+                        st.session_state.phanquyen = ''
+                except Exception as e:
+                    st.session_state.phanquyen = ''
+
+                if magv and spreadsheet:
+                    def load_all_base_data(sa_gspread_client, sa_drive_service):
+                        data = {}
                         try:
-                            mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-                            df_map = pd.DataFrame(mapping_sheet.get_all_records())
-                            user_row = df_map[df_map['email'] == user_email]
-                            if not user_row.empty:
-                                phanquyen = user_row.iloc[0].get('phanquyen', '').strip().lower()
-                                st.session_state.phanquyen = phanquyen
-                            else:
-                                st.session_state.phanquyen = ''
-                        except Exception as e:
-                            st.session_state.phanquyen = ''
+                            data['df_giaovien'] = pd.DataFrame(sa_gspread_client.open(ADMIN_DATA_SHEET_NAME).worksheet('GIAOVIEN').get_all_records())
+                        except Exception:
+                            data['df_giaovien'] = pd.DataFrame()
+                        try:
+                            data['df_khoa'] = pd.DataFrame(sa_gspread_client.open(ADMIN_DATA_SHEET_NAME).worksheet('KHOA').get_all_records())
+                        except Exception:
+                            data['df_khoa'] = pd.DataFrame()
+                        try:
+                            data['df_giochuan'] = pd.DataFrame(sa_gspread_client.open(ADMIN_DATA_SHEET_NAME).worksheet('GIOCHUAN').get_all_records())
+                        except Exception:
+                            data['df_giochuan'] = pd.DataFrame()
+                        try:
+                            data['df_quydoi_hd'] = pd.DataFrame(sa_gspread_client.open(ADMIN_DATA_SHEET_NAME).worksheet('QUYDOI_HD').get_all_records())
+                        except Exception:
+                            data['df_quydoi_hd'] = pd.DataFrame()
+                        try:
+                            data['df_quydoi_hd_them'] = pd.DataFrame(sa_gspread_client.open(ADMIN_DATA_SHEET_NAME).worksheet('QUYDOIKHAC').get_all_records())
+                        except Exception:
+                            data['df_quydoi_hd_them'] = pd.DataFrame()
+                        return data
 
-                        if magv and spreadsheet:
-                            all_base_data = load_all_base_data(sa_gspread_client, sa_drive_service) 
-                
-                            if all_base_data.get('df_giaovien').empty or all_base_data.get('df_khoa').empty:
-                                st.error("Không thể tải dữ liệu giáo viên hoặc khoa. Vui lòng liên hệ Admin.")
-                                st.stop()
-                
-                            teacher_info = get_teacher_info_from_local(magv, all_base_data.get('df_giaovien'), all_base_data.get('df_khoa'))
+                    all_base_data = load_all_base_data(sa_gspread_client, sa_drive_service)
 
-                            if teacher_info:
-                                st.session_state.magv = magv
-                                st.session_state.spreadsheet = spreadsheet
-                                for key, df_data in all_base_data.items():
-                                    st.session_state[key] = df_data
-                                st.session_state.tengv = teacher_info.get('Tên giảng viên')
-                                st.session_state.ten_khoa = teacher_info.get('ten_khoa')
-                                st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
-                                st.session_state.chucvu_hientai = teacher_info.get('Chức vụ_HT', 'GV')
-                                # Ánh xạ Ten_chucvu từ df_giochuan dựa vào chucvu_hientai
+                    if all_base_data.get('df_giaovien').empty or all_base_data.get('df_khoa').empty:
+                        st.error("Không thể tải dữ liệu giáo viên hoặc khoa. Vui lòng liên hệ Admin.")
+                        st.stop()
 
-                                df_giochuan = all_base_data.get('df_giochuan', pd.DataFrame())
-                                ten_chucvu = ''
-                                if isinstance(df_giochuan, pd.DataFrame) and not df_giochuan.empty:
-                                    row = df_giochuan[df_giochuan['Chuẩn_gv'].astype(str).str.upper() == str(st.session_state.chucvu_hientai).upper()]
-                                    if not row.empty and 'Ten_chucvu' in row.columns:
-                                        ten_chucvu = row.iloc[0]['Ten_chucvu']
-                                st.session_state.ten_chucvu = ten_chucvu
-                                # Ánh xạ giờ chuẩn từ df_giochuan nếu có
-                                df_giochuan = all_base_data.get('df_giochuan', pd.DataFrame())
-                                giochuan_value = 594
-                                if isinstance(df_giochuan, pd.DataFrame) and not df_giochuan.empty:
-                                    row = df_giochuan[df_giochuan['Chuẩn_gv'].astype(str).str.lower() == str(st.session_state.chuangv).lower()]
-                                    if not row.empty:
-                                        giochuan_value = row.iloc[0].get('Giờ_chuẩn', 594)
-                                st.session_state.giochuan = giochuan_value
-                                # Đảm bảo teacher_info luôn có trong session_state
-                                st.session_state.teacher_info = teacher_info
-                                st.session_state.initialized = True
-                                st.rerun()
-                            else:
-                                st.error(f"Đã xác thực nhưng không tìm thấy thông tin chi tiết cho Mã GV: {magv} trong dữ liệu cục bộ.")
-                                st.stop()
+                    teacher_info = get_teacher_info_from_local(magv, all_base_data.get('df_giaovien'), all_base_data.get('df_khoa'))
 
-                    # Hiển thị thông tin giáo viên trong sidebar (chỉ cho giáo viên)
-                    if st.session_state.get('initialized') and st.session_state.get('phanquyen', '').lower() == 'giaovien':
-                        # Lấy tên khoa/phòng/trung tâm từ df_khoa dựa vào ký tự đầu của magv (đặt ngoài sidebar cho gọn)
-                        ten_khoa = st.session_state.get('ten_khoa', '')
-                        magv = st.session_state.get('magv', '')
-                        df_khoa = st.session_state.get('df_khoa', pd.DataFrame())
-
-                        if magv and isinstance(df_khoa, pd.DataFrame) and not df_khoa.empty:
-                            ma_khoa = str(magv)[0]
-                            # Đưa cả 2 về str để so sánh an toàn
-                            df_khoa['Mã_khoa'] = df_khoa['Mã_khoa'].astype(str)
-                            row = df_khoa[df_khoa['Mã_khoa'] == str(ma_khoa)]
+                    if teacher_info:
+                        st.session_state.magv = magv
+                        st.session_state.spreadsheet = spreadsheet
+                        for key, df_data in all_base_data.items():
+                            st.session_state[key] = df_data
+                        st.session_state.tengv = teacher_info.get('Tên giảng viên')
+                        st.session_state.ten_khoa = teacher_info.get('ten_khoa')
+                        st.session_state.chuangv = teacher_info.get('Chuẩn GV', 'Cao đẳng')
+                        st.session_state.chucvu_hientai = teacher_info.get('Chức vụ_HT', 'GV')
+                        df_giochuan = all_base_data.get('df_giochuan', pd.DataFrame())
+                        ten_chucvu = ''
+                        if isinstance(df_giochuan, pd.DataFrame) and not df_giochuan.empty:
+                            row = df_giochuan[df_giochuan['Chuẩn_gv'].astype(str).str.upper() == str(st.session_state.chucvu_hientai).upper()]
+                            if not row.empty and 'Ten_chucvu' in row.columns:
+                                ten_chucvu = row.iloc[0]['Ten_chucvu']
+                        st.session_state.ten_chucvu = ten_chucvu
+                        df_giochuan = all_base_data.get('df_giochuan', pd.DataFrame())
+                        giochuan_value = 594
+                        if isinstance(df_giochuan, pd.DataFrame) and not df_giochuan.empty:
+                            row = df_giochuan[df_giochuan['Chuẩn_gv'].astype(str).str.lower() == str(st.session_state.chuangv).lower()]
                             if not row.empty:
-                                ten_khoa = row.iloc[0]['Khoa/Phòng/Trung tâm']
-                        # Gán lại vào session_state để các file khác dùng chung
-                        st.session_state.ten_khoa = ten_khoa
+                                giochuan_value = row.iloc[0].get('Giờ_chuẩn', 594)
+                        st.session_state.giochuan = giochuan_value
+                        st.session_state.teacher_info = teacher_info
+                        st.session_state.initialized = True
+                        st.rerun()
+                    else:
+                        st.error(f"Đã xác thực nhưng không tìm thấy thông tin chi tiết cho Mã GV: {magv} trong dữ liệu cục bộ.")
+                        st.stop()
 
-                        with st.sidebar:
-                            if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
-                                st.session_state.clear()
-                                st.rerun()
-                            st.header(":green[THÔNG TIN GIÁO VIÊN]")
-                            st.write(f"**Tên GV:** :green[{st.session_state.get('tengv', '')}]")
-                            st.write(f"**Mã GV:** :green[{st.session_state.get('magv', '')}]")
-                            st.write(f"**Khoa/Phòng:** :green[{st.session_state.get('ten_khoa', ten_khoa)}]")
-                            st.write(f"**Giờ chuẩn:** :green[{st.session_state.get('giochuan', '')}]")
-                            st.write(f"**Chuẩn GV:** :green[{st.session_state.get('chuangv', '')}]")
-                            st.write(f"**Chức vụ:** :green[{st.session_state.get('ten_chucvu', '')}]")
-                            st.divider()
-                        # <<<--- BẮT ĐẦU PHẦN CODE MỚI --- >>>
-                        # LOGIC ĐỂ TỰ ĐỘNG TẢI LẠI DỮ LIỆU KHI CHUYỂN TRANG
-                        # Lấy tên trang hiện tại từ URL query params. 'st.navigation' tự động cập nhật param 'page'.
-                        # Nếu không có param 'page' (lần chạy đầu tiên), mặc định là 'Trang chủ'.
-                        current_page_title = st.query_params.get("page", "Trang chủ")
-
-                        # Lấy tên trang đã lưu từ lần chạy trước
-                        previous_page_title = st.session_state.get('current_page_title', None)
-
-                        # Nếu trang đã thay đổi so với lần trước, đặt cờ yêu cầu tải lại dữ liệu
-                        if previous_page_title != current_page_title:
-                            st.session_state['force_page_reload'] = True
-                            # Cập nhật trang hiện tại vào session state để so sánh cho lần sau
-                            st.session_state['current_page_title'] = current_page_title
-                        # <<<--- KẾT THÚC PHẦN CODE MỚI --- >>>
-
-                        pages = {
-                            "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
-                            "Kê khai": [
-                                st.Page("quydoi_gioday.py", title="Kê giờ dạy", icon="✍️"),
-                                st.Page("quydoi_thiketthuc.py", title="Kê Thi kết thúc", icon="📝"),
-                                st.Page("quydoi_giamgio.py", title="Kê Giảm trừ/Kiêm nhiệm", icon="⚖️"),
-                                st.Page("quydoi_hoatdong.py", title="Kê Hoạt động khác", icon="🏃"),
-                            ],
-                            "Báo cáo": [
-                                st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")
-                            ],
-                            "Trợ giúp": [
-                                st.Page("huongdan.py", title="Hướng dẫn", icon="❓"),
-                                st.Page("tao_lopghep_tach.py", title="Tạo lớp ghép hoặc chia ca", icon="🧩")
-                            ]
-                        }
-                        # Thêm trang admin nếu là admin
-                        if user_email == ADMIN_EMAIL:
-                            pages["Quản trị"] = [st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")]
-                        pg = st.navigation(pages)
-                        pg.run()
-                # Đưa cả 2 về str để so sánh an toàn
+        if st.session_state.get('initialized'):
+            ten_khoa = st.session_state.get('ten_khoa', '')
+            magv = st.session_state.get('magv', '')
+            df_khoa = st.session_state.get('df_khoa', pd.DataFrame())
+            if magv and isinstance(df_khoa, pd.DataFrame) and not df_khoa.empty:
+                ma_khoa = str(magv)[0]
                 df_khoa['Mã_khoa'] = df_khoa['Mã_khoa'].astype(str)
                 row = df_khoa[df_khoa['Mã_khoa'] == str(ma_khoa)]
                 if not row.empty:
                     ten_khoa = row.iloc[0]['Khoa/Phòng/Trung tâm']
-            # Gán lại vào session_state để các file khác dùng chung
             st.session_state.ten_khoa = ten_khoa
             with st.sidebar:
                 if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
@@ -552,23 +457,11 @@ else:
                 st.write(f"**Chuẩn GV:** :green[{st.session_state.get('chuangv', '')}]")
                 st.write(f"**Chức vụ:** :green[{st.session_state.get('ten_chucvu', '')}]")
                 st.divider()
-            
-            # <<<--- BẮT ĐẦU PHẦN CODE MỚI --- >>>
-            # LOGIC ĐỂ TỰ ĐỘNG TẢI LẠI DỮ LIỆU KHI CHUYỂN TRANG
-            # Lấy tên trang hiện tại từ URL query params. 'st.navigation' tự động cập nhật param 'page'.
-            # Nếu không có param 'page' (lần chạy đầu tiên), mặc định là 'Trang chủ'.
             current_page_title = st.query_params.get("page", "Trang chủ")
-
-            # Lấy tên trang đã lưu từ lần chạy trước
             previous_page_title = st.session_state.get('current_page_title', None)
-
-            # Nếu trang đã thay đổi so với lần trước, đặt cờ yêu cầu tải lại dữ liệu
             if previous_page_title != current_page_title:
                 st.session_state['force_page_reload'] = True
-                # Cập nhật trang hiện tại vào session state để so sánh cho lần sau
                 st.session_state['current_page_title'] = current_page_title
-            # <<<--- KẾT THÚC PHẦN CODE MỚI --- >>>
-
             pages = {
                 "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
                 "Kê khai": [
@@ -585,8 +478,27 @@ else:
                     st.Page("tao_lopghep_tach.py", title="Tạo lớp ghép hoặc chia ca", icon="🧩")
                 ]
             }
-            # Thêm trang admin nếu là admin
             if user_email == ADMIN_EMAIL:
                 pages["Quản trị"] = [st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")]
             pg = st.navigation(pages)
             pg.run()
+    elif phanquyen in ["tuyensinh", "daotao"]:
+        # Giao diện tối giản cho tuyển sinh và đào tạo
+        with st.sidebar:
+            if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+                st.session_state.clear()
+                st.rerun()
+            if phanquyen == "tuyensinh":
+                st.header(":green[THÔNG TIN TUYỂN SINH]")
+            else:
+                st.header(":green[THÔNG TIN ĐÀO TẠO]")
+            st.write(f"**Email:** :green[{user_email}]")
+            st.divider()
+        pages = {
+            "Quản trị": [
+                st.Page("quanlyhssv.py", title="Quản lý học sinh", icon="🛠️"),
+                st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")
+            ]
+        }
+        pg = st.navigation(pages)
+        pg.run()
