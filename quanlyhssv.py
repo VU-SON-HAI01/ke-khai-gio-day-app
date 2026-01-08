@@ -5,7 +5,7 @@ import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Quản lý HSSV", layout="wide")
-st.title("THÔNG TIN HSSV VÀ QUẢN LÝ HSSV")
+st.title("NHẬP THÔNG TIN NGƯỜI HỌC (TUYỂN SINH)")
 
 # Các trường thông tin
 fields = [
