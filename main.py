@@ -478,9 +478,7 @@ else:
                     st.error("Tài khoản của bạn chưa được đăng ký trong hệ thống.")
                     st.warning(f"Vui lòng liên hệ Admin ({ADMIN_EMAIL}) để được cấp quyền truy cập.")
                     st.stop()
-        if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
-            st.session_state.clear()
-            st.rerun()
+
         # Hiển thị thông tin giáo viên trong sidebar
         if st.session_state.get('initialized'):
             # Lấy tên khoa/phòng/trung tâm từ df_khoa dựa vào ký tự đầu của magv (đặt ngoài sidebar cho gọn)
