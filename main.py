@@ -370,6 +370,13 @@ else:
     
     # --- PHÂN QUYỀN VÀ HIỂN THỊ GIAO DIỆN ---
     if user_email == ADMIN_EMAIL:
+        with st.sidebar:
+            if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+                st.session_state.clear()
+                st.rerun()
+            st.header(":green[THÔNG TIN ADMIN]")
+            st.write(f"**Email:** :green[{user_email}]")
+            st.divider()
         # Đảm bảo admin cũng thực hiện load base_data như user thường
         if 'initialized' not in st.session_state:
             with st.spinner("Đang kiểm tra quyền và tải dữ liệu quản trị (Admin)..."):
