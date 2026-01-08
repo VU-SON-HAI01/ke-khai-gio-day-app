@@ -11,7 +11,7 @@ import os
 
 # --- CẤU HÌNH BAN ĐẦU ---
 st.set_page_config(layout="wide", page_title="Hệ thống Kê khai Giờ giảng")
-st.image("image/Logo_caodangdaklak_top.png", use_container_width=True)
+st.image("image/banner-top-phanmem.jpg", use_container_width=True)
 
 # --- TẢI CẤU HÌNH TỪ STREAMLIT SECRETS ---
 try:
