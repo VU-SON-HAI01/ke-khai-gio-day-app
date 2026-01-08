@@ -64,26 +64,6 @@ def connect_as_service_account():
     except Exception as e:
         st.error(f"Lỗi kết nối với tư cách Service Account: {e}")
         return None, None
-try:
-    sa_gspread_client, _ = connect_as_service_account()
-    mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
-    records = mapping_sheet.get_all_records()
-    if isinstance(records, list) and records:
-        df_users = pd.DataFrame(records)
-        st.subheader(":blue[Danh sách user trong USER_MAPPING_WORKSHEET]")
-        st.dataframe(df_users)
-    elif isinstance(records, list) and not records:
-        st.warning("Sheet không có dữ liệu user.")
-    else:
-        st.warning(f"Sheet trả về dữ liệu không hợp lệ: {records}")
-except Exception as e:
-    import traceback
-    if hasattr(e, 'content'):
-        st.warning(f"Không thể đọc danh sách user: {e.content}")
-    elif hasattr(e, 'response'):
-        st.warning(f"Không thể đọc danh sách user: {e.response}")
-    else:
-        st.warning(f"Không thể đọc danh sách user: {e}\n{traceback.format_exc()}")
 
 @st.cache_resource
 def connect_as_user(_token):
@@ -330,6 +310,26 @@ else:
     phanquyen = st.session_state.get('phanquyen', '').lower()
 
     def main_page():
+        try:
+            sa_gspread_client, _ = connect_as_service_account()
+            mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+            records = mapping_sheet.get_all_records()
+            if isinstance(records, list) and records:
+                df_users = pd.DataFrame(records)
+                st.subheader(":blue[Danh sách user trong USER_MAPPING_WORKSHEET]")
+                st.dataframe(df_users)
+            elif isinstance(records, list) and not records:
+                st.warning("Sheet không có dữ liệu user.")
+            else:
+                st.warning(f"Sheet trả về dữ liệu không hợp lệ: {records}")
+        except Exception as e:
+            import traceback
+            if hasattr(e, 'content'):
+                st.warning(f"Không thể đọc danh sách user: {e.content}")
+            elif hasattr(e, 'response'):
+                st.warning(f"Không thể đọc danh sách user: {e.response}")
+            else:
+                st.warning(f"Không thể đọc danh sách user: {e}\n{traceback.format_exc()}")
         welcome_name = st.session_state.get('tengv', user_info.get('name', ''))
         st.header(f"Chào mừng, {welcome_name}!")
         st.info("Đây là trang chính của hệ thống. Vui lòng chọn chức năng từ menu bên trái.")
