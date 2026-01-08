@@ -492,9 +492,10 @@ else:
                     ten_khoa = row.iloc[0]['Khoa/Phòng/Trung tâm']
             # Gán lại vào session_state để các file khác dùng chung
             st.session_state.ten_khoa = ten_khoa
-
-
             with st.sidebar:
+                if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+                    st.session_state.clear()
+                    st.rerun()
                 st.header(":green[THÔNG TIN GIÁO VIÊN]")
                 st.write(f"**Tên GV:** :green[{st.session_state.get('tengv', '')}]")
                 st.write(f"**Mã GV:** :green[{st.session_state.get('magv', '')}]")
@@ -541,9 +542,7 @@ else:
                 pages["Quản trị"] = [st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")]
             pg = st.navigation(pages)
             pg.run()
-with st.sidebar:
-    # Nút Đăng xuất luôn hiển thị ở đầu sidebar, ngoài mọi điều kiện phân quyền
-    if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
-        st.session_state.clear()
-        st.rerun()
 
+if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+    st.session_state.clear()
+    st.rerun()
