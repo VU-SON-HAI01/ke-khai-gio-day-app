@@ -310,7 +310,6 @@ def get_teacher_info_from_local(magv, df_giaovien, df_khoa):
 
 
 def get_user_spreadsheet(sa_gspread_client, email):
-    # (Hàm này được giữ nguyên, không thay đổi)
     try:
         mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
         df = pd.DataFrame(mapping_sheet.get_all_records())
@@ -318,11 +317,17 @@ def get_user_spreadsheet(sa_gspread_client, email):
         if user_row.empty:
             return None, None
         magv = str(user_row.iloc[0]['magv'])
-        spreadsheet = sa_gspread_client.open(magv)
-        return magv, spreadsheet
-    except gspread.exceptions.SpreadsheetNotFound as e:
-        st.error(f"Lỗi: Không tìm thấy file Google Sheet được gán cho bạn (tên file mong muốn: {e.args[0]}). Vui lòng liên hệ Admin.")
-        return None, None
+        try:
+            spreadsheet = sa_gspread_client.open(magv)
+            return magv, spreadsheet
+        except gspread.exceptions.SpreadsheetNotFound as e:
+            # Nếu là admin thì không báo lỗi, chỉ cảnh báo nhẹ
+            if email == ADMIN_EMAIL:
+                st.warning(f"Admin không có file Google Sheet cá nhân, vẫn tiếp tục truy cập giao diện quản trị.")
+                return magv, None
+            else:
+                st.error(f"Lỗi: Không tìm thấy file Google Sheet được gán cho bạn (tên file mong muốn: {e.args[0]}). Vui lòng liên hệ Admin.")
+                return None, None
     except Exception as e:
         st.error(f"Lỗi khi truy cập file làm việc: {e}")
         return None, None
