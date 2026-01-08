@@ -19,7 +19,7 @@ try:
     CLIENT_SECRET = st.secrets["google_oauth"]["clientSecret"]
     REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
 
-    ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
+    ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name_id"]
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
     TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"]
     TEMPLATE_FILE_ID = st.secrets["google_sheet"]["template_file_id"]
