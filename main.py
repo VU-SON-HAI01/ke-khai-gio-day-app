@@ -420,6 +420,9 @@ else:
                 pages["Quản trị"].append(st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"))
             if not any(p.title == "Tạo user/email hàng loạt" for p in pages["Quản trị"]):
                 pages["Quản trị"].append(st.Page("Tao_user_mail_admin.py", title="Tạo user/email hàng loạt", icon="📧"))
+        if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+            st.session_state.clear()
+            st.rerun()
     else:
         # --- GIAO DIỆN CỦA USER THƯỜNG ---
         if 'initialized' not in st.session_state:
@@ -475,7 +478,10 @@ else:
                     st.error("Tài khoản của bạn chưa được đăng ký trong hệ thống.")
                     st.warning(f"Vui lòng liên hệ Admin ({ADMIN_EMAIL}) để được cấp quyền truy cập.")
                     st.stop()
-
+        if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
+            st.session_state.clear()
+            st.rerun()
+        # Hiển thị thông tin giáo viên trong sidebar
         if st.session_state.get('initialized'):
             # Lấy tên khoa/phòng/trung tâm từ df_khoa dựa vào ký tự đầu của magv (đặt ngoài sidebar cho gọn)
             ten_khoa = st.session_state.get('ten_khoa', '')
@@ -540,10 +546,3 @@ else:
                 pages["Quản trị"] = [st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")]
             pg = st.navigation(pages)
             pg.run()
-with st.sidebar:
-    # Nút Đăng xuất luôn hiển thị ở đầu sidebar, ngoài mọi điều kiện phân quyền
-    if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
-        st.session_state.clear()
-        st.rerun()
-    st.divider()
-pg = st.navigation(pages)
