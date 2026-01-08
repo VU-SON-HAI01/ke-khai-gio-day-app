@@ -19,7 +19,7 @@ try:
     CLIENT_SECRET = st.secrets["google_oauth"]["clientSecret"]
     REDIRECT_URI = st.secrets["google_oauth"]["redirectUri"]
 
-    ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name_id"]
+    ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name"]
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
     # Hiển thị danh sách user từ USER_MAPPING_WORKSHEET
 
