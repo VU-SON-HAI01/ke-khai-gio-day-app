@@ -450,7 +450,7 @@ else:
                                 df_giochuan = all_base_data.get('df_giochuan', pd.DataFrame())
                                 giochuan_value = 594
                                 if isinstance(df_giochuan, pd.DataFrame) and not df_giochuan.empty:
-                                    row = df_giochuan[df_giochuan['Chuẩn_gv'].astype(str).str.lower() == str(st.session_state.chuangv).lower()
+                                    row = df_giochuan[df_giochuan['Chuẩn_gv'].astype(str).str.lower() == str(st.session_state.chuangv).lower()]
                                     if not row.empty:
                                         giochuan_value = row.iloc[0].get('Giờ_chuẩn', 594)
                                 st.session_state.giochuan = giochuan_value
