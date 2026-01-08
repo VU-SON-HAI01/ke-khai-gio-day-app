@@ -467,8 +467,8 @@ else:
                                 st.error(f"Đã xác thực nhưng không tìm thấy thông tin chi tiết cho Mã GV: {magv} trong dữ liệu cục bộ.")
                                 st.stop()
 
-                    # Hiển thị thông tin giáo viên trong sidebar
-                    if st.session_state.get('initialized'):
+                    # Hiển thị thông tin giáo viên trong sidebar (chỉ cho giáo viên)
+                    if st.session_state.get('initialized') and st.session_state.get('phanquyen', '').lower() == 'giaovien':
                         # Lấy tên khoa/phòng/trung tâm từ df_khoa dựa vào ký tự đầu của magv (đặt ngoài sidebar cho gọn)
                         ten_khoa = st.session_state.get('ten_khoa', '')
                         magv = st.session_state.get('magv', '')
@@ -483,7 +483,6 @@ else:
                                 ten_khoa = row.iloc[0]['Khoa/Phòng/Trung tâm']
                         # Gán lại vào session_state để các file khác dùng chung
                         st.session_state.ten_khoa = ten_khoa
-
 
                         with st.sidebar:
                             if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
