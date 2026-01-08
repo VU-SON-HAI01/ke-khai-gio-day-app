@@ -21,6 +21,15 @@ try:
 
     ADMIN_SHEET_NAME = st.secrets["google_sheet"]["sheet_name_id"]
     USER_MAPPING_WORKSHEET = st.secrets["google_sheet"]["user_mapping_worksheet"]
+    # Hiển thị danh sách user từ USER_MAPPING_WORKSHEET
+    try:
+        sa_gspread_client, _ = connect_as_service_account()
+        mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+        df_users = pd.DataFrame(mapping_sheet.get_all_records())
+        st.subheader(":blue[Danh sách user trong USER_MAPPING_WORKSHEET]")
+        st.dataframe(df_users)
+    except Exception as e:
+        st.warning(f"Không thể đọc danh sách user: {e}")
     TARGET_FOLDER_NAME = st.secrets["google_sheet"]["target_folder_name"]
     TEMPLATE_FILE_ID = st.secrets["google_sheet"]["template_file_id"]
 
@@ -35,7 +44,7 @@ except KeyError as e:
     st.error(f"Lỗi: Không tìm thấy thông tin cấu hình '{e.args[0]}' trong st.secrets.")
     st.stop()
 
-        
+    
 # --- URLS VÀ SCOPES CHO OAUTH2 ---
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
