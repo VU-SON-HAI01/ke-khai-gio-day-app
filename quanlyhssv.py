@@ -144,7 +144,7 @@ with col1:
     import json
     with open("data_base/viet_nam_tinh_thanh_mapping_objects.json", "r", encoding="utf-8") as f:
         mapping = json.load(f)
-        provinces_old = ["Trống"] + [f'{item["type"]} {item["old"]}' for item in mapping]
+        provinces_old = ["(Trống)"] + [f'{item["type"]} {item["old"]}' for item in mapping]
     provinces_new = [f'{item["type"]} {item["new"]}' for item in mapping]
     provinces_new = list(dict.fromkeys(provinces_new))
     def convert_province(old_full, mapping):
