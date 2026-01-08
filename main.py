@@ -42,6 +42,11 @@ TOKEN_URL = "https://oauth2.googleapis.com/token"
 REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/drive"]
 
+from urllib.parse import urlencode
+
+# Tùy chỉnh AUTHORIZE_URL để luôn hiện chọn tài khoản Google
+AUTHORIZE_URL_WITH_PROMPT = AUTHORIZE_URL + '?' + urlencode({'prompt': 'select_account'})
+oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL_WITH_PROMPT, TOKEN_URL, TOKEN_URL, REVOKE_URL)
 
 # --- CÁC HÀM KẾT NỐI VÀ XỬ LÝ API ---
 
