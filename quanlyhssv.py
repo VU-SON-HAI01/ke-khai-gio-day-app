@@ -102,7 +102,13 @@ col1, col2, col3 = st.columns(3)
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
 
 with col1:
-    st.subheader("THÔNG TIN CHUNG")
+    st.markdown(
+        """
+        <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
+        <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>THÔNG TIN CHUNG</span><br>
+        """,
+        unsafe_allow_html=True
+    )
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
     ngay_sinh = st.date_input(":green[NGÀY SINH]", format="DD/MM/YYYY", value=st.session_state.get("ngay_sinh", None))
@@ -164,7 +170,13 @@ with col1:
     st.session_state["ton_giao"] = ton_giao
 
 with col2:
-    st.subheader("THÔNG TIN GIA ĐÌNH")
+    st.markdown(
+        """
+        <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
+        <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>THÔNG TIN GIA ĐÌNH</span><br>
+        """,
+        unsafe_allow_html=True
+    )
     cha = st.text_input(":green[HỌ TÊN BỐ]", value=st.session_state.get("cha", ""))
     st.session_state["cha"] = cha
     me = st.text_input(":green[HỌ TÊN MẸ]", value=st.session_state.get("me", ""))
@@ -194,7 +206,13 @@ with col2:
     st.markdown("<br>", unsafe_allow_html=True)
 with col3:
     if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
-        st.subheader("KẾT QUẢ HỌC TẬP")
+        st.markdown(
+            """
+            <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
+            <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>KẾT QUẢ HỌC TẬP</span><br>
+            """,
+            unsafe_allow_html=True
+        )
         trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Cao đẳng, TC","Khác"], horizontal=True, index=["THPT","Cao đẳng, TC","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
         st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
         hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
@@ -213,7 +231,13 @@ with col3:
         nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])))
         st.session_state["nv3"] = nv3
     else:
-        st.subheader("KẾT QUẢ HỌC TẬP")
+        st.markdown(
+            """
+            <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
+            <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>KẾT QUẢ HỌC TẬP</span><br>
+            """,
+            unsafe_allow_html=True
+        )
         trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","THCS", "HT12","Khác"], horizontal=True, index=["THPT","THCS", "HT12","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
         st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
         hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
