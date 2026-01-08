@@ -165,14 +165,15 @@ with col1:
     )
     
     st.markdown(":green[QUÊ QUÁN]")
-    que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(st.session_state.get("que_quan_cu", provinces_old[0])) if st.session_state.get("que_quan_cu", provinces_old[0]) in provinces_old else 0)
+    que_quan_cu_default = "Tỉnh Đắk Lắk" if "que_quan_cu" not in st.session_state or not st.session_state["que_quan_cu"] else st.session_state["que_quan_cu"]
+    que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(que_quan_cu_default) if que_quan_cu_default in provinces_old else 0)
     st.session_state["que_quan_cu"] = que_quan_cu
-    auto_new_qq = convert_province(que_quan_cu, mapping)
+    auto_new_qq = convert_province(que_quan_cu, mapping) if que_quan_cu else provinces_new[0]
     que_quan_moi = st.selectbox(
         "Quê quán (Tỉnh mới)", 
         provinces_new, 
         index=provinces_new.index(auto_new_qq) if auto_new_qq in provinces_new else 0,
-        key="que_quan_moi_select",
+        key=f"que_quan_moi_select_{auto_new_qq}",
     )
     st.session_state["que_quan_moi"] = que_quan_moi
     dan_toc = st.selectbox(":green[DÂN TỘC]", ["Kinh (Việt)", "Khác"], index=["Kinh (Việt)", "Khác"].index(st.session_state.get("dan_toc", "Kinh (Việt)")))
