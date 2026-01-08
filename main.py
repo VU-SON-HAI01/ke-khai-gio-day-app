@@ -308,27 +308,44 @@ if st.session_state.token is None:
 else:
     user_info = st.session_state.user_info
     user_email = user_info.get('email')
-    
+
+    # --- PHÂN QUYỀN: LẤY PHÂN QUYỀN TỪ SHEET NẾU CHƯA CÓ ---
+    if 'phanquyen' not in st.session_state or not st.session_state['phanquyen']:
+        try:
+            sa_gspread_client, _ = connect_as_service_account()
+            mapping_sheet = sa_gspread_client.open(ADMIN_SHEET_NAME).worksheet(USER_MAPPING_WORKSHEET)
+            df_map = pd.DataFrame(mapping_sheet.get_all_records())
+            user_row = df_map[df_map['email'].str.lower() == user_email.lower()]
+            if not user_row.empty:
+                phanquyen = user_row.iloc[0].get('phanquyen', '').strip().lower()
+                st.session_state.phanquyen = phanquyen
+                st.session_state.tengv = user_row.iloc[0].get('tengv', '')
+            else:
+                st.session_state.phanquyen = ''
+                st.warning(f"Tài khoản {user_email} không có trong USER_MAPPING_WORKSHEET.")
+        except Exception as e:
+            st.session_state.phanquyen = ''
+            st.error(f"Không thể kiểm tra phân quyền: {e}")
+
+    phanquyen = st.session_state.get('phanquyen', '').lower()
+
     def main_page():
         welcome_name = st.session_state.get('tengv', user_info.get('name', ''))
         st.header(f"Chào mừng, {welcome_name}!")
         st.info("Đây là trang chính của hệ thống. Vui lòng chọn chức năng từ menu bên trái.")
-        
         if st.session_state.get('initialized'):
             with st.expander("Kiểm tra dữ liệu đã tải: df_quydoi_hd (từ sheet QUYDOI_HD)"):
                 if 'df_quydoi_hd' in st.session_state and not st.session_state.df_quydoi_hd.empty:
                     st.dataframe(st.session_state.df_quydoi_hd)
                 else:
                     st.warning("Không có dữ liệu 'df_quydoi_hd' để hiển thị. Vui lòng kiểm tra lại quyền truy cập và tên file/sheet.")
-            
             with st.expander("Kiểm tra dữ liệu đã tải: df_quydoi_hd_them (từ sheet QUYDOIKHAC)"):
                 if 'df_quydoi_hd_them' in st.session_state and not st.session_state.df_quydoi_hd_them.empty:
                     st.dataframe(st.session_state.df_quydoi_hd_them)
                 else:
                     st.warning("Không có dữ liệu 'df_quydoi_hd_them' để hiển thị. Vui lòng kiểm tra lại quyền truy cập và tên file/sheet.")
-    
-    # --- PHÂN QUYỀN VÀ HIỂN THỊ GIAO DIỆN ---
-    phanquyen = st.session_state.get('phanquyen', '').lower()
+
+    # --- HIỂN THỊ GIAO DIỆN THEO PHÂN QUYỀN ---
     if phanquyen == 'admin' or user_email == ADMIN_EMAIL:
         with st.sidebar:
             if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
@@ -336,15 +353,13 @@ else:
         st.header(":green[THÔNG TIN ADMIN]")
         st.write(f"**Email:** :green[{user_email}]")
         st.divider()
-        # Chức năng upload file Excel tạo user/email hàng loạt
         st.subheader(":blue[Upload file Excel tạo user/email hàng loạt]")
         uploaded_file = st.file_uploader("Chọn file Excel (có cột email, magv)", type=["xlsx", "xls"], key="admin_upload_excel")
         if uploaded_file is not None:
             sa_gspread_client, sa_drive_service = connect_as_service_account()
-            folder_id = None  # Nếu cần folder_id, có thể lấy từ config hoặc secrets
+            folder_id = None
             bulk_provision_users(sa_drive_service, sa_gspread_client, folder_id, uploaded_file)
         st.divider()
-        # Navigation cho admin như cũ
         pages = {
             "Trang chủ": [st.Page(main_page, title="Trang chủ", icon="🏠")],
             "Kê khai": [
