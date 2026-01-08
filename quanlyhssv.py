@@ -120,6 +120,13 @@ with col1:
         index=["Nam", "Nữ"].index(st.session_state.get("gioi_tinh", "Nam")) if st.session_state.get("gioi_tinh") else 0
     )
     st.session_state["gioi_tinh"] = gioi_tinh
+    # Nhập CCCD
+    cccd = st.text_input(":green[CĂN CƯỚC CÔNG DÂN (CCCD)]", value=st.session_state.get("cccd", ""), max_chars=12)
+    st.session_state["cccd"] = cccd
+    if cccd:
+        if not (cccd.isdigit() and len(cccd) == 12 and cccd[0] == "0"):
+            st.warning("CCCD phải gồm 12 chữ số và bắt đầu bằng số 0.")
+
     so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
     st.session_state["so_dien_thoai"] = so_dien_thoai
     st.markdown(":green[NƠI SINH]")
