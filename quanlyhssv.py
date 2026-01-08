@@ -129,6 +129,9 @@ with col1:
 
     so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
     st.session_state["so_dien_thoai"] = so_dien_thoai
+    if so_dien_thoai:
+        if not (so_dien_thoai.isdigit() and len(so_dien_thoai) in [10, 11] and so_dien_thoai[0] == "0"):
+            st.warning("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.")
     st.markdown(":green[NƠI SINH]")
 
     import json
