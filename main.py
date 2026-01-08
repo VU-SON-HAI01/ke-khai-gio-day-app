@@ -542,7 +542,3 @@ else:
                 pages["Quản trị"] = [st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")]
             pg = st.navigation(pages)
             pg.run()
-
-if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
-    st.session_state.clear()
-    st.rerun()
