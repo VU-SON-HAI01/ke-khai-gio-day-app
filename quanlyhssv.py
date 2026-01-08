@@ -111,7 +111,14 @@ with col1:
     )
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
-    ngay_sinh = st.date_input(":green[NGÀY SINH]", format="DD/MM/YYYY", value=st.session_state.get("ngay_sinh", None))
+    import datetime
+    ngay_sinh = st.date_input(
+        ":green[NGÀY SINH]",
+        format="DD/MM/YYYY",
+        value=st.session_state.get("ngay_sinh", None),
+        min_value=datetime.date(1950, 1, 1),
+        max_value=datetime.date(2020, 1, 1)
+    )
     st.session_state["ngay_sinh"] = ngay_sinh
     gioi_tinh = st.radio(
         ":green[GIỚI TÍNH]",
