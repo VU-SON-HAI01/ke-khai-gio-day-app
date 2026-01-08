@@ -200,7 +200,9 @@ def bulk_provision_users(admin_drive_service, sa_gspread_client, folder_id, uplo
                     if st.button("Đăng xuất", use_container_width=True, key="logout_global"):
                         st.session_state.clear()
                         st.rerun()
-                    st.header(":green[THÔNG TIN ĐÀO TẠO]")
+                    st.header(":green[THÔNG TIN ĐĂNG NHẬP]")
+                    st.write(f"**Tên:** :green[{st.session_state.get('ten_user', '')}]")
+                    st.write(f"**Chức năng:** :green[{st.session_state.get('phanquyen_user', '')}]")
                     st.write(f"**Email:** :green[{user_email}]")
                     st.divider()
                 pages = {
@@ -316,6 +318,16 @@ else:
             records = mapping_sheet.get_all_records()
             if isinstance(records, list) and records:
                 df_users = pd.DataFrame(records)
+                # Lấy thông tin user hiện tại
+                user_row = df_users[df_users['email'].str.lower() == user_email.lower()]
+                if not user_row.empty:
+                    ten_user = user_row.iloc[0].get('tengv', '')
+                    phanquyen_user = user_row.iloc[0].get('phanquyen', '')
+                    st.session_state['ten_user'] = ten_user
+                    st.session_state['phanquyen_user'] = phanquyen_user
+                else:
+                    ten_user = ''
+                    phanquyen_user = ''
                 st.subheader(":blue[Danh sách user trong USER_MAPPING_WORKSHEET]")
                 st.dataframe(df_users)
             elif isinstance(records, list) and not records:
