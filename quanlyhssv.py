@@ -229,6 +229,30 @@ with col2:
     st.session_state["so_nha_to"] = so_nha_to
     st.markdown("<br>", unsafe_allow_html=True)
 with col3:
+    import os
+    import pandas as pd
+    # Load ngành học từ file Excel
+    nganh_file = os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx")
+    try:
+        df_nganh = pd.read_excel(nganh_file, sheet_name="NGANH_HOC")
+        # Cột G là bậc đào tạo, tên chương trình là cột "Tên chương trình" (hoặc tên tương tự)
+        bac_dao_tao_col = None
+        ten_chuong_trinh_col = None
+        for col in df_nganh.columns:
+            if str(col).strip().lower() in ["bậc đào tạo", "bậc", "g"]:
+                bac_dao_tao_col = col
+            if "tên chương trình" in str(col).strip().lower():
+                ten_chuong_trinh_col = col
+        if bac_dao_tao_col and ten_chuong_trinh_col:
+            if trinh_do in ["Cao đẳng", "Liên thông CĐ"]:
+                nganh_options = df_nganh[df_nganh[bac_dao_tao_col].astype(str).str.contains("Cao đẳng", case=False, na=False)][ten_chuong_trinh_col].dropna().unique().tolist()
+            else:
+                nganh_options = df_nganh[df_nganh[bac_dao_tao_col].astype(str).str.contains("Trung cấp", case=False, na=False)][ten_chuong_trinh_col].dropna().unique().tolist()
+        else:
+            nganh_options = ["Không có dữ liệu"]
+    except Exception as e:
+        nganh_options = ["Không load được ngành học"]
+
     if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
         st.markdown(
             """
@@ -247,12 +271,11 @@ with col3:
         st.session_state["diem_tb"] = diem_tb
         st.divider()
         st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
-        nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
-        nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])))
+        nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv1"] = nv1
-        nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])))
+        nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])) if st.session_state.get("nv2", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv2"] = nv2
-        nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])))
+        nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv3"] = nv3
     else:
         st.markdown(
@@ -274,12 +297,11 @@ with col3:
         st.subheader("ĐĂNG KÝ NGÀNH HỌC")
         trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
         st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
-        nganh_options = ["Công nghệ thông tin", "Kế toán", "Quản trị kinh doanh", "Điện", "Cơ khí", "Du lịch", "Ngôn ngữ Anh", "Khác"]
-        nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])))
+        nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv1"] = nv1
-        nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])))
+        nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])) if st.session_state.get("nv2", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv2"] = nv2
-        nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])))
+        nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv3"] = nv3
     st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
     # Nút lưu tổng cuối trang
