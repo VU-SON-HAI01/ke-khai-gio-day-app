@@ -240,7 +240,7 @@ with col3:
         bac_dao_tao_col = None
         ten_chuong_trinh_col = None
         for col in df_nganh.columns:
-            if str(col).strip().lower() in ["bậc đào tạo", "bậc", "g"]:
+            if str(col).strip().lower() == "trình độ đào tạo":
                 bac_dao_tao_col = col
             if "tên chương trình" in str(col).strip().lower():
                 ten_chuong_trinh_col = col
