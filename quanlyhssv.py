@@ -292,7 +292,7 @@ with col3:
             """,
             unsafe_allow_html=True
         )
-        trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Trung Cấp, Cao đẳng","Khác"], horizontal=True, index=["THPT","Trung Cấp, Cao đẳng","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
+        trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Cao đẳng, TC","Khác"], horizontal=True, index=["THPT","Cao đẳng, TC","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
         st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
         hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
         st.session_state["hanh_kiem"] = hanh_kiem
