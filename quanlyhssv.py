@@ -200,13 +200,18 @@ with col2:
     st.session_state["cha"] = cha
     me = st.text_input(":green[HỌ TÊN MẸ]", value=st.session_state.get("me", ""))
     st.session_state["me"] = me
-    st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ] :orange[ (CŨ)]")
-    tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_cu", "Đắk Lắk")))
-    st.session_state["tinh_tp_cu"] = tinh_tp_cu
-    quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"], index=["TP. Buôn Ma Thuột", "Khác"].index(st.session_state.get("quan_huyen_cu", "TP. Buôn Ma Thuột")))
-    st.session_state["quan_huyen_cu"] = quan_huyen_cu
-    xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"], index=["P. Ea Tam", "Khác"].index(st.session_state.get("xa_phuong_cu", "P. Ea Tam")))
-    st.session_state["xa_phuong_cu"] = xa_phuong_cu
+    
+    show_diachi_cu = st.toggle("Nhập địa chỉ cũ (Tỉnh/Huyện/Xã)?", value=True)
+
+    if show_diachi_cu:
+        st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ] :orange[ (CŨ)]")
+        tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_cu", "Đắk Lắk")))
+        st.session_state["tinh_tp_cu"] = tinh_tp_cu
+        quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"], index=["TP. Buôn Ma Thuột", "Khác"].index(st.session_state.get("quan_huyen_cu", "TP. Buôn Ma Thuột")))
+        st.session_state["quan_huyen_cu"] = quan_huyen_cu
+        xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"], index=["P. Ea Tam", "Khác"].index(st.session_state.get("xa_phuong_cu", "P. Ea Tam")))
+        st.session_state["xa_phuong_cu"] = xa_phuong_cu
+
     st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, XÃ] :orange[(MỚI)]")
     tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_moi", "Đắk Lắk")))
     st.session_state["tinh_tp_moi"] = tinh_tp_moi
