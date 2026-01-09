@@ -208,7 +208,7 @@ with col1:
             ton_giao_options = df_tongiao[col_tongiao].dropna().unique().tolist()
     except Exception:
         pass
-    st.write(ton_giao_options)
+    st.write(df_dantoc)
     dan_toc = st.selectbox(":green[DÂN TỘC]", dan_toc_options, index=dan_toc_options.index(st.session_state.get("dan_toc", dan_toc_options[0])) if st.session_state.get("dan_toc", dan_toc_options[0]) in dan_toc_options else 0)
     st.session_state["dan_toc"] = dan_toc
     ton_giao = st.selectbox(":green[TÔN GIÁO]", ton_giao_options, index=ton_giao_options.index(st.session_state.get("ton_giao", ton_giao_options[0])) if st.session_state.get("ton_giao", ton_giao_options[0]) in ton_giao_options else 0)
