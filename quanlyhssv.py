@@ -183,9 +183,34 @@ with col1:
         key=f"que_quan_moi_select_{auto_new_qq}",
     )
     st.session_state["que_quan_moi"] = que_quan_moi
-    dan_toc = st.selectbox(":green[DÂN TỘC]", ["Kinh (Việt)", "Khác"], index=["Kinh (Việt)", "Khác"].index(st.session_state.get("dan_toc", "Kinh (Việt)")))
+    # Lấy danh sách dân tộc và tôn giáo từ file Excel
+    dan_toc_options = ["Kinh (Việt)"]
+    ton_giao_options = ["Không"]
+    try:
+        df_dantoc = pd.read_excel(os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx"), sheet_name="DAN_TOC")
+        col_dantoc = None
+        for col in df_dantoc.columns:
+            if "tên dân tộc" in str(col).strip().lower():
+                col_dantoc = col
+                break
+        if col_dantoc:
+            dan_toc_options = df_dantoc[col_dantoc].dropna().unique().tolist()
+    except Exception:
+        pass
+    try:
+        df_tongiao = pd.read_excel(os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx"), sheet_name="TON_GIAO")
+        col_tongiao = None
+        for col in df_tongiao.columns:
+            if "tên tôn giáo" in str(col).strip().lower():
+                col_tongiao = col
+                break
+        if col_tongiao:
+            ton_giao_options = df_tongiao[col_tongiao].dropna().unique().tolist()
+    except Exception:
+        pass
+    dan_toc = st.selectbox(":green[DÂN TỘC]", dan_toc_options, index=dan_toc_options.index(st.session_state.get("dan_toc", dan_toc_options[0])) if st.session_state.get("dan_toc", dan_toc_options[0]) in dan_toc_options else 0)
     st.session_state["dan_toc"] = dan_toc
-    ton_giao = st.selectbox(":green[TÔN GIÁO]", ["Không", "Khác"], index=["Không", "Khác"].index(st.session_state.get("ton_giao", "Không")))
+    ton_giao = st.selectbox(":green[TÔN GIÁO]", ton_giao_options, index=ton_giao_options.index(st.session_state.get("ton_giao", ton_giao_options[0])) if st.session_state.get("ton_giao", ton_giao_options[0]) in ton_giao_options else 0)
     st.session_state["ton_giao"] = ton_giao
 
 with col2:
