@@ -236,6 +236,7 @@ with col3:
     try:
         df_nganh = pd.read_excel(nganh_file, sheet_name="NGANH_HOC")
         # Cột G là bậc đào tạo, tên chương trình là cột "Tên chương trình" (hoặc tên tương tự)
+        st.write(df_nganh.head())
         bac_dao_tao_col = None
         ten_chuong_trinh_col = None
         for col in df_nganh.columns:
