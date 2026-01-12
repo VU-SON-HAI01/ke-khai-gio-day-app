@@ -233,167 +233,167 @@ with col2:
     st.session_state["me"] = me
     
     show_diachi_cu = st.toggle("Nhập địa chỉ cũ (Tỉnh/Huyện/Xã)?", value=True)
-
-    if show_diachi_cu:
-        # --- ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ (CŨ) động từ API ---
-        import requests
-        st.markdown("""
-        <span style='color:#00C853;font-size:20px;font-weight:bold;'>ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ <span style='color:#43A047;'>(CŨ)</span></span>
-        """, unsafe_allow_html=True)
-        API_BASE = "https://tinhthanhpho.com/api/v1"
-        API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
-        HEADERS = {"Authorization": f"Bearer {API_KEY}"}
-        def get_provinces():
-            url = f"{API_BASE}/provinces?limit=100"
-            resp = requests.get(url, headers=HEADERS)
-            if resp.ok:
-                return resp.json()["data"]
-            return []
-        def get_districts(province_code):
-            url = f"{API_BASE}/provinces/{province_code}/districts?limit=50"
-            resp = requests.get(url, headers=HEADERS)
-            if resp.ok:
-                return resp.json()["data"]
-            return []
-        def get_wards(district_code):
-            url = f"{API_BASE}/districts/{district_code}/wards?limit=50"
-            resp = requests.get(url, headers=HEADERS)
-            if resp.ok:
-                return resp.json()["data"]
-            return []
-        provinces = get_provinces()
-        province_names = [f"{p['type']} {p['name']}" for p in provinces]
-        province_codes = [p['code'] for p in provinces]
-        province_idx = st.selectbox("Tỉnh/TP (Cũ)", province_names, index=0, key="tinh_tp_cu") if province_names else None
-        province_code = province_codes[province_names.index(province_idx)] if province_names and province_idx else None
-        districts = get_districts(province_code) if province_code else []
-        district_names = [f"{d['type']} {d['name']}" for d in districts]
-        district_codes = [d['code'] for d in districts]
-        district_idx = st.selectbox("Quận/Huyện (Cũ)", district_names, index=0, key="quan_huyen_cu") if district_names else None
-        district_code = district_codes[district_names.index(district_idx)] if district_names and district_idx else None
-        wards = get_wards(district_code) if district_code else []
-        ward_names = [f"{w['type']} {w['name']}" for w in wards]
-        ward_codes = [w['code'] for w in wards]
-        ward_idx = st.selectbox("Xã/Phường (Cũ)", ward_names, index=0, key="xa_phuong_cu") if ward_names else None
-        if ward_names and ward_idx in ward_names:
-            ward_code = ward_codes[ward_names.index(ward_idx)]
-        else:
-            ward_code = None
-        st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
-        thon_xom_loai = st.radio(
-            "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
-            ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
-            horizontal=True,
-        )
-        if thon_xom_loai == "Không":
-            duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-            thon_xom = ""
-        else:
-            thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
-            duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-        diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
-        st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
-        st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
-        st.markdown("<br>", unsafe_allow_html=True)
-        # Nút xác nhận địa chỉ động như API_diachi
-        if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
-            if province_code and district_code and ward_code:
-                API_BASE = "https://tinhthanhpho.com/api/v1"
-                API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
-                HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-                payload = {
-                    "provinceCode": province_code,
-                    "districtCode": district_code,
-                    "wardCode": ward_code,
-                    "streetAddress": diachi_chitiet_cu
-                }
-                try:
-                    resp = requests.post(f"{API_BASE}/convert/address", headers=HEADERS, json=payload)
-                    if resp.ok:
-                        data = resp.json().get("data", {})
-                        new_addr = data.get("new", {})
-                        province_new = new_addr.get("province", {})
-                        ward_new = new_addr.get("ward", {})
-                        diachi_moi = f"{diachi_chitiet_cu}, {ward_new.get('type', '')} {ward_new.get('name', '')}, {province_new.get('type', '')} {province_new.get('name', '')}"
-                        st.session_state["tinh_tp_moi"] = f"{province_new.get('type', '')} {province_new.get('name', '')}"
-                        st.session_state["xa_phuong_moi"] = f"{ward_new.get('type', '')} {ward_new.get('name', '')}"
-                        st.success(f"Địa chỉ mới: {diachi_moi}")
-                    else:
-                        st.error(f"Lỗi chuyển đổi: {resp.text}")
-                except Exception as e:
-                    st.error(f"Lỗi kết nối API: {e}")
+    if st.button("Nhập địa chỉ", key="nhap_diachi"):
+        if show_diachi_cu:
+            # --- ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ (CŨ) động từ API ---
+            import requests
+            st.markdown("""
+            <span style='color:#00C853;font-size:20px;font-weight:bold;'>ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ <span style='color:#43A047;'>(CŨ)</span></span>
+            """, unsafe_allow_html=True)
+            API_BASE = "https://tinhthanhpho.com/api/v1"
+            API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
+            HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+            def get_provinces():
+                url = f"{API_BASE}/provinces?limit=100"
+                resp = requests.get(url, headers=HEADERS)
+                if resp.ok:
+                    return resp.json()["data"]
+                return []
+            def get_districts(province_code):
+                url = f"{API_BASE}/provinces/{province_code}/districts?limit=50"
+                resp = requests.get(url, headers=HEADERS)
+                if resp.ok:
+                    return resp.json()["data"]
+                return []
+            def get_wards(district_code):
+                url = f"{API_BASE}/districts/{district_code}/wards?limit=50"
+                resp = requests.get(url, headers=HEADERS)
+                if resp.ok:
+                    return resp.json()["data"]
+                return []
+            provinces = get_provinces()
+            province_names = [f"{p['type']} {p['name']}" for p in provinces]
+            province_codes = [p['code'] for p in provinces]
+            province_idx = st.selectbox("Tỉnh/TP (Cũ)", province_names, index=0, key="tinh_tp_cu") if province_names else None
+            province_code = province_codes[province_names.index(province_idx)] if province_names and province_idx else None
+            districts = get_districts(province_code) if province_code else []
+            district_names = [f"{d['type']} {d['name']}" for d in districts]
+            district_codes = [d['code'] for d in districts]
+            district_idx = st.selectbox("Quận/Huyện (Cũ)", district_names, index=0, key="quan_huyen_cu") if district_names else None
+            district_code = district_codes[district_names.index(district_idx)] if district_names and district_idx else None
+            wards = get_wards(district_code) if district_code else []
+            ward_names = [f"{w['type']} {w['name']}" for w in wards]
+            ward_codes = [w['code'] for w in wards]
+            ward_idx = st.selectbox("Xã/Phường (Cũ)", ward_names, index=0, key="xa_phuong_cu") if ward_names else None
+            if ward_names and ward_idx in ward_names:
+                ward_code = ward_codes[ward_names.index(ward_idx)]
             else:
-                st.warning("Vui lòng chọn đầy đủ Tỉnh, Huyện, Xã để xác nhận địa chỉ!")
-        
-    else:
-        import requests
-        st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, XÃ] :orange[(MỚI)]")
-        API_BASE_NEW = "https://tinhthanhpho.com/api/v1"
-        API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
-        HEADERS = {"Authorization": f"Bearer {API_KEY}"}
-
-        def get_new_provinces():
-            url = f"{API_BASE_NEW}/new-provinces?limit=100"
-            try:
-                resp = requests.get(url, headers=HEADERS)
-                if resp.ok:
-                    return resp.json().get("data", [])
-            except Exception:
-                pass
-            return []
-
-        def get_new_wards(province_code):
-            url = f"{API_BASE_NEW}/new-provinces/{province_code}/wards?limit=100"
-            try:
-                resp = requests.get(url, headers=HEADERS)
-                if resp.ok:
-                    return resp.json().get("data", [])
-            except Exception:
-                pass
-            return []
-
-        provinces_new = get_new_provinces()
-        province_names_new = [f"{p['type']} {p['name']}" for p in provinces_new]
-        province_codes_new = [p['code'] for p in provinces_new]
-
-        # Lấy giá trị mặc định từ session_state nếu có
-        default_province_name = st.session_state.get("tinh_tp_moi", province_names_new[0] if province_names_new else "")
-        if default_province_name in province_names_new:
-            default_province_idx = province_names_new.index(default_province_name)
+                ward_code = None
+            st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
+            thon_xom_loai = st.radio(
+                "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
+                ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
+                horizontal=True,
+            )
+            if thon_xom_loai == "Không":
+                duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
+                thon_xom = ""
+            else:
+                thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
+                duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
+            diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
+            st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
+            st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
+            st.markdown("<br>", unsafe_allow_html=True)
+            # Nút xác nhận địa chỉ động như API_diachi
+            if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
+                if province_code and district_code and ward_code:
+                    API_BASE = "https://tinhthanhpho.com/api/v1"
+                    API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
+                    HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+                    payload = {
+                        "provinceCode": province_code,
+                        "districtCode": district_code,
+                        "wardCode": ward_code,
+                        "streetAddress": diachi_chitiet_cu
+                    }
+                    try:
+                        resp = requests.post(f"{API_BASE}/convert/address", headers=HEADERS, json=payload)
+                        if resp.ok:
+                            data = resp.json().get("data", {})
+                            new_addr = data.get("new", {})
+                            province_new = new_addr.get("province", {})
+                            ward_new = new_addr.get("ward", {})
+                            diachi_moi = f"{diachi_chitiet_cu}, {ward_new.get('type', '')} {ward_new.get('name', '')}, {province_new.get('type', '')} {province_new.get('name', '')}"
+                            st.session_state["tinh_tp_moi"] = f"{province_new.get('type', '')} {province_new.get('name', '')}"
+                            st.session_state["xa_phuong_moi"] = f"{ward_new.get('type', '')} {ward_new.get('name', '')}"
+                            st.success(f"Địa chỉ mới: {diachi_moi}")
+                        else:
+                            st.error(f"Lỗi chuyển đổi: {resp.text}")
+                    except Exception as e:
+                        st.error(f"Lỗi kết nối API: {e}")
+                else:
+                    st.warning("Vui lòng chọn đầy đủ Tỉnh, Huyện, Xã để xác nhận địa chỉ!")
+            
         else:
-            default_province_idx = 0
+            import requests
+            st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, XÃ] :orange[(MỚI)]")
+            API_BASE_NEW = "https://tinhthanhpho.com/api/v1"
+            API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
+            HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
-        tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", province_names_new, index=default_province_idx, key="tinh_tp_moi") if province_names_new else ""
-        province_code_selected = province_codes_new[province_names_new.index(tinh_tp_moi)] if tinh_tp_moi in province_names_new else None
+            def get_new_provinces():
+                url = f"{API_BASE_NEW}/new-provinces?limit=100"
+                try:
+                    resp = requests.get(url, headers=HEADERS)
+                    if resp.ok:
+                        return resp.json().get("data", [])
+                except Exception:
+                    pass
+                return []
 
-        wards_new = get_new_wards(province_code_selected) if province_code_selected else []
-        ward_names_new = [f"{w['type']} {w['name']}" for w in wards_new]
-        ward_codes_new = [w['code'] for w in wards_new]
+            def get_new_wards(province_code):
+                url = f"{API_BASE_NEW}/new-provinces/{province_code}/wards?limit=100"
+                try:
+                    resp = requests.get(url, headers=HEADERS)
+                    if resp.ok:
+                        return resp.json().get("data", [])
+                except Exception:
+                    pass
+                return []
 
-        default_ward_name = st.session_state.get("xa_phuong_moi", ward_names_new[0] if ward_names_new else "")
-        if default_ward_name in ward_names_new:
-            default_ward_idx = ward_names_new.index(default_ward_name)
-        else:
-            default_ward_idx = 0
+            provinces_new = get_new_provinces()
+            province_names_new = [f"{p['type']} {p['name']}" for p in provinces_new]
+            province_codes_new = [p['code'] for p in provinces_new]
 
-        xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ward_names_new, index=default_ward_idx, key="xa_phuong_moi") if ward_names_new else ""
+            # Lấy giá trị mặc định từ session_state nếu có
+            default_province_name = st.session_state.get("tinh_tp_moi", province_names_new[0] if province_names_new else "")
+            if default_province_name in province_names_new:
+                default_province_idx = province_names_new.index(default_province_name)
+            else:
+                default_province_idx = 0
 
-        st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
-        thon_xom_loai = st.radio(
-            "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
-            ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
-            horizontal=True,
-        )
-        if thon_xom_loai == "Không":
-            duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-            thon_xom = ""
-        else:
-            thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
-            duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-        diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
-        st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
-        st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {xa_phuong_moi}, {tinh_tp_moi}]")
-        st.markdown("<br>", unsafe_allow_html=True)
+            tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", province_names_new, index=default_province_idx, key="tinh_tp_moi") if province_names_new else ""
+            province_code_selected = province_codes_new[province_names_new.index(tinh_tp_moi)] if tinh_tp_moi in province_names_new else None
+
+            wards_new = get_new_wards(province_code_selected) if province_code_selected else []
+            ward_names_new = [f"{w['type']} {w['name']}" for w in wards_new]
+            ward_codes_new = [w['code'] for w in wards_new]
+
+            default_ward_name = st.session_state.get("xa_phuong_moi", ward_names_new[0] if ward_names_new else "")
+            if default_ward_name in ward_names_new:
+                default_ward_idx = ward_names_new.index(default_ward_name)
+            else:
+                default_ward_idx = 0
+
+            xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ward_names_new, index=default_ward_idx, key="xa_phuong_moi") if ward_names_new else ""
+
+            st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
+            thon_xom_loai = st.radio(
+                "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
+                ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
+                horizontal=True,
+            )
+            if thon_xom_loai == "Không":
+                duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
+                thon_xom = ""
+            else:
+                thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
+                duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
+            diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
+            st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
+            st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {xa_phuong_moi}, {tinh_tp_moi}]")
+            st.markdown("<br>", unsafe_allow_html=True)
 with col3:
     import os
     import pandas as pd
