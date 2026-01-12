@@ -281,9 +281,9 @@ with col2:
             horizontal=True,
         )
         if thon_xom_loai == "Không":
-            duong_pho= st.text_input(f"Số nhà đường:", value="")
+            duong_pho= st.text_input(f"Số nhà + Đường:", value="")
         else:
-            thon_xom = st.text_input(f"{thon_xom_loai}:", value=thon_xom_loai + " ")
+            thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
             duong_pho= st.text_input(f"Số nhà + Đường:", value="")
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
