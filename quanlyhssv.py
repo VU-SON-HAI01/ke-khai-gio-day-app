@@ -280,12 +280,12 @@ with col2:
         else:
             ward_code = None
             thon_xom_loai = st.radio(
-        "Chọn cấp độ Thôn, Xóm, Đường, Khối",
-        ["Thôn", "Xóm", "Đường", "Khối"],
-        horizontal=True,
-        )
-        thon_xom = st.text_input("Thôn/Xóm", value=thon_xom_loai)
-        so_nha_to = st.text_input("Số nhà/Tổ", value="")
+                "Chọn cấp độ Thôn, Xóm, Đường, Khối",
+                ["Thôn", "Xóm", "Đường", "Khối"],
+                horizontal=True,
+            )
+            thon_xom = st.text_input(f"{thon_xom_loai} ...", value="")
+            so_nha_to = st.text_input("Số nhà/Tổ", value="")
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
         if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
