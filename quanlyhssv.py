@@ -165,6 +165,13 @@ with col1:
         auto_new = convert_province(noi_sinh_cu, mapping) if noi_sinh_cu else provinces_new[0]
         st.session_state["noi_sinh_moi"] = auto_new
         st.success(f"Nơi sinh (Tỉnh mới): {auto_new}")
+        st.markdown(":green[QUÊ QUÁN]")
+        que_quan_cu_default = "Tỉnh Đắk Lắk" if "que_quan_cu" not in st.session_state or not st.session_state["que_quan_cu"] else st.session_state["que_quan_cu"]
+        que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(que_quan_cu_default) if que_quan_cu_default in provinces_old else 0)
+        st.session_state["que_quan_cu"] = que_quan_cu
+        auto_new_qq = convert_province(que_quan_cu, mapping) if que_quan_cu else provinces_new[0]
+        st.session_state["que_quan_moi"] = auto_new_qq
+        st.success(f"Quê quán (Tỉnh mới): {auto_new_qq}")
     else:
         st.session_state["noi_sinh_cu"] = ""
         noi_sinh_moi = st.selectbox(
@@ -174,18 +181,14 @@ with col1:
             key="noi_sinh_moi_select_newonly"
         )
         st.session_state["noi_sinh_moi"] = noi_sinh_moi
-    st.markdown(":green[QUÊ QUÁN]")
-    que_quan_cu_default = "Tỉnh Đắk Lắk" if "que_quan_cu" not in st.session_state or not st.session_state["que_quan_cu"] else st.session_state["que_quan_cu"]
-    que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(que_quan_cu_default) if que_quan_cu_default in provinces_old else 0)
-    st.session_state["que_quan_cu"] = que_quan_cu
-    auto_new_qq = convert_province(que_quan_cu, mapping) if que_quan_cu else provinces_new[0]
-    que_quan_moi = st.selectbox(
-        "Quê quán (Tỉnh mới)", 
-        provinces_new, 
-        index=provinces_new.index(auto_new_qq) if auto_new_qq in provinces_new else 0,
-        key=f"que_quan_moi_select_{auto_new_qq}",
-    )
-    st.session_state["que_quan_moi"] = que_quan_moi
+        st.markdown(":green[QUÊ QUÁN]")
+        que_quan_moi = st.selectbox(
+            "Quê quán (Tỉnh mới)",
+            provinces_new,
+            index=provinces_new.index(st.session_state.get("que_quan_moi", provinces_new[0])) if st.session_state.get("que_quan_moi", provinces_new[0]) in provinces_new else 0,
+            key="que_quan_moi_select_newonly"
+        )
+        st.session_state["que_quan_moi"] = que_quan_moi
     # Lấy danh sách dân tộc và tôn giáo từ file Excel
     dan_toc_options = ["Kinh (Việt)"]
     ton_giao_options = ["Không"]
