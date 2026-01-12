@@ -235,13 +235,50 @@ with col2:
     show_diachi_cu = st.toggle("Nhập địa chỉ cũ (Tỉnh/Huyện/Xã)?", value=True)
 
     if show_diachi_cu:
-        st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ] :orange[ (CŨ)]")
-        tinh_tp_cu = st.selectbox("Tỉnh/TP (Cũ)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_cu", "Đắk Lắk")))
-        st.session_state["tinh_tp_cu"] = tinh_tp_cu
-        quan_huyen_cu = st.selectbox("Quận/Huyện (Cũ)", ["TP. Buôn Ma Thuột", "Khác"], index=["TP. Buôn Ma Thuột", "Khác"].index(st.session_state.get("quan_huyen_cu", "TP. Buôn Ma Thuột")))
-        st.session_state["quan_huyen_cu"] = quan_huyen_cu
-        xa_phuong_cu = st.selectbox("Xã/Phường (Cũ)", ["P. Ea Tam", "Khác"], index=["P. Ea Tam", "Khác"].index(st.session_state.get("xa_phuong_cu", "P. Ea Tam")))
-        st.session_state["xa_phuong_cu"] = xa_phuong_cu
+        # --- ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ (CŨ) động từ API ---
+        import requests
+        st.markdown("""
+        <span style='color:#00C853;font-size:20px;font-weight:bold;'>ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ <span style='color:#43A047;'>(CŨ)</span></span>
+        """, unsafe_allow_html=True)
+        API_BASE = "https://tinhthanhpho.com/api/v1"
+        API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
+        HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+        def get_provinces():
+            url = f"{API_BASE}/provinces?limit=100"
+            resp = requests.get(url, headers=HEADERS)
+            if resp.ok:
+                return resp.json()["data"]
+            return []
+        def get_districts(province_code):
+            url = f"{API_BASE}/provinces/{province_code}/districts?limit=50"
+            resp = requests.get(url, headers=HEADERS)
+            if resp.ok:
+                return resp.json()["data"]
+            return []
+        def get_wards(district_code):
+            url = f"{API_BASE}/districts/{district_code}/wards?limit=50"
+            resp = requests.get(url, headers=HEADERS)
+            if resp.ok:
+                return resp.json()["data"]
+            return []
+        provinces = get_provinces()
+        province_names = [f"{p['type']} {p['name']}" for p in provinces]
+        province_codes = [p['code'] for p in provinces]
+        province_idx = st.selectbox("Tỉnh/TP (Cũ)", province_names, index=0, key="tinh_tp_cu") if province_names else None
+        province_code = province_codes[province_names.index(province_idx)] if province_names and province_idx else None
+        districts = get_districts(province_code) if province_code else []
+        district_names = [f"{d['type']} {d['name']}" for d in districts]
+        district_codes = [d['code'] for d in districts]
+        district_idx = st.selectbox("Quận/Huyện (Cũ)", district_names, index=0, key="quan_huyen_cu") if district_names else None
+        district_code = district_codes[district_names.index(district_idx)] if district_names and district_idx else None
+        wards = get_wards(district_code) if district_code else []
+        ward_names = [f"{w['type']} {w['name']}" for w in wards]
+        ward_codes = [w['code'] for w in wards]
+        ward_idx = st.selectbox("Xã/Phường (Cũ)", ward_names, index=0, key="xa_phuong_cu") if ward_names else None
+        ward_code = ward_codes[ward_names.index(ward_idx)] if ward_names and ward_idx else None
+        st.session_state["tinh_tp_cu"] = province_idx
+        st.session_state["quan_huyen_cu"] = district_idx
+        st.session_state["xa_phuong_cu"] = ward_idx
 
     st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, XÃ] :orange[(MỚI)]")
     tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_moi", "Đắk Lắk")))
