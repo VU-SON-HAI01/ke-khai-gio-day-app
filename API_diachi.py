@@ -5,6 +5,52 @@ import streamlit as st
 import requests
 
 def page_diachi():
+	# --- Nhập địa chỉ (Tỉnh/Thành phố - Phường/Xã) (Mới) ---
+	st.header("Nhập địa chỉ (Tỉnh/Thành phố - Phường/Xã) (Mới)")
+	def get_new_provinces():
+		url = f"{API_BASE}/new-provinces?limit=50"
+		resp = requests.get(url, headers=HEADERS)
+		if resp.ok:
+			return resp.json()["data"]
+		return []
+
+	def get_new_wards(province_code):
+		url = f"{API_BASE}/new-provinces/{province_code}/wards?limit=100"
+		resp = requests.get(url, headers=HEADERS)
+		if resp.ok:
+			return resp.json()["data"]
+		return []
+
+	def get_new_full_address(province_code, ward_code):
+		url = f"{API_BASE}/new-full-address?provinceCode={province_code}&wardCode={ward_code}"
+		resp = requests.get(url, headers=HEADERS)
+		if resp.ok:
+			return resp.json().get("data", {})
+		return {}
+
+	new_provinces = get_new_provinces()
+	new_province_names = [f"{p['type']} {p['name']}" for p in new_provinces]
+	new_province_codes = [p['code'] for p in new_provinces]
+	new_province_idx = st.selectbox("Tỉnh/Thành phố (Mới)", new_province_names, index=0, key="new_province") if new_province_names else None
+	new_province_code = new_province_codes[new_province_names.index(new_province_idx)] if new_province_names and new_province_idx else None
+
+	new_wards = get_new_wards(new_province_code) if new_province_code else []
+	new_ward_names = [f"{w['type']} {w['name']}" for w in new_wards]
+	new_ward_codes = [w['code'] for w in new_wards]
+	new_ward_idx = st.selectbox("Phường/Xã (Mới)", new_ward_names, index=0, key="new_ward") if new_ward_names else None
+	new_ward_code = new_ward_codes[new_ward_names.index(new_ward_idx)] if new_ward_names and new_ward_idx else None
+
+	if st.button("Xác nhận địa chỉ (Mới)"):
+		st.success(f"Địa chỉ đã chọn (Mới): {new_province_idx}, {new_ward_idx}")
+		st.write(f"Mã tỉnh: {new_province_code}, Mã xã: {new_ward_code}")
+		# Lấy địa chỉ đầy đủ từ API mới
+		if new_province_code and new_ward_code:
+			full_addr = get_new_full_address(new_province_code, new_ward_code)
+			if full_addr:
+				st.info(f"Tỉnh/Thành phố: {full_addr.get('province', {}).get('type', '')} {full_addr.get('province', {}).get('name', '')}")
+				st.info(f"Xã/Phường: {full_addr.get('ward', {}).get('type', '')} {full_addr.get('ward', {}).get('name', '')}")
+			else:
+				st.warning("Không lấy được địa chỉ đầy đủ từ API mới.")
 	# Đường dẫn file mapping
 	MAPPING_FILE = os.path.join("data_base", "viet_nam_tinh_thanh_mapping_objects.json")
 
