@@ -282,10 +282,11 @@ with col2:
         )
         if thon_xom_loai == "Không":
             duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
+
         else:
             thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
             duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-        diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}, {ward_idx}, {district_idx}, {province_idx}" if thon_xom_loai != "Không" else f"{duong_pho}, {ward_idx}, {district_idx}, {province_idx}"
+        diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
         st.write(f"Địa chỉ chi tiết (Cũ): {diachi_chitiet_cu}")
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
