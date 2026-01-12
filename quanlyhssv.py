@@ -275,16 +275,12 @@ with col2:
         ward_names = [f"{w['type']} {w['name']}" for w in wards]
         ward_codes = [w['code'] for w in wards]
         ward_idx = st.selectbox("Xã/Phường (Cũ)", ward_names, index=0, key="xa_phuong_cu") if ward_names else None
-        if ward_names and ward_idx in ward_names:
-            ward_code = ward_codes[ward_names.index(ward_idx)]
-        else:
-            ward_code = None
-            thon_xom_loai = st.radio(
-                "Chọn cấp độ Thôn, Xóm, Đường, Khối",
-                ["Thôn", "Xóm", "Đường", "Khối"],
-                horizontal=True,
-            )
-            thon_xom = st.text_input(f"{thon_xom_loai} ...", value="")
+        thon_xom_loai = st.radio(
+            "Chọn cấp độ Thôn, Xóm, Đường, Khối",
+            ["Thôn", "Xóm", "Đường", "Khối"],
+            horizontal=True,
+        )
+        thon_xom = st.text_input(f"{thon_xom_loai} ...", value="")
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
         if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
