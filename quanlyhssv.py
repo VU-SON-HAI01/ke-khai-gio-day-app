@@ -141,7 +141,7 @@ with col1:
         if not (so_dien_thoai.isdigit() and len(so_dien_thoai) in [10, 11] and so_dien_thoai[0] == "0"):
             st.warning("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.")
     st.divider()
-    noisinh_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=True, key="noisinh_diachi_cu")
+    noisinh_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=False, key="noisinh_diachi_cu")
     st.markdown(":green[NƠI SINH]")
     import json
     with open("data_base/viet_nam_tinh_thanh_mapping_objects.json", "r", encoding="utf-8") as f:
@@ -165,14 +165,14 @@ with col1:
         st.session_state["noi_sinh_cu"] = noi_sinh_cu
         auto_new = convert_province(noi_sinh_cu, mapping) if noi_sinh_cu else provinces_new[0]
         st.session_state["noi_sinh_moi"] = auto_new
-        st.success(f"Nơi sinh (Tỉnh mới): {auto_new}")
+        st.success(f"Chuyển đổi Nơi sinh (Tỉnh mới): {auto_new}")
         st.markdown(":green[QUÊ QUÁN]")
         que_quan_cu_default = "Tỉnh Đắk Lắk" if "que_quan_cu" not in st.session_state or not st.session_state["que_quan_cu"] else st.session_state["que_quan_cu"]
         que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(que_quan_cu_default) if que_quan_cu_default in provinces_old else 0)
         st.session_state["que_quan_cu"] = que_quan_cu
         auto_new_qq = convert_province(que_quan_cu, mapping) if que_quan_cu else provinces_new[0]
         st.session_state["que_quan_moi"] = auto_new_qq
-        st.success(f"Quê quán (Tỉnh mới): {auto_new_qq}")
+        st.success(f"Chuyển đổi Quê quán (Tỉnh mới): {auto_new_qq}")
     else:
         st.session_state["noi_sinh_cu"] = ""
         noi_sinh_moi = st.selectbox(
