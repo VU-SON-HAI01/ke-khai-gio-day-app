@@ -275,7 +275,10 @@ with col2:
         ward_names = [f"{w['type']} {w['name']}" for w in wards]
         ward_codes = [w['code'] for w in wards]
         ward_idx = st.selectbox("Xã/Phường (Cũ)", ward_names, index=0, key="xa_phuong_cu") if ward_names else None
-        ward_code = ward_codes[ward_names.index(ward_idx)] if ward_names and ward_idx else None
+        if ward_names and ward_idx in ward_names:
+            ward_code = ward_codes[ward_names.index(ward_idx)]
+        else:
+            ward_code = None
         st.session_state["tinh_tp_cu"] = province_idx
         st.session_state["quan_huyen_cu"] = district_idx
         st.session_state["xa_phuong_cu"] = ward_idx
