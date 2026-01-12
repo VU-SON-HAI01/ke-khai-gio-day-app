@@ -324,11 +324,58 @@ with col2:
                 st.warning("Vui lòng chọn đầy đủ Tỉnh, Huyện, Xã để xác nhận địa chỉ!")
         
     else:
+        import requests
         st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, XÃ] :orange[(MỚI)]")
-        tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_moi", "Đắk Lắk")))
-        st.session_state["tinh_tp_moi"] = tinh_tp_moi
-        xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"], index=["P. Ea Tam", "Khác"].index(st.session_state.get("xa_phuong_moi", "P. Ea Tam")))
-        st.session_state["xa_phuong_moi"] = xa_phuong_moi
+        API_BASE_NEW = "https://tinhthanhpho.com/api/v1"
+        API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
+        HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+
+        def get_new_provinces():
+            url = f"{API_BASE_NEW}/new-provinces?limit=100"
+            try:
+                resp = requests.get(url, headers=HEADERS)
+                if resp.ok:
+                    return resp.json().get("data", [])
+            except Exception:
+                pass
+            return []
+
+        def get_new_wards(province_code):
+            url = f"{API_BASE_NEW}/new-provinces/{province_code}/wards?limit=100"
+            try:
+                resp = requests.get(url, headers=HEADERS)
+                if resp.ok:
+                    return resp.json().get("data", [])
+            except Exception:
+                pass
+            return []
+
+        provinces_new = get_new_provinces()
+        province_names_new = [f"{p['type']} {p['name']}" for p in provinces_new]
+        province_codes_new = [p['code'] for p in provinces_new]
+
+        # Lấy giá trị mặc định từ session_state nếu có
+        default_province_name = st.session_state.get("tinh_tp_moi", province_names_new[0] if province_names_new else "")
+        if default_province_name in province_names_new:
+            default_province_idx = province_names_new.index(default_province_name)
+        else:
+            default_province_idx = 0
+
+        tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", province_names_new, index=default_province_idx, key="tinh_tp_moi") if province_names_new else ""
+        province_code_selected = province_codes_new[province_names_new.index(tinh_tp_moi)] if tinh_tp_moi in province_names_new else None
+
+        wards_new = get_new_wards(province_code_selected) if province_code_selected else []
+        ward_names_new = [f"{w['type']} {w['name']}" for w in wards_new]
+        ward_codes_new = [w['code'] for w in wards_new]
+
+        default_ward_name = st.session_state.get("xa_phuong_moi", ward_names_new[0] if ward_names_new else "")
+        if default_ward_name in ward_names_new:
+            default_ward_idx = ward_names_new.index(default_ward_name)
+        else:
+            default_ward_idx = 0
+
+        xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ward_names_new, index=default_ward_idx, key="xa_phuong_moi") if ward_names_new else ""
+
         st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
         thon_xom_loai = st.radio(
             "Chọn cấp độ Thôn, Xóm, Đường, Khối",
