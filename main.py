@@ -438,7 +438,8 @@ else:
         pages = {
             "Quản trị": [
                 st.Page("quanlyhssv.py", title="Nhập thông tin HSSV", icon="🛠️"),
-                st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️")
+                st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
+                st.Page("API_diachi.py", title="Nhập địa chỉ", icon="🗒️")
             ]
         }
         pg = st.navigation(pages)
