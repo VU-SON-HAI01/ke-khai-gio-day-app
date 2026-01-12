@@ -435,11 +435,12 @@ else:
             st.write(f"**Chức năng:** :green[{map_role_label(st.session_state.get('phanquyen_user', ''))}]")
             st.write(f"**Email:** :green[{user_email}]")
             st.divider()
+        from API_diachi import page_diachi
         pages = {
             "Quản trị": [
                 st.Page("quanlyhssv.py", title="Nhập thông tin HSSV", icon="🛠️"),
                 st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
-                st.Page("API_diachi.py", title="Nhập địa chỉ", icon="🗒️")
+                st.Page(page_diachi, title="Nhập địa chỉ", icon="🗒️")
             ]
         }
         pg = st.navigation(pages)
