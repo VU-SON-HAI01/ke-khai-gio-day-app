@@ -38,14 +38,14 @@ def page_diachi():
 		return []
 
 	def get_districts(province_code):
-		url = f"{API_BASE}/provinces/{province_code}/districts"
+		url = f"{API_BASE}/provinces/{province_code}/districts?limit=50"
 		resp = requests.get(url, headers=HEADERS)
 		if resp.ok:
 			return resp.json()["data"]
 		return []
 
 	def get_wards(district_code):
-		url = f"{API_BASE}/districts/{district_code}/wards"
+		url = f"{API_BASE}/districts/{district_code}/wards?limit=50"
 		resp = requests.get(url, headers=HEADERS)
 		if resp.ok:
 			return resp.json()["data"]
