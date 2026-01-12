@@ -275,6 +275,10 @@ with col2:
         ward_names = [f"{w['type']} {w['name']}" for w in wards]
         ward_codes = [w['code'] for w in wards]
         ward_idx = st.selectbox("Xã/Phường (Cũ)", ward_names, index=0, key="xa_phuong_cu") if ward_names else None
+        if ward_names and ward_idx in ward_names:
+            ward_code = ward_codes[ward_names.index(ward_idx)]
+        else:
+            ward_code = None
         thon_xom_loai = st.radio(
             "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
             ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Phường", "Không"],
