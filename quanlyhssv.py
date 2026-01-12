@@ -280,7 +280,7 @@ with col2:
             ["Thôn", "Xóm", "Đường", "Khối"],
             horizontal=True,
         )
-        thon_xom = st.text_input(f"{thon_xom_loai} ...", value="")
+        thon_xom = st.text_input(f"{thon_xom_loai}:", value={thon_xom_loai})
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
         if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
