@@ -309,7 +309,13 @@ with col2:
         else:
             thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
             duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-        if thon_xom =="" and duong_pho =="":
+        if thon_xom =="" and duong_pho !="":
+            diachi_chitiet_cu = duong_pho
+            st.write(f"Địa chỉ: :blue[{duong_pho}, {ward_idx}, {district_idx}, {province_idx}]")
+        elif duong_pho =="" and thon_xom !="":
+            diachi_chitiet_cu = f"{thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else ""
+            st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
+        elif duong_pho =="" and thon_xom =="" :
             diachi_chitiet_cu = ""
             st.write(f"Địa chỉ: :blue[{ward_idx}, {district_idx}, {province_idx}]")
         else:
