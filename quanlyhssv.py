@@ -324,34 +324,34 @@ with col2:
         st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
-        if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
-            if province_code and district_code and ward_code:
-                API_BASE = "https://tinhthanhpho.com/api/v1"
-                API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
-                HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-                payload = {
-                    "provinceCode": province_code,
-                    "districtCode": district_code,
-                    "wardCode": ward_code,
-                    "streetAddress": diachi_chitiet_cu
-                }
-                try:
-                    resp = requests.post(f"{API_BASE}/convert/address", headers=HEADERS, json=payload)
-                    if resp.ok:
-                        data = resp.json().get("data", {})
-                        new_addr = data.get("new", {})
-                        province_new = new_addr.get("province", {})
-                        ward_new = new_addr.get("ward", {})
-                        diachi_moi = f"{diachi_chitiet_cu}, {ward_new.get('type', '')} {ward_new.get('name', '')}, {province_new.get('type', '')} {province_new.get('name', '')}"
-                        st.session_state["tinh_tp_moi"] = f"{province_new.get('type', '')} {province_new.get('name', '')}"
-                        st.session_state["xa_phuong_moi"] = f"{ward_new.get('type', '')} {ward_new.get('name', '')}"
-                        st.success(f"Địa chỉ mới: {diachi_moi}")
-                    else:
-                        st.error(f"Lỗi chuyển đổi: {resp.text}")
-                except Exception as e:
-                    st.error(f"Lỗi kết nối API: {e}")
-            else:
-                st.warning("Vui lòng chọn đầy đủ Tỉnh, Huyện, Xã để xác nhận địa chỉ!")
+        #if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
+        if province_code and district_code and ward_code:
+            API_BASE = "https://tinhthanhpho.com/api/v1"
+            API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
+            HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+            payload = {
+                "provinceCode": province_code,
+                "districtCode": district_code,
+                "wardCode": ward_code,
+                "streetAddress": diachi_chitiet_cu
+            }
+            try:
+                resp = requests.post(f"{API_BASE}/convert/address", headers=HEADERS, json=payload)
+                if resp.ok:
+                    data = resp.json().get("data", {})
+                    new_addr = data.get("new", {})
+                    province_new = new_addr.get("province", {})
+                    ward_new = new_addr.get("ward", {})
+                    diachi_moi = f"{diachi_chitiet_cu}, {ward_new.get('type', '')} {ward_new.get('name', '')}, {province_new.get('type', '')} {province_new.get('name', '')}"
+                    st.session_state["tinh_tp_moi"] = f"{province_new.get('type', '')} {province_new.get('name', '')}"
+                    st.session_state["xa_phuong_moi"] = f"{ward_new.get('type', '')} {ward_new.get('name', '')}"
+                    st.success(f"Địa chỉ mới: {diachi_moi}")
+                else:
+                    st.error(f"Lỗi chuyển đổi: {resp.text}")
+            except Exception as e:
+                st.error(f"Lỗi kết nối API: {e}")
+        else:
+            st.warning("Vui lòng chọn đầy đủ Tỉnh, Huyện, Xã để xác nhận địa chỉ!")
         
     else:
         import requests
