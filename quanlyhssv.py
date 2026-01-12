@@ -378,14 +378,18 @@ with col2:
 
         st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
         thon_xom_loai = st.radio(
-            "Chọn cấp độ Thôn, Xóm, Đường, Khối",
-            ["Thôn", "Xóm", "Đường", "Khối"],
+            "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
+            ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
             horizontal=True,
         )
-        thon_xom = st.text_input("Thôn/Xóm", value=st.session_state.get("thon_xom", thon_xom_loai))
-        st.session_state["thon_xom"] = thon_xom
-        so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
-        st.session_state["so_nha_to"] = so_nha_to
+        if thon_xom_loai == "Không":
+            duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
+            thon_xom = ""
+        else:
+            thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
+            duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
+        diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
+        st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
         st.markdown("<br>", unsafe_allow_html=True)
 with col3:
     import os
