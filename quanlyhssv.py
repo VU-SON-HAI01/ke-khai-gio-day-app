@@ -277,7 +277,7 @@ with col2:
         ward_idx = st.selectbox("Xã/Phường (Cũ)", ward_names, index=0, key="xa_phuong_cu") if ward_names else None
         thon_xom_loai = st.radio(
             "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
-            ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
+            ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Phường", "Không"],
             horizontal=True,
         )
         if thon_xom_loai == "Không":
