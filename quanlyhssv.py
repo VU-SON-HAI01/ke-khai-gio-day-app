@@ -141,7 +141,7 @@ with col1:
         if not (so_dien_thoai.isdigit() and len(so_dien_thoai) in [10, 11] and so_dien_thoai[0] == "0"):
             st.warning("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.")
     st.markdown(":green[NƠI SINH]")
-
+    noisinh_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=True, key="noisinh_diachi_cu")
     import json
     with open("data_base/viet_nam_tinh_thanh_mapping_objects.json", "r", encoding="utf-8") as f:
         mapping = json.load(f)
@@ -153,25 +153,33 @@ with col1:
             if f'{item["type"]} {item["old"]}' == old_full:
                 return f'{item["type"]} {item["new"]}'
         return provinces_new[0]
-    
-    noi_sinh_cu_default = "Tỉnh Đắk Lắk" if "noi_sinh_cu" not in st.session_state or not st.session_state["noi_sinh_cu"] else st.session_state["noi_sinh_cu"]
-    noi_sinh_cu = st.selectbox(
-        "Nơi sinh (Tỉnh cũ)",
-        provinces_old,
-        index=provinces_old.index(noi_sinh_cu_default) if noi_sinh_cu_default in provinces_old else 0,
-        key="noi_sinh_cu_select"
-    )
-    st.session_state["noi_sinh_cu"] = noi_sinh_cu
-    auto_new = convert_province(noi_sinh_cu, mapping) if noi_sinh_cu else provinces_new[0]
-    st.session_state["noi_sinh_moi"] = auto_new
-    # Use a dynamic key to force re-render when noi_sinh_cu changes
-    noi_sinh_moi = st.selectbox(
-        "Nơi sinh (Tỉnh mới)",
-        provinces_new,
-        index=provinces_new.index(st.session_state["noi_sinh_moi"]) if st.session_state["noi_sinh_moi"] in provinces_new else 0,
-        key=f"noi_sinh_moi_select_{auto_new}"
-    )
-    
+    if noisinh_diachi_cu:
+        noi_sinh_cu_default = "Tỉnh Đắk Lắk" if "noi_sinh_cu" not in st.session_state or not st.session_state["noi_sinh_cu"] else st.session_state["noi_sinh_cu"]
+        noi_sinh_cu = st.selectbox(
+            "Nơi sinh (Tỉnh cũ)",
+            provinces_old,
+            index=provinces_old.index(noi_sinh_cu_default) if noi_sinh_cu_default in provinces_old else 0,
+            key="noi_sinh_cu_select"
+        )
+        st.session_state["noi_sinh_cu"] = noi_sinh_cu
+        auto_new = convert_province(noi_sinh_cu, mapping) if noi_sinh_cu else provinces_new[0]
+        st.session_state["noi_sinh_moi"] = auto_new
+        noi_sinh_moi = st.selectbox(
+            "Nơi sinh (Tỉnh mới)",
+            provinces_new,
+            index=provinces_new.index(st.session_state["noi_sinh_moi"]) if st.session_state["noi_sinh_moi"] in provinces_new else 0,
+            key=f"noi_sinh_moi_select_{auto_new}"
+        )
+        st.session_state["noi_sinh_moi"] = noi_sinh_moi
+    else:
+        st.session_state["noi_sinh_cu"] = ""
+        noi_sinh_moi = st.selectbox(
+            "Nơi sinh (Tỉnh mới)",
+            provinces_new,
+            index=provinces_new.index(st.session_state.get("noi_sinh_moi", provinces_new[0])) if st.session_state.get("noi_sinh_moi", provinces_new[0]) in provinces_new else 0,
+            key="noi_sinh_moi_select_newonly"
+        )
+        st.session_state["noi_sinh_moi"] = noi_sinh_moi
     st.markdown(":green[QUÊ QUÁN]")
     que_quan_cu_default = "Tỉnh Đắk Lắk" if "que_quan_cu" not in st.session_state or not st.session_state["que_quan_cu"] else st.session_state["que_quan_cu"]
     que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(que_quan_cu_default) if que_quan_cu_default in provinces_old else 0)
@@ -236,7 +244,7 @@ with col2:
     if show_diachi_cu:
         # --- ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ (CŨ) động từ API ---
         import requests
-        st.markdown(":green[>ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ] :orange[(CŨ)]")
+        st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ] :orange[(CŨ)]")
         API_BASE = "https://tinhthanhpho.com/api/v1"
         API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
         HEADERS = {"Authorization": f"Bearer {API_KEY}"}
