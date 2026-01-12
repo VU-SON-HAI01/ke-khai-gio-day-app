@@ -276,15 +276,15 @@ with col2:
         ward_codes = [w['code'] for w in wards]
         ward_idx = st.selectbox("Xã/Phường (Cũ)", ward_names, index=0, key="xa_phuong_cu") if ward_names else None
         thon_xom_loai = st.radio(
-            "Chọn cấp độ Thôn, Xóm, Đường, Khối",
+            "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
             ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
             horizontal=True,
         )
         if thon_xom_loai == "Không":
-            duong_pho= st.text_input(f"Số nhà + Đường:", value="")
+            duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
         else:
             thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
-            duong_pho= st.text_input(f"Số nhà + Đường:", value="")
+            duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
         if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
