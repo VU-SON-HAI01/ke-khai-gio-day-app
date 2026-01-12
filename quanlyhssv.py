@@ -279,9 +279,6 @@ with col2:
             ward_code = ward_codes[ward_names.index(ward_idx)]
         else:
             ward_code = None
-        st.session_state["tinh_tp_cu"] = province_idx
-        st.session_state["quan_huyen_cu"] = district_idx
-        st.session_state["xa_phuong_cu"] = ward_idx
 
     st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, XÃ] :orange[(MỚI)]")
     tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_moi", "Đắk Lắk")))
