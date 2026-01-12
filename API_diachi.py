@@ -25,49 +25,6 @@ def page_diachi():
 			if item['old'].strip().lower() == old_value.strip().lower() and item['type'].strip().lower() == type_value.strip().lower():
 				return item['new']
 		return old_value  # Nếu không tìm thấy thì trả về như cũ
-
-
-	st.header("Chuyển đổi địa chỉ cũ thành mới (API)")
-	st.markdown("""
-	**Nhập mã địa chỉ cũ:**
-	- Mã tỉnh/thành phố, mã quận/huyện, mã phường/xã, địa chỉ chi tiết (số nhà, đường...)
-	""")
-	col1, col2 = st.columns(2)
-	with col1:
-		province_code = st.text_input("Mã Tỉnh/Thành phố (provinceCode)")
-		district_code = st.text_input("Mã Quận/Huyện (districtCode)")
-		ward_code = st.text_input("Mã Phường/Xã (wardCode)")
-	with col2:
-		street_address = st.text_input("Địa chỉ chi tiết (streetAddress)")
-
-	if st.button("Chuyển đổi địa chỉ cũ thành mới"):
-		API_BASE = "https://tinhthanhpho.com/api/v1"
-		API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
-		HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-		payload = {
-			"provinceCode": province_code,
-			"districtCode": district_code,
-			"wardCode": ward_code,
-			"streetAddress": street_address
-		}
-		try:
-			resp = requests.post(f"{API_BASE}/convert/address", headers=HEADERS, json=payload)
-			if resp.ok:
-				data = resp.json().get("data", {})
-				old_addr = data.get("old", {})
-				new_addr = data.get("new", {})
-				merge_info = data.get("mergeInfo", {})
-				st.subheader(":blue[Địa chỉ cũ]")
-				st.write(old_addr.get("fullAddress", ""))
-				st.subheader(":green[Địa chỉ mới]")
-				st.write(new_addr.get("fullAddress", ""))
-				if merge_info:
-					st.info(merge_info.get("notes", ""))
-			else:
-				st.error(f"Lỗi chuyển đổi: {resp.text}")
-		except Exception as e:
-			st.error(f"Lỗi kết nối API: {e}")
-
 	# --- Nhập địa chỉ động từ API ---
 	API_BASE = "https://tinhthanhpho.com/api/v1"
 	API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
