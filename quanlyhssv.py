@@ -284,8 +284,8 @@ with col2:
         ["Thôn", "Xóm", "Đường", "Khối"],
         horizontal=True,
         )
-        thon_xom = st.text_input("Thôn/Xóm", value=st.session_state.get("thon_xom", thon_xom_loai))
-        so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
+        thon_xom = st.text_input("Thôn/Xóm", value=thon_xom_loai)
+        so_nha_to = st.text_input("Số nhà/Tổ", value="")
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
         if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
