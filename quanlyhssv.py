@@ -392,7 +392,7 @@ with col2:
             duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
         diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
         st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
-        st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
+        st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {xa_phuong_moi}, {tinh_tp_moi}]")
         st.markdown("<br>", unsafe_allow_html=True)
 with col3:
     import os
