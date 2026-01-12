@@ -4,7 +4,7 @@ import os
 # Đường dẫn file mapping
 MAPPING_FILE = os.path.join("data_base", "viet_nam_tinh_thanh_mapping_objects.json")
 
-@st.cache_data
+
 def load_mapping():
 	try:
 		with open(MAPPING_FILE, encoding="utf-8") as f:
