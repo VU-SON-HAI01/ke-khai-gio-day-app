@@ -237,7 +237,7 @@ with col2:
         # --- ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ (CŨ) động từ API ---
         import requests
         st.markdown("""
-        <span style='color:#00C853;font-size:24px;'>ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ <span style='color:#ffb74d;'>(CŨ)</span></span>
+        <span style='color:#00C853;font-size:12px;'>ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ <span style='color:#ffb74d;'>(CŨ)</span></span>
         """, unsafe_allow_html=True)
         API_BASE = "https://tinhthanhpho.com/api/v1"
         API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
