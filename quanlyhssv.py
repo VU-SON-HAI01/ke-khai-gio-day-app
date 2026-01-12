@@ -140,8 +140,9 @@ with col1:
     if so_dien_thoai:
         if not (so_dien_thoai.isdigit() and len(so_dien_thoai) in [10, 11] and so_dien_thoai[0] == "0"):
             st.warning("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.")
-    st.markdown(":green[NƠI SINH]")
+    st.divider()
     noisinh_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=True, key="noisinh_diachi_cu")
+    st.markdown(":green[NƠI SINH]")
     import json
     with open("data_base/viet_nam_tinh_thanh_mapping_objects.json", "r", encoding="utf-8") as f:
         mapping = json.load(f)
