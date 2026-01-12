@@ -266,13 +266,11 @@ with col2:
         province_codes = [p['code'] for p in provinces]
         province_idx = st.selectbox("Tỉnh/TP (Cũ)", province_names, index=0, key="tinh_tp_cu") if province_names else None
         province_code = province_codes[province_names.index(province_idx)] if province_names and province_idx else None
-        st.session_state["tinh_tp_cu"] = province_idx if province_idx else ""
         districts = get_districts(province_code) if province_code else []
         district_names = [f"{d['type']} {d['name']}" for d in districts]
         district_codes = [d['code'] for d in districts]
         district_idx = st.selectbox("Quận/Huyện (Cũ)", district_names, index=0, key="quan_huyen_cu") if district_names else None
         district_code = district_codes[district_names.index(district_idx)] if district_names and district_idx else None
-        st.session_state["quan_huyen_cu"] = district_idx if district_idx else ""
         wards = get_wards(district_code) if district_code else []
         ward_names = [f"{w['type']} {w['name']}" for w in wards]
         ward_codes = [w['code'] for w in wards]
@@ -281,7 +279,6 @@ with col2:
             ward_code = ward_codes[ward_names.index(ward_idx)]
         else:
             ward_code = None
-        st.session_state["xa_phuong_cu"] = ward_idx if ward_idx else ""
         thon_xom_loai = st.radio(
             "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
             ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
