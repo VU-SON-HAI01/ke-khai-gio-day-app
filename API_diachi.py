@@ -31,7 +31,7 @@ def page_diachi():
 	HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
 	def get_provinces():
-		url = f"{API_BASE}/provinces"
+		url = f"{API_BASE}/provinces?limit=100"
 		resp = requests.get(url, headers=HEADERS)
 		if resp.ok:
 			return resp.json()["data"]
@@ -51,7 +51,7 @@ def page_diachi():
 			return resp.json()["data"]
 		return []
 
-
+    
 	st.header("Nhập địa chỉ (Tỉnh/Thành phố - Quận/Huyện - Phường/Xã)")
 	provinces = get_provinces()
 	province_names = [f"{p['type']} {p['name']}" for p in provinces]
