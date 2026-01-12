@@ -233,55 +233,66 @@ with col2:
     st.session_state["me"] = me
     
     show_diachi_cu = st.toggle("Nhập địa chỉ cũ (Tỉnh/Huyện/Xã)?", value=True)
-    import requests
-    API_BASE = "https://tinhthanhpho.com/api/v1"
-    API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
-    HEADERS = {"Authorization": f"Bearer {API_KEY}"}
-    def get_provinces():
-        url = f"{API_BASE}/provinces?limit=100"
-        resp = requests.get(url, headers=HEADERS)
-        if resp.ok:
-            return resp.json()["data"]
-        return []
-    def get_districts(province_code):
-        url = f"{API_BASE}/provinces/{province_code}/districts?limit=50"
-        resp = requests.get(url, headers=HEADERS)
-        if resp.ok:
-            return resp.json()["data"]
-        return []
-    def get_wards(district_code):
-        url = f"{API_BASE}/districts/{district_code}/wards?limit=50"
-        resp = requests.get(url, headers=HEADERS)
-        if resp.ok:
-            return resp.json()["data"]
-        return []
-    # Tối ưu: chỉ load lại khi thay đổi tỉnh/huyện
-    if "provinces" not in st.session_state:
-        st.session_state["provinces"] = get_provinces()
-    provinces = st.session_state["provinces"]
-    province_names = [f"{p['type']} {p['name']}" for p in provinces]
-    province_codes = [p['code'] for p in provinces]
-    province_idx = st.selectbox("Tỉnh/TP (Cũ)", province_names, index=0, key="tinh_tp_cu") if province_names else None
-    province_code = province_codes[province_names.index(province_idx)] if province_names and province_idx else None
-    # Districts cache theo tỉnh
-    if f"districts_{province_code}" not in st.session_state and province_code:
-        st.session_state[f"districts_{province_code}"] = get_districts(province_code)
-    districts = st.session_state.get(f"districts_{province_code}", [])
-    district_names = [f"{d['type']} {d['name']}" for d in districts]
-    district_codes = [d['code'] for d in districts]
-    district_idx = st.selectbox("Quận/Huyện (Cũ)", district_names, index=0, key="quan_huyen_cu") if district_names else None
-    district_code = district_codes[district_names.index(district_idx)] if district_names and district_idx else None
-    # Wards cache theo huyện
-    if f"wards_{district_code}" not in st.session_state and district_code:
-        st.session_state[f"wards_{district_code}"] = get_wards(district_code)
-    wards = st.session_state.get(f"wards_{district_code}", [])
-    ward_names = [f"{w['type']} {w['name']}" for w in wards]
-    ward_codes = [w['code'] for w in wards]
-    ward_idx = st.selectbox("Xã/Phường (Cũ)", ward_names, index=0, key="xa_phuong_cu") if ward_names else None
-    if ward_names and ward_idx in ward_names:
-        ward_code = ward_codes[ward_names.index(ward_idx)]
-    else:
-        ward_code = None
+    if show_diachi_cu:
+        # --- ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ (CŨ) động từ API ---
+        import requests
+        st.markdown("""
+        <span style='color:#00C853;font-size:20px;font-weight:bold;'>ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ <span style='color:#43A047;'>(CŨ)</span></span>
+        """, unsafe_allow_html=True)
+        API_BASE = "https://tinhthanhpho.com/api/v1"
+        API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
+        HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+        def get_provinces():
+            url = f"{API_BASE}/provinces?limit=100"
+            resp = requests.get(url, headers=HEADERS)
+            if resp.ok:
+                return resp.json()["data"]
+            return []
+        def get_districts(province_code):
+            url = f"{API_BASE}/provinces/{province_code}/districts?limit=50"
+            resp = requests.get(url, headers=HEADERS)
+            if resp.ok:
+                return resp.json()["data"]
+            return []
+        def get_wards(district_code):
+            url = f"{API_BASE}/districts/{district_code}/wards?limit=50"
+            resp = requests.get(url, headers=HEADERS)
+            if resp.ok:
+                return resp.json()["data"]
+            return []
+        # Tối ưu: cache tỉnh, huyện, xã/phường vào session_state
+        if "provinces_old" not in st.session_state:
+            st.session_state["provinces_old"] = get_provinces()
+        provinces = st.session_state["provinces_old"]
+        province_names = [f"{p['type']} {p['name']}" for p in provinces]
+        province_codes = [p['code'] for p in provinces]
+        province_idx = st.selectbox("Tỉnh/TP (Cũ)", province_names, index=0, key="tinh_tp_cu") if province_names else None
+        province_code = province_codes[province_names.index(province_idx)] if province_names and province_idx else None
+        # Districts cache theo tỉnh
+        if province_code:
+            if f"districts_old_{province_code}" not in st.session_state:
+                st.session_state[f"districts_old_{province_code}"] = get_districts(province_code)
+            districts = st.session_state.get(f"districts_old_{province_code}", [])
+        else:
+            districts = []
+        district_names = [f"{d['type']} {d['name']}" for d in districts]
+        district_codes = [d['code'] for d in districts]
+        district_idx = st.selectbox("Quận/Huyện (Cũ)", district_names, index=0, key="quan_huyen_cu") if district_names else None
+        district_code = district_codes[district_names.index(district_idx)] if district_names and district_idx else None
+        # Wards cache theo huyện
+        if district_code:
+            if f"wards_old_{district_code}" not in st.session_state:
+                st.session_state[f"wards_old_{district_code}"] = get_wards(district_code)
+            wards = st.session_state.get(f"wards_old_{district_code}", [])
+        else:
+            wards = []
+        ward_names = [f"{w['type']} {w['name']}" for w in wards]
+        ward_codes = [w['code'] for w in wards]
+        ward_idx = st.selectbox("Xã/Phường (Cũ)", ward_names, index=0, key="xa_phuong_cu") if ward_names else None
+        if ward_names and ward_idx in ward_names:
+            ward_code = ward_codes[ward_names.index(ward_idx)]
+        else:
+            ward_code = None
         st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
         thon_xom_loai = st.radio(
             "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
@@ -355,11 +366,13 @@ with col2:
                 pass
             return []
 
-        provinces_new = get_new_provinces()
+        # Tối ưu: cache tỉnh và xã/phường theo tỉnh
+        if "provinces_new" not in st.session_state:
+            st.session_state["provinces_new"] = get_new_provinces()
+        provinces_new = st.session_state["provinces_new"]
         province_names_new = [f"{p['type']} {p['name']}" for p in provinces_new]
         province_codes_new = [p['code'] for p in provinces_new]
 
-        # Lấy giá trị mặc định từ session_state nếu có
         default_province_name = st.session_state.get("tinh_tp_moi", province_names_new[0] if province_names_new else "")
         if default_province_name in province_names_new:
             default_province_idx = province_names_new.index(default_province_name)
@@ -369,7 +382,12 @@ with col2:
         tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", province_names_new, index=default_province_idx, key="tinh_tp_moi") if province_names_new else ""
         province_code_selected = province_codes_new[province_names_new.index(tinh_tp_moi)] if tinh_tp_moi in province_names_new else None
 
-        wards_new = get_new_wards(province_code_selected) if province_code_selected else []
+        if province_code_selected:
+            if f"wards_new_{province_code_selected}" not in st.session_state:
+                st.session_state[f"wards_new_{province_code_selected}"] = get_new_wards(province_code_selected)
+            wards_new = st.session_state.get(f"wards_new_{province_code_selected}", [])
+        else:
+            wards_new = []
         ward_names_new = [f"{w['type']} {w['name']}" for w in wards_new]
         ward_codes_new = [w['code'] for w in wards_new]
 
