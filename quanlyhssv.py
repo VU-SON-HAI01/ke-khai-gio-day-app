@@ -309,9 +309,13 @@ with col2:
         else:
             thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
             duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-        diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
+        if thon_xom =="" and duong_pho =="":
+            diachi_chitiet_cu = ""
+            st.write(f"Địa chỉ: :blue[{ward_idx}, {district_idx}, {province_idx}]")
+        else:
+            diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
+            st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
         st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
-        st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
         if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
