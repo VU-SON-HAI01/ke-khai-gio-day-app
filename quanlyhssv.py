@@ -164,13 +164,7 @@ with col1:
         st.session_state["noi_sinh_cu"] = noi_sinh_cu
         auto_new = convert_province(noi_sinh_cu, mapping) if noi_sinh_cu else provinces_new[0]
         st.session_state["noi_sinh_moi"] = auto_new
-        noi_sinh_moi = st.selectbox(
-            "Nơi sinh (Tỉnh mới)",
-            provinces_new,
-            index=provinces_new.index(st.session_state["noi_sinh_moi"]) if st.session_state["noi_sinh_moi"] in provinces_new else 0,
-            key=f"noi_sinh_moi_select_{auto_new}"
-        )
-        st.session_state["noi_sinh_moi"] = noi_sinh_moi
+        st.success(f"Nơi sinh (Tỉnh mới): {auto_new}")
     else:
         st.session_state["noi_sinh_cu"] = ""
         noi_sinh_moi = st.selectbox(
