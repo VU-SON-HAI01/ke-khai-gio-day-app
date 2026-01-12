@@ -303,7 +303,7 @@ with col2:
                     "provinceCode": province_code,
                     "districtCode": district_code,
                     "wardCode": ward_code,
-                    "streetAddress": so_nha_to or ""
+                    "streetAddress": diachi_chitiet_cu
                 }
                 try:
                     resp = requests.post(f"{API_BASE}/convert/address", headers=HEADERS, json=payload)
@@ -312,7 +312,7 @@ with col2:
                         new_addr = data.get("new", {})
                         province_new = new_addr.get("province", {})
                         ward_new = new_addr.get("ward", {})
-                        so_nha = so_nha_to or ""
+                        so_nha = diachi_chitiet_cu
                         diachi_moi = f"{so_nha}, {ward_new.get('type', '')} {ward_new.get('name', '')}, {province_new.get('type', '')} {province_new.get('name', '')}"
                         st.success(f"Địa chỉ mới: {diachi_moi}")
                     else:
