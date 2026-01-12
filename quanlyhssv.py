@@ -279,23 +279,62 @@ with col2:
             ward_code = ward_codes[ward_names.index(ward_idx)]
         else:
             ward_code = None
-
-    st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, XÃ] :orange[(MỚI)]")
-    tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_moi", "Đắk Lắk")))
-    st.session_state["tinh_tp_moi"] = tinh_tp_moi
-    xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"], index=["P. Ea Tam", "Khác"].index(st.session_state.get("xa_phuong_moi", "P. Ea Tam")))
-    st.session_state["xa_phuong_moi"] = xa_phuong_moi
-    st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
-    thon_xom_loai = st.radio(
+            thon_xom_loai = st.radio(
         "Chọn cấp độ Thôn, Xóm, Đường, Khối",
         ["Thôn", "Xóm", "Đường", "Khối"],
         horizontal=True,
-    )
-    thon_xom = st.text_input("Thôn/Xóm", value=st.session_state.get("thon_xom", thon_xom_loai))
-    st.session_state["thon_xom"] = thon_xom
-    so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
-    st.session_state["so_nha_to"] = so_nha_to
-    st.markdown("<br>", unsafe_allow_html=True)
+        )
+        thon_xom = st.text_input("Thôn/Xóm", value=st.session_state.get("thon_xom", thon_xom_loai))
+        st.session_state["thon_xom"] = thon_xom
+        so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
+        st.session_state["so_nha_to"] = so_nha_to
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Nút xác nhận địa chỉ động như API_diachi
+        if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
+            if province_code and district_code and ward_code:
+                API_BASE = "https://tinhthanhpho.com/api/v1"
+                API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
+                HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+                payload = {
+                    "provinceCode": province_code,
+                    "districtCode": district_code,
+                    "wardCode": ward_code,
+                    "streetAddress": so_nha_to or ""
+                }
+                try:
+                    resp = requests.post(f"{API_BASE}/convert/address", headers=HEADERS, json=payload)
+                    if resp.ok:
+                        data = resp.json().get("data", {})
+                        new_addr = data.get("new", {})
+                        province_new = new_addr.get("province", {})
+                        ward_new = new_addr.get("ward", {})
+                        so_nha = so_nha_to or ""
+                        diachi_moi = f"{so_nha}, {ward_new.get('type', '')} {ward_new.get('name', '')}, {province_new.get('type', '')} {province_new.get('name', '')}"
+                        st.success(f"Địa chỉ mới: {diachi_moi}")
+                    else:
+                        st.error(f"Lỗi chuyển đổi: {resp.text}")
+                except Exception as e:
+                    st.error(f"Lỗi kết nối API: {e}")
+            else:
+                st.warning("Vui lòng chọn đầy đủ Tỉnh, Huyện, Xã để xác nhận địa chỉ!")
+        
+    else:
+        st.markdown(":green[ĐỊA CHỈ NƠI Ở: TỈNH, XÃ] :orange[(MỚI)]")
+        tinh_tp_moi = st.selectbox("Tỉnh/TP (Mới)", ["Đắk Lắk", "Khác"], index=["Đắk Lắk", "Khác"].index(st.session_state.get("tinh_tp_moi", "Đắk Lắk")))
+        st.session_state["tinh_tp_moi"] = tinh_tp_moi
+        xa_phuong_moi = st.selectbox("Xã/Phường (Mới)", ["P. Ea Tam", "Khác"], index=["P. Ea Tam", "Khác"].index(st.session_state.get("xa_phuong_moi", "P. Ea Tam")))
+        st.session_state["xa_phuong_moi"] = xa_phuong_moi
+        st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
+        thon_xom_loai = st.radio(
+            "Chọn cấp độ Thôn, Xóm, Đường, Khối",
+            ["Thôn", "Xóm", "Đường", "Khối"],
+            horizontal=True,
+        )
+        thon_xom = st.text_input("Thôn/Xóm", value=st.session_state.get("thon_xom", thon_xom_loai))
+        st.session_state["thon_xom"] = thon_xom
+        so_nha_to = st.text_input("Số nhà/Tổ", value=st.session_state.get("so_nha_to", ""))
+        st.session_state["so_nha_to"] = so_nha_to
+        st.markdown("<br>", unsafe_allow_html=True)
 with col3:
     import os
     import pandas as pd
