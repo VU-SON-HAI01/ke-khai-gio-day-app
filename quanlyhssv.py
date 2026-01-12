@@ -232,12 +232,12 @@ with col2:
     me = st.text_input(":green[HỌ TÊN MẸ]", value=st.session_state.get("me", ""))
     st.session_state["me"] = me
     
-    show_diachi_cu = st.toggle("Nhập địa chỉ cũ (Tỉnh/Huyện/Xã)?", value=True)
+    show_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=True)
     if show_diachi_cu:
         # --- ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ (CŨ) động từ API ---
         import requests
         st.markdown("""
-        <span style='color:#00C853;font-size:20px;font-weight:bold;'>ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ <span style='color:#43A047;'>(CŨ)</span></span>
+        <span style='color:#00C853;font-size:20px;font-weight:bold;'>ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ <span style='color:#ffb74d;'>(CŨ)</span></span>
         """, unsafe_allow_html=True)
         API_BASE = "https://tinhthanhpho.com/api/v1"
         API_KEY = "hvn_FtGTTNTbJcqr18dMVNOItOqW7TAN6Lqt"
