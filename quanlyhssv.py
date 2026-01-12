@@ -285,7 +285,6 @@ with col2:
                 horizontal=True,
             )
             thon_xom = st.text_input(f"{thon_xom_loai} ...", value="")
-            so_nha_to = st.text_input("Số nhà/Tổ", value="")
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
         if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
