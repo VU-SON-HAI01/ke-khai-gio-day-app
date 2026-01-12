@@ -279,6 +279,7 @@ with col2:
             ward_code = ward_codes[ward_names.index(ward_idx)]
         else:
             ward_code = None
+        st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
         thon_xom_loai = st.radio(
             "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
             ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
