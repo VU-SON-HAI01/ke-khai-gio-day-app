@@ -266,11 +266,13 @@ with col2:
         province_codes = [p['code'] for p in provinces]
         province_idx = st.selectbox("Tỉnh/TP (Cũ)", province_names, index=0, key="tinh_tp_cu") if province_names else None
         province_code = province_codes[province_names.index(province_idx)] if province_names and province_idx else None
+        st.session_state["tinh_tp_cu"] = province_idx if province_idx else ""
         districts = get_districts(province_code) if province_code else []
         district_names = [f"{d['type']} {d['name']}" for d in districts]
         district_codes = [d['code'] for d in districts]
         district_idx = st.selectbox("Quận/Huyện (Cũ)", district_names, index=0, key="quan_huyen_cu") if district_names else None
         district_code = district_codes[district_names.index(district_idx)] if district_names and district_idx else None
+        st.session_state["quan_huyen_cu"] = district_idx if district_idx else ""
         wards = get_wards(district_code) if district_code else []
         ward_names = [f"{w['type']} {w['name']}" for w in wards]
         ward_codes = [w['code'] for w in wards]
@@ -279,18 +281,20 @@ with col2:
             ward_code = ward_codes[ward_names.index(ward_idx)]
         else:
             ward_code = None
+        st.session_state["xa_phuong_cu"] = ward_idx if ward_idx else ""
         thon_xom_loai = st.radio(
             "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
-            ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Phường", "Không"],
+            ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
             horizontal=True,
         )
         if thon_xom_loai == "Không":
             duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-
+            thon_xom = ""
         else:
             thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
             duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
         diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
+        st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
         st.write(f"Địa chỉ chi tiết (Cũ): {diachi_chitiet_cu}")
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
@@ -312,8 +316,9 @@ with col2:
                         new_addr = data.get("new", {})
                         province_new = new_addr.get("province", {})
                         ward_new = new_addr.get("ward", {})
-                        so_nha = diachi_chitiet_cu
-                        diachi_moi = f"{so_nha}, {ward_new.get('type', '')} {ward_new.get('name', '')}, {province_new.get('type', '')} {province_new.get('name', '')}"
+                        diachi_moi = f"{diachi_chitiet_cu}, {ward_new.get('type', '')} {ward_new.get('name', '')}, {province_new.get('type', '')} {province_new.get('name', '')}"
+                        st.session_state["tinh_tp_moi"] = f"{province_new.get('type', '')} {province_new.get('name', '')}"
+                        st.session_state["xa_phuong_moi"] = f"{ward_new.get('type', '')} {ward_new.get('name', '')}"
                         st.success(f"Địa chỉ mới: {diachi_moi}")
                     else:
                         st.error(f"Lỗi chuyển đổi: {resp.text}")
