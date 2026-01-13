@@ -350,7 +350,7 @@ with col2:
                     st.write("Địa chỉ mới:")
                     if thon_xom =="" and duong_pho !="":
                         diachi_chitiet_cu = duong_pho
-                        st.success(f"{duong_pho},{ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}")
+                        st.success(f"{duong_pho}, {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}")
                     elif duong_pho =="" and thon_xom !="":
                         diachi_chitiet_cu = f"{thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else ""
                         st.success(f"{diachi_chitiet_cu}, {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}")
