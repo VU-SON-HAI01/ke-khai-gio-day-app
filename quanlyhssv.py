@@ -551,8 +551,16 @@ with col3:
             "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
             "Ngày nộp hồ sơ": st.session_state.get("ngay_nop_hs", ""),
         }
-        for k, v in du_lieu.items():
-            st.markdown(f"**{k}:** {v}")
+        # Chia dữ liệu thành 2 cột để hiển thị
+        keys = list(du_lieu.keys())
+        mid = (len(keys) + 1) // 2
+        col1, col2 = st.columns(2)
+        with col1:
+            for k in keys[:mid]:
+                st.markdown(f"**{k}:** {du_lieu[k]}")
+        with col2:
+            for k in keys[mid:]:
+                st.markdown(f"**{k}:** {du_lieu[k]}")
         st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 
     if st.button("Xem lại thông tin"):
