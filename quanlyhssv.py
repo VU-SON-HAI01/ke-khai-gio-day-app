@@ -517,45 +517,44 @@ with col3:
         st.session_state["nv2"] = nv2
         nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv3"] = nv3
-    st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
     # Nút lưu tổng cuối trang
-st.divider()
-if st.button("Lưu tất cả thông tin"):
-    # Tập hợp dữ liệu từ session_state
-    du_lieu = {
-        "ho_ten": st.session_state.get("ho_ten", ""),
-        "ngay_sinh": st.session_state.get("ngay_sinh", None),
-        "gioi_tinh": st.session_state.get("gioi_tinh", "Nam"),
-        "so_dien_thoai": st.session_state.get("so_dien_thoai", ""),
-        "noi_sinh_cu": st.session_state.get("noi_sinh_cu", "Đắk Lắk"),
-        "noi_sinh_moi": st.session_state.get("noi_sinh_moi", "Đắk Lắk"),
-        "que_quan_cu": st.session_state.get("que_quan_cu", "Đắk Lắk"),
-        "que_quan_moi": st.session_state.get("que_quan_moi", "Đắk Lắk"),
-        "dan_toc": st.session_state.get("dan_toc", "Kinh (Việt)"),
-        "ton_giao": st.session_state.get("ton_giao", "Không"),
-        "cha": st.session_state.get("cha", ""),
-        "me": st.session_state.get("me", ""),
-        "tinh_tp_cu": st.session_state.get("tinh_tp_cu", "Đắk Lắk"),
-        "quan_huyen_cu": st.session_state.get("quan_huyen_cu", "TP. Buôn Ma Thuột"),
-        "xa_phuong_cu": st.session_state.get("xa_phuong_cu", "P. Ea Tam"),
-        "tinh_tp_moi": st.session_state.get("tinh_tp_moi", "Đắk Lắk"),
-        "xa_phuong_moi": st.session_state.get("xa_phuong_moi", "P. Ea Tam"),
-        "thon_xom": st.session_state.get("thon_xom", ""),
-        "so_nha_to": st.session_state.get("so_nha_to", ""),
-        "trinhdo_totnghiep": st.session_state.get("trinhdo_totnghiep", "THPT"),
-        "hanh_kiem": st.session_state.get("hanh_kiem", "Tốt"),
-        "nam_tot_nghiep": st.session_state.get("nam_tot_nghiep", str(2010)),
-        "diem_tb": st.session_state.get("diem_tb", 0.0),
-        "nv1": st.session_state.get("nv1", ""),
-        "nv2": st.session_state.get("nv2", ""),
-        "nv3": st.session_state.get("nv3", ""),
-        "trinhdo_totnghiep_vh": st.session_state.get("trinhdo_totnghiep_vh", "Có"),
-        "trinh_do": st.session_state.get("trinh_do", "Cao đẳng"),
-        "co_so": st.session_state.get("co_so", "Cơ sở chính (594 Lê Duẩn)"),
-        "ngay_nop_hs": st.session_state.get("ngay_nop_hs", None),
-    }
-    st.success("Dữ liệu đã được lưu vào session_state! Bạn có thể xử lý lưu Google Sheet tại đây.")
-    st.write(du_lieu)
+    st.divider()
+    if st.button("Lưu tất cả thông tin"):
+        # Tập hợp dữ liệu từ session_state
+        du_lieu = {
+            "ho_ten": st.session_state.get("ho_ten", ""),
+            "ngay_sinh": st.session_state.get("ngay_sinh", None),
+            "gioi_tinh": st.session_state.get("gioi_tinh", "Nam"),
+            "so_dien_thoai": st.session_state.get("so_dien_thoai", ""),
+            "noi_sinh_cu": st.session_state.get("noi_sinh_cu", "Đắk Lắk"),
+            "noi_sinh_moi": st.session_state.get("noi_sinh_moi", "Đắk Lắk"),
+            "que_quan_cu": st.session_state.get("que_quan_cu", "Đắk Lắk"),
+            "que_quan_moi": st.session_state.get("que_quan_moi", "Đắk Lắk"),
+            "dan_toc": st.session_state.get("dan_toc", "Kinh (Việt)"),
+            "ton_giao": st.session_state.get("ton_giao", "Không"),
+            "cha": st.session_state.get("cha", ""),
+            "me": st.session_state.get("me", ""),
+            "tinh_tp_cu": st.session_state.get("tinh_tp_cu", "Đắk Lắk"),
+            "quan_huyen_cu": st.session_state.get("quan_huyen_cu", "TP. Buôn Ma Thuột"),
+            "xa_phuong_cu": st.session_state.get("xa_phuong_cu", "P. Ea Tam"),
+            "tinh_tp_moi": st.session_state.get("tinh_tp_moi", "Đắk Lắk"),
+            "xa_phuong_moi": st.session_state.get("xa_phuong_moi", "P. Ea Tam"),
+            "thon_xom": st.session_state.get("thon_xom", ""),
+            "so_nha_to": st.session_state.get("so_nha_to", ""),
+            "trinhdo_totnghiep": st.session_state.get("trinhdo_totnghiep", "THPT"),
+            "hanh_kiem": st.session_state.get("hanh_kiem", "Tốt"),
+            "nam_tot_nghiep": st.session_state.get("nam_tot_nghiep", str(2010)),
+            "diem_tb": st.session_state.get("diem_tb", 0.0),
+            "nv1": st.session_state.get("nv1", ""),
+            "nv2": st.session_state.get("nv2", ""),
+            "nv3": st.session_state.get("nv3", ""),
+            "trinhdo_totnghiep_vh": st.session_state.get("trinhdo_totnghiep_vh", "Có"),
+            "trinh_do": st.session_state.get("trinh_do", "Cao đẳng"),
+            "co_so": st.session_state.get("co_so", "Cơ sở chính (594 Lê Duẩn)"),
+            "ngay_nop_hs": st.session_state.get("ngay_nop_hs", None),
+        }
+        st.success("Dữ liệu đã được lưu vào session_state! Bạn có thể xử lý lưu Google Sheet tại đây.")
+        st.write(du_lieu)
     
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
 target_folder_name_hssv = st.secrets["target_folder_name_hssv"] if "target_folder_name_hssv" in st.secrets else "QUAN_LY_HSSV"
