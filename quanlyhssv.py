@@ -511,22 +511,23 @@ with col3:
         st.session_state["hanh_kiem"] = hanh_kiem
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
-        # Nhập điểm các môn như hình
-        mon_list = [
-            ("Toán", "diem_toan"),
-            ("Văn", "diem_van"),
-            ("Tiếng Anh", "diem_tieng_anh"),
-            ("GDCD", "diem_gdcd"),
-            ("Công nghệ", "diem_cong_nghe"),
-            ("Tin học", "diem_tin_hoc"),
-            ("KH tự nhiên", "diem_kh_tn"),
-            ("Lịch sử và Địa lý", "diem_ls_dl")
-        ]
-        tong_diem = 0.0
-        for ten_mon, key_mon in mon_list:
-            diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get(key_mon, 0.0), key=key_mon)
-            # Không set lại st.session_state[key_mon] vì key này đã được streamlit quản lý cho widget
-            tong_diem += diem
+        # Nhập điểm các 8 môn
+        with st.expander("See explanation"):
+            mon_list = [
+                ("Toán", "diem_toan"),
+                ("Văn", "diem_van"),
+                ("Tiếng Anh", "diem_tieng_anh"),
+                ("GDCD", "diem_gdcd"),
+                ("Công nghệ", "diem_cong_nghe"),
+                ("Tin học", "diem_tin_hoc"),
+                ("KH tự nhiên", "diem_kh_tn"),
+                ("Lịch sử và Địa lý", "diem_ls_dl")
+            ]
+            tong_diem = 0.0
+            for ten_mon, key_mon in mon_list:
+                diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get(key_mon, 0.0), key=key_mon)
+                # Không set lại st.session_state[key_mon] vì key này đã được streamlit quản lý cho widget
+                tong_diem += diem
         st.session_state["tong_diem_8_mon"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.divider()
