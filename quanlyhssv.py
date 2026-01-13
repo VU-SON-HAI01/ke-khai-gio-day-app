@@ -483,10 +483,10 @@ with col3:
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
         with st.expander("Nhập điểm 2 môn", expanded=True):
-            diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0, max_value=10, step=1, value=st.session_state.get("diem_toan", 0.0))
+            diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0.0, max_value=10.0, step=1, value=st.session_state.get("diem_toan", 0.0))
             diem_toan = round(diem_toan, 1)
             st.session_state["diem_toan"] = diem_toan
-            diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0, max_value=10, step=1, value=st.session_state.get("diem_van", 0.0))
+            diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=1, value=st.session_state.get("diem_van", 0.0))
             diem_van = round(diem_van, 1)
             st.session_state["diem_van"] = diem_van
         tong_diem = round(diem_toan + diem_van, 1)
@@ -527,7 +527,7 @@ with col3:
             ]
             tong_diem = 0.0
             for ten_mon, key_mon in mon_list:
-                diem = st.number_input(f":green[{ten_mon}]", min_value=0, max_value=10, step=1 ,value=st.session_state.get(key_mon, 0.0), key=key_mon)
+                diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=1 ,value=st.session_state.get(key_mon, 0.0), key=key_mon)
                 diem = round(diem, 1)
                 tong_diem += diem
             tong_diem = round(tong_diem, 1)
