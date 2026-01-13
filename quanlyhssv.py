@@ -487,10 +487,9 @@ with col3:
             st.session_state["diem_toan"] = diem_toan
             diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_van", 0.0))
             st.session_state["diem_van"] = diem_van
-        tong_diem = diem_toan + diem_van
+        tong_diem = round(diem_toan + diem_van, 1)
         st.session_state["tong_diem_2_mon"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
-        st.divider()
         st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
         nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv1"] = nv1
@@ -529,9 +528,9 @@ with col3:
                 diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get(key_mon, 0.0), key=key_mon)
                 # Không set lại st.session_state[key_mon] vì key này đã được streamlit quản lý cho widget
                 tong_diem += diem
+            tong_diem = round(tong_diem, 1)
         st.session_state["tong_diem_8_mon"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
-        st.divider()
         st.subheader("ĐĂNG KÝ NGÀNH HỌC")
         trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
         st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
