@@ -342,10 +342,23 @@ with col2:
                     new_addr = data.get("new", {})
                     province_new = new_addr.get("province", {})
                     ward_new = new_addr.get("ward", {})
-                    diachi_moi = f"{diachi_chitiet_cu}, {ward_new.get('type', '')} {ward_new.get('name', '')}, {province_new.get('type', '')} {province_new.get('name', '')}"
-                    st.session_state["tinh_tp_moi"] = f"{province_new.get('type', '')} {province_new.get('name', '')}"
-                    st.session_state["xa_phuong_moi"] = f"{ward_new.get('type', '')} {ward_new.get('name', '')}"
-                    st.success(f"Địa chỉ mới: {diachi_moi}")
+                    ward_type = ward_new.get('type', '')
+                    province_type = province_new.get('type', '')
+                    diachi_moi = f"{diachi_chitiet_cu}, {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}"
+                    st.session_state["tinh_tp_moi"] = f"{province_type} {province_new.get('name', '')}"
+                    st.session_state["xa_phuong_moi"] = f"{ward_type} {ward_new.get('name', '')}"
+                    if thon_xom =="" and duong_pho !="":
+                        diachi_chitiet_cu = duong_pho
+                        st.success(f"Địa chỉ: :blue[{duong_pho},{ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}]")
+                    elif duong_pho =="" and thon_xom !="":
+                        diachi_chitiet_cu = f"{thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else ""
+                        st.success(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}]")
+                    elif duong_pho =="" and thon_xom =="" :
+                        diachi_chitiet_cu = ""
+                        st.success(f"Địa chỉ: :blue[{ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}]")
+                    else:
+                        diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
+                        st.success(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}]")
                 else:
                     st.error(f"Lỗi chuyển đổi: {resp.text}")
             except Exception as e:
