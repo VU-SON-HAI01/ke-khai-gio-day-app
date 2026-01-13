@@ -557,10 +557,10 @@ with col3:
         col1, col2 = st.columns(2)
         with col1:
             for k in keys[:mid]:
-                st.markdown(f"**{k}:** {du_lieu[k]}")
+                st.markdown(f"**{k}:** <span style='color:green;font-weight:bold'>{du_lieu[k]}</span>", unsafe_allow_html=True)
         with col2:
             for k in keys[mid:]:
-                st.markdown(f"**{k}:** {du_lieu[k]}")
+                st.markdown(f"**{k}:** <span style='color:green;font-weight:bold'>{du_lieu[k]}</span>", unsafe_allow_html=True)
         st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 
     if st.button("Xem lại thông tin"):
