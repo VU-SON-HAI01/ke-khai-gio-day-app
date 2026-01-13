@@ -516,44 +516,47 @@ with col3:
         st.session_state["nv2"] = nv2
         nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv3"] = nv3
+    @st.dialog("Xem lại thông tin đã nhập", width="large")
+    def show_review_dialog():
+        st.header(":blue[XÁC NHẬN THÔNG TIN HỌC SINH]")
+        du_lieu = {
+            "Họ và tên": st.session_state.get("ho_ten", ""),
+            "Ngày sinh": st.session_state.get("ngay_sinh", None),
+            "Giới tính": st.session_state.get("gioi_tinh", "Nam"),
+            "Số điện thoại": st.session_state.get("so_dien_thoai", ""),
+            "Nơi sinh (cũ)": st.session_state.get("noi_sinh_cu", ""),
+            "Nơi sinh (mới)": st.session_state.get("noi_sinh_moi", ""),
+            "Quê quán (cũ)": st.session_state.get("que_quan_cu", ""),
+            "Quê quán (mới)": st.session_state.get("que_quan_moi", ""),
+            "Dân tộc": st.session_state.get("dan_toc", ""),
+            "Tôn giáo": st.session_state.get("ton_giao", ""),
+            "Họ tên cha": st.session_state.get("cha", ""),
+            "Họ tên mẹ": st.session_state.get("me", ""),
+            "Tỉnh/TP cũ": st.session_state.get("tinh_tp_cu", ""),
+            "Quận/Huyện cũ": st.session_state.get("quan_huyen_cu", ""),
+            "Xã/Phường cũ": st.session_state.get("xa_phuong_cu", ""),
+            "Tỉnh/TP mới": st.session_state.get("tinh_tp_moi", ""),
+            "Xã/Phường mới": st.session_state.get("xa_phuong_moi", ""),
+            "Thôn/Xóm": st.session_state.get("thon_xom", ""),
+            "Số nhà/Tổ": st.session_state.get("so_nha_to", ""),
+            "Trình độ tốt nghiệp": st.session_state.get("trinhdo_totnghiep", ""),
+            "Hạnh kiểm": st.session_state.get("hanh_kiem", ""),
+            "Năm tốt nghiệp": st.session_state.get("nam_tot_nghiep", ""),
+            "Điểm TB": st.session_state.get("diem_tb", ""),
+            "Nguyện vọng 1": st.session_state.get("nv1", ""),
+            "Nguyện vọng 2": st.session_state.get("nv2", ""),
+            "Nguyện vọng 3": st.session_state.get("nv3", ""),
+            "Đăng ký học văn hóa": st.session_state.get("trinhdo_totnghiep_vh", ""),
+            "Trình độ đăng ký": st.session_state.get("trinh_do", ""),
+            "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
+            "Ngày nộp hồ sơ": st.session_state.get("ngay_nop_hs", ""),
+        }
+        for k, v in du_lieu.items():
+            st.markdown(f"**{k}:** {v}")
+        st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
+
     if st.button("Xem lại thông tin"):
-        with st.dialog("Xem lại thông tin đã nhập", width="large"):
-            st.header(":blue[XÁC NHẬN THÔNG TIN HỌC SINH]")
-            du_lieu = {
-                "Họ và tên": st.session_state.get("ho_ten", ""),
-                "Ngày sinh": st.session_state.get("ngay_sinh", None),
-                "Giới tính": st.session_state.get("gioi_tinh", "Nam"),
-                "Số điện thoại": st.session_state.get("so_dien_thoai", ""),
-                "Nơi sinh (cũ)": st.session_state.get("noi_sinh_cu", ""),
-                "Nơi sinh (mới)": st.session_state.get("noi_sinh_moi", ""),
-                "Quê quán (cũ)": st.session_state.get("que_quan_cu", ""),
-                "Quê quán (mới)": st.session_state.get("que_quan_moi", ""),
-                "Dân tộc": st.session_state.get("dan_toc", ""),
-                "Tôn giáo": st.session_state.get("ton_giao", ""),
-                "Họ tên cha": st.session_state.get("cha", ""),
-                "Họ tên mẹ": st.session_state.get("me", ""),
-                "Tỉnh/TP cũ": st.session_state.get("tinh_tp_cu", ""),
-                "Quận/Huyện cũ": st.session_state.get("quan_huyen_cu", ""),
-                "Xã/Phường cũ": st.session_state.get("xa_phuong_cu", ""),
-                "Tỉnh/TP mới": st.session_state.get("tinh_tp_moi", ""),
-                "Xã/Phường mới": st.session_state.get("xa_phuong_moi", ""),
-                "Thôn/Xóm": st.session_state.get("thon_xom", ""),
-                "Số nhà/Tổ": st.session_state.get("so_nha_to", ""),
-                "Trình độ tốt nghiệp": st.session_state.get("trinhdo_totnghiep", ""),
-                "Hạnh kiểm": st.session_state.get("hanh_kiem", ""),
-                "Năm tốt nghiệp": st.session_state.get("nam_tot_nghiep", ""),
-                "Điểm TB": st.session_state.get("diem_tb", ""),
-                "Nguyện vọng 1": st.session_state.get("nv1", ""),
-                "Nguyện vọng 2": st.session_state.get("nv2", ""),
-                "Nguyện vọng 3": st.session_state.get("nv3", ""),
-                "Đăng ký học văn hóa": st.session_state.get("trinhdo_totnghiep_vh", ""),
-                "Trình độ đăng ký": st.session_state.get("trinh_do", ""),
-                "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
-                "Ngày nộp hồ sơ": st.session_state.get("ngay_nop_hs", ""),
-            }
-            for k, v in du_lieu.items():
-                st.markdown(f"**{k}:** {v}")
-            st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
+        show_review_dialog()
             
     # Nút lưu tổng cuối trang
     st.divider()
