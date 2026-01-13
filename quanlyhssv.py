@@ -523,7 +523,7 @@ with col3:
         tong_diem = 0.0
         for ten_mon, key_mon in mon_list:
             diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get(key_mon, 0.0), key=key_mon)
-            st.session_state[key_mon] = diem
+            # Không set lại st.session_state[key_mon] vì key này đã được streamlit quản lý cho widget
             tong_diem += diem
         st.session_state["tong_diem"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
