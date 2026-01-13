@@ -484,8 +484,10 @@ with col3:
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
         with st.expander("Nhập điểm 2 môn", expanded=True):
             diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_toan", 0.0))
+            diem_toan = round(diem_toan, 1)
             st.session_state["diem_toan"] = diem_toan
             diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_van", 0.0))
+            diem_van = round(diem_van, 1)
             st.session_state["diem_van"] = diem_van
         tong_diem = round(diem_toan + diem_van, 1)
         st.session_state["tong_diem_2_mon"] = tong_diem
@@ -526,7 +528,8 @@ with col3:
             tong_diem = 0.0
             for ten_mon, key_mon in mon_list:
                 diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get(key_mon, 0.0), key=key_mon)
-                # Không set lại st.session_state[key_mon] vì key này đã được streamlit quản lý cho widget
+                diem = round(diem, 1)
+                st.session_state[key_mon] = diem
                 tong_diem += diem
             tong_diem = round(tong_diem, 1)
         st.session_state["tong_diem_8_mon"] = tong_diem
