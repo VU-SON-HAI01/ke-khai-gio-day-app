@@ -529,7 +529,6 @@ with col3:
             for ten_mon, key_mon in mon_list:
                 diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get(key_mon, 0.0), key=key_mon)
                 diem = round(diem, 1)
-                st.session_state[key_mon] = diem
                 tong_diem += diem
             tong_diem = round(tong_diem, 1)
         st.session_state["tong_diem_8_mon"] = tong_diem
