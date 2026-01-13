@@ -482,8 +482,13 @@ with col3:
         st.session_state["hanh_kiem"] = hanh_kiem
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
-        diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_tb", 0.0))
-        st.session_state["diem_tb"] = diem_tb
+        diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_toan", 0.0))
+        st.session_state["diem_toan"] = diem_toan
+        diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_van", 0.0))
+        st.session_state["diem_van"] = diem_van
+        tong_diem = diem_toan + diem_van
+        st.session_state["tong_diem"] = tong_diem
+        st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.divider()
         st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
         nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
@@ -545,7 +550,9 @@ with col3:
             "Trình độ tốt nghiệp": st.session_state.get("trinhdo_totnghiep", ""),
             "Hạnh kiểm": st.session_state.get("hanh_kiem", ""),
             "Năm tốt nghiệp": st.session_state.get("nam_tot_nghiep", ""),
-            "Điểm TB": st.session_state.get("diem_tb", ""),
+            "Điểm Toán": st.session_state.get("diem_toan", ""),
+            "Điểm Văn": st.session_state.get("diem_van", ""),
+            "Tổng điểm": st.session_state.get("tong_diem", ""),
             "Nguyện vọng 1": st.session_state.get("nv1", ""),
             "Nguyện vọng 2": st.session_state.get("nv2", ""),
             "Nguyện vọng 3": st.session_state.get("nv3", ""),
@@ -596,7 +603,9 @@ with col3:
             "trinhdo_totnghiep": st.session_state.get("trinhdo_totnghiep", "THPT"),
             "hanh_kiem": st.session_state.get("hanh_kiem", "Tốt"),
             "nam_tot_nghiep": st.session_state.get("nam_tot_nghiep", str(2010)),
-            "diem_tb": st.session_state.get("diem_tb", 0.0),
+            "diem_toan": st.session_state.get("diem_toan", 0.0),
+            "diem_van": st.session_state.get("diem_van", 0.0),
+            "tong_diem": st.session_state.get("tong_diem", 0.0),
             "nv1": st.session_state.get("nv1", ""),
             "nv2": st.session_state.get("nv2", ""),
             "nv3": st.session_state.get("nv3", ""),
