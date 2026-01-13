@@ -525,6 +525,7 @@ with col3:
             "Họ và tên": st.session_state.get("ho_ten", ""),
             "Ngày sinh": st.session_state.get("ngay_sinh", None),
             "Giới tính": st.session_state.get("gioi_tinh", "Nam"),
+            "CCCD": st.session_state.get("cccd", ""),
             "Số điện thoại": st.session_state.get("so_dien_thoai", ""),
             "Nơi sinh (cũ)": st.session_state.get("noi_sinh_cu", ""),
             "Nơi sinh (mới)": st.session_state.get("noi_sinh_moi", ""),
