@@ -487,7 +487,7 @@ with col3:
         diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_van", 0.0))
         st.session_state["diem_van"] = diem_van
         tong_diem = diem_toan + diem_van
-        st.session_state["tong_diem"] = tong_diem
+        st.session_state["tong_diem_2_mon"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.divider()
         st.subheader("ĐĂNG KÝ NGÀNH HỌC NHẬP HỌC")
@@ -513,6 +513,8 @@ with col3:
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
         # Nhập điểm các môn như hình
         mon_list = [
+            ("Toán", "diem_toan"),
+            ("Văn", "diem_van"),
             ("Tiếng Anh", "diem_tieng_anh"),
             ("GDCD", "diem_gdcd"),
             ("Công nghệ", "diem_cong_nghe"),
@@ -525,7 +527,7 @@ with col3:
             diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get(key_mon, 0.0), key=key_mon)
             # Không set lại st.session_state[key_mon] vì key này đã được streamlit quản lý cho widget
             tong_diem += diem
-        st.session_state["tong_diem"] = tong_diem
+        st.session_state["tong_diem_8_mon"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.divider()
         st.subheader("ĐĂNG KÝ NGÀNH HỌC")
@@ -572,7 +574,8 @@ with col3:
             "Tin học": st.session_state.get("diem_tin_hoc", ""),
             "KH tự nhiên": st.session_state.get("diem_kh_tn", ""),
             "Lịch sử và Địa lý": st.session_state.get("diem_ls_dl", ""),
-            "Tổng điểm": st.session_state.get("tong_diem", ""),
+            "Tổng điểm 2 môn": st.session_state.get("tong_diem_2_mon", ""),
+            "Tổng điểm 8 môn": st.session_state.get("tong_diem_8_mon", ""),
             "Nguyện vọng 1": st.session_state.get("nv1", ""),
             "Nguyện vọng 2": st.session_state.get("nv2", ""),
             "Nguyện vọng 3": st.session_state.get("nv3", ""),
