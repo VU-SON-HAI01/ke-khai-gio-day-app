@@ -482,9 +482,9 @@ with col3:
         st.session_state["hanh_kiem"] = hanh_kiem
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
-        diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_toan", 0.0))
+        diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_toan", 0.0))
         st.session_state["diem_toan"] = diem_toan
-        diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_van", 0.0))
+        diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_van", 0.0))
         st.session_state["diem_van"] = diem_van
         tong_diem = diem_toan + diem_van
         st.session_state["tong_diem"] = tong_diem
@@ -511,8 +511,22 @@ with col3:
         st.session_state["hanh_kiem"] = hanh_kiem
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
-        diem_tb = st.number_input(":green[ĐIỂM TRUNG BÌNH]", min_value=0.0, max_value=10.0, step=0.01, value=st.session_state.get("diem_tb", 0.0))
-        st.session_state["diem_tb"] = diem_tb
+        # Nhập điểm các môn như hình
+        mon_list = [
+            ("Tiếng Anh", "diem_tieng_anh"),
+            ("GDCD", "diem_gdcd"),
+            ("Công nghệ", "diem_cong_nghe"),
+            ("Tin học", "diem_tin_hoc"),
+            ("KH tự nhiên", "diem_kh_tn"),
+            ("Lịch sử và Địa lý", "diem_ls_dl")
+        ]
+        tong_diem = 0.0
+        for ten_mon, key_mon in mon_list:
+            diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get(key_mon, 0.0), key=key_mon)
+            st.session_state[key_mon] = diem
+            tong_diem += diem
+        st.session_state["tong_diem"] = tong_diem
+        st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.divider()
         st.subheader("ĐĂNG KÝ NGÀNH HỌC")
         trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
@@ -552,6 +566,12 @@ with col3:
             "Năm tốt nghiệp": st.session_state.get("nam_tot_nghiep", ""),
             "Điểm Toán": st.session_state.get("diem_toan", ""),
             "Điểm Văn": st.session_state.get("diem_van", ""),
+            "Tiếng Anh": st.session_state.get("diem_tieng_anh", ""),
+            "GDCD": st.session_state.get("diem_gdcd", ""),
+            "Công nghệ": st.session_state.get("diem_cong_nghe", ""),
+            "Tin học": st.session_state.get("diem_tin_hoc", ""),
+            "KH tự nhiên": st.session_state.get("diem_kh_tn", ""),
+            "Lịch sử và Địa lý": st.session_state.get("diem_ls_dl", ""),
             "Tổng điểm": st.session_state.get("tong_diem", ""),
             "Nguyện vọng 1": st.session_state.get("nv1", ""),
             "Nguyện vọng 2": st.session_state.get("nv2", ""),
@@ -605,6 +625,12 @@ with col3:
             "nam_tot_nghiep": st.session_state.get("nam_tot_nghiep", str(2010)),
             "diem_toan": st.session_state.get("diem_toan", 0.0),
             "diem_van": st.session_state.get("diem_van", 0.0),
+            "diem_tieng_anh": st.session_state.get("diem_tieng_anh", 0.0),
+            "diem_gdcd": st.session_state.get("diem_gdcd", 0.0),
+            "diem_cong_nghe": st.session_state.get("diem_cong_nghe", 0.0),
+            "diem_tin_hoc": st.session_state.get("diem_tin_hoc", 0.0),
+            "diem_kh_tn": st.session_state.get("diem_kh_tn", 0.0),
+            "diem_ls_dl": st.session_state.get("diem_ls_dl", 0.0),
             "tong_diem": st.session_state.get("tong_diem", 0.0),
             "nv1": st.session_state.get("nv1", ""),
             "nv2": st.session_state.get("nv2", ""),
