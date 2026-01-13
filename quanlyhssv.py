@@ -96,7 +96,9 @@ with col3:
     """,
     unsafe_allow_html=True
     )
-    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:", format="DD/MM/YYYY", value=st.session_state.get("ngay_nop_hs", None))
+    import datetime
+    default_ngay_nop_hs = st.session_state.get("ngay_nop_hs", datetime.date.today())
+    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:", format="DD/MM/YYYY", value=default_ngay_nop_hs)
     st.session_state["ngay_nop_hs"] = ngay_nop_hs
 st.divider()
 col1, col2, col3 = st.columns(3)
