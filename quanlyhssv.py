@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Quản lý HSSV", layout="wide")
-st.title("NHẬP THÔNG TIN NGƯỜI HỌC (TUYỂN SINH)")
+st.title("NHẬP THÔNG TIN NGƯỜI HỌC")
 
 # Các trường thông tin
 fields = [
@@ -101,7 +101,6 @@ with col3:
 st.divider()
 col1, col2, col3 = st.columns(3)
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
-
 with col1:
     st.markdown(
         """
