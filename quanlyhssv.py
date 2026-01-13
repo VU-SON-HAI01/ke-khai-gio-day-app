@@ -482,10 +482,11 @@ with col3:
         st.session_state["hanh_kiem"] = hanh_kiem
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
-        diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_toan", 0.0))
-        st.session_state["diem_toan"] = diem_toan
-        diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_van", 0.0))
-        st.session_state["diem_van"] = diem_van
+        with st.expander("Nhập điểm học bạ 2 môn học", expanded=True):
+            diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_toan", 0.0))
+            st.session_state["diem_toan"] = diem_toan
+            diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_van", 0.0))
+            st.session_state["diem_van"] = diem_van
         tong_diem = diem_toan + diem_van
         st.session_state["tong_diem_2_mon"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
@@ -512,7 +513,7 @@ with col3:
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
         # Nhập điểm các 8 môn
-        with st.expander("See explanation"):
+        with st.expander("Nhập điểm học bạ 8 môn học", expanded=True):
             mon_list = [
                 ("Toán", "diem_toan"),
                 ("Văn", "diem_van"),
