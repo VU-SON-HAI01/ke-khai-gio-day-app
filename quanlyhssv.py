@@ -482,7 +482,7 @@ with col3:
         st.session_state["hanh_kiem"] = hanh_kiem
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
-        with st.expander("Nhập điểm học bạ 2 môn học", expanded=True):
+        with st.expander("Nhập điểm 2 môn", expanded=True):
             diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_toan", 0.0))
             st.session_state["diem_toan"] = diem_toan
             diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=0.1, value=st.session_state.get("diem_van", 0.0))
@@ -512,7 +512,7 @@ with col3:
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
         # Nhập điểm các 8 môn
-        with st.expander("Nhập điểm học bạ 8 môn học", expanded=True):
+        with st.expander("Nhập điểm 8 môn", expanded=True):
             mon_list = [
                 ("Toán", "diem_toan"),
                 ("Văn", "diem_van"),
