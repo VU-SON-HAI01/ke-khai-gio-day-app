@@ -311,16 +311,16 @@ with col2:
             duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
         if thon_xom =="" and duong_pho !="":
             diachi_chitiet_cu = duong_pho
-            st.write(f"Địa chỉ: :blue[{duong_pho}, {ward_idx}, {district_idx}, {province_idx}]")
+            st.write(f"Địa chỉ cũ: :blue[{duong_pho}, {ward_idx}, {district_idx}, {province_idx}]")
         elif duong_pho =="" and thon_xom !="":
             diachi_chitiet_cu = f"{thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else ""
-            st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
+            st.write(f"Địa chỉ cũ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
         elif duong_pho =="" and thon_xom =="" :
             diachi_chitiet_cu = ""
-            st.write(f"Địa chỉ: :blue[{ward_idx}, {district_idx}, {province_idx}]")
+            st.write(f"Địa chỉ cũ: :blue[{ward_idx}, {district_idx}, {province_idx}]")
         else:
             diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
-            st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
+            st.write(f"Địa chỉ cũ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
         st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
         st.markdown("<br>", unsafe_allow_html=True)
         # Nút xác nhận địa chỉ động như API_diachi
