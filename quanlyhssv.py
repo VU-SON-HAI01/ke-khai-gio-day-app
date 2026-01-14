@@ -587,15 +587,20 @@ with col3:
             "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
             "Ngày nộp hồ sơ": st.session_state.get("ngay_nop_hs", ""),
         }
-        # Chia dữ liệu thành 2 cột để hiển thị
+        # Chia dữ liệu thành 3 cột để hiển thị
         keys = list(du_lieu.keys())
-        mid = (len(keys) + 1) // 2
-        col1, col2 = st.columns(2)
+        n = len(keys)
+        col1, col2, col3 = st.columns(3)
+        split1 = n // 3 + (1 if n % 3 > 0 else 0)
+        split2 = split1 + n // 3 + (1 if n % 3 > 1 else 0)
         with col1:
-            for k in keys[:mid]:
+            for k in keys[:split1]:
                 st.markdown(f"**{k}:** <span style='color:green;font-weight:bold'>{du_lieu[k]}</span>", unsafe_allow_html=True)
         with col2:
-            for k in keys[mid:]:
+            for k in keys[split1:split2]:
+                st.markdown(f"**{k}:** <span style='color:green;font-weight:bold'>{du_lieu[k]}</span>", unsafe_allow_html=True)
+        with col3:
+            for k in keys[split2:]:
                 st.markdown(f"**{k}:** <span style='color:green;font-weight:bold'>{du_lieu[k]}</span>", unsafe_allow_html=True)
         st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 
