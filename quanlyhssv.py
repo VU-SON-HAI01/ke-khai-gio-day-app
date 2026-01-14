@@ -592,6 +592,7 @@ with col3:
         n = len(keys)
         col1, col2 = st.columns(2)
         split = n // 2 + (n % 2)
+        style_macdinh = "font-weight:normal;display:block;margin-bottom:-8px"
         style_xanh = "color:green;font-weight:normal;display:block;margin-bottom:-8px"
         style_cam = "color:Orange;font-weight:normal;display:block;margin-bottom:-8px"
         style_do = "color:Red;font-weight:normal;display:block;margin-bottom:-8px"
@@ -604,7 +605,7 @@ with col3:
                     style = style_do
                 else:
                     style = style_cam if is_empty else style_xanh
-                st.markdown(f"<span style='{style}'><b>{k}:</b> {value}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span>", unsafe_allow_html=True)
         with col2:
             for k in keys[split:]:
                 value = du_lieu[k]
@@ -613,7 +614,7 @@ with col3:
                     style = style_do
                 else:
                     style = style_cam if is_empty else style_xanh
-                st.markdown(f"<span style='{style}'><b>{k}:</b> {value}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span>", unsafe_allow_html=True)
         st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 
     if st.button("Xem lại thông tin"):
