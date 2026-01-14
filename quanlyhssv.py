@@ -591,17 +591,13 @@ with col3:
 
         keys = list(du_lieu.keys())
         n = len(keys)
-        col1, col2, col3 = st.columns(3)
-        split1 = n // 3 + (1 if n % 3 > 0 else 0)
-        split2 = split1 + n // 3 + (1 if n % 3 > 1 else 0)
+        col1, col2 = st.columns(2)
+        split = n // 2 + (n % 2)
         with col1:
-            for k in keys[:split1]:
+            for k in keys[:split]:
                 st.markdown(f"**{k}:** <span style='color:green;font-weight:normal'>{du_lieu[k]}</span>", unsafe_allow_html=True)
         with col2:
-            for k in keys[split1:split2]:
-                st.markdown(f"**{k}:** <span style='color:green;font-weight:normal'>{du_lieu[k]}</span>", unsafe_allow_html=True)
-        with col3:
-            for k in keys[split2:]:
+            for k in keys[split:]:
                 st.markdown(f"**{k}:** <span style='color:green;font-weight:normal'>{du_lieu[k]}</span>", unsafe_allow_html=True)
         st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 
