@@ -571,7 +571,11 @@ with col3:
             sheet_name = "TUYENSINH"
             if "gcp_service_account" not in st.secrets:
                 raise KeyError("gcp_service_account")
-            credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+            scopes = [
+                "https://www.googleapis.com/auth/spreadsheets",
+                "https://www.googleapis.com/auth/drive"
+            ]
+            credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
             gc = gspread.authorize(credentials)
             sh = gc.open_by_key(thong_tin_hssv_id)
             worksheet = sh.worksheet(sheet_name)
