@@ -644,10 +644,10 @@ with col3:
     # Nút lưu tổng cuối trang
     st.divider()
     if st.button("Lưu tất cả thông tin"):
-        # Lấy mã HSTS mới tự động từ Google Sheet TUYENSINH
-        thong_tin_hssv_id = st.secrets["thong_tin_hssv_id"] if "thong_tin_hssv_id" in st.secrets else "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k"
-        sheet_name = "TUYENSINH"
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        # Lấy cấu hình Google Sheet từ secrets
+        google_sheet_cfg = st.secrets["google_sheet"]
+        thong_tin_hssv_id = google_sheet_cfg["thong_tin_hssv_id"]
+        sheet_name = google_sheet_cfg["sheet_name"] if "sheet_name" in google_sheet_cfg else "TUYENSINH"
         credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
         gc = gspread.authorize(credentials)
         sh = gc.open_by_key(thong_tin_hssv_id)
