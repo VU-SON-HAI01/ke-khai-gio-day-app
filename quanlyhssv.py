@@ -510,7 +510,7 @@ with col3:
         st.markdown(
             """
             <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-            <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>KẾT QUẢ HỌC TẬP</span><br>
+            <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>KẾT QUẢ HỌC BẠ</span><br>
             """,
             unsafe_allow_html=True
         )
