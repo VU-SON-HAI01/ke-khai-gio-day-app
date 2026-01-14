@@ -542,7 +542,7 @@ with col3:
         st.session_state["nv2"] = nv2
         nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv3"] = nv3
-    @st.dialog("Xem lại thông tin đã nhập", width="large")
+    @st.dialog("Xem lại thông tin đã nhập", width="medium")
     def show_review_dialog():
         st.header(":blue[XÁC NHẬN THÔNG TIN HỌC SINH]")
         du_lieu = {
