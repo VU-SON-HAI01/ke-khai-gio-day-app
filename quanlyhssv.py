@@ -604,7 +604,7 @@ with col3:
                     style = style_do
                 else:
                     style = style_cam if is_empty else style_xanh
-                st.markdown(f"<span style='{style}'><b>{k}:</b> {value}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='{style}'><b>{k}:</b></span> <span style='color:black'>{value}</span>", unsafe_allow_html=True)
         with col2:
             for k in keys[split:]:
                 value = du_lieu[k]
