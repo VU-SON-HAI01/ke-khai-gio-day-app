@@ -592,7 +592,7 @@ with col3:
         n = len(keys)
         col1, col2 = st.columns(2)
         split = n // 2 + (n % 2)
-        style_macdinh = "font-weight:normal;display:block;margin-bottom:-8px"
+        style_macdinh = "font-weight:normal;margin-bottom:-8px"
         style_xanh = "color:green;font-weight:normal;display:block;margin-bottom:-8px"
         style_cam = "color:Orange;font-weight:normal;display:block;margin-bottom:-8px"
         style_do = "color:Red;font-weight:normal;display:block;margin-bottom:-8px"
