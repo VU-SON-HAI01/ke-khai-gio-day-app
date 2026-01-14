@@ -323,6 +323,11 @@ with col2:
         else:
             diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
             st.write(f"Địa chỉ cũ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
+        if thon_xom_loai != "Không" or thon_xom == "":
+            duong_thon_xom = f"{duong_pho}"
+        else:
+            duong_thon_xom = f"{duong_pho}, {thon_xom_loai} {thon_xom}"
+        st.session_state["duong_thon_xom"] = duong_thon_xom
         st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
         # Nút xác nhận địa chỉ động như API_diachi
         #if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
@@ -659,12 +664,13 @@ with col3:
             st.session_state.get("ton_giao", ""),  # 14: Tôn giáo
             st.session_state.get("cha", ""),  # 15: Họ tên cha
             st.session_state.get("me", ""),  # 16: Họ tên mẹ
-            st.session_state.get("tinh_tp_cu", ""),  # 17: Tỉnh/TP cũ
-            st.session_state.get("quan_huyen_cu", ""),  # 18: Quận/Huyện cũ
-            st.session_state.get("xa_phuong_cu", ""),  # 19: Xã/Phường cũ
-            st.session_state.get("tinh_tp_moi", ""),  # 20: Tỉnh/TP mới
-            st.session_state.get("xa_phuong_moi", ""),  # 21: Xã/Phường mới
-            st.session_state.get("thon_xom", ""),  # 22: Thôn/Xóm
+             "",  # 17: diachi chi tiet
+            st.session_state.get("tinh_tp_cu", ""),  # 18: Tỉnh/TP cũ
+            st.session_state.get("quan_huyen_cu", ""),  # 19: Quận/Huyện cũ
+            st.session_state.get("xa_phuong_cu", ""),  # 20: Xã/Phường cũ
+            st.session_state.get("tinh_tp_moi", ""),  # 21: Tỉnh/TP mới
+            st.session_state.get("xa_phuong_moi", ""),  # 22: Xã/Phường mới
+            st.session_state.get("thon_xom", ""),  # 23: Thôn/Xóm
             st.session_state.get("so_nha_to", ""),  # 23: Số nhà/Tổ
             st.session_state.get("trinhdo_totnghiep", ""),  # 24: Trình độ tốt nghiệp
             st.session_state.get("hanh_kiem", ""),  # 25: Hạnh kiểm
