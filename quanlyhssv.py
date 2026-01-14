@@ -102,6 +102,7 @@ with col3:
     st.session_state["ngay_nop_hs"] = ngay_nop_hs
 st.divider()
 col1, col2, col3 = st.columns(3)
+df= pd.DataFrame()
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
 with col1:
     st.markdown(
