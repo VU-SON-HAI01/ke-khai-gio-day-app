@@ -593,7 +593,7 @@ with col3:
         col1, col2 = st.columns(2)
         split = n // 2 + (n % 2)
         style_xanh = "color:green;font-weight:normal;display:block;margin-bottom:-8px"
-        style_do = "color:red;font-weight:normal;display:block;margin-bottom:-8px"
+        style_do = "color:Orange;font-weight:normal;display:block;margin-bottom:-8px"
         with col1:
             for k in keys[:split]:
                 value = du_lieu[k]
