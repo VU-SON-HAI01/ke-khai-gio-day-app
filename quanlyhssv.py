@@ -592,7 +592,7 @@ with col3:
         n = len(keys)
         col1, col2 = st.columns(2)
         split = n // 2 + (n % 2)
-        style = "color:green;font-weight:normal;display:block;margin-bottom:8px"
+        style = "color:green;font-weight:normal;display:block;margin-bottom:6px"
         with col1:
             for k in keys[:split]:
                 st.markdown(f"<span style='{style}'><b>{k}:</b> {du_lieu[k]}</span>", unsafe_allow_html=True)
