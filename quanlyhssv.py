@@ -690,7 +690,7 @@ with col3:
         col_names = [str(i+1) for i in range(len(row))]
         df = pd.DataFrame([row], columns=col_names)
         st.success("Dữ liệu đã được lưu vào session_state! Bạn có thể xử lý lưu Google Sheet tại đây.")
-        st.write(df)
+st.write(df)
     
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
 target_folder_name_hssv = st.secrets["target_folder_name_hssv"] if "target_folder_name_hssv" in st.secrets else "QUAN_LY_HSSV"
