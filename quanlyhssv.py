@@ -592,12 +592,13 @@ with col3:
         n = len(keys)
         col1, col2 = st.columns(2)
         split = n // 2 + (n % 2)
+        style = "color:green;font-weight:normal;display:block;margin-bottom:8px"
         with col1:
             for k in keys[:split]:
-                st.markdown(f"**{k}:** <span style='color:green;font-weight:normal>{du_lieu[k]}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='{style}'><b>{k}:</b> {du_lieu[k]}</span>", unsafe_allow_html=True)
         with col2:
             for k in keys[split:]:
-                st.markdown(f"**{k}:** <span style='color:green;font-weight:normal>{du_lieu[k]}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='{style}'><b>{k}:</b> {du_lieu[k]}</span>", unsafe_allow_html=True)
         st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 
     if st.button("Xem lại thông tin"):
