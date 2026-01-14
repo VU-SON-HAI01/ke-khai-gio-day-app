@@ -587,7 +587,10 @@ with col3:
             "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
             "Ngày nộp hồ sơ": st.session_state.get("ngay_nop_hs", ""),
         }
-        # Chia dữ liệu thành 3 cột để hiển thị
+        # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
+        st.markdown("""
+        <div style='max-height:400px;overflow-y:auto;padding-right:8px;'>
+        """, unsafe_allow_html=True)
         keys = list(du_lieu.keys())
         n = len(keys)
         col1, col2, col3 = st.columns(3)
@@ -602,6 +605,7 @@ with col3:
         with col3:
             for k in keys[split2:]:
                 st.markdown(f"**{k}:** <span style='color:green;font-weight:normal'>{du_lieu[k]}</span>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
         st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 
     if st.button("Xem lại thông tin"):
