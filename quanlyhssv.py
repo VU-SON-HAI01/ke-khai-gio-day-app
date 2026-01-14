@@ -592,10 +592,10 @@ with col3:
         n = len(keys)
         col1, col2 = st.columns(2)
         split = n // 2 + (n % 2)
-        style_macdinh = "font-weight:normal;margin-bottom:0px;display:inline"
-        style_xanh = "color:green;font-weight:normal;display:inline;margin-bottom:0px"
-        style_cam = "color:Orange;font-weight:normal;display:inline;margin-bottom:0px"
-        style_do = "color:Red;font-weight:normal;display:inline;margin-bottom:0px"
+        style_macdinh = "font-weight:normal;display:inline;line-height:1;padding:0;margin:0"
+        style_xanh = "color:green;font-weight:normal;display:inline;line-height:1;padding:0;margin:0"
+        style_cam = "color:Orange;font-weight:normal;display:inline;line-height:1;padding:0;margin:0"
+        style_do = "color:Red;font-weight:normal;display:inline;line-height:1;padding:0;margin:0"
         truong_bat_buoc = ["Họ và tên", "Ngày sinh", "CCCD"]
         with col1:
             for k in keys[:split]:
