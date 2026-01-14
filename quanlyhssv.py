@@ -564,6 +564,22 @@ with col3:
         st.session_state["nv3"] = nv3
     @st.dialog("Xem thông tin đã nhập", width="medium")
     def show_review_dialog():
+        # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key
+        google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
+        thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
+        sheet_name = "TUYENSINH"
+        credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+        gc = gspread.authorize(credentials)
+        sh = gc.open_by_key(thong_tin_hssv_id)
+        worksheet = sh.worksheet(sheet_name)
+        col1_values = worksheet.col_values(1)
+        # Lọc các giá trị số, bỏ qua header hoặc rỗng
+        col1_numbers = [int(v) for v in col1_values if v.strip().isdigit()]
+        if col1_numbers:
+            ma_hsts_new = str(max(col1_numbers) + 1)
+        else:
+            ma_hsts_new = "250001"  # Giá trị mặc định nếu chưa có dữ liệu
+        st.session_state["ma_hsts"] = ma_hsts_new      
         du_lieu = {
             "Mã hồ sơ tuyển sinh": st.session_state.get("ma_hsts", ""),
             "Họ và tên": st.session_state.get("ho_ten", ""),
@@ -637,7 +653,6 @@ with col3:
                     style = style_cam if is_empty else style_xanh
                 st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
         st.info("Màu đỏ là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
-    
     if st.button("Xem lại thông tin"):
         show_review_dialog()
             
