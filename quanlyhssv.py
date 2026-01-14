@@ -647,7 +647,7 @@ with col3:
         # Lấy cấu hình Google Sheet từ secrets
         google_sheet_cfg = st.secrets["google_sheet"]
         thong_tin_hssv_id = google_sheet_cfg["thong_tin_hssv_id"]
-        sheet_name = google_sheet_cfg["sheet_name"] if "sheet_name" in google_sheet_cfg else "TUYENSINH"
+        sheet_name = "TUYENSINH"
         credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
         gc = gspread.authorize(credentials)
         sh = gc.open_by_key(thong_tin_hssv_id)
