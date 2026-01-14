@@ -593,18 +593,26 @@ with col3:
         col1, col2 = st.columns(2)
         split = n // 2 + (n % 2)
         style_xanh = "color:green;font-weight:normal;display:block;margin-bottom:-8px"
-        style_do = "color:Orange;font-weight:normal;display:block;margin-bottom:-8px"
+        style_cam = "color:Orange;font-weight:normal;display:block;margin-bottom:-8px"
+        style_do = "color:Red;font-weight:normal;display:block;margin-bottom:-8px"
+        truong_bat_buoc = ["Họ và tên", "Ngày sinh", "CCCD"]
         with col1:
             for k in keys[:split]:
                 value = du_lieu[k]
                 is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
-                style = style_do if is_empty else style_xanh
+                if k in truong_bat_buoc and (value is None or (isinstance(value, str) and value.strip() == "")):
+                    style = style_do
+                else:
+                    style = style_cam if is_empty else style_xanh
                 st.markdown(f"<span style='{style}'><b>{k}:</b> {value}</span>", unsafe_allow_html=True)
         with col2:
             for k in keys[split:]:
                 value = du_lieu[k]
                 is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
-                style = style_do if is_empty else style_xanh
+                if k in truong_bat_buoc and (value is None or (isinstance(value, str) and value.strip() == "")):
+                    style = style_do
+                else:
+                    style = style_cam if is_empty else style_xanh
                 st.markdown(f"<span style='{style}'><b>{k}:</b> {value}</span>", unsafe_allow_html=True)
         st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 
