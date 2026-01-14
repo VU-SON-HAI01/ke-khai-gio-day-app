@@ -592,13 +592,18 @@ with col3:
         n = len(keys)
         col1, col2 = st.columns(2)
         split = n // 2 + (n % 2)
-        style = "color:green;font-weight:normal;display:block;margin-bottom:-8px"
+        style_xanh = "color:green;font-weight:normal;display:block;margin-bottom:-8px"
+        style_do = "color:red;font-weight:normal;display:block;margin-bottom:-8px"
         with col1:
             for k in keys[:split]:
-                st.markdown(f"<span style='{style}'><b>{k}:</b> {du_lieu[k]}</span>", unsafe_allow_html=True)
+                value = du_lieu[k]
+                style = style_do if value is None or (isinstance(value, str) and value.strip() == "") else style_xanh
+                st.markdown(f"<span style='{style}'><b>{k}:</b> {value}</span>", unsafe_allow_html=True)
         with col2:
             for k in keys[split:]:
-                st.markdown(f"<span style='{style}'><b>{k}:</b> {du_lieu[k]}</span>", unsafe_allow_html=True)
+                value = du_lieu[k]
+                style = style_do if value is None or (isinstance(value, str) and value.strip() == "") else style_xanh
+                st.markdown(f"<span style='{style}'><b>{k}:</b> {value}</span>", unsafe_allow_html=True)
         st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 
     if st.button("Xem lại thông tin"):
