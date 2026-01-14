@@ -636,7 +636,7 @@ with col3:
                     style = style_cam if is_empty else style_xanh
                 st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
         st.info("Màu đỏ là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
-
+    ma_hsts = st.session_state.get("ma_hsts", "")
     if st.button("Xem lại thông tin"):
         show_review_dialog()
             
@@ -664,34 +664,37 @@ with col3:
             st.session_state.get("ton_giao", ""),  # 14: Tôn giáo
             st.session_state.get("cha", ""),  # 15: Họ tên cha
             st.session_state.get("me", ""),  # 16: Họ tên mẹ
-             "",  # 17: diachi chi tiet
+            st.session_state.get("duong_thon_xom", ""),  # 17: Địa chỉ chi tiết cũ
             st.session_state.get("tinh_tp_cu", ""),  # 18: Tỉnh/TP cũ
             st.session_state.get("quan_huyen_cu", ""),  # 19: Quận/Huyện cũ
             st.session_state.get("xa_phuong_cu", ""),  # 20: Xã/Phường cũ
             st.session_state.get("tinh_tp_moi", ""),  # 21: Tỉnh/TP mới
             st.session_state.get("xa_phuong_moi", ""),  # 22: Xã/Phường mới
-            st.session_state.get("thon_xom", ""),  # 23: Thôn/Xóm
-            st.session_state.get("so_nha_to", ""),  # 23: Số nhà/Tổ
-            st.session_state.get("trinhdo_totnghiep", ""),  # 24: Trình độ tốt nghiệp
-            st.session_state.get("hanh_kiem", ""),  # 25: Hạnh kiểm
-            st.session_state.get("nam_tot_nghiep", ""),  # 26: Năm tốt nghiệp
-            st.session_state.get("diem_toan", ""),  # 27: Điểm Toán
-            st.session_state.get("diem_van", ""),  # 28: Điểm Văn
-            st.session_state.get("diem_tieng_anh", ""),  # 29: Tiếng Anh
+            st.session_state.get("trinhdo_totnghiep", ""),  # 23: Trình độ tốt nghiệp
+            st.session_state.get("nv1", ""),  # 27: Nguyện vọng 1
+            st.session_state.get("nv2", ""),  # 28: Nguyện vọng 2
+            st.session_state.get("nv3", ""),  # 29: Nguyện vọng 3
+            st.session_state.get("trinhdo_totnghiep_vh", ""),  # 30: Đăng ký học văn hóa
+            st.session_state.get("co_so", ""),  # 31: Cơ sở nhận hồ sơ
+            st.session_state.get("ngay_nop_hs", ""),  # 43: Ngày nộp hồ sơ
+            st.session_state.get("trinh_do", ""),  # 41: Trình độ đăng ký
+            st.session_state.get("diachi_chitiet_cu") ,  # 23: Địa chỉ chi tiết cũ
+            st.session_state.get("diachi_chitiet_moi") ,  # 23: Địa chỉ chi tiết cũ
+            st.session_state.get("diem_toan", ""),  # 26: Điểm Toán
+            st.session_state.get("diem_van", ""),  # 27: Điểm Văn
+            st.session_state.get("diem_tieng_anh", ""),  # 28: Tiếng Anh
             st.session_state.get("diem_gdcd", ""),  # 30: GDCD
             st.session_state.get("diem_cong_nghe", ""),  # 31: Công nghệ
             st.session_state.get("diem_tin_hoc", ""),  # 32: Tin học
             st.session_state.get("diem_kh_tn", ""),  # 33: KH tự nhiên
             st.session_state.get("diem_ls_dl", ""),  # 34: Lịch sử và Địa lý
-            st.session_state.get("tong_diem_2_mon", ""),  # 35: Tổng điểm 2 môn
             st.session_state.get("tong_diem_8_mon", ""),  # 36: Tổng điểm 8 môn
-            st.session_state.get("nv1", ""),  # 37: Nguyện vọng 1
-            st.session_state.get("nv2", ""),  # 38: Nguyện vọng 2
-            st.session_state.get("nv3", ""),  # 39: Nguyện vọng 3
-            st.session_state.get("trinhdo_totnghiep_vh", ""),  # 40: Đăng ký học văn hóa
-            st.session_state.get("trinh_do", ""),  # 41: Trình độ đăng ký
-            st.session_state.get("co_so", ""),  # 42: Cơ sở nhận hồ sơ
-            st.session_state.get("ngay_nop_hs", ""),  # 43: Ngày nộp hồ sơ
+            st.session_state.get("tong_diem_2_mon", ""),  # 35: Tổng điểm 2 môn
+            st.session_state.get("hanh_kiem", ""),  # 24: Hạnh kiểm
+            st.session_state.get("nam_tot_nghiep", ""),  # 25: Năm tốt nghiệp
+            "",  # 24: ưu tiên đối tượng
+            "",  # 25: Ưu tiên khu vực
+            "",  # 26: Tổng điểm ưu tiên
         ]
         import pandas as pd
         col_names = [str(i+1) for i in range(len(row))]
