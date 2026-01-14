@@ -644,9 +644,9 @@ with col3:
     # Nút lưu tổng cuối trang
     st.divider()
     if st.button("Lưu tất cả thông tin"):
-        # Lấy cấu hình Google Sheet từ secrets
-        google_sheet_cfg = st.secrets["google_sheet"]
-        thong_tin_hssv_id = google_sheet_cfg["thong_tin_hssv_id"]
+        # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key
+        google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
+        thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
         sheet_name = "TUYENSINH"
         credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
         gc = gspread.authorize(credentials)
