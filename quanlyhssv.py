@@ -597,12 +597,14 @@ with col3:
         with col1:
             for k in keys[:split]:
                 value = du_lieu[k]
-                style = style_do if value is None or (isinstance(value, str) and value.strip() == "") else style_xanh
+                is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
+                style = style_do if is_empty else style_xanh
                 st.markdown(f"<span style='{style}'><b>{k}:</b> {value}</span>", unsafe_allow_html=True)
         with col2:
             for k in keys[split:]:
                 value = du_lieu[k]
-                style = style_do if value is None or (isinstance(value, str) and value.strip() == "") else style_xanh
+                is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
+                style = style_do if is_empty else style_xanh
                 st.markdown(f"<span style='{style}'><b>{k}:</b> {value}</span>", unsafe_allow_html=True)
         st.info("Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 
