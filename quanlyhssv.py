@@ -564,22 +564,28 @@ with col3:
         st.session_state["nv3"] = nv3
     @st.dialog("Xem thông tin đã nhập", width="medium")
     def show_review_dialog():
-        # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key
-        google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
-        thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
-        sheet_name = "TUYENSINH"
-        credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
-        gc = gspread.authorize(credentials)
-        sh = gc.open_by_key(thong_tin_hssv_id)
-        worksheet = sh.worksheet(sheet_name)
-        col1_values = worksheet.col_values(1)
-        # Lọc các giá trị số, bỏ qua header hoặc rỗng
-        col1_numbers = [int(v) for v in col1_values if v.strip().isdigit()]
-        if col1_numbers:
-            ma_hsts_new = str(max(col1_numbers) + 1)
-        else:
-            ma_hsts_new = "250001"  # Giá trị mặc định nếu chưa có dữ liệu
-        st.session_state["ma_hsts"] = ma_hsts_new      
+        # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key và báo lỗi chi tiết
+        try:
+            google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
+            thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
+            sheet_name = "TUYENSINH"
+            if "gcp_service_account" not in st.secrets:
+                raise KeyError("gcp_service_account")
+            credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+            gc = gspread.authorize(credentials)
+            sh = gc.open_by_key(thong_tin_hssv_id)
+            worksheet = sh.worksheet(sheet_name)
+            col1_values = worksheet.col_values(1)
+            # Lọc các giá trị số, bỏ qua header hoặc rỗng
+            col1_numbers = [int(v) for v in col1_values if v.strip().isdigit()]
+            if col1_numbers:
+                ma_hsts_new = str(max(col1_numbers) + 1)
+            else:
+                ma_hsts_new = "250001"  # Giá trị mặc định nếu chưa có dữ liệu
+            st.session_state["ma_hsts"] = ma_hsts_new
+        except Exception as e:
+            import traceback
+            st.error(f"Lỗi truy cập Google Sheet (lấy mã HSTS mới): {e}\n{traceback.format_exc()}")
         du_lieu = {
             "Mã hồ sơ tuyển sinh": st.session_state.get("ma_hsts", ""),
             "Họ và tên": st.session_state.get("ho_ten", ""),
