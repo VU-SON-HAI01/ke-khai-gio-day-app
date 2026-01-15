@@ -34,7 +34,8 @@ except Exception as e:
 with st.expander("Bộ lọc dữ liệu", expanded=True):
     col1, col2, col3 = st.columns(3)
     with col1:
-        ma_hsts = st.text_input("Mã HSTS")
+        ma_hsts_list = df[df.columns[0]].unique().tolist()
+        ma_hsts = st.selectbox("Mã HSTS", [""] + ma_hsts_list)
         ho_dem = st.text_input("Họ đệm")
         ten = st.text_input("Tên")
     with col2:
