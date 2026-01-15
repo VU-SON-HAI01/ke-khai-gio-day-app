@@ -771,7 +771,7 @@ with col3:
                     style = style_do
                 else:
                     style = style_cam if is_empty else style_xanh
-                st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
         with col2:
             for k in keys[split:]:
                 value = du_lieu[k]
@@ -780,7 +780,7 @@ with col3:
                     style = style_do
                 else:
                     style = style_cam if is_empty else style_xanh
-                st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
         st.info("Màu đỏ là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
     if st.button("Xem lại thông tin"):
         show_review_dialog()     
