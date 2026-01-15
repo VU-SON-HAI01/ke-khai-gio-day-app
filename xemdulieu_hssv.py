@@ -52,6 +52,8 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         co_so = st.selectbox("Cơ sở nhận hồ sơ", [""] + co_so_list)
         nam_tot_nghiep = st.text_input("Năm tốt nghiệp")
     with col4:
+        nv1_list = df[df.columns[23]].dropna().unique().tolist()
+        nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list)
         # --- Bộ lọc ngày nộp hồ sơ ---
         ngay_nop_col = df.columns[29] if len(df.columns) > 29 else None
         ngay_min, ngay_max = None, None
@@ -106,6 +108,10 @@ if nam_tot_nghiep:
 if ngay_nop_col and ngay_min and ngay_max:
     filtered_df[ngay_nop_col + "_dt"] = pd.to_datetime(filtered_df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
     filtered_df = filtered_df[(filtered_df[ngay_nop_col + "_dt"] >= pd.to_datetime(ngay_min)) & (filtered_df[ngay_nop_col + "_dt"] <= pd.to_datetime(ngay_max))]
+
+# Lọc theo Nguyện vọng 1
+if 'nv1' in locals() and nv1:
+    filtered_df = filtered_df[filtered_df[df.columns[23]].str.contains(nv1, case=False, na=False)]
 
 if selected_columns:
     st.dataframe(filtered_df[selected_columns], use_container_width=True)
