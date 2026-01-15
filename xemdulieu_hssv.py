@@ -33,7 +33,7 @@ except Exception as e:
 filtered_df = df.copy()
 # --- Hiển thị bộ lọc dữ liệu lên đầu trang ---
 with st.expander("Bộ lọc dữ liệu", expanded=True):
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         ma_hsts_list = df[df.columns[0]].unique().tolist()
         ma_hsts = st.selectbox("Mã HSTS", [""] + ma_hsts_list)
@@ -51,6 +51,24 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         co_so_list = df[df.columns[27]].dropna().unique().tolist()
         co_so = st.selectbox("Cơ sở nhận hồ sơ", [""] + co_so_list)
         nam_tot_nghiep = st.text_input("Năm tốt nghiệp")
+    with col4:
+        # --- Bộ lọc ngày nộp hồ sơ ---
+        ngay_nop_col = df.columns[29] if len(df.columns) > 29 else None
+        ngay_min, ngay_max = None, None
+        if ngay_nop_col:
+            try:
+                # Chuyển đổi cột ngày sang datetime, bỏ giá trị lỗi
+                df[ngay_nop_col + "_dt"] = pd.to_datetime(df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
+                min_date = df[ngay_nop_col + "_dt"].min()
+                max_date = df[ngay_nop_col + "_dt"].max()
+                col1, col2 = st.columns(2)
+                with col1:
+                    ngay_tu = st.date_input("Từ ngày nộp hồ sơ", value=min_date.date() if pd.notnull(min_date) else None)
+                with col2:
+                    ngay_den = st.date_input("Đến ngày nộp hồ sơ", value=max_date.date() if pd.notnull(max_date) else None)
+                ngay_min, ngay_max = ngay_tu, ngay_den
+            except Exception:
+                ngay_min, ngay_max = None, None
 with st.expander("Chọn cột hiển thị", expanded=True):
     all_columns = list(filtered_df.columns)
     default_cols = [
@@ -83,6 +101,11 @@ if co_so:
     filtered_df = filtered_df[filtered_df[df.columns[27]].str.contains(co_so, case=False, na=False)]
 if nam_tot_nghiep:
     filtered_df = filtered_df[filtered_df[df.columns[43]].str.contains(nam_tot_nghiep, case=False, na=False)]
+
+# Lọc theo ngày nộp hồ sơ
+if ngay_nop_col and ngay_min and ngay_max:
+    filtered_df[ngay_nop_col + "_dt"] = pd.to_datetime(filtered_df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
+    filtered_df = filtered_df[(filtered_df[ngay_nop_col + "_dt"] >= pd.to_datetime(ngay_min)) & (filtered_df[ngay_nop_col + "_dt"] <= pd.to_datetime(ngay_max))]
 
 if selected_columns:
     st.dataframe(filtered_df[selected_columns], use_container_width=True)
