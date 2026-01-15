@@ -638,7 +638,7 @@ with col3:
         if st.button("Lưu tất cả thông tin"):
             # Sắp xếp giá trị đúng thứ tự cột số trên Google Sheet
             row = [
-                ma_hsts_new,  # 1: MÃ HSTS
+                st.session_state.get("ma_hsts", ""),  # 1: MÃ HSTS
                 st.session_state.get("ho_ten", ""),  # 2: HỌ ĐỆM (hoặc Họ và tên)
                 "",  # 3: TÊN (nếu muốn tách tên riêng, cần xử lý thêm)
                 st.session_state.get("ngay_sinh", None),  # 4: NGÀY SINH
