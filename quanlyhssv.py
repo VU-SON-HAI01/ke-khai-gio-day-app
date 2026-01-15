@@ -316,7 +316,7 @@ with col2:
         if thon_xom == "":
             st.session_state["thon_xom"] = ""
         else:    
-            st.session_state["thon_xom"] = f"{thon_xom_loai}, {thon_xom}"
+            st.session_state["thon_xom"] = f"{thon_xom_loai} {thon_xom}"
         st.session_state["duong_pho"] = duong_pho
         if thon_xom =="" and duong_pho !="":
             diachi_chitiet_cu = duong_pho
@@ -455,7 +455,7 @@ with col2:
         if thon_xom == "":
             st.session_state["thon_xom"] = ""
         else:    
-            st.session_state["thon_xom"] = f"{thon_xom_loai}, {thon_xom}"
+            st.session_state["thon_xom"] = f"{thon_xom_loai} {thon_xom}"
         st.session_state["duong_pho"] = duong_pho
         if thon_xom =="" and duong_pho !="":
             diachi_chitiet_cu = duong_pho
