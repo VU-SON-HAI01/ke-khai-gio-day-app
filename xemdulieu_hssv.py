@@ -30,7 +30,8 @@ except Exception as e:
     st.error(f"Lỗi truy cập Google Sheet: {e}")
     st.stop()
 
-# Hiển thị bộ lọc
+filtered_df = df.copy()
+# --- Hiển thị bộ lọc dữ liệu lên đầu trang ---
 with st.expander("Bộ lọc dữ liệu", expanded=True):
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -47,12 +48,23 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         trinh_do = st.selectbox("Trình độ đăng ký", [""] + trinh_do_list)
         co_so = st.text_input("Cơ sở nhận hồ sơ")
         nam_tot_nghiep = st.text_input("Năm tốt nghiệp")
-
+with st.expander("Chọn cột hiển thị", expanded=True):
+    all_columns = list(filtered_df.columns)
+    default_cols = [
+        "MÃ HSTS",
+        "HỌ ĐỆM",
+        "TÊN",
+        "NGÀY SINH",
+        "GIỚI TÍNH",
+        "CCCD",
+        "Số điện thoại"
+    ]
+    # Chỉ lấy các cột mặc định nếu có trong all_columns
+    default_cols = [col for col in default_cols if col in all_columns]
+    selected_columns = st.multiselect("Chọn cột", all_columns, default=default_cols)
 # Áp dụng bộ lọc
-filtered_df = df.copy()
 if ma_hsts:
     filtered_df = filtered_df[filtered_df[df.columns[0]].str.contains(ma_hsts, case=False, na=False)]
-if ho_dem:
     filtered_df = filtered_df[filtered_df[df.columns[1]].str.contains(ho_dem, case=False, na=False)]
 if ten:
     filtered_df = filtered_df[filtered_df[df.columns[2]].str.contains(ten, case=False, na=False)]
@@ -69,17 +81,12 @@ if co_so:
 if nam_tot_nghiep:
     filtered_df = filtered_df[filtered_df[df.columns[43]].str.contains(nam_tot_nghiep, case=False, na=False)]
 
-st.dataframe(filtered_df, use_container_width=True)
-st.info(f"Số lượng HSSV: {len(filtered_df)}")
-
-# --- Hiển thị các cột theo mong muốn ---
-st.divider()
-st.subheader("Chọn các cột muốn hiển thị")
-all_columns = list(filtered_df.columns)
-default_cols = all_columns  # Mặc định hiển thị tất cả
-selected_columns = st.multiselect("Chọn cột", all_columns, default=default_cols)
 if selected_columns:
     st.dataframe(filtered_df[selected_columns], use_container_width=True)
     st.info(f"Số lượng HSSV: {len(filtered_df)} | Số cột hiển thị: {len(selected_columns)}")
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
+st.info(f"Số lượng HSSV: {len(filtered_df)}")
+
+# --- Hiển thị các cột theo mong muốn ---
+
