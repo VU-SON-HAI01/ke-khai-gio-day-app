@@ -681,7 +681,7 @@ with col3:
                 st.session_state.get("ton_giao", ""),  # 14: Tôn giáo
                 st.session_state.get("cha", ""),  # 15: Họ tên cha
                 st.session_state.get("me", ""),  # 16: Họ tên mẹ
-                st.session_state.get("duong_thon_xom", ""),  # 17: Địa chỉ chi tiết cũ
+                st.session_state.get("diachi_chitiet_cu", ""),  # 17: Địa chỉ chi tiết cũ
                 st.session_state.get("tinh_tp_cu", ""),  # 18: Tỉnh/TP cũ
                 st.session_state.get("quan_huyen_cu", ""),  # 19: Quận/Huyện cũ
                 st.session_state.get("xa_phuong_cu", ""),  # 20: Xã/Phường cũ
