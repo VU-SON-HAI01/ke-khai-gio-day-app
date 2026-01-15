@@ -690,9 +690,9 @@ with col3:
                 st.session_state.get("tinh_tp_moi", ""),  # 21: Tỉnh/TP mới
                 st.session_state.get("xa_phuong_moi", ""),  # 22: Xã/Phường mới
                 st.session_state.get("trinhdo_totnghiep", ""),  # 23: Trình độ tốt nghiệp
-                st.session_state.get("nv1", ""),  # 24: Nguyện vọng 1
-                st.session_state.get("nv2", ""),  # 25: Nguyện vọng 2
-                st.session_state.get("nv3", ""),  # 26: Nguyện vọng 3
+                " ".join(st.session_state.get("nv1", "").split()),  # 24: Nguyện vọng 1
+                " ".join(st.session_state.get("nv2", "").split()),  # 25: Nguyện vọng 2
+                " ".join(st.session_state.get("nv3", "").split()),  # 26: Nguyện vọng 3
                 st.session_state.get("trinhdo_totnghiep_vh", ""),  # 27: Đăng ký học văn hóa
                 st.session_state.get("co_so", ""),  # 28: Cơ sở nhận hồ sơ
                 st.session_state.get("ngay_nop_hs", ""),  # 29: Ngày nộp hồ sơ
