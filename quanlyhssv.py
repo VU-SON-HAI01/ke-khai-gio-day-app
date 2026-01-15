@@ -634,39 +634,6 @@ with col3:
             "Ngày nộp hồ sơ": st.session_state.get("ngay_nop_hs", ""),
         }
         # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
-
-        keys = list(du_lieu.keys())
-        n = len(keys)
-        col1, col2 = st.columns(2)
-        split = n // 2 + (n % 2)
-        style_macdinh = "font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
-        style_xanh = "color:green;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
-        style_cam = "color:Orange;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
-        style_do = "color:Red;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
-        truong_bat_buoc = ["Họ và tên", "Ngày sinh", "CCCD"]
-        with col1:
-            for k in keys[:split]:
-                value = du_lieu[k]
-                is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
-                if k in truong_bat_buoc and (value is None or (isinstance(value, str) and value.strip() == "")):
-                    style = style_do
-                else:
-                    style = style_cam if is_empty else style_xanh
-                st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
-        with col2:
-            for k in keys[split:]:
-                value = du_lieu[k]
-                is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
-                if k in truong_bat_buoc and (value is None or (isinstance(value, str) and value.strip() == "")):
-                    style = style_do
-                else:
-                    style = style_cam if is_empty else style_xanh
-                st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
-        st.info("Màu đỏ là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
-        if st.button("Xem lại thông tin"):
-            show_review_dialog()
-                
-        # Nút lưu tổng cuối trang
         st.divider()
         if st.button("Lưu tất cả thông tin"):
             # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key
@@ -739,6 +706,37 @@ with col3:
             col_names = [str(i+1) for i in range(len(row))]
             df = pd.DataFrame([row], columns=col_names)
             st.success(f"Dữ liệu đã được lưu vào session_state! Mã HSTS mới: {ma_hsts_new}. Bạn có thể xử lý lưu Google Sheet tại đây.")
+        keys = list(du_lieu.keys())
+        n = len(keys)
+        col1, col2 = st.columns(2)
+        split = n // 2 + (n % 2)
+        style_macdinh = "font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
+        style_xanh = "color:green;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
+        style_cam = "color:Orange;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
+        style_do = "color:Red;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
+        truong_bat_buoc = ["Họ và tên", "Ngày sinh", "CCCD"]
+        with col1:
+            for k in keys[:split]:
+                value = du_lieu[k]
+                is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
+                if k in truong_bat_buoc and (value is None or (isinstance(value, str) and value.strip() == "")):
+                    style = style_do
+                else:
+                    style = style_cam if is_empty else style_xanh
+                st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
+        with col2:
+            for k in keys[split:]:
+                value = du_lieu[k]
+                is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
+                if k in truong_bat_buoc and (value is None or (isinstance(value, str) and value.strip() == "")):
+                    style = style_do
+                else:
+                    style = style_cam if is_empty else style_xanh
+                st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
+        st.info("Màu đỏ là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
+        if st.button("Xem lại thông tin"):
+            show_review_dialog()     
+        # Nút lưu tổng cuối trang
 st.write(df)
     
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
