@@ -323,12 +323,8 @@ with col2:
         else:
             diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
             st.write(f"Địa chỉ cũ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
-        if thon_xom_loai != "Không" or thon_xom == "":
-            duong_thon_xom = f"{duong_pho}"
-        else:
-            duong_thon_xom = f"{duong_pho}, {thon_xom_loai} {thon_xom}"
-        st.session_state["duong_thon_xom"] = duong_thon_xom
         st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
+        st.session_state["diachi_chitiet_full_cu"] = st.session_state["diachi_chitiet_cu"], ward_idx, district_idx, province_idx
         # Nút xác nhận địa chỉ động như API_diachi
         #if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
         if province_code and district_code and ward_code:
@@ -366,6 +362,7 @@ with col2:
                     else:
                         diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
                         st.success(f"{diachi_chitiet_cu}, {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}")
+                    st.session_state["diachi_chitiet_full_moi"] = f"{diachi_chitiet_cu}, {st.session_state['xa_phuong_moi']}, {st.session_state['tinh_tp_moi']}"
                 else:
                     st.error(f"Lỗi chuyển đổi: {resp.text}")
             except Exception as e:
@@ -447,6 +444,7 @@ with col2:
             duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
         diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
         st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
+        st.session_state["diachi_chitiet_full_moi"] = f"{diachi_chitiet_cu}, {xa_phuong_moi}, {tinh_tp_moi}"
         st.write(f"Địa chỉ: :blue[{diachi_chitiet_cu}, {xa_phuong_moi}, {tinh_tp_moi}]")
         st.markdown("<br>", unsafe_allow_html=True)
 with col3:
@@ -697,8 +695,8 @@ with col3:
                 st.session_state.get("co_so", ""),  # 28: Cơ sở nhận hồ sơ
                 st.session_state.get("ngay_nop_hs", ""),  # 29: Ngày nộp hồ sơ
                 st.session_state.get("trinh_do", ""),  # 30: Trình độ đăng ký
-                st.session_state.get("diachi_chitiet_cu") ,  # 31: Địa chỉ chi tiết cũ
-                st.session_state.get("diachi_chitiet_moi") ,  # 32: Địa chỉ chi tiết mới
+                st.session_state.get("diachi_chitiet_full_cu") ,  # 31: Địa chỉ chi tiết cũ
+                st.session_state.get("diachi_chitiet_full_moi") ,  # 32: Địa chỉ chi tiết mới
                 st.session_state.get("diem_toan", ""),  # 33: Điểm Toán
                 st.session_state.get("diem_van", ""),  # 34: Điểm Văn
                 st.session_state.get("diem_tieng_anh", ""),  # 35: Tiếng Anh
