@@ -43,7 +43,8 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         dan_toc = st.text_input("Dân tộc")
         ton_giao = st.text_input("Tôn giáo")
     with col3:
-        trinh_do = st.text_input("Trình độ đăng ký")
+        trinh_do_list = df[df.columns[29]].unique().tolist()
+        trinh_do = st.selectbox("Trình độ đăng ký", [""] + trinh_do_list)
         co_so = st.text_input("Cơ sở nhận hồ sơ")
         nam_tot_nghiep = st.text_input("Năm tốt nghiệp")
 
