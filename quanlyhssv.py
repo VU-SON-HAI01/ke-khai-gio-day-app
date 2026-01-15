@@ -656,8 +656,16 @@ with col3:
                 import datetime
                 if isinstance(ngay_sinh, (pd.Timestamp, datetime.date, datetime.datetime)) and ngay_sinh is not None:
                     return ngay_sinh.strftime("%d/%m/%Y")
+                elif isinstance(ngay_sinh, str) and ngay_sinh:
+                    # Nếu là chuỗi yyyy-mm-dd hoặc yyyy/mm/dd
+                    import re
+                    match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", ngay_sinh)
+                    if match:
+                        y, m, d = match.groups()
+                        return f"{int(d):02d}/{int(m):02d}/{y}"
+                    return ngay_sinh
                 else:
-                    return str(ngay_sinh)
+                    return ""
             row = [
                 st.session_state.get("ma_hsts", ""),  # 1: MÃ HSTS
                 ho_dem,  # 2: HỌ ĐỆM
