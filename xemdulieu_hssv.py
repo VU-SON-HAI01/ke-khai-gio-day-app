@@ -22,10 +22,10 @@ try:
     sh = gc.open_by_key(thong_tin_hssv_id)
     worksheet = sh.worksheet(sheet_name)
     data = worksheet.get_all_values()
-    if not data or len(data) < 2:
-        st.warning("Không có dữ liệu HSSV trong Google Sheet!")
+    if not data or len(data) < 3:
+        st.warning("Không có đủ dữ liệu HSSV trong Google Sheet!")
         st.stop()
-    df = pd.DataFrame(data[1:], columns=data[0])
+    df = pd.DataFrame(data[2:], columns=data[1])
 except Exception as e:
     st.error(f"Lỗi truy cập Google Sheet: {e}")
     st.stop()
