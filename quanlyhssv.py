@@ -660,7 +660,6 @@ with col3:
             "Ngày nộp hồ sơ": st.session_state.get("ngay_nop_hs", ""),
         }
         # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
-        st.divider()
         if st.button("Lưu tất cả thông tin"):
             def split_ho_ten(ho_ten_full):
                 ho_ten_full = ho_ten_full.strip()
