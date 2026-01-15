@@ -33,27 +33,35 @@ except Exception as e:
 filtered_df = df.copy()
 # --- Hiển thị bộ lọc dữ liệu lên đầu trang ---
 with st.expander("Bộ lọc dữ liệu", expanded=True):
+    # --- Nút Xóa lọc ---
+    if st.button("Xóa lọc"):
+        for key in [
+            "ma_hsts", "ho_dem", "ten", "gioi_tinh", "dan_toc", "ton_giao", "trinh_do", "co_so", "nam_tot_nghiep", "nv1", "ngay_tu", "ngay_den"
+        ]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.experimental_rerun()
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         ma_hsts_list = df[df.columns[0]].unique().tolist()
-        ma_hsts = st.selectbox("Mã HSTS", [""] + ma_hsts_list)
-        ho_dem = st.text_input("Họ đệm")
-        ten = st.text_input("Tên")
+        ma_hsts = st.selectbox("Mã HSTS", [""] + ma_hsts_list, key="ma_hsts")
+        ho_dem = st.text_input("Họ đệm", key="ho_dem")
+        ten = st.text_input("Tên", key="ten")
     with col2:
-        gioi_tinh = st.selectbox("Giới tính", ["", "Nam", "Nữ"])
+        gioi_tinh = st.selectbox("Giới tính", ["", "Nam", "Nữ"], key="gioi_tinh")
         dan_toc_list = df[df.columns[12]].dropna().unique().tolist()
-        dan_toc = st.selectbox("Dân tộc", [""] + dan_toc_list)
+        dan_toc = st.selectbox("Dân tộc", [""] + dan_toc_list, key="dan_toc")
         ton_giao_list = df[df.columns[13]].dropna().unique().tolist()
-        ton_giao = st.selectbox("Tôn giáo", [""] + ton_giao_list)
+        ton_giao = st.selectbox("Tôn giáo", [""] + ton_giao_list, key="ton_giao")
     with col3:
         trinh_do_list = df[df.columns[29]].unique().tolist()
-        trinh_do = st.selectbox("Trình độ đăng ký", [""] + trinh_do_list)
+        trinh_do = st.selectbox("Trình độ đăng ký", [""] + trinh_do_list, key="trinh_do")
         co_so_list = df[df.columns[27]].dropna().unique().tolist()
-        co_so = st.selectbox("Cơ sở nhận hồ sơ", [""] + co_so_list)
-        nam_tot_nghiep = st.text_input("Năm tốt nghiệp")
+        co_so = st.selectbox("Cơ sở nhận hồ sơ", [""] + co_so_list, key="co_so")
+        nam_tot_nghiep = st.text_input("Năm tốt nghiệp", key="nam_tot_nghiep")
     with col4:
         nv1_list = df[df.columns[23]].dropna().unique().tolist()
-        nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list)
+        nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
         # --- Bộ lọc ngày nộp hồ sơ ---
         ngay_nop_col = df.columns[29] if len(df.columns) > 29 else None
         ngay_min, ngay_max = None, None
@@ -65,9 +73,9 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
                 max_date = df[ngay_nop_col + "_dt"].max()
                 col1, col2 = st.columns(2)
                 with col1:
-                    ngay_tu = st.date_input("Từ ngày nộp hồ sơ", value=min_date.date() if pd.notnull(min_date) else None)
+                    ngay_tu = st.date_input("Từ ngày nộp hồ sơ", value=min_date.date() if pd.notnull(min_date) else None, key="ngay_tu")
                 with col2:
-                    ngay_den = st.date_input("Đến ngày nộp hồ sơ", value=max_date.date() if pd.notnull(max_date) else None)
+                    ngay_den = st.date_input("Đến ngày nộp hồ sơ", value=max_date.date() if pd.notnull(max_date) else None, key="ngay_den")
                 ngay_min, ngay_max = ngay_tu, ngay_den
             except Exception:
                 ngay_min, ngay_max = None, None
