@@ -38,7 +38,7 @@ filtered_df = df.copy()
 # --- Hiển thị bộ lọc dữ liệu lên đầu trang ---
 with st.expander("Bộ lọc dữ liệu", expanded=True):
     # --- Nút Xóa lọc ---
-    if st.button("Xóa lọc"):
+    if st.button("Xóa tất cả bộ lọc"):
         # Chỉ xóa các key liên quan đến bộ lọc, không xóa toàn bộ session_state để tránh mất trạng thái đăng nhập/navigation
         filter_keys = [
             "ma_hsts", "ho_dem", "ten", "gioi_tinh", "dan_toc", "ton_giao", "trinh_do", "co_so", "nam_tot_nghiep", "nv1", "ngay_tu", "ngay_den"
