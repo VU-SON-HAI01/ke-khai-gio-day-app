@@ -691,7 +691,9 @@ with col3:
             df = pd.DataFrame([row], columns=col_names)
             # Thêm dữ liệu vào cuối sheet 'TUYENSINH'
             try:
-                worksheet.append_rows(df.values.tolist())
+                # Chuyển toàn bộ giá trị DataFrame sang string để tránh lỗi serialize
+                data_to_append = df.astype(str).values.tolist()
+                worksheet.append_rows(data_to_append)
                 st.success("Đã thêm dữ liệu vào cuối Google Sheet 'TUYENSINH' thành công!")
             except Exception as e:
                 st.error(f"Lỗi khi thêm dữ liệu vào Google Sheet: {e}")
