@@ -324,7 +324,7 @@ with col2:
             diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
             st.write(f"Địa chỉ cũ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
         st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
-        st.session_state["diachi_chitiet_full_cu"] = st.session_state["diachi_chitiet_cu"], ward_idx, district_idx, province_idx
+        st.session_state["diachi_chitiet_full_cu"] = f"{st.session_state['diachi_chitiet_cu']}, {ward_idx}, {district_idx}, {province_idx}"
         # Nút xác nhận địa chỉ động như API_diachi
         #if st.button("Xác nhận địa chỉ", key="xacnhan_diachi_cu"):
         if province_code and district_code and ward_code:
