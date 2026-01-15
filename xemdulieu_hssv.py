@@ -71,3 +71,15 @@ if nam_tot_nghiep:
 
 st.dataframe(filtered_df, use_container_width=True)
 st.info(f"Số lượng HSSV: {len(filtered_df)}")
+
+# --- Hiển thị các cột theo mong muốn ---
+st.divider()
+st.subheader("Chọn các cột muốn hiển thị")
+all_columns = list(filtered_df.columns)
+default_cols = all_columns  # Mặc định hiển thị tất cả
+selected_columns = st.multiselect("Chọn cột", all_columns, default=default_cols)
+if selected_columns:
+    st.dataframe(filtered_df[selected_columns], use_container_width=True)
+    st.info(f"Số lượng HSSV: {len(filtered_df)} | Số cột hiển thị: {len(selected_columns)}")
+else:
+    st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
