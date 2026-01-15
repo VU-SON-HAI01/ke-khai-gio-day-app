@@ -1,0 +1,71 @@
+import streamlit as st
+import gspread
+from google.oauth2.service_account import Credentials
+import pandas as pd
+
+st.set_page_config(page_title="Xem dữ liệu HSSV", layout="wide")
+st.title("XEM DỮ LIỆU HỌC SINH SINH VIÊN")
+
+# Lấy cấu hình Google Sheet từ secrets
+try:
+    google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
+    thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
+    sheet_name = "TUYENSINH"
+    if "gcp_service_account" not in st.secrets:
+        raise KeyError("gcp_service_account")
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
+    gc = gspread.authorize(credentials)
+    sh = gc.open_by_key(thong_tin_hssv_id)
+    worksheet = sh.worksheet(sheet_name)
+    data = worksheet.get_all_values()
+    if not data or len(data) < 2:
+        st.warning("Không có dữ liệu HSSV trong Google Sheet!")
+        st.stop()
+    df = pd.DataFrame(data[1:], columns=data[0])
+except Exception as e:
+    st.error(f"Lỗi truy cập Google Sheet: {e}")
+    st.stop()
+
+# Hiển thị bộ lọc
+with st.expander("Bộ lọc dữ liệu", expanded=True):
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        ma_hsts = st.text_input("Mã HSTS")
+        ho_dem = st.text_input("Họ đệm")
+        ten = st.text_input("Tên")
+    with col2:
+        gioi_tinh = st.selectbox("Giới tính", ["", "Nam", "Nữ"])
+        dan_toc = st.text_input("Dân tộc")
+        ton_giao = st.text_input("Tôn giáo")
+    with col3:
+        trinh_do = st.text_input("Trình độ đăng ký")
+        co_so = st.text_input("Cơ sở nhận hồ sơ")
+        nam_tot_nghiep = st.text_input("Năm tốt nghiệp")
+
+# Áp dụng bộ lọc
+filtered_df = df.copy()
+if ma_hsts:
+    filtered_df = filtered_df[filtered_df[df.columns[0]].str.contains(ma_hsts, case=False, na=False)]
+if ho_dem:
+    filtered_df = filtered_df[filtered_df[df.columns[1]].str.contains(ho_dem, case=False, na=False)]
+if ten:
+    filtered_df = filtered_df[filtered_df[df.columns[2]].str.contains(ten, case=False, na=False)]
+if gioi_tinh:
+    filtered_df = filtered_df[filtered_df[df.columns[4]].str.contains(gioi_tinh, case=False, na=False)]
+if dan_toc:
+    filtered_df = filtered_df[filtered_df[df.columns[12]].str.contains(dan_toc, case=False, na=False)]
+if ton_giao:
+    filtered_df = filtered_df[filtered_df[df.columns[13]].str.contains(ton_giao, case=False, na=False)]
+if trinh_do:
+    filtered_df = filtered_df[filtered_df[df.columns[29]].str.contains(trinh_do, case=False, na=False)]
+if co_so:
+    filtered_df = filtered_df[filtered_df[df.columns[27]].str.contains(co_so, case=False, na=False)]
+if nam_tot_nghiep:
+    filtered_df = filtered_df[filtered_df[df.columns[43]].str.contains(nam_tot_nghiep, case=False, na=False)]
+
+st.dataframe(filtered_df, use_container_width=True)
+st.info(f"Số lượng HSSV: {len(filtered_df)}")
