@@ -636,22 +636,6 @@ with col3:
         # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
         st.divider()
         if st.button("Lưu tất cả thông tin"):
-            # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key
-            google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
-            thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
-            sheet_name = "TUYENSINH"
-            credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
-            gc = gspread.authorize(credentials)
-            sh = gc.open_by_key(thong_tin_hssv_id)
-            worksheet = sh.worksheet(sheet_name)
-            col1_values = worksheet.col_values(1)
-            # Lọc các giá trị số, bỏ qua header hoặc rỗng
-            col1_numbers = [int(v) for v in col1_values if v.strip().isdigit()]
-            if col1_numbers:
-                ma_hsts_new = str(max(col1_numbers) + 1)
-            else:
-                ma_hsts_new = "250001"  # Giá trị mặc định nếu chưa có dữ liệu
-            st.session_state["ma_hsts"] = ma_hsts_new
             # Sắp xếp giá trị đúng thứ tự cột số trên Google Sheet
             row = [
                 ma_hsts_new,  # 1: MÃ HSTS
@@ -705,6 +689,13 @@ with col3:
             import pandas as pd
             col_names = [str(i+1) for i in range(len(row))]
             df = pd.DataFrame([row], columns=col_names)
+            # Thêm dữ liệu vào cuối sheet 'TUYENSINH'
+            try:
+                worksheet.append_rows(df.values.tolist())
+                st.success("Đã thêm dữ liệu vào cuối Google Sheet 'TUYENSINH' thành công!")
+            except Exception as e:
+                st.error(f"Lỗi khi thêm dữ liệu vào Google Sheet: {e}")
+            
             st.success(f"Dữ liệu đã được lưu vào session_state! Mã HSTS mới: {ma_hsts_new}. Bạn có thể xử lý lưu Google Sheet tại đây.")
         keys = list(du_lieu.keys())
         n = len(keys)
