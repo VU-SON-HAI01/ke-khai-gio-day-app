@@ -663,82 +663,82 @@ with col3:
                     style = style_cam if is_empty else style_xanh
                 st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'><b>{k}:</b> </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
         st.info("Màu đỏ là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
-    if st.button("Xem lại thông tin"):
-        show_review_dialog()
-            
-    # Nút lưu tổng cuối trang
-    st.divider()
-    if st.button("Lưu tất cả thông tin"):
-        # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key
-        google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
-        thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
-        sheet_name = "TUYENSINH"
-        credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
-        gc = gspread.authorize(credentials)
-        sh = gc.open_by_key(thong_tin_hssv_id)
-        worksheet = sh.worksheet(sheet_name)
-        col1_values = worksheet.col_values(1)
-        # Lọc các giá trị số, bỏ qua header hoặc rỗng
-        col1_numbers = [int(v) for v in col1_values if v.strip().isdigit()]
-        if col1_numbers:
-            ma_hsts_new = str(max(col1_numbers) + 1)
-        else:
-            ma_hsts_new = "250001"  # Giá trị mặc định nếu chưa có dữ liệu
-        st.session_state["ma_hsts"] = ma_hsts_new
-        # Sắp xếp giá trị đúng thứ tự cột số trên Google Sheet
-        row = [
-            ma_hsts_new,  # 1: MÃ HSTS
-            st.session_state.get("ho_ten", ""),  # 2: HỌ ĐỆM (hoặc Họ và tên)
-            "",  # 3: TÊN (nếu muốn tách tên riêng, cần xử lý thêm)
-            st.session_state.get("ngay_sinh", None),  # 4: NGÀY SINH
-            st.session_state.get("gioi_tinh", "Nam"),  # 5: GIỚI TÍNH
-            st.session_state.get("cccd", ""),  # 6: CCCD
-            st.session_state.get("so_dien_thoai", ""),  # 7: Số điện thoại
-            "",  # 8: Email
-            st.session_state.get("noi_sinh_cu", ""),  # 9: NƠI SINH (Cũ)
-            st.session_state.get("noi_sinh_moi", ""),  # 10: NƠI SINH (Mới)
-            st.session_state.get("que_quan_cu", ""),  # 11: QUÊ QUÁN (Cũ)
-            st.session_state.get("que_quan_moi", ""),  # 12: QUÊ QUÁN (Mới)
-            st.session_state.get("dan_toc", ""),  # 13: Dân tộc
-            st.session_state.get("ton_giao", ""),  # 14: Tôn giáo
-            st.session_state.get("cha", ""),  # 15: Họ tên cha
-            st.session_state.get("me", ""),  # 16: Họ tên mẹ
-            st.session_state.get("duong_thon_xom", ""),  # 17: Địa chỉ chi tiết cũ
-            st.session_state.get("tinh_tp_cu", ""),  # 18: Tỉnh/TP cũ
-            st.session_state.get("quan_huyen_cu", ""),  # 19: Quận/Huyện cũ
-            st.session_state.get("xa_phuong_cu", ""),  # 20: Xã/Phường cũ
-            st.session_state.get("tinh_tp_moi", ""),  # 21: Tỉnh/TP mới
-            st.session_state.get("xa_phuong_moi", ""),  # 22: Xã/Phường mới
-            st.session_state.get("trinhdo_totnghiep", ""),  # 23: Trình độ tốt nghiệp
-            st.session_state.get("nv1", ""),  # 24: Nguyện vọng 1
-            st.session_state.get("nv2", ""),  # 25: Nguyện vọng 2
-            st.session_state.get("nv3", ""),  # 26: Nguyện vọng 3
-            st.session_state.get("trinhdo_totnghiep_vh", ""),  # 27: Đăng ký học văn hóa
-            st.session_state.get("co_so", ""),  # 28: Cơ sở nhận hồ sơ
-            st.session_state.get("ngay_nop_hs", ""),  # 29: Ngày nộp hồ sơ
-            st.session_state.get("trinh_do", ""),  # 30: Trình độ đăng ký
-            st.session_state.get("diachi_chitiet_cu") ,  # 31: Địa chỉ chi tiết cũ
-            st.session_state.get("diachi_chitiet_moi") ,  # 32: Địa chỉ chi tiết mới
-            st.session_state.get("diem_toan", ""),  # 33: Điểm Toán
-            st.session_state.get("diem_van", ""),  # 34: Điểm Văn
-            st.session_state.get("diem_tieng_anh", ""),  # 35: Tiếng Anh
-            st.session_state.get("diem_gdcd", ""),  # 36: GDCD
-            st.session_state.get("diem_cong_nghe", ""),  # 37: Công nghệ
-            st.session_state.get("diem_tin_hoc", ""),  # 38: Tin học
-            st.session_state.get("diem_kh_tn", ""),  # 39: KH tự nhiên
-            st.session_state.get("diem_ls_dl", ""),  # 40: Lịch sử và Địa lý
-            st.session_state.get("tong_diem_8_mon", ""),  # 41: Tổng điểm 8 môn
-            st.session_state.get("tong_diem_2_mon", ""),  # 42: Tổng điểm 2 môn
-            st.session_state.get("hanh_kiem", ""),  # 43: Hạnh kiểm
-            st.session_state.get("nam_tot_nghiep", ""),  # 44: Năm tốt nghiệp
-            "",  # 45: ưu tiên đối tượng
-            "",  # 46: Ưu tiên khu vực
-            "",  # 47: Tổng điểm ưu tiên
-        ]
-        import pandas as pd
-        col_names = [str(i+1) for i in range(len(row))]
-        df = pd.DataFrame([row], columns=col_names)
-        st.success(f"Dữ liệu đã được lưu vào session_state! Mã HSTS mới: {ma_hsts_new}. Bạn có thể xử lý lưu Google Sheet tại đây.")
+        if st.button("Xem lại thông tin"):
+            show_review_dialog()
+                
+        # Nút lưu tổng cuối trang
+        st.divider()
+        if st.button("Lưu tất cả thông tin"):
+            # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key
+            google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
+            thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
+            sheet_name = "TUYENSINH"
+            credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+            gc = gspread.authorize(credentials)
+            sh = gc.open_by_key(thong_tin_hssv_id)
+            worksheet = sh.worksheet(sheet_name)
+            col1_values = worksheet.col_values(1)
+            # Lọc các giá trị số, bỏ qua header hoặc rỗng
+            col1_numbers = [int(v) for v in col1_values if v.strip().isdigit()]
+            if col1_numbers:
+                ma_hsts_new = str(max(col1_numbers) + 1)
+            else:
+                ma_hsts_new = "250001"  # Giá trị mặc định nếu chưa có dữ liệu
+            st.session_state["ma_hsts"] = ma_hsts_new
+            # Sắp xếp giá trị đúng thứ tự cột số trên Google Sheet
+            row = [
+                ma_hsts_new,  # 1: MÃ HSTS
+                st.session_state.get("ho_ten", ""),  # 2: HỌ ĐỆM (hoặc Họ và tên)
+                "",  # 3: TÊN (nếu muốn tách tên riêng, cần xử lý thêm)
+                st.session_state.get("ngay_sinh", None),  # 4: NGÀY SINH
+                st.session_state.get("gioi_tinh", "Nam"),  # 5: GIỚI TÍNH
+                st.session_state.get("cccd", ""),  # 6: CCCD
+                st.session_state.get("so_dien_thoai", ""),  # 7: Số điện thoại
+                "",  # 8: Email
+                st.session_state.get("noi_sinh_cu", ""),  # 9: NƠI SINH (Cũ)
+                st.session_state.get("noi_sinh_moi", ""),  # 10: NƠI SINH (Mới)
+                st.session_state.get("que_quan_cu", ""),  # 11: QUÊ QUÁN (Cũ)
+                st.session_state.get("que_quan_moi", ""),  # 12: QUÊ QUÁN (Mới)
+                st.session_state.get("dan_toc", ""),  # 13: Dân tộc
+                st.session_state.get("ton_giao", ""),  # 14: Tôn giáo
+                st.session_state.get("cha", ""),  # 15: Họ tên cha
+                st.session_state.get("me", ""),  # 16: Họ tên mẹ
+                st.session_state.get("duong_thon_xom", ""),  # 17: Địa chỉ chi tiết cũ
+                st.session_state.get("tinh_tp_cu", ""),  # 18: Tỉnh/TP cũ
+                st.session_state.get("quan_huyen_cu", ""),  # 19: Quận/Huyện cũ
+                st.session_state.get("xa_phuong_cu", ""),  # 20: Xã/Phường cũ
+                st.session_state.get("tinh_tp_moi", ""),  # 21: Tỉnh/TP mới
+                st.session_state.get("xa_phuong_moi", ""),  # 22: Xã/Phường mới
+                st.session_state.get("trinhdo_totnghiep", ""),  # 23: Trình độ tốt nghiệp
+                st.session_state.get("nv1", ""),  # 24: Nguyện vọng 1
+                st.session_state.get("nv2", ""),  # 25: Nguyện vọng 2
+                st.session_state.get("nv3", ""),  # 26: Nguyện vọng 3
+                st.session_state.get("trinhdo_totnghiep_vh", ""),  # 27: Đăng ký học văn hóa
+                st.session_state.get("co_so", ""),  # 28: Cơ sở nhận hồ sơ
+                st.session_state.get("ngay_nop_hs", ""),  # 29: Ngày nộp hồ sơ
+                st.session_state.get("trinh_do", ""),  # 30: Trình độ đăng ký
+                st.session_state.get("diachi_chitiet_cu") ,  # 31: Địa chỉ chi tiết cũ
+                st.session_state.get("diachi_chitiet_moi") ,  # 32: Địa chỉ chi tiết mới
+                st.session_state.get("diem_toan", ""),  # 33: Điểm Toán
+                st.session_state.get("diem_van", ""),  # 34: Điểm Văn
+                st.session_state.get("diem_tieng_anh", ""),  # 35: Tiếng Anh
+                st.session_state.get("diem_gdcd", ""),  # 36: GDCD
+                st.session_state.get("diem_cong_nghe", ""),  # 37: Công nghệ
+                st.session_state.get("diem_tin_hoc", ""),  # 38: Tin học
+                st.session_state.get("diem_kh_tn", ""),  # 39: KH tự nhiên
+                st.session_state.get("diem_ls_dl", ""),  # 40: Lịch sử và Địa lý
+                st.session_state.get("tong_diem_8_mon", ""),  # 41: Tổng điểm 8 môn
+                st.session_state.get("tong_diem_2_mon", ""),  # 42: Tổng điểm 2 môn
+                st.session_state.get("hanh_kiem", ""),  # 43: Hạnh kiểm
+                st.session_state.get("nam_tot_nghiep", ""),  # 44: Năm tốt nghiệp
+                "",  # 45: ưu tiên đối tượng
+                "",  # 46: Ưu tiên khu vực
+                "",  # 47: Tổng điểm ưu tiên
+            ]
+            import pandas as pd
+            col_names = [str(i+1) for i in range(len(row))]
+            df = pd.DataFrame([row], columns=col_names)
+            st.success(f"Dữ liệu đã được lưu vào session_state! Mã HSTS mới: {ma_hsts_new}. Bạn có thể xử lý lưu Google Sheet tại đây.")
 st.write(df)
     
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
