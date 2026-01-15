@@ -6,6 +6,10 @@ import pandas as pd
 st.set_page_config(page_title="Xem dữ liệu HSSV", layout="wide")
 st.title("XEM DỮ LIỆU HỌC SINH SINH VIÊN")
 
+if st.session_state.get("reset_filter_flag", False):
+    st.session_state["reset_filter_flag"] = False
+    st.experimental_rerun()
+
 # Lấy cấu hình Google Sheet từ secrets
 try:
     google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
@@ -40,7 +44,7 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         ]:
             if key in st.session_state:
                 del st.session_state[key]
-        st.experimental_rerun()
+        st.session_state["reset_filter_flag"] = True
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         ma_hsts_list = df[df.columns[0]].unique().tolist()
