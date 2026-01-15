@@ -41,12 +41,15 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         ten = st.text_input("Tên")
     with col2:
         gioi_tinh = st.selectbox("Giới tính", ["", "Nam", "Nữ"])
-        dan_toc = st.text_input("Dân tộc")
-        ton_giao = st.text_input("Tôn giáo")
+        dan_toc_list = df[df.columns[12]].dropna().unique().tolist()
+        dan_toc = st.selectbox("Dân tộc", [""] + dan_toc_list)
+        ton_giao_list = df[df.columns[13]].dropna().unique().tolist()
+        ton_giao = st.selectbox("Tôn giáo", [""] + ton_giao_list)
     with col3:
         trinh_do_list = df[df.columns[29]].unique().tolist()
         trinh_do = st.selectbox("Trình độ đăng ký", [""] + trinh_do_list)
-        co_so = st.text_input("Cơ sở nhận hồ sơ")
+        co_so_list = df[df.columns[27]].dropna().unique().tolist()
+        co_so = st.selectbox("Cơ sở nhận hồ sơ", [""] + co_so_list)
         nam_tot_nghiep = st.text_input("Năm tốt nghiệp")
 with st.expander("Chọn cột hiển thị", expanded=True):
     all_columns = list(filtered_df.columns)
@@ -86,7 +89,6 @@ if selected_columns:
     st.info(f"Số lượng HSSV: {len(filtered_df)} | Số cột hiển thị: {len(selected_columns)}")
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
-st.info(f"Số lượng HSSV: {len(filtered_df)}")
 
 # --- Hiển thị các cột theo mong muốn ---
 
