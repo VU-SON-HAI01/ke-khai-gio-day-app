@@ -748,11 +748,9 @@ with col3:
                 # Chuyển toàn bộ giá trị DataFrame sang string để tránh lỗi serialize
                 data_to_append = df.astype(str).values.tolist()
                 worksheet.append_rows(data_to_append)
-                st.success("Đã thêm dữ liệu vào cuối Google Sheet 'TUYENSINH' thành công!")
+                st.success("Đã thêm dữ liệu vào cuối danh sách 'TUYENSINH' thành công!")
             except Exception as e:
                 st.error(f"Lỗi khi thêm dữ liệu vào Google Sheet: {e}")
-            
-            st.success(f"Dữ liệu đã được lưu vào session_state! Mã HSTS mới: {ma_hsts_new}. Bạn có thể xử lý lưu Google Sheet tại đây.")
         keys = list(du_lieu.keys())
         n = len(keys)
         col1, col2 = st.columns(2)
