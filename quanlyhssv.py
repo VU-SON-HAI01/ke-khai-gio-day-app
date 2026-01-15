@@ -636,12 +636,33 @@ with col3:
         # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
         st.divider()
         if st.button("Lưu tất cả thông tin"):
-            # Sắp xếp giá trị đúng thứ tự cột số trên Google Sheet
+            def split_ho_ten(ho_ten_full):
+                ho_ten_full = ho_ten_full.strip()
+                if ho_ten_full:
+                    last_space = ho_ten_full.rfind(" ")
+                    if last_space != -1:
+                        ho_dem = ho_ten_full[:last_space]
+                        ten = ho_ten_full[last_space+1:]
+                    else:
+                        ho_dem = ho_ten_full
+                        ten = ""
+                else:
+                    ho_dem = ""
+                    ten = ""
+                return ho_dem, ten
+            ho_dem, ten = split_ho_ten(st.session_state.get("ho_ten", ""))
+            def format_ngay_sinh(ngay_sinh):
+                import pandas as pd
+                import datetime
+                if isinstance(ngay_sinh, (pd.Timestamp, datetime.date, datetime.datetime)) and ngay_sinh is not None:
+                    return ngay_sinh.strftime("%d/%m/%Y")
+                else:
+                    return str(ngay_sinh)
             row = [
                 st.session_state.get("ma_hsts", ""),  # 1: MÃ HSTS
-                st.session_state.get("ho_ten", ""),  # 2: HỌ ĐỆM (hoặc Họ và tên)
-                "",  # 3: TÊN (nếu muốn tách tên riêng, cần xử lý thêm)
-                st.session_state.get("ngay_sinh", None),  # 4: NGÀY SINH
+                ho_dem,  # 2: HỌ ĐỆM
+                ten,  # 3: TÊN
+                format_ngay_sinh(st.session_state.get("ngay_sinh", None)),  # 4: NGÀY SINH
                 st.session_state.get("gioi_tinh", "Nam"),  # 5: GIỚI TÍNH
                 st.session_state.get("cccd", ""),  # 6: CCCD
                 st.session_state.get("so_dien_thoai", ""),  # 7: Số điện thoại
