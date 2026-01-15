@@ -45,7 +45,7 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         ]
         for key in filter_keys:
             st.session_state[key] = "" if not key.startswith("ngay_") else None
-        st.session_state["reset_filter_flag"] = True
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         ma_hsts_list = df[df.columns[0]].unique().tolist()
