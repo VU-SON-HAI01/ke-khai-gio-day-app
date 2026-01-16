@@ -782,8 +782,7 @@ with col3:
     if st.button("Xem lại thông tin"):
         show_review_dialog()     
         # Nút lưu tổng cuối trang
-st.write(df)
-    
+
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
 target_folder_name_hssv = st.secrets["target_folder_name_hssv"] if "target_folder_name_hssv" in st.secrets else "QUAN_LY_HSSV"
 target_folder_id_hssv = st.secrets["target_folder_id_hssv"] if "target_folder_id_hssv" in st.secrets else None
