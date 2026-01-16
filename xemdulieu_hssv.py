@@ -78,8 +78,10 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
                 max_date = df[ngay_nop_col + "_dt"].max()
                 col1, col2 = st.columns(2)
                 with col1:
+                    st.markdown("<span style='color:gray;font-size:12px'>(Định dạng: dd/mm/yyyy)</span>", unsafe_allow_html=True)
                     ngay_tu = st.date_input("Từ ngày nộp hồ sơ", value=min_date.date() if pd.notnull(min_date) else None, key="ngay_tu")
                 with col2:
+                    st.markdown("<span style='color:gray;font-size:12px'>(Định dạng: dd/mm/yyyy)</span>", unsafe_allow_html=True)
                     ngay_den = st.date_input("Đến ngày nộp hồ sơ", value=max_date.date() if pd.notnull(max_date) else None, key="ngay_den")
                 ngay_min, ngay_max = ngay_tu, ngay_den
             except Exception:

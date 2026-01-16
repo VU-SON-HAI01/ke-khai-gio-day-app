@@ -616,6 +616,20 @@ with col3:
         except Exception as e:
             import traceback
             st.error(f"Lỗi truy cập Google Sheet (lấy mã HSTS mới): {e}\n{traceback.format_exc()}")
+        def format_ngay_nop_hs(ngay_nop_hs):
+            import pandas as pd
+            import datetime
+            if isinstance(ngay_nop_hs, (pd.Timestamp, datetime.date, datetime.datetime)) and ngay_nop_hs is not None:
+                return ngay_nop_hs.strftime("%d/%m/%Y")
+            elif isinstance(ngay_nop_hs, str) and ngay_nop_hs:
+                import re
+                match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", ngay_nop_hs)
+                if match:
+                    y, m, d = match.groups()
+                    return f"{int(d):02d}/{int(m):02d}/{y}"
+                return ngay_nop_hs
+            else:
+                return ""
         du_lieu = {
             "Mã hồ sơ tuyển sinh": st.session_state.get("ma_hsts", ""),
             "Họ và tên": st.session_state.get("ho_ten", ""),
@@ -657,7 +671,8 @@ with col3:
             "Đăng ký học văn hóa": st.session_state.get("trinhdo_totnghiep_vh", ""),
             "Trình độ đăng ký": st.session_state.get("trinh_do", ""),
             "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
-            "Ngày nộp hồ sơ": st.session_state.get("ngay_nop_hs", ""),
+            # Định dạng ngày nộp hồ sơ sang dd/mm/yyyy nếu có
+            "Ngày nộp hồ sơ": format_ngay_nop_hs(st.session_state.get("ngay_nop_hs", "")),
         }
         # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
         if st.button("Lưu tất cả thông tin"):
@@ -720,7 +735,7 @@ with col3:
                 st.session_state.get("nv3", ""),  # 26: Nguyện vọng 3
                 st.session_state.get("trinhdo_totnghiep_vh", ""),  # 27: Đăng ký học văn hóa
                 st.session_state.get("co_so", ""),  # 28: Cơ sở nhận hồ sơ
-                st.session_state.get("ngay_nop_hs", ""),  # 29: Ngày nộp hồ sơ
+                format_ngay_nop_hs(st.session_state.get("ngay_nop_hs", "")),  # 29: Ngày nộp hồ sơ
                 st.session_state.get("trinh_do", ""),  # 30: Trình độ đăng ký
                 st.session_state.get("diachi_chitiet_full_cu") ,  # 31: Địa chỉ chi tiết cũ
                 st.session_state.get("diachi_chitiet_full_moi") ,  # 32: Địa chỉ chi tiết mới
