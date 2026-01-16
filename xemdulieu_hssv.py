@@ -76,14 +76,13 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
                 df[ngay_nop_col + "_dt"] = pd.to_datetime(df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
                 min_date = df[ngay_nop_col + "_dt"].min()
                 max_date = df[ngay_nop_col + "_dt"].max()
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown("<span style='color:gray;font-size:12px'>(Định dạng: dd/mm/yyyy)</span>", unsafe_allow_html=True)
-                    ngay_tu = st.date_input("Từ ngày nộp hồ sơ", value=min_date.date() if pd.notnull(min_date) else None, key="ngay_tu", format="DD/MM/YYYY")
-                with col2:
-                    st.markdown("<span style='color:gray;font-size:12px'>(Định dạng: dd/mm/yyyy)</span>", unsafe_allow_html=True)
-                    ngay_den = st.date_input("Đến ngày nộp hồ sơ", value=max_date.date() if pd.notnull(max_date) else None, key="ngay_den", format="DD/MM/YYYY")
-                ngay_min, ngay_max = ngay_tu, ngay_den
+                st.markdown("<span style='color:gray;font-size:12px'>(Định dạng: dd/mm/yyyy)</span>", unsafe_allow_html=True)
+                ngay_min, ngay_max = st.date_input(
+                    "Nhập khoảng ngày nộp hồ sơ",
+                    (min_date.date() if pd.notnull(min_date) else None, max_date.date() if pd.notnull(max_date) else None),
+                    key="custom_range",
+                    format="DD/MM/YYYY"
+                )
             except Exception:
                 ngay_min, ngay_max = None, None
 with st.expander("Chọn cột hiển thị", expanded=True):
