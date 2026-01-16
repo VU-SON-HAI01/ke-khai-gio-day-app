@@ -73,11 +73,13 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         ngay_min, ngay_max = None, None
         if ngay_nop_col:
             try:
+                # Hiển thị 5 giá trị đầu tiên của cột ngày nộp hồ sơ để kiểm tra dữ liệu
+                st.write("5 giá trị đầu của cột ngày nộp hồ sơ:", df[ngay_nop_col].head(5).tolist())
                 # Chuyển đổi cột ngày sang datetime, bỏ giá trị lỗi
                 df[ngay_nop_col + "_dt"] = pd.to_datetime(df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
                 min_date = df[ngay_nop_col + "_dt"].min()
                 max_date = df[ngay_nop_col + "_dt"].max()
-                st.write(min_date, max_date)
+                st.write("min_date:", min_date, "max_date:", max_date)
                 st.markdown("<span style='color:gray;font-size:12px'>(Định dạng: dd/mm/yyyy)</span>", unsafe_allow_html=True)
                 ngay_min, ngay_max = st.date_input(
                     "Nhập khoảng ngày nộp hồ sơ",
