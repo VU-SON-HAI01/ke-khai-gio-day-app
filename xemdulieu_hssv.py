@@ -80,6 +80,8 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
                 ngay_min, ngay_max = st.date_input(
                     "Nhập khoảng ngày nộp hồ sơ",
                     (min_date.date() if pd.notnull(min_date) else None, max_date.date() if pd.notnull(max_date) else None),
+                    min_value=min_date.date() if pd.notnull(min_date) else None,
+                    max_value=max_date.date() if pd.notnull(max_date) else None,
                     key="custom_range",
                     format="DD/MM/YYYY"
                 )
