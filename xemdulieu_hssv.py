@@ -77,9 +77,8 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
                 df[ngay_nop_col + "_dt"] = pd.to_datetime(df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
                 min_date = df[ngay_nop_col + "_dt"].min()
                 max_date = df[ngay_nop_col + "_dt"].max()
-                st.markdown("<span style='color:gray;font-size:12px'>(Định dạng: dd/mm/yyyy)</span>", unsafe_allow_html=True)
                 ngay_min, ngay_max = st.date_input(
-                    "Nhập khoảng ngày nộp hồ sơ",
+                    "Lọc khoảng ngày nộp hồ sơ vd: 28/07/2025 - 03/08/2025",
                     (min_date.date() if pd.notnull(min_date) else None, max_date.date() if pd.notnull(max_date) else None),
                     min_value=min_date.date() if pd.notnull(min_date) else None,
                     max_value=max_date.date() if pd.notnull(max_date) else None,
