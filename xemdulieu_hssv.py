@@ -127,10 +127,12 @@ if (
 ):
     # Chuyển đổi về datetime64[ns] để so sánh chính xác
     filtered_df[ngay_nop_col + "_dt"] = pd.to_datetime(filtered_df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
+    pd_ngay_min = pd.to_datetime(ngay_min)
+    pd_ngay_max = pd.to_datetime(ngay_max)
     mask = (
         filtered_df[ngay_nop_col + "_dt"].notna() &
-        (filtered_df[ngay_nop_col + "_dt"] >= pd.to_datetime(ngay_min)) &
-        (filtered_df[ngay_nop_col + "_dt"] <= pd.to_datetime(ngay_max))
+        (filtered_df[ngay_nop_col + "_dt"] >= pd_ngay_min) &
+        (filtered_df[ngay_nop_col + "_dt"] <= pd_ngay_max)
     )
     filtered_df = filtered_df[mask]
 
