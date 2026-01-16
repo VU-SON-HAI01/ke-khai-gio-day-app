@@ -120,9 +120,19 @@ if nam_tot_nghiep:
     filtered_df = filtered_df[filtered_df[df.columns[43]].str.contains(nam_tot_nghiep, case=False, na=False)]
 
 # Lọc theo ngày nộp hồ sơ
-if ngay_nop_col and ngay_min and ngay_max:
+if (
+    ngay_nop_col
+    and ngay_min is not None and ngay_max is not None
+    and str(ngay_min) != "NaT" and str(ngay_max) != "NaT"
+):
+    # Chuyển đổi về datetime64[ns] để so sánh chính xác
     filtered_df[ngay_nop_col + "_dt"] = pd.to_datetime(filtered_df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
-    filtered_df = filtered_df[(filtered_df[ngay_nop_col + "_dt"] >= pd.to_datetime(ngay_min)) & (filtered_df[ngay_nop_col + "_dt"] <= pd.to_datetime(ngay_max))]
+    mask = (
+        filtered_df[ngay_nop_col + "_dt"].notna() &
+        (filtered_df[ngay_nop_col + "_dt"] >= pd.to_datetime(ngay_min)) &
+        (filtered_df[ngay_nop_col + "_dt"] <= pd.to_datetime(ngay_max))
+    )
+    filtered_df = filtered_df[mask]
 
 # Lọc theo Nguyện vọng 1
 if 'nv1' in locals() and nv1:
