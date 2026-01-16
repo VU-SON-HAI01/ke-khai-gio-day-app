@@ -66,6 +66,9 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         co_so = st.selectbox("Cơ sở nhận hồ sơ", [""] + co_so_list, key="co_so")
         nam_tot_nghiep = st.text_input("Năm tốt nghiệp", key="nam_tot_nghiep")
     with col4:
+        # Bộ lọc CCCD
+        cccd_list = df[df.columns[6]].dropna().unique().tolist()
+        cccd = st.text_input("CCCD", key="cccd")
         nv1_list = df[df.columns[23]].dropna().unique().tolist()
         nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
         # --- Bộ lọc ngày nộp hồ sơ ---
@@ -78,7 +81,7 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
                 min_date = df[ngay_nop_col + "_dt"].min()
                 max_date = df[ngay_nop_col + "_dt"].max()
                 ngay_min, ngay_max = st.date_input(
-                    "Lọc khoảng ngày nộp hồ sơ vd: 28/07/2025 - 03/08/2025",
+                    "Lọc khoảng ngày nộp hồ sơ:",
                     (min_date.date() if pd.notnull(min_date) else None, max_date.date() if pd.notnull(max_date) else None),
                     min_value=min_date.date() if pd.notnull(min_date) else None,
                     max_value=max_date.date() if pd.notnull(max_date) else None,
@@ -109,6 +112,8 @@ if ten:
     filtered_df = filtered_df[filtered_df[df.columns[2]].str.contains(ten, case=False, na=False)]
 if gioi_tinh:
     filtered_df = filtered_df[filtered_df[df.columns[4]].str.contains(gioi_tinh, case=False, na=False)]
+if cccd:
+    filtered_df = filtered_df[filtered_df[df.columns[6]].str.contains(cccd, case=False, na=False)]
 if dan_toc:
     filtered_df = filtered_df[filtered_df[df.columns[12]].str.contains(dan_toc, case=False, na=False)]
 if ton_giao:
