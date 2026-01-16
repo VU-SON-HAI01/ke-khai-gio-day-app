@@ -39,13 +39,21 @@ filtered_df = df.copy()
 # --- Hiển thị bộ lọc dữ liệu lên đầu trang ---
 with st.expander("Bộ lọc dữ liệu", expanded=True):
     # --- Nút Xóa lọc ---
+    ngay_nop_col = df.columns[28] if len(df.columns) > 28 else None
+    ngay_min, ngay_max = None, None
+    df[ngay_nop_col + "_dt"] = pd.to_datetime(df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
+    min_date = df[ngay_nop_col + "_dt"].min()
+    max_date = df[ngay_nop_col + "_dt"].max()
     if st.button("Xóa tất cả bộ lọc"):
         # Chỉ xóa các key liên quan đến bộ lọc, không xóa toàn bộ session_state để tránh mất trạng thái đăng nhập/navigation
         filter_keys = [
-            "ma_hsts", "ho_dem", "ten", "gioi_tinh", "dan_toc", "ton_giao", "trinh_do", "co_so", "nam_tot_nghiep", "cccd", "nv1", "ngay_tu", "ngay_den"
+            "ma_hsts", "ho_dem", "ten", "gioi_tinh", "dan_toc", "ton_giao", "trinh_do", "co_so", "nam_tot_nghiep", "cccd", "nv1", "custom_range"
         ]
         for key in filter_keys:
-            st.session_state[key] = "" if not key.startswith("ngay_") else None
+            st.session_state[key] = "" if not key.startswith("ngay_") and key != "custom_range" else None
+        # Đặt lại khoảng ngày nộp hồ sơ về mặc định (min_date, max_date)
+        if 'min_date' in locals() and 'max_date' in locals() and min_date is not None and max_date is not None:
+            st.session_state["custom_range"] = (min_date.date(), max_date.date())
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -72,17 +80,15 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         nv1_list = df[df.columns[23]].dropna().unique().tolist()
         nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
         # --- Bộ lọc ngày nộp hồ sơ ---
-        ngay_nop_col = df.columns[28] if len(df.columns) > 28 else None
-        ngay_min, ngay_max = None, None
+
         if ngay_nop_col:
             try:
                 # Chuyển đổi cột ngày sang datetime, bỏ giá trị lỗi
-                df[ngay_nop_col + "_dt"] = pd.to_datetime(df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
-                min_date = df[ngay_nop_col + "_dt"].min()
-                max_date = df[ngay_nop_col + "_dt"].max()
+                # Lấy giá trị mặc định cho widget date_input từ session_state nếu có
+                default_range = st.session_state.get("custom_range", (min_date.date() if pd.notnull(min_date) else None, max_date.date() if pd.notnull(max_date) else None))
                 ngay_min, ngay_max = st.date_input(
                     "Lọc khoảng ngày nộp hồ sơ:",
-                    (min_date.date() if pd.notnull(min_date) else None, max_date.date() if pd.notnull(max_date) else None),
+                    default_range,
                     min_value=min_date.date() if pd.notnull(min_date) else None,
                     max_value=max_date.date() if pd.notnull(max_date) else None,
                     key="custom_range",
