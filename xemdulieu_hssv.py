@@ -42,7 +42,7 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
     if st.button("Xóa tất cả bộ lọc"):
         # Chỉ xóa các key liên quan đến bộ lọc, không xóa toàn bộ session_state để tránh mất trạng thái đăng nhập/navigation
         filter_keys = [
-            "ma_hsts", "ho_dem", "ten", "gioi_tinh", "dan_toc", "ton_giao", "trinh_do", "co_so", "nam_tot_nghiep", "nv1", "ngay_tu", "ngay_den"
+            "ma_hsts", "ho_dem", "ten", "gioi_tinh", "dan_toc", "ton_giao", "trinh_do", "co_so", "nam_tot_nghiep", "cccd", "nv1", "ngay_tu", "ngay_den"
         ]
         for key in filter_keys:
             st.session_state[key] = "" if not key.startswith("ngay_") else None
