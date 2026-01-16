@@ -69,7 +69,7 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         nv1_list = df[df.columns[23]].dropna().unique().tolist()
         nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
         # --- Bộ lọc ngày nộp hồ sơ ---
-        ngay_nop_col = df.columns[29] if len(df.columns) > 29 else None
+        ngay_nop_col = df.columns[28] if len(df.columns) > 28 else None
         ngay_min, ngay_max = None, None
         if ngay_nop_col:
             try:
