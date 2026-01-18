@@ -153,8 +153,43 @@ if 'nv1' in locals() and nv1:
     filtered_df = filtered_df[filtered_df[df.columns[23]].str.contains(nv1, case=False, na=False)]
 
 if selected_columns:
-    st.dataframe(filtered_df[selected_columns], use_container_width=True)
+    # Thêm cột 'Chọn' vào DataFrame tạm để hiển thị checkbox
+    display_df = filtered_df[selected_columns].copy()
+    if 'Chọn' not in display_df.columns:
+        display_df['Chọn'] = False
+    # Tạo checkbox cho từng dòng
+    selected_rows = []
+    for i in range(len(display_df)):
+        row = display_df.iloc[i]
+        checked = st.checkbox(f"Chọn dòng {i+1}", key=f"chon_{i}", value=False)
+        display_df.at[display_df.index[i], 'Chọn'] = checked
+        if checked:
+            selected_rows.append(display_df.iloc[i])
+    st.dataframe(display_df, use_container_width=True)
     st.info(f"Số lượng HSSV: {len(filtered_df)} | Số cột hiển thị: {len(selected_columns)}")
+
+    # Tạo bảng mới chỉ gồm các dòng đã chọn
+    if selected_rows:
+        df_selected = pd.DataFrame(selected_rows).drop(columns=['Chọn'])
+        st.markdown("### Bảng danh sách đã chọn")
+        st.dataframe(df_selected, use_container_width=True)
+        # Lưu vào session_state để xuất Excel
+        st.session_state['df_selected'] = df_selected
+
+        # Nút tải về file Excel
+        import io
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df_selected.to_excel(writer, index=False, sheet_name='DanhSachChon')
+        output.seek(0)
+        st.download_button(
+            label="Tải về file Excel danh sách đã chọn",
+            data=output,
+            file_name="danh_sach_chon.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    else:
+        st.session_state['df_selected'] = None
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
