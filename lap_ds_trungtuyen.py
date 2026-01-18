@@ -212,13 +212,13 @@ if selected_columns:
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
                 output.seek(0)
-                with st.popover("Chọn danh sách nhưng chưa có Số QĐ trúng tuyển",icon="ℹ️"):
+                with st.popover("Hướng dẫn",icon="ℹ️"):
                     st.info("""
                     - Chuyển danh sách đã chọn sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh,
                     - In danh sách này ra file Excel để lưu trữ hoặc sử dụng làm dữ liệu cho quyết định trúng tuyển.
                     - Có thể dùng Bộ lọc dữ liệu chọn giá trị "Chờ QĐ" để lấy lại danh sách này.
                     Và làm danh sách cho quyết định trúng tuyển tại Bước Sau khi ký quyết định trúng tuyển.
-                    - Nhấn nút bên dưới để thực hiện chuyển trạng thái
+                    - Nhấn nút bên dưới để thực hiện cập nhật trạng thái
                     """)
                 cho_qd = st.button("Cập nhật trạng thái", key="btn_cho_qd_trungtuyen", use_container_width=True)
                 if cho_qd:
@@ -238,7 +238,7 @@ if selected_columns:
                                     break
                     st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn.")
                 st.divider()
-                with st.popover("Chọn danh sách nhưng chưa có Số QĐ trúng tuyển",icon="ℹ️"):
+                with st.popover("Hướng dẫn",icon="ℹ️"):
                     st.info("""
                     - Chuyển danh sách đã chọn ra file Excel để lưu trữ hoặc sử dụng làm dữ liệu cho quyết định trúng tuyển.
                     - Lưu ý chuyển trạng thái 'Chờ QĐ' cho các HSSV trước khi tải về file Excel. Để sau này có thể lọc lại danh sách này dễ dàng.
