@@ -240,7 +240,7 @@ if selected_columns:
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with col2:
-            with st.popover("",icon="ℹ️"):
+            with st.popover("Sau khi ký quyết định trúng tuyển",icon="ℹ️"):
                 st.info("""
                 - Điền số QĐ trúng tuyển, Ngày ký QĐ trúng tuyển
                 - Bắt buộc phải có số quyết đinh và ngày ký trước khi biên chế lớp.
