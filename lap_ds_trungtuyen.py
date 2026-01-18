@@ -72,7 +72,11 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         trinh_do = st.selectbox("Trình độ đăng ký", [""] + trinh_do_list, key="trinh_do")
         co_so_list = df[df.columns[27]].dropna().unique().tolist()
         co_so = st.selectbox("Cơ sở nhận hồ sơ", [""] + co_so_list, key="co_so")
-        nam_tot_nghiep = st.text_input("Năm tốt nghiệp", key="nam_tot_nghiep")
+        # Bộ lọc Năm tuyển sinh (từ Mã HSTS)
+        df['NĂM TUYỂN SINH'] = df[df.columns[0]].apply(lambda x: str(x)[:2] if pd.notnull(x) and len(str(x)) >= 2 else None)
+        df['NĂM TUYỂN SINH'] = df['NĂM TUYỂN SINH'].apply(lambda x: int(x) + 2000 if x is not None and x.isdigit() else None)
+        nam_tuyensinh_list = sorted(df['NĂM TUYỂN SINH'].dropna().unique().tolist())
+        nam_tuyensinh = st.selectbox("Năm tuyển sinh", [""] + [str(y) for y in nam_tuyensinh_list], key="nam_tuyensinh")
     with col4:
         # Bộ lọc CCCD
         cccd_list = df[df.columns[6]].dropna().unique().tolist()
@@ -128,8 +132,12 @@ if trinh_do:
     filtered_df = filtered_df[filtered_df[df.columns[29]].str.contains(trinh_do, case=False, na=False)]
 if co_so:
     filtered_df = filtered_df[filtered_df[df.columns[27]].str.contains(co_so, case=False, na=False)]
-if nam_tot_nghiep:
-    filtered_df = filtered_df[filtered_df[df.columns[43]].str.contains(nam_tot_nghiep, case=False, na=False)]
+
+# Lọc theo Năm tuyển sinh
+if 'nam_tuyensinh' in locals() and nam_tuyensinh:
+    filtered_df = filtered_df[
+        filtered_df[df.columns[0]].apply(lambda x: (str(x)[:2].isdigit() and str(int(str(x)[:2]) + 2000) == nam_tuyensinh) if pd.notnull(x) and len(str(x)) >= 2 else False)
+    ]
 
 # Lọc theo ngày nộp hồ sơ
 if (
