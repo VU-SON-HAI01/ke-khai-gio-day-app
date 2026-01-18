@@ -254,6 +254,7 @@ if selected_columns:
                 "Ngày ký QĐ trúng tuyển",
                 key="ngay_qd_trungtuyen"
             )
+            capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True)
             with st.popover("",icon="ℹ️"):
                 st.info("""
                 - Số quyết định, Ngày ký biên chế lớp
