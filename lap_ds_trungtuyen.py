@@ -204,60 +204,58 @@ if selected_columns:
         st.dataframe(df_selected, use_container_width=True)
         col1, col2, col3, col4 = st.columns(4)
         with col1:
+            so_qd = "Chờ QĐ"
+            ngay_qd = None
+            # Nút tải về file Excel
+            import io
+            output = io.BytesIO()
+            try:
+                # Ép kiểu dữ liệu về chuỗi để tránh lỗi khi xuất Excel
+                df_export = df_selected.copy()
+                for col in df_export.columns:
+                    if df_export[col].dtype == 'object':
+                        df_export[col] = df_export[col].astype(str)
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
+                output.seek(0)
+                cho_qd = st.button("Chờ QĐ trúng tuyển", key="btn_cho_qd_trungtuyen")
+                if cho_qd:
+                    # Cột 48 là index 47 (0-based)
+                    # Ghi giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH trên Google Sheet
+                    sheet_data = worksheet.get_all_values()
+                    header = sheet_data[1] if len(sheet_data) > 1 else []
+                    ma_hsts_col_idx = 0  # Mã HSTS luôn là cột đầu tiên
+                    for idx, row in df_selected.iterrows():
+                        ma_hsts_val = row[df.columns[0]] if df.columns[0] in row else None
+                        if ma_hsts_val is not None:
+                            # Tìm dòng trong sheet_data (bắt đầu từ dòng 3 do dòng 1 là tiêu đề, dòng 2 là header)
+                            for sheet_idx, sheet_row in enumerate(sheet_data[2:], start=3):
+                                if str(sheet_row[ma_hsts_col_idx]) == str(ma_hsts_val):
+                                    # Cột 48 là index 47 (0-based), gspread dùng 1-based
+                                    worksheet.update_cell(sheet_idx, 48, "Chờ QĐ")
+                                    break
+                    st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn vào dữ liệu tuyển sinh. Sau khi có QĐ trúng tuyển và biên chế lớp, vui lòng cập nhật lại.")
+                st.download_button(
+                    label="Tải về file Excel danh sách đã chọn",
+                    data=output,
+                    file_name="danh_sach_chon.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            except Exception as e:
+                st.error(f"Lỗi khi xuất file Excel: {e}")
+        with col2:
             st.markdown("### Chuyển danh sách với QĐ trúng tuyển và biên chế lớp")
-            on = st.toggle("Thêm số QĐ và ngày ký QĐ trúng tuyển", key="toggle_so_ngay_qd", value=False)
-            if on:
-                so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
-                ngay_qd = st.date_input(
-                    "Ngày ký QĐ trúng tuyển",
-                    key="ngay_qd_trungtuyen"
-                )
-                bien_che_lop = st.selectbox(
-                    "Biên chế lớp",
-                    ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
-                    key="bien_che_lop"
-                )
-            else:
-                so_qd = "Chờ QĐ"
-                ngay_qd = None
-                # Nút tải về file Excel
-                import io
-                output = io.BytesIO()
-                try:
-                    # Ép kiểu dữ liệu về chuỗi để tránh lỗi khi xuất Excel
-                    df_export = df_selected.copy()
-                    for col in df_export.columns:
-                        if df_export[col].dtype == 'object':
-                            df_export[col] = df_export[col].astype(str)
-                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                        df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
-                    output.seek(0)
-                    cho_qd = st.button("Chờ QĐ trúng tuyển", key="btn_cho_qd_trungtuyen")
-                    if cho_qd:
-                        # Cột 48 là index 47 (0-based)
-                        # Ghi giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH trên Google Sheet
-                        sheet_data = worksheet.get_all_values()
-                        header = sheet_data[1] if len(sheet_data) > 1 else []
-                        ma_hsts_col_idx = 0  # Mã HSTS luôn là cột đầu tiên
-                        for idx, row in df_selected.iterrows():
-                            ma_hsts_val = row[df.columns[0]] if df.columns[0] in row else None
-                            if ma_hsts_val is not None:
-                                # Tìm dòng trong sheet_data (bắt đầu từ dòng 3 do dòng 1 là tiêu đề, dòng 2 là header)
-                                for sheet_idx, sheet_row in enumerate(sheet_data[2:], start=3):
-                                    if str(sheet_row[ma_hsts_col_idx]) == str(ma_hsts_val):
-                                        # Cột 48 là index 47 (0-based), gspread dùng 1-based
-                                        worksheet.update_cell(sheet_idx, 48, "Chờ QĐ")
-                                        break
-                        st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các dòng đã chọn lên vào dữ liệu tuyển sinh. Sau khi có QĐ trúng tuyển và biên chế lớp, vui lòng cập nhật lại.")
-                    st.download_button(
-                        label="Tải về file Excel danh sách đã chọn",
-                        data=output,
-                        file_name="danh_sach_chon.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                except Exception as e:
-                    st.error(f"Lỗi khi xuất file Excel: {e}")
-            
+
+            so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
+            ngay_qd = st.date_input(
+                "Ngày ký QĐ trúng tuyển",
+                key="ngay_qd_trungtuyen"
+            )
+            bien_che_lop = st.selectbox(
+                "Biên chế lớp",
+                ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
+                key="bien_che_lop"
+            )
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
