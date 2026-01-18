@@ -6,8 +6,8 @@ import pandas as pd
 import time
 st.set_page_config(page_title="Xem dữ liệu HSSV", layout="wide")
 st.title("XEM DỮ LIỆU HỌC SINH SINH VIÊN")
-_GIAI_THICH_1 = """
-Điền thông tin QĐ trúng tuyển và biên chế lớp, Và Nhấn nút Biên chế lớp"""
+_GIAI_THICH_3 = """
+*Điền thông tin QĐ trúng tuyển và biên chế lớp, Và Nhấn nút Biên chế lớp*"""
 if st.session_state.get("reset_filter_flag", False):
     st.session_state["reset_filter_flag"] = False
     st.experimental_rerun()
