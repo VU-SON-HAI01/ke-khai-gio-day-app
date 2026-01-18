@@ -205,12 +205,16 @@ if selected_columns:
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.markdown("### Chuyển danh sách với QĐ trúng tuyển và biên chế lớp")
-            so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
-            ngay_qd = st.date_input(
-                "Ngày ký QĐ trúng tuyển",
-                key="ngay_qd_trungtuyen"
-            )
-        with col2:
+            on = st.toggle("Thêm số QĐ và ngày ký QĐ trúng tuyển", key="toggle_so_ngay_qd", value=False)
+            if on:
+                so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
+                ngay_qd = st.date_input(
+                    "Ngày ký QĐ trúng tuyển",
+                    key="ngay_qd_trungtuyen"
+                )
+            else:
+                so_qd = "Chờ QĐ"
+                ngay_qd = None
             # Nút tải về file Excel
             import io
             output = io.BytesIO()
