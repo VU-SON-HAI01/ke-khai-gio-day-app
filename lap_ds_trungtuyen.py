@@ -237,6 +237,7 @@ if selected_columns:
                                     worksheet.update_cell(sheet_idx, 48, "Chờ QĐ")
                                     break
                     st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn.")
+                st.divider()
                 with st.popover("Chọn danh sách nhưng chưa có Số QĐ trúng tuyển",icon="ℹ️"):
                     st.info("""
                     - Chuyển danh sách đã chọn ra file Excel để lưu trữ hoặc sử dụng làm dữ liệu cho quyết định trúng tuyển.
