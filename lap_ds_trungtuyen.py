@@ -234,7 +234,6 @@ if selected_columns:
                     output.seek(0)
                     cho_qd = st.button("Chờ QĐ trúng tuyển", key="btn_cho_qd_trungtuyen")
                     if cho_qd:
-                        # Thêm giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH cho các dòng đã chọn
                         # Cột 48 là index 47 (0-based)
                         # Ghi giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH trên Google Sheet
                         sheet_data = worksheet.get_all_values()
@@ -249,7 +248,7 @@ if selected_columns:
                                         # Cột 48 là index 47 (0-based), gspread dùng 1-based
                                         worksheet.update_cell(sheet_idx, 48, "Chờ QĐ")
                                         break
-                        st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các dòng đã chọn lên Google Sheet.")
+                        st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các dòng đã chọn lên vào dữ liệu tuyển sinh. Sau khi có QĐ trúng tuyển và biên chế lớp, vui lòng cập nhật lại.")
                     st.download_button(
                         label="Tải về file Excel danh sách đã chọn",
                         data=output,
