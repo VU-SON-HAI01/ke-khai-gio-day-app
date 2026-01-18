@@ -217,7 +217,6 @@ if selected_columns:
                     ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
                     key="bien_che_lop"
                 )
-                
             else:
                 so_qd = "Chờ QĐ"
                 ngay_qd = None
@@ -233,6 +232,17 @@ if selected_columns:
                     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                         df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
                     output.seek(0)
+                    cho_qd = st.button("Chờ QĐ trúng tuyển", key="btn_cho_qd_trungtuyen")
+                    if cho_qd:
+                        # Thêm giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH cho các dòng đã chọn
+                        # Cột 48 là index 47 (0-based)
+                        for idx, row in df_selected.iterrows():
+                            # Tìm vị trí dòng trong df gốc
+                            ma_hsts_val = row[df.columns[0]] if df.columns[0] in row else None
+                            if ma_hsts_val is not None:
+                                mask = df[df.columns[0]] == ma_hsts_val
+                                df.loc[mask, df.columns[47]] = "Chờ QĐ"
+                        st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các dòng đã chọn trong sheet TUYENSINH.")
                     st.download_button(
                         label="Tải về file Excel danh sách đã chọn",
                         data=output,
