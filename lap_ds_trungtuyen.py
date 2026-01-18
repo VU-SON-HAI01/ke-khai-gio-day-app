@@ -236,13 +236,20 @@ if selected_columns:
                     if cho_qd:
                         # Thêm giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH cho các dòng đã chọn
                         # Cột 48 là index 47 (0-based)
+                        # Ghi giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH trên Google Sheet
+                        sheet_data = worksheet.get_all_values()
+                        header = sheet_data[1] if len(sheet_data) > 1 else []
+                        ma_hsts_col_idx = 0  # Mã HSTS luôn là cột đầu tiên
                         for idx, row in df_selected.iterrows():
-                            # Tìm vị trí dòng trong df gốc
                             ma_hsts_val = row[df.columns[0]] if df.columns[0] in row else None
                             if ma_hsts_val is not None:
-                                mask = df[df.columns[0]] == ma_hsts_val
-                                df.loc[mask, df.columns[47]] = "Chờ QĐ"
-                        st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các dòng đã chọn trong sheet TUYENSINH.")
+                                # Tìm dòng trong sheet_data (bắt đầu từ dòng 3 do dòng 1 là tiêu đề, dòng 2 là header)
+                                for sheet_idx, sheet_row in enumerate(sheet_data[2:], start=3):
+                                    if str(sheet_row[ma_hsts_col_idx]) == str(ma_hsts_val):
+                                        # Cột 48 là index 47 (0-based), gspread dùng 1-based
+                                        worksheet.update_cell(sheet_idx, 48, "Chờ QĐ")
+                                        break
+                        st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các dòng đã chọn lên Google Sheet.")
                     st.download_button(
                         label="Tải về file Excel danh sách đã chọn",
                         data=output,
