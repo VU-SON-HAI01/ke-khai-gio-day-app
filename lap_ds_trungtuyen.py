@@ -247,7 +247,9 @@ if selected_columns:
                     label="Tải về file Excel",
                     data=output,
                     file_name="danh_sach_chon.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                    key="download_danhsachchon_excel"
                 )
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
