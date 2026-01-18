@@ -215,27 +215,27 @@ if selected_columns:
             else:
                 so_qd = "Chờ QĐ"
                 ngay_qd = None
-            # Nút tải về file Excel
-            import io
-            output = io.BytesIO()
-            try:
-                # Ép kiểu dữ liệu về chuỗi để tránh lỗi khi xuất Excel
-                df_export = df_selected.copy()
-                for col in df_export.columns:
-                    if df_export[col].dtype == 'object':
-                        df_export[col] = df_export[col].astype(str)
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
-                output.seek(0)
-                st.download_button(
-                    label="Tải về file Excel danh sách đã chọn",
-                    data=output,
-                    file_name="danh_sach_chon.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-            except Exception as e:
-                st.error(f"Lỗi khi xuất file Excel: {e}")
-        
+                # Nút tải về file Excel
+                import io
+                output = io.BytesIO()
+                try:
+                    # Ép kiểu dữ liệu về chuỗi để tránh lỗi khi xuất Excel
+                    df_export = df_selected.copy()
+                    for col in df_export.columns:
+                        if df_export[col].dtype == 'object':
+                            df_export[col] = df_export[col].astype(str)
+                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                        df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
+                    output.seek(0)
+                    st.download_button(
+                        label="Tải về file Excel danh sách đã chọn",
+                        data=output,
+                        file_name="danh_sach_chon.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+                except Exception as e:
+                    st.error(f"Lỗi khi xuất file Excel: {e}")
+            
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
