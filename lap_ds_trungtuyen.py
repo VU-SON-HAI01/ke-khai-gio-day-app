@@ -252,6 +252,8 @@ if selected_columns:
                 for word in _GIAI_THICH_1.split(" "):
                     yield word + " "
                     time.sleep(0.02)
+            if st.button("Stream data"):
+                st.write_stream(stream_data)
             st.info("Điền thông tin QĐ trúng tuyển và biên chế lớp, Và Nhấn nút Biên chế lớp", icon="ℹ️")
             so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
             ngay_qd = st.date_input(
