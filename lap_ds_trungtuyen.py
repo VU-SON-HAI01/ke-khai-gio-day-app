@@ -62,7 +62,11 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         ho_dem = st.text_input("Họ đệm", key="ho_dem")
         ten = st.text_input("Tên", key="ten")
     with col2:
-        gioi_tinh = st.selectbox("Giới tính", ["", "Nam", "Nữ"], key="gioi_tinh")
+        # Bộ lọc Năm tuyển sinh (từ Mã HSTS)
+        df['NĂM TUYỂN SINH'] = df[df.columns[0]].apply(lambda x: str(x)[:2] if pd.notnull(x) and len(str(x)) >= 2 else None)
+        df['NĂM TUYỂN SINH'] = df['NĂM TUYỂN SINH'].apply(lambda x: int(x) + 2000 if x is not None and x.isdigit() else None)
+        nam_tuyensinh_list = sorted(df['NĂM TUYỂN SINH'].dropna().unique().tolist())
+        nam_tuyensinh = st.selectbox("Năm tuyển sinh", [""] + [str(y) for y in nam_tuyensinh_list], key="nam_tuyensinh")
         dan_toc_list = df[df.columns[12]].dropna().unique().tolist()
         dan_toc = st.selectbox("Dân tộc", [""] + dan_toc_list, key="dan_toc")
         ton_giao_list = df[df.columns[13]].dropna().unique().tolist()
@@ -72,11 +76,7 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         trinh_do = st.selectbox("Trình độ đăng ký", [""] + trinh_do_list, key="trinh_do")
         co_so_list = df[df.columns[27]].dropna().unique().tolist()
         co_so = st.selectbox("Cơ sở nhận hồ sơ", [""] + co_so_list, key="co_so")
-        # Bộ lọc Năm tuyển sinh (từ Mã HSTS)
-        df['NĂM TUYỂN SINH'] = df[df.columns[0]].apply(lambda x: str(x)[:2] if pd.notnull(x) and len(str(x)) >= 2 else None)
-        df['NĂM TUYỂN SINH'] = df['NĂM TUYỂN SINH'].apply(lambda x: int(x) + 2000 if x is not None and x.isdigit() else None)
-        nam_tuyensinh_list = sorted(df['NĂM TUYỂN SINH'].dropna().unique().tolist())
-        nam_tuyensinh = st.selectbox("Năm tuyển sinh", [""] + [str(y) for y in nam_tuyensinh_list], key="nam_tuyensinh")
+        gioi_tinh = st.selectbox("Giới tính", ["", "Nam", "Nữ"], key="gioi_tinh")
     with col4:
         # Bộ lọc CCCD
         cccd_list = df[df.columns[6]].dropna().unique().tolist()
