@@ -244,8 +244,6 @@ if selected_columns:
                 st.info("""
                 - Điền số QĐ trúng tuyển, Ngày ký QĐ trúng tuyển
                 - Điền thông tin Biên chế lớp
-                - Số quyết định, Ngày ký biên chế lớp
-                - Nhấn nút cập nhật để ghi nhận thông tin trúng tuyển và biên chế lớp cho các HSSV đã chọn.
                 """)
             so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
             ngay_qd = st.date_input(
@@ -257,15 +255,18 @@ if selected_columns:
                 ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
                 key="bien_che_lop"
             )
-            qd_bienche_lop = st.selectbox(
-                "Biên chế lớp",
-                ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
-                key="bien_che_lop"
+            with st.popover("",icon="ℹ️"):
+                st.info("""
+                - Số quyết định, Ngày ký biên chế lớp
+                - Nhấn nút cập nhật để ghi nhận thông tin trúng tuyển và biên chế lớp cho các HSSV đã chọn.
+                """)
+            qd_bienche_lop = st.text_input(
+                "Số quyết định biên chế lớp",
+                key="qd_bienche_lop"
             )
-            ngayky_bienche_lop = st.selectbox(
-                "Biên chế lớp",
-                ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
-                key="bien_che_lop"
+            ngayky_bienche_lop = st.date_input(
+                "Ngày ký biên chế lớp",
+                key="ngayky_bienche_lop"
             )
 
 else:
