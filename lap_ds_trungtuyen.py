@@ -218,6 +218,7 @@ if selected_columns:
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
                 output.seek(0)
+                st.markdown("Chuyển danh sách đang ký sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh, sau khi có QĐ trúng tuyển và biên chế lớp sẽ cập nhật lại.")
                 cho_qd = st.button("Chuyển trạng thái Chờ QĐ", key="btn_cho_qd_trungtuyen")
                 if cho_qd:
                     # Cột 48 là index 47 (0-based)
@@ -234,9 +235,9 @@ if selected_columns:
                                     # Cột 48 là index 47 (0-based), gspread dùng 1-based
                                     worksheet.update_cell(sheet_idx, 48, "Chờ QĐ")
                                     break
-                    st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn vào dữ liệu tuyển sinh. Sau khi có QĐ trúng tuyển và biên chế lớp, vui lòng cập nhật lại.")
+                    st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn.")
                 st.download_button(
-                    label="Tải về file Excel danh sách đã chọn",
+                    label="Tải về file Excel DS đã chọn",
                     data=output,
                     file_name="danh_sach_chon.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
