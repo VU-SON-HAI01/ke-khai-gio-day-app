@@ -195,25 +195,35 @@ if selected_columns:
             st.session_state['df_selected'],
             df_to_add
         ], ignore_index=True).drop_duplicates()
-
-    # Hiển thị bảng danh sách đã chọn (luôn giữ lại khi lọc lại)
-    df_selected = st.session_state['df_selected']
-    if not df_selected.empty:
-        st.markdown("### Bảng danh sách đã chọn")
-        st.dataframe(df_selected, use_container_width=True)
-
-        # Nút tải về file Excel
-        import io
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df_selected.to_excel(writer, index=False, sheet_name='DanhSachChon')
-        output.seek(0)
-        st.download_button(
-            label="Tải về file Excel danh sách đã chọn",
-            data=output,
-            file_name="danh_sach_chon.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        # Hiển thị bảng danh sách đã chọn (luôn giữ lại khi lọc lại)
+        df_selected = st.session_state['df_selected']
+        if not df_selected.empty:
+            st.markdown("### Danh sách đã chọn")
+            st.dataframe(df_selected, use_container_width=True)
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.markdown("### Chuyển danh sách với QĐ trúng tuyển và biên chế lớp")
+                so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
+                ngay_qd = st.date_input(
+                    "Ngày ký QĐ trúng tuyển",
+                    format="%d/%m/%Y",
+                    key="ngay_qd_trungtuyen"
+                )
+                
+            with col2:
+                # Nút tải về file Excel
+                import io
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df_selected.to_excel(writer, index=False, sheet_name='DanhSachChon')
+                output.seek(0)
+                st.download_button(
+                    label="Tải về file Excel danh sách đã chọn",
+                    data=output,
+                    file_name="danh_sach_chon.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+        
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
