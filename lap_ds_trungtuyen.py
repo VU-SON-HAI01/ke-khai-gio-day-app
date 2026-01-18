@@ -218,7 +218,7 @@ if selected_columns:
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
                 output.seek(0)
-                st.markdown("Chuyển danh sách đang ký sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh, sau khi có QĐ trúng tuyển và biên chế lớp sẽ cập nhật lại.")
+                st.info("Chuyển danh sách đang ký sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh, sau khi có QĐ trúng tuyển và biên chế lớp sẽ cập nhật lại.", icon="ℹ️")
                 cho_qd = st.button("Chuyển trạng thái Chờ QĐ", key="btn_cho_qd_trungtuyen")
                 if cho_qd:
                     # Cột 48 là index 47 (0-based)
