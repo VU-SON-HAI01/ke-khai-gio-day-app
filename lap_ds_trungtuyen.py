@@ -254,12 +254,7 @@ if selected_columns:
             """
             # Display the custom CSS
             st.markdown(custom_css, unsafe_allow_html=True)
-            # Create the slider with the help parameter
-            age = st.slider(label='What is your age?', 
-                            min_value=18, 
-                            max_value=120,
-                            help=age_tooltip,
-                        )
+
             so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
             ngay_qd = st.date_input(
                 "Ngày ký QĐ trúng tuyển",
