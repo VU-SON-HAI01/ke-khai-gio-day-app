@@ -218,7 +218,7 @@ if selected_columns:
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
                 output.seek(0)
-                cho_qd = st.button("Chờ QĐ trúng tuyển", key="btn_cho_qd_trungtuyen")
+                cho_qd = st.button("Chuyển trạng thái Chờ QĐ", key="btn_cho_qd_trungtuyen")
                 if cho_qd:
                     # Cột 48 là index 47 (0-based)
                     # Ghi giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH trên Google Sheet
