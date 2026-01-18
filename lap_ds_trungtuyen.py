@@ -153,27 +153,29 @@ if 'nv1' in locals() and nv1:
     filtered_df = filtered_df[filtered_df[df.columns[23]].str.contains(nv1, case=False, na=False)]
 
 if selected_columns:
-    # Thêm cột 'Chọn' vào DataFrame tạm để hiển thị checkbox
+    # Thêm cột 'Chọn' vào DataFrame để dùng với st.data_editor
     display_df = filtered_df[selected_columns].copy()
     if 'Chọn' not in display_df.columns:
         display_df['Chọn'] = False
-    # Tạo checkbox cho từng dòng
-    selected_rows = []
-    for i in range(len(display_df)):
-        row = display_df.iloc[i]
-        checked = st.checkbox(f"Chọn dòng {i+1}", key=f"chon_{i}", value=False)
-        display_df.at[display_df.index[i], 'Chọn'] = checked
-        if checked:
-            selected_rows.append(display_df.iloc[i])
-    st.dataframe(display_df, use_container_width=True)
+    # Sử dụng st.data_editor để chọn trực tiếp
+    edited_df = st.data_editor(
+        display_df,
+        use_container_width=True,
+        column_config={
+            'Chọn': st.column_config.CheckboxColumn('Chọn', help='Tick để chọn dòng này')
+        },
+        disabled=[col for col in display_df.columns if col != 'Chọn'],
+        hide_index=True,
+        key='data_editor_chon'
+    )
     st.info(f"Số lượng HSSV: {len(filtered_df)} | Số cột hiển thị: {len(selected_columns)}")
 
-    # Tạo bảng mới chỉ gồm các dòng đã chọn
-    if selected_rows:
-        df_selected = pd.DataFrame(selected_rows).drop(columns=['Chọn'])
+    # Lọc các dòng đã chọn
+    selected_rows = edited_df[edited_df['Chọn'] == True]
+    if not selected_rows.empty:
+        df_selected = selected_rows.drop(columns=['Chọn'])
         st.markdown("### Bảng danh sách đã chọn")
         st.dataframe(df_selected, use_container_width=True)
-        # Lưu vào session_state để xuất Excel
         st.session_state['df_selected'] = df_selected
 
         # Nút tải về file Excel
