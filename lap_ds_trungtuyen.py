@@ -215,7 +215,8 @@ if selected_columns:
                 with st.popover("Hướng dẫn",icon="ℹ️"):
                     st.info("""
                     - Chuyển danh sách đã chọn sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh,
-                    - Sau này Có thể dùng Bộ lọc dữ liệu chọn giá trị "Chờ QĐ" để lấy lại danh sách này, làm danh sách cho QĐ trúng tuyển -> Sau khi ký quyết định trúng tuyển. Cập nhật số QĐ, ngày ký QĐ trúng tuyển.
+                    - Sau này Có thể dùng Bộ lọc dữ liệu chọn giá trị "Chờ QĐ" để lấy lại danh sách này, làm danh sách cho QĐ trúng tuyển 
+                    -> Sau khi ký quyết định trúng tuyển. Cập nhật số QĐ, ngày ký QĐ trúng tuyển.
                     - Nhấn nút bên dưới để thực hiện cập nhật trạng thái
                     """)
                 cho_qd = st.button("Cập nhật trạng thái", key="btn_cho_qd_trungtuyen", use_container_width=True)
