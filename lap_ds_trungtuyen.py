@@ -240,21 +240,8 @@ if selected_columns:
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with col2:
-            with st.popover("Open popover"):
+            with st.popover("",icon="ℹ️"):
                 st.info("Điền thông tin QĐ trúng tuyển và biên chế lớp, Và Nhấn nút Biên chế lớp", icon="ℹ️")
-            age_tooltip = '''Your risk of this disease grows as you age.'''
-            # Define custom CSS to increase tooltip icon size
-            custom_css = """
-                <style>
-                    #bui2__anchor > svg{
-                        width: 32px;
-                        height: 32px;
-                    }
-                </style>
-            """
-            # Display the custom CSS
-            st.markdown(custom_css, unsafe_allow_html=True)
-
             so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
             ngay_qd = st.date_input(
                 "Ngày ký QĐ trúng tuyển",
