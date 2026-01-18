@@ -236,6 +236,7 @@ if selected_columns:
                                     worksheet.update_cell(sheet_idx, 48, "Chờ QĐ")
                                     break
                     st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn.")
+                st.info("Tải về danh sách dữ liệu đã chọn để lưu trữ hoặc sử dụng làm dữ liệu QĐ trúng tuyển.", icon="ℹ️")
                 st.download_button(
                     label="Tải về file Excel DS đã chọn",
                     data=output,
