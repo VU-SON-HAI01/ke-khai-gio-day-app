@@ -172,11 +172,23 @@ if selected_columns:
 
     # Lọc các dòng đã chọn
     selected_rows = edited_df[edited_df['Chọn'] == True]
+    if 'df_selected' not in st.session_state or st.session_state['df_selected'] is None:
+        st.session_state['df_selected'] = pd.DataFrame(columns=[col for col in edited_df.columns if col != 'Chọn'])
+
     if not selected_rows.empty:
-        df_selected = selected_rows.drop(columns=['Chọn'])
+        df_to_add = selected_rows.drop(columns=['Chọn'])
+        if st.button('Thêm', key='btn_them_danhsachchon'):
+            # Ghép thêm các dòng mới, loại bỏ trùng lặp (theo toàn bộ dòng)
+            st.session_state['df_selected'] = pd.concat([
+                st.session_state['df_selected'],
+                df_to_add
+            ], ignore_index=True).drop_duplicates()
+
+    # Hiển thị bảng danh sách đã chọn (luôn giữ lại khi lọc lại)
+    df_selected = st.session_state['df_selected']
+    if not df_selected.empty:
         st.markdown("### Bảng danh sách đã chọn")
         st.dataframe(df_selected, use_container_width=True)
-        st.session_state['df_selected'] = df_selected
 
         # Nút tải về file Excel
         import io
@@ -190,8 +202,6 @@ if selected_columns:
             file_name="danh_sach_chon.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-    else:
-        st.session_state['df_selected'] = None
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
