@@ -212,6 +212,12 @@ if selected_columns:
                     "Ngày ký QĐ trúng tuyển",
                     key="ngay_qd_trungtuyen"
                 )
+                bien_che_lop = st.selectbox(
+                    "Biên chế lớp",
+                    ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
+                    key="bien_che_lop"
+                )
+                
             else:
                 so_qd = "Chờ QĐ"
                 ngay_qd = None
