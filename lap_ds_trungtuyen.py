@@ -157,6 +157,11 @@ if selected_columns:
     display_df = filtered_df[selected_columns].copy()
     if 'Chọn' not in display_df.columns:
         display_df['Chọn'] = False
+    # Đưa cột 'Chọn' lên đầu bảng
+    cols = list(display_df.columns)
+    if 'Chọn' in cols:
+        cols = ['Chọn'] + [c for c in cols if c != 'Chọn']
+        display_df = display_df[cols]
     # Sử dụng st.data_editor để chọn trực tiếp
     edited_df = st.data_editor(
         display_df,
