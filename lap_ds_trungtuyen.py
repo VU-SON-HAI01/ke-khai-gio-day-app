@@ -142,19 +142,17 @@ if 'nam_tuyensinh' in locals() and nam_tuyensinh:
 # Lọc theo ngày nộp hồ sơ
 if (
     ngay_nop_col
-    and ngay_nop_col in filtered_df.columns
     and ngay_min is not None and ngay_max is not None
     and str(ngay_min) != "NaT" and str(ngay_max) != "NaT"
 ):
-    dt_col = ngay_nop_col + "_dt"
-    if dt_col not in filtered_df.columns:
-        filtered_df[dt_col] = pd.to_datetime(filtered_df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
+    # Chuyển đổi về datetime64[ns] để so sánh chính xác
+    filtered_df[ngay_nop_col + "_dt"] = pd.to_datetime(filtered_df[ngay_nop_col], format="%d/%m/%Y", errors="coerce")
     pd_ngay_min = pd.to_datetime(ngay_min)
     pd_ngay_max = pd.to_datetime(ngay_max)
     mask = (
-        filtered_df[dt_col].notna() &
-        (filtered_df[dt_col] >= pd_ngay_min) &
-        (filtered_df[dt_col] <= pd_ngay_max)
+        filtered_df[ngay_nop_col + "_dt"].notna() &
+        (filtered_df[ngay_nop_col + "_dt"] >= pd_ngay_min) &
+        (filtered_df[ngay_nop_col + "_dt"] <= pd_ngay_max)
     )
     filtered_df = filtered_df[mask]
 
@@ -208,7 +206,6 @@ if selected_columns:
                 so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
                 ngay_qd = st.date_input(
                     "Ngày ký QĐ trúng tuyển",
-                    format="%d/%m/%Y",
                     key="ngay_qd_trungtuyen"
                 )
             with col2:
