@@ -3,15 +3,8 @@ import datetime
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
-import time
 st.set_page_config(page_title="Xem dữ liệu HSSV", layout="wide")
 st.title("XEM DỮ LIỆU HỌC SINH SINH VIÊN")
-_GIAI_THICH_3 = """
-*Điền thông tin QĐ trúng tuyển và biên chế lớp, Và Nhấn nút Biên chế lớp*"""
-if st.session_state.get("reset_filter_flag", False):
-    st.session_state["reset_filter_flag"] = False
-    st.experimental_rerun()
-
 # Lấy cấu hình Google Sheet từ secrets
 try:
     google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
@@ -247,14 +240,7 @@ if selected_columns:
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with col2:
-
-            def stream_data():
-                for word in _GIAI_THICH_1.split(" "):
-                    yield word + " "
-                    time.sleep(0.02)
-            if st.button("",icon="ℹ️"):
-                st.write_stream(stream_data)
-            #st.info("Điền thông tin QĐ trúng tuyển và biên chế lớp, Và Nhấn nút Biên chế lớp", icon="ℹ️")
+            st.info("Điền thông tin QĐ trúng tuyển và biên chế lớp, Và Nhấn nút Biên chế lớp", icon="ℹ️")
             so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
             ngay_qd = st.date_input(
                 "Ngày ký QĐ trúng tuyển",
