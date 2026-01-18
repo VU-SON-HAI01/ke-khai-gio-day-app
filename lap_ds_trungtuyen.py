@@ -212,8 +212,15 @@ if selected_columns:
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
                 output.seek(0)
-                st.info("Chuyển danh sách đang ký sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh, sau khi có QĐ trúng tuyển và biên chế lớp sẽ cập nhật lại.", icon="ℹ️")
-                cho_qd = st.button("Chuyển trạng thái Chờ QĐ", key="btn_cho_qd_trungtuyen")
+                with st.popover("Chọn danh sách nhưng chưa có Số QĐ trúng tuyển",icon="ℹ️"):
+                    st.info("""
+                    - Chuyển danh sách đã chọn sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh,
+                    - In danh sách này ra file Excel để lưu trữ hoặc sử dụng làm dữ liệu cho quyết định trúng tuyển.
+                    - Có thể dùng Bộ lọc dữ liệu chọn giá trị "Chờ QĐ" để lấy lại danh sách này.
+                    Và làm danh sách cho quyết định trúng tuyển tại Bước Sau khi ký quyết định trúng tuyển.
+                    - Nhấn nút bên dưới để thực hiện chuyển trạng thái
+                    """)
+                cho_qd = st.button("Chuyển trạng thái Chờ QĐ", key="btn_cho_qd_trungtuyen", use_container_width=True)
                 if cho_qd:
                     # Cột 48 là index 47 (0-based)
                     # Ghi giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH trên Google Sheet
