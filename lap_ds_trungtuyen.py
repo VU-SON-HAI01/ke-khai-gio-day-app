@@ -189,7 +189,7 @@ if selected_columns:
         st.session_state['df_selected'] = pd.DataFrame(columns=[col for col in edited_df.columns if col != 'Chọn'])
 
     df_to_add = selected_rows.drop(columns=['Chọn'])
-    if st.button('Thêm', key='btn_them_danhsachchon'):
+    if st.button('Thêm vào danh sách xét tuyển', key='btn_them_danhsachchon'):
         # Ghép thêm các dòng mới, loại bỏ trùng lặp (theo toàn bộ dòng)
         st.session_state['df_selected'] = pd.concat([
             st.session_state['df_selected'],
