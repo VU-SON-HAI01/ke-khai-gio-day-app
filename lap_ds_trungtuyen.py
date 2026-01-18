@@ -246,8 +246,7 @@ if selected_columns:
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with col2:
-            st.markdown("### Chuyển danh sách với QĐ trúng tuyển và biên chế lớp")
-
+            st.info("Điền thông tin QĐ trúng tuyển và biên chế lớp, Và Nhấn nút Biên chế lớp", icon="ℹ️")
             so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
             ngay_qd = st.date_input(
                 "Ngày ký QĐ trúng tuyển",
@@ -258,6 +257,7 @@ if selected_columns:
                 ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
                 key="bien_che_lop"
             )
+            
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
