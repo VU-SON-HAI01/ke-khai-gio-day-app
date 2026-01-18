@@ -254,9 +254,9 @@ if selected_columns:
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with col2:
-            with st.popover("Sau khi ký quyết định trúng tuyển",icon="ℹ️"):
+            with st.popover("Hướng dẫn",icon="ℹ️"):
                 st.info("""
-                - Điền số QĐ trúng tuyển, Ngày ký QĐ trúng tuyển
+                - Sau khi ký quyết định trúng tuyển, cần cập nhật thông tin số và ngày ký quyết định trúng tuyển cho các HSSV.
                 - Bắt buộc phải có số quyết đinh và ngày ký trước khi biên chế lớp.
                 - Bộ phận tuyển sinh chịu trách nhiệm cập nhật số quyết định 
                 và ngày ký cho các HSSV, sau khi có quyết định trúng tuyển.
@@ -269,7 +269,8 @@ if selected_columns:
                 key="ngay_qd_trungtuyen"
             )
             capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True)
-            with st.popover("",icon="ℹ️"):
+        with col3:
+            with st.popover("Hướng dẫn",icon="ℹ️"):
                 st.info("""
                 - Số quyết định, Ngày ký biên chế lớp
                 - Nhấn nút cập nhật để ghi nhận thông tin trúng tuyển và biên chế lớp cho các HSSV đã chọn.
