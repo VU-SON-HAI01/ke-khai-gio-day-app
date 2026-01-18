@@ -3,10 +3,11 @@ import datetime
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
-
+import time
 st.set_page_config(page_title="Xem dữ liệu HSSV", layout="wide")
 st.title("XEM DỮ LIỆU HỌC SINH SINH VIÊN")
-
+_GIAI_THICH_1 = """
+Điền thông tin QĐ trúng tuyển và biên chế lớp, Và Nhấn nút Biên chế lớp"""
 if st.session_state.get("reset_filter_flag", False):
     st.session_state["reset_filter_flag"] = False
     st.experimental_rerun()
@@ -246,6 +247,11 @@ if selected_columns:
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with col2:
+
+            def stream_data():
+                for word in _GIAI_THICH_1.split(" "):
+                    yield word + " "
+                    time.sleep(0.02)
             st.info("Điền thông tin QĐ trúng tuyển và biên chế lớp, Và Nhấn nút Biên chế lớp", icon="ℹ️")
             so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
             ngay_qd = st.date_input(
@@ -257,7 +263,7 @@ if selected_columns:
                 ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
                 key="bien_che_lop"
             )
-            
+
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
