@@ -212,8 +212,8 @@ if selected_columns:
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
                 output.seek(0)
-                colx1, colx2 = st.columns(2)
-                with colx1:
+                cola1, cola2 = st.columns(2)
+                with cola1:
                     with st.popover("Hướng dẫn",icon="ℹ️"):
                         st.info("""
                         - Chuyển danh sách đã chọn sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh,
@@ -221,7 +221,7 @@ if selected_columns:
                         -> Sau khi ký quyết định trúng tuyển. Cập nhật số QĐ, ngày ký QĐ trúng tuyển.
                         - Nhấn nút bên dưới để thực hiện cập nhật trạng thái
                         """)
-                with colx2:
+                with cola2:
                     cho_qd = st.button("Cập nhật trạng thái", key="btn_cho_qd_trungtuyen", use_container_width=True,type="primary")
                     if cho_qd:
                         # Cột 48 là index 47 (0-based)
@@ -240,15 +240,15 @@ if selected_columns:
                                         break
                         st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn.")
                 st.divider()
-                cola1, cola2 = st.columns(2)
-                with cola1:
+                colb1, colb2 = st.columns(2)
+                with colb1:
                     with st.popover("Hướng dẫn",icon="ℹ️"):
                         st.info("""
                         - Chuyển danh sách đã chọn ra file Excel để lưu trữ hoặc sử dụng làm dữ liệu cho quyết định trúng tuyển.
                         - Nên chuyển trạng thái 'Chờ QĐ'. Để sau này có thể lọc lại danh sách này dễ dàng.Thuận tiện cho việc thêm số QĐ và ngày ký QĐ trúng tuyển sau này.
                         - Nhấn nút bên dưới để tải về file Excel
                         """)
-                with cola2:
+                with colb2:
                     st.download_button(
                         label="Tải về file Excel",type="primary",
                         data=output,
@@ -260,18 +260,18 @@ if selected_columns:
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with col2:
-            col1, col2 = st.columns(2)
-            with col1:
+            colc1, colc2 = st.columns(2)
+            with colc1:
                 with st.popover("Hướng dẫn",icon="ℹ️"):
                     st.info("""
-                    - Sau khi ký quyết định trúng tuyển, cần cập nhật thông tin số và ngày ký quyết định trúng tuyển cho các HSSV.
-                    - Bắt buộc phải có số quyết đinh và ngày ký trước khi biên chế lớp.
-                    - Bộ phận tuyển sinh chịu trách nhiệm cập nhật số quyết định 
-                và ngày ký cho các HSSV, sau khi có quyết định trúng tuyển.
-                - Dữ liệu này sẽ được chuyển qua bộ phận quản lý HSSV, đào tạo 
-                để làm căn cứ biên chế lớp cho HSSV.
+                    - After signing the admission decision, update the decision number and signing date for the students.
+                    - It is mandatory to have the decision number and signing date before class allocation.
+                    - The admissions department is responsible for updating the decision number 
+                and signing date for the students after the admission decision is made.
+                - This data will be transferred to the student management and training department 
+                as a basis for class allocation for the students.
                 """)
-            with col2:
+            with colc2:
                 so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
                 ngay_qd = st.date_input(
                     "Ngày ký QĐ trúng tuyển",
