@@ -190,7 +190,7 @@ if selected_columns:
     # Luôn lấy df_selected từ session_state (kể cả khi chưa nhấn nút Thêm)
     df_selected = st.session_state['df_selected']
 
-    if st.button('Thêm vào danh sách xét tuyển', key='btn_them_danhsachchon'):
+    if st.button('Thêm vào danh sách xét tuyển', key='btn_them_danhsachchon',type="primary"):
         # Ghép thêm các dòng mới, loại bỏ trùng lặp (theo toàn bộ dòng)
         st.session_state['df_selected'] = pd.concat([
             st.session_state['df_selected'],
