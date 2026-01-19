@@ -205,7 +205,6 @@ if selected_columns:
         tab1, tab2, tab3 = st.tabs(["Tải danh sách chọn", "Cập nhật QĐ trúng tuyển", "Cập nhật biên chế lớp"])
 
         with tab1:
-            st.header("Tải danh sách chọn")
             so_qd = "Chờ QĐ"
             ngay_qd = None
             # Nút tải về file Excel
