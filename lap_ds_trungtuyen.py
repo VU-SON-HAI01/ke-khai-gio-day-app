@@ -212,8 +212,8 @@ if selected_columns:
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
                 output.seek(0)
-                col1, col2 = st.columns(2)
-                with col1:
+                colx1, colx2 = st.columns(2)
+                with colx1:
                     with st.popover("Hướng dẫn",icon="ℹ️"):
                         st.info("""
                         - Chuyển danh sách đã chọn sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh,
@@ -221,7 +221,7 @@ if selected_columns:
                         -> Sau khi ký quyết định trúng tuyển. Cập nhật số QĐ, ngày ký QĐ trúng tuyển.
                         - Nhấn nút bên dưới để thực hiện cập nhật trạng thái
                         """)
-                with col2:
+                with colx2:
                     cho_qd = st.button("Cập nhật trạng thái", key="btn_cho_qd_trungtuyen", use_container_width=True,type="primary")
                     if cho_qd:
                         # Cột 48 là index 47 (0-based)
