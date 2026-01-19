@@ -339,8 +339,6 @@ if selected_columns:
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
-# --- Hiển thị các cột theo mong muốn ---
-
 # --- Rerun an toàn sau khi đã render giao diện ---
 if st.session_state.get("reset_filter_flag", False):
     st.session_state["reset_filter_flag"] = False
