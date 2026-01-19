@@ -268,7 +268,7 @@ if selected_columns:
                 "Ngày ký QĐ trúng tuyển",
                 key="ngay_qd_trungtuyen"
             )
-            capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True)
+            capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True,type="primary")
         with col3:
             with st.popover("Hướng dẫn",icon="ℹ️"):
                 st.info("""
