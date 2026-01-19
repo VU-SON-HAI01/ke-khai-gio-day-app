@@ -240,20 +240,23 @@ if selected_columns:
                                         break
                         st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn.")
                 st.divider()
-                with st.popover("Hướng dẫn",icon="ℹ️"):
-                    st.info("""
-                    - Chuyển danh sách đã chọn ra file Excel để lưu trữ hoặc sử dụng làm dữ liệu cho quyết định trúng tuyển.
-                    - Nên chuyển trạng thái 'Chờ QĐ'. Để sau này có thể lọc lại danh sách này dễ dàng.Thuận tiện cho việc thêm số QĐ và ngày ký QĐ trúng tuyển sau này.
-                    - Nhấn nút bên dưới để tải về file Excel
-                    """)
-                st.download_button(
-                    label="Tải về file Excel",type="primary",
-                    data=output,
-                    file_name="danh_sach_chon.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True,
-                    key="download_danhsachchon_excel"
-                )
+                col1, col2 = st.columns(2)
+                with col1:
+                    with st.popover("Hướng dẫn",icon="ℹ️"):
+                        st.info("""
+                        - Chuyển danh sách đã chọn ra file Excel để lưu trữ hoặc sử dụng làm dữ liệu cho quyết định trúng tuyển.
+                        - Nên chuyển trạng thái 'Chờ QĐ'. Để sau này có thể lọc lại danh sách này dễ dàng.Thuận tiện cho việc thêm số QĐ và ngày ký QĐ trúng tuyển sau này.
+                        - Nhấn nút bên dưới để tải về file Excel
+                        """)
+                with col2:
+                    st.download_button(
+                        label="Tải về file Excel",type="primary",
+                        data=output,
+                        file_name="danh_sach_chon.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                        key="download_danhsachchon_excel"
+                    )
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with col2:
