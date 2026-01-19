@@ -164,6 +164,7 @@ if selected_columns:
     if 'Chọn' in cols:
         cols = ['Chọn'] + [c for c in cols if c != 'Chọn']
         display_df = display_df[cols]
+    st.markdown("### Danh sách đã lọc được")
     # Sử dụng st.data_editor để chọn trực tiếp
     edited_df = st.data_editor(
         display_df,
