@@ -260,21 +260,24 @@ if selected_columns:
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with col2:
-            with st.popover("Hướng dẫn",icon="ℹ️"):
-                st.info("""
-                - Sau khi ký quyết định trúng tuyển, cần cập nhật thông tin số và ngày ký quyết định trúng tuyển cho các HSSV.
-                - Bắt buộc phải có số quyết đinh và ngày ký trước khi biên chế lớp.
-                - Bộ phận tuyển sinh chịu trách nhiệm cập nhật số quyết định 
+            col1, col2 = st.columns(2)
+            with col1:
+                with st.popover("Hướng dẫn",icon="ℹ️"):
+                    st.info("""
+                    - Sau khi ký quyết định trúng tuyển, cần cập nhật thông tin số và ngày ký quyết định trúng tuyển cho các HSSV.
+                    - Bắt buộc phải có số quyết đinh và ngày ký trước khi biên chế lớp.
+                    - Bộ phận tuyển sinh chịu trách nhiệm cập nhật số quyết định 
                 và ngày ký cho các HSSV, sau khi có quyết định trúng tuyển.
                 - Dữ liệu này sẽ được chuyển qua bộ phận quản lý HSSV, đào tạo 
                 để làm căn cứ biên chế lớp cho HSSV.
                 """)
-            so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
-            ngay_qd = st.date_input(
-                "Ngày ký QĐ trúng tuyển",
-                key="ngay_qd_trungtuyen"
-            )
-            capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True,type="primary")
+            with col2:
+                so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
+                ngay_qd = st.date_input(
+                    "Ngày ký QĐ trúng tuyển",
+                    key="ngay_qd_trungtuyen"
+                )
+                capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True,type="primary")
         with col3:
             with st.popover("Hướng dẫn",icon="ℹ️"):
                 st.info("""
