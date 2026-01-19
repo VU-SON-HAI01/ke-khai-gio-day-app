@@ -44,7 +44,7 @@ default_cols = [
 ]
 # Chỉ lấy các cột mặc định nếu có trong all_columns
 default_cols = [col for col in default_cols if col in all_columns]
-selected_columns = st.multiselect("Chọn cột", all_columns, default=default_cols)
+selected_columns = st.multiselect("Chọn các cột muốn hiển thị", all_columns, default=default_cols)
 
 
 # --- Hiển thị bộ lọc dữ liệu lên đầu trang ---
