@@ -240,15 +240,15 @@ if selected_columns:
                                         break
                         st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn.")
                 st.divider()
-                col1, col2 = st.columns(2)
-                with col1:
+                cola1, cola2 = st.columns(2)
+                with cola1:
                     with st.popover("Hướng dẫn",icon="ℹ️"):
                         st.info("""
                         - Chuyển danh sách đã chọn ra file Excel để lưu trữ hoặc sử dụng làm dữ liệu cho quyết định trúng tuyển.
                         - Nên chuyển trạng thái 'Chờ QĐ'. Để sau này có thể lọc lại danh sách này dễ dàng.Thuận tiện cho việc thêm số QĐ và ngày ký QĐ trúng tuyển sau này.
                         - Nhấn nút bên dưới để tải về file Excel
                         """)
-                with col2:
+                with cola2:
                     st.download_button(
                         label="Tải về file Excel",type="primary",
                         data=output,
