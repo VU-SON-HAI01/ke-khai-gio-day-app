@@ -190,7 +190,7 @@ if selected_columns:
     # Luôn lấy df_selected từ session_state (kể cả khi chưa nhấn nút Thêm)
     df_selected = st.session_state['df_selected']
 
-    if st.button('Thêm vào danh sách xét tuyển', key='btn_them_danhsachchon',type="primary"):
+    if st.button('Thêm vào danh sách chọn', key='btn_them_danhsachchon',type="primary"):
         # Ghép thêm các dòng mới, loại bỏ trùng lặp (theo toàn bộ dòng)
         st.session_state['df_selected'] = pd.concat([
             st.session_state['df_selected'],
@@ -269,19 +269,27 @@ if selected_columns:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with tab2:
             st.header("Cập nhật QĐ trúng tuyển")
-            with st.popover("Hướng dẫn",icon="ℹ️"):
-                st.info("""
-                    - Sau khi ký quyết định trúng tuyển, cập nhật số quyết định và ngày ký cho các HSSV.
-                    - Bắt buộc phải có số quyết định và ngày ký trước khi biên chế lớp.
-                    - Bộ phận tuyển sinh chịu trách nhiệm cập nhật số quyết định và ngày ký cho các HSSV sau khi có quyết định trúng tuyển.
-                    - Dữ liệu này sẽ được chuyển qua bộ phận quản lý HSSV, đào tạo để làm căn cứ biên chế lớp cho HSSV.
-                """)
-            so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
-            ngay_qd = st.date_input(
-                "Ngày ký QĐ trúng tuyển",
-                key="ngay_qd_trungtuyen"
-            )
-            capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True,type="primary")
+            cola1, cola2 = st.columns(2)
+            with cola1:
+                with st.popover("Hướng dẫn",icon="ℹ️"):
+                    st.info("""
+                        - Sau khi ký quyết định trúng tuyển, cập nhật số quyết định và ngày ký cho các HSSV.
+                        - Bắt buộc phải có số quyết định và ngày ký trước khi biên chế lớp.
+                        - Bộ phận tuyển sinh chịu trách nhiệm cập nhật số quyết định và ngày ký cho các HSSV sau khi có quyết định trúng tuyển.
+                        - Dữ liệu này sẽ được chuyển qua bộ phận quản lý HSSV, đào tạo để làm căn cứ biên chế lớp cho HSSV.
+                    """)
+                so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
+                ngay_qd = st.date_input(
+                    "Ngày ký QĐ trúng tuyển",
+                    key="ngay_qd_trungtuyen",
+                    format="DD/MM/YYYY"
+                )
+                capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True,type="primary")
+            with cola2:
+                st.markdown("#### Xem trước dữ liệu cập nhật QĐ trúng tuyển")
+                preview_df = df_selected.copy()
+                preview_df['SỐ QĐ TRÚNG TUYỂN'] = so_qd
+                preview_df['NGÀY KÝ QĐ TRÚNG TUYỂN'] = ngay_qd.strftime("%d/%m/%Y") if ngay_qd else ""
         with tab3:
             st.header("Cập nhật biên chế lớp")
             with st.popover("Hướng dẫn",icon="ℹ️"):
