@@ -212,30 +212,33 @@ if selected_columns:
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_export.to_excel(writer, index=False, sheet_name='DanhSachChon')
                 output.seek(0)
-                with st.popover("Hướng dẫn",icon="ℹ️"):
-                    st.info("""
-                    - Chuyển danh sách đã chọn sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh,
-                    - Sau này Có thể dùng Bộ lọc dữ liệu chọn giá trị "Chờ QĐ" để lấy lại danh sách này, làm danh sách cho QĐ trúng tuyển 
-                    -> Sau khi ký quyết định trúng tuyển. Cập nhật số QĐ, ngày ký QĐ trúng tuyển.
-                    - Nhấn nút bên dưới để thực hiện cập nhật trạng thái
-                    """)
-                cho_qd = st.button("Cập nhật trạng thái", key="btn_cho_qd_trungtuyen", use_container_width=True,type="primary")
-                if cho_qd:
-                    # Cột 48 là index 47 (0-based)
-                    # Ghi giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH trên Google Sheet
-                    sheet_data = worksheet.get_all_values()
-                    header = sheet_data[1] if len(sheet_data) > 1 else []
-                    ma_hsts_col_idx = 0  # Mã HSTS luôn là cột đầu tiên
-                    for idx, row in df_selected.iterrows():
-                        ma_hsts_val = row[df.columns[0]] if df.columns[0] in row else None
-                        if ma_hsts_val is not None:
-                            # Tìm dòng trong sheet_data (bắt đầu từ dòng 3 do dòng 1 là tiêu đề, dòng 2 là header)
-                            for sheet_idx, sheet_row in enumerate(sheet_data[2:], start=3):
-                                if str(sheet_row[ma_hsts_col_idx]) == str(ma_hsts_val):
-                                    # Cột 48 là index 47 (0-based), gspread dùng 1-based
-                                    worksheet.update_cell(sheet_idx, 48, "Chờ QĐ")
-                                    break
-                    st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn.")
+                col1, col2 = st.columns(2)
+                with col2:
+                    with st.popover("Hướng dẫn",icon="ℹ️"):
+                        st.info("""
+                        - Chuyển danh sách đã chọn sang trạng thái 'Chờ QĐ' trong dữ liệu tuyển sinh,
+                        - Sau này Có thể dùng Bộ lọc dữ liệu chọn giá trị "Chờ QĐ" để lấy lại danh sách này, làm danh sách cho QĐ trúng tuyển 
+                        -> Sau khi ký quyết định trúng tuyển. Cập nhật số QĐ, ngày ký QĐ trúng tuyển.
+                        - Nhấn nút bên dưới để thực hiện cập nhật trạng thái
+                        """)
+                with col1:
+                    cho_qd = st.button("Cập nhật trạng thái", key="btn_cho_qd_trungtuyen", use_container_width=True,type="primary")
+                    if cho_qd:
+                        # Cột 48 là index 47 (0-based)
+                        # Ghi giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH trên Google Sheet
+                        sheet_data = worksheet.get_all_values()
+                        header = sheet_data[1] if len(sheet_data) > 1 else []
+                        ma_hsts_col_idx = 0  # Mã HSTS luôn là cột đầu tiên
+                        for idx, row in df_selected.iterrows():
+                            ma_hsts_val = row[df.columns[0]] if df.columns[0] in row else None
+                            if ma_hsts_val is not None:
+                                # Tìm dòng trong sheet_data (bắt đầu từ dòng 3 do dòng 1 là tiêu đề, dòng 2 là header)
+                                for sheet_idx, sheet_row in enumerate(sheet_data[2:], start=3):
+                                    if str(sheet_row[ma_hsts_col_idx]) == str(ma_hsts_val):
+                                        # Cột 48 là index 47 (0-based), gspread dùng 1-based
+                                        worksheet.update_cell(sheet_idx, 48, "Chờ QĐ")
+                                        break
+                        st.success("Đã cập nhật trạng thái 'Chờ QĐ' cho các danh sách đã chọn.")
                 st.divider()
                 with st.popover("Hướng dẫn",icon="ℹ️"):
                     st.info("""
