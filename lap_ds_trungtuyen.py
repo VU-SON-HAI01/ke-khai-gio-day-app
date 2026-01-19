@@ -219,7 +219,7 @@ if selected_columns:
                     -> Sau khi ký quyết định trúng tuyển. Cập nhật số QĐ, ngày ký QĐ trúng tuyển.
                     - Nhấn nút bên dưới để thực hiện cập nhật trạng thái
                     """)
-                cho_qd = st.button("Cập nhật trạng thái", key="btn_cho_qd_trungtuyen", use_container_width=True)
+                cho_qd = st.button("Cập nhật trạng thái", key="btn_cho_qd_trungtuyen", use_container_width=True,type="primary")
                 if cho_qd:
                     # Cột 48 là index 47 (0-based)
                     # Ghi giá trị 'Chờ QĐ' vào cột 48 của sheet TUYENSINH trên Google Sheet
@@ -240,11 +240,11 @@ if selected_columns:
                 with st.popover("Hướng dẫn",icon="ℹ️"):
                     st.info("""
                     - Chuyển danh sách đã chọn ra file Excel để lưu trữ hoặc sử dụng làm dữ liệu cho quyết định trúng tuyển.
-                    - Lưu ý chuyển trạng thái 'Chờ QĐ' cho các HSSV trước khi tải về file Excel. Để sau này có thể lọc lại danh sách này dễ dàng.
+                    - Nên chuyển trạng thái 'Chờ QĐ'. Để sau này có thể lọc lại danh sách này dễ dàng.Thuận tiện cho việc thêm số QĐ và ngày ký QĐ trúng tuyển sau này.
                     - Nhấn nút bên dưới để tải về file Excel
                     """)
                 st.download_button(
-                    label="Tải về file Excel",
+                    label="Tải về file Excel",type="primary",
                     data=output,
                     file_name="danh_sach_chon.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
