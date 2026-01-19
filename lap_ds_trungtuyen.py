@@ -297,7 +297,8 @@ if selected_columns:
                 "Ngày ký biên chế lớp",
                 key="ngayky_bienche_lop"
             )
-
+        with col4:
+            capnhat_bienche = st.button("Cập nhật biên chế lớp", key="btn_capnhat_bienche_lop", use_container_width=True,type="primary")
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
