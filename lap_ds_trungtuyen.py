@@ -285,6 +285,30 @@ if selected_columns:
                     format="DD/MM/YYYY"
                 )
                 capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True,type="primary")
+                if capnhat_qd_trungtuyen:
+                    if not so_qd:
+                        st.error("Vui lòng nhập Số QĐ trúng tuyển!")
+                    elif not ngay_qd:
+                        st.error("Vui lòng chọn Ngày ký QĐ trúng tuyển!")
+                    else:
+                        # Cột 49 là index 48 (0-based) cho SỐ QĐ TRÚNG TUYỂN
+                        # Cột 50 là index 49 (0-based) cho NGÀY KÝ QĐ TRÚNG TUYỂN
+                        # Ghi giá trị vào các cột tương ứng của sheet TUYENSINH trên Google Sheet
+                        sheet_data = worksheet.get_all_values()
+                        header = sheet_data[1] if len(sheet_data) > 1 else []
+                        ma_hsts_col_idx = 0  # Mã HSTS luôn là cột đầu tiên
+                        for idx, row in df_selected.iterrows():
+                            ma_hsts_val = row[df.columns[0]] if df.columns[0] in row else None
+                            if ma_hsts_val is not None:
+                                # Tìm dòng trong sheet_data (bắt đầu từ dòng 3 do dòng 1 là tiêu đề, dòng 2 là header)
+                                for sheet_idx, sheet_row in enumerate(sheet_data[2:], start=3):
+                                    if str(sheet_row[ma_hsts_col_idx]) == str(ma_hsts_val):
+                                        # Cột 49 là index 48 (0-based), gspread dùng 1-based
+                                        worksheet.update_cell(sheet_idx, 49, so_qd)
+                                        # Cột 50 là index 49 (0-based), gspread dùng 1-based
+                                        worksheet.update_cell(sheet_idx, 50, ngay_qd.strftime("%d/%m/%Y"))
+                                        break
+                        st.success("Đã cập nhật Số QĐ và Ngày ký QĐ trúng tuyển cho các HSSV đã chọn.")
             with cola2:
                 st.markdown("#### Xem trước dữ liệu cập nhật QĐ trúng tuyển")
                 preview_df = df_selected.copy()
@@ -308,7 +332,8 @@ if selected_columns:
             )
             ngayky_bienche_lop = st.date_input(
                 "Ngày ký biên chế lớp",
-                key="ngayky_bienche_lop"
+                key="ngayky_bienche_lop",
+                format="DD/MM/YYYY"
             )
             capnhat_bienche = st.button("Cập nhật biên chế lớp", key="btn_capnhat_bienche_lop", use_container_width=True,type="primary")
 else:
