@@ -260,24 +260,19 @@ if selected_columns:
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
         with col2:
-            colc1, colc2 = st.columns(2)
-            with colc1:
-                with st.popover("Hướng dẫn",icon="ℹ️"):
-                    st.info("""
-                    - After signing the admission decision, update the decision number and signing date for the students.
-                    - It is mandatory to have the decision number and signing date before class allocation.
-                    - The admissions department is responsible for updating the decision number 
-                and signing date for the students after the admission decision is made.
-                - This data will be transferred to the student management and training department 
-                as a basis for class allocation for the students.
+            with st.popover("Hướng dẫn",icon="ℹ️"):
+                st.info("""
+                    - Sau khi ký quyết định trúng tuyển, cập nhật số quyết định và ngày ký cho các HSSV.
+                    - Bắt buộc phải có số quyết định và ngày ký trước khi biên chế lớp.
+                    - Bộ phận tuyển sinh chịu trách nhiệm cập nhật số quyết định và ngày ký cho các HSSV sau khi có quyết định trúng tuyển.
+                    - Dữ liệu này sẽ được chuyển qua bộ phận quản lý HSSV, đào tạo để làm căn cứ biên chế lớp cho HSSV.
                 """)
-            with colc2:
-                so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
-                ngay_qd = st.date_input(
-                    "Ngày ký QĐ trúng tuyển",
-                    key="ngay_qd_trungtuyen"
-                )
-                capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True,type="primary")
+            so_qd = st.text_input("Số QĐ trúng tuyển", key="so_qd_trungtuyen")
+            ngay_qd = st.date_input(
+                "Ngày ký QĐ trúng tuyển",
+                key="ngay_qd_trungtuyen"
+            )
+            capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True,type="primary")
         with col3:
             with st.popover("Hướng dẫn",icon="ℹ️"):
                 st.info("""
