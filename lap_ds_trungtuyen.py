@@ -186,6 +186,7 @@ if selected_columns:
     df_to_add = selected_rows.drop(columns=['Chọn'])
     # Luôn lấy df_selected từ session_state (kể cả khi chưa nhấn nút Thêm)
     df_selected = st.session_state['df_selected']
+
     if st.button('Thêm vào danh sách xét tuyển', key='btn_them_danhsachchon'):
         # Ghép thêm các dòng mới, loại bỏ trùng lặp (theo toàn bộ dòng)
         st.session_state['df_selected'] = pd.concat([
@@ -198,8 +199,10 @@ if selected_columns:
         st.markdown("### Danh sách đã chọn")
         st.dataframe(df_selected, use_container_width=True)
         st.divider()
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
+        tab1, tab2, tab3 = st.tabs(["Tải danh sách chọn", "Cập nhật QĐ trúng tuyển", "Cập nhật biên chế lớp"])
+
+        with tab1:
+            st.header("Tải danh sách chọn")
             so_qd = "Chờ QĐ"
             ngay_qd = None
             # Nút tải về file Excel
@@ -261,7 +264,8 @@ if selected_columns:
                     )
             except Exception as e:
                 st.error(f"Lỗi khi xuất file Excel: {e}")
-        with col2:
+        with tab2:
+            st.header("Cập nhật QĐ trúng tuyển")
             with st.popover("Hướng dẫn",icon="ℹ️"):
                 st.info("""
                     - Sau khi ký quyết định trúng tuyển, cập nhật số quyết định và ngày ký cho các HSSV.
@@ -275,7 +279,8 @@ if selected_columns:
                 key="ngay_qd_trungtuyen"
             )
             capnhat_qd_trungtuyen = st.button("Cập nhật", key="btn_capnhat_qd_trungtuyen", use_container_width=True,type="primary")
-        with col3:
+        with tab3:
+            st.header("Cập nhật biên chế lớp")
             with st.popover("Hướng dẫn",icon="ℹ️"):
                 st.info("""
                 - Số quyết định, Ngày ký biên chế lớp
@@ -295,8 +300,6 @@ if selected_columns:
                 key="ngayky_bienche_lop"
             )
             capnhat_bienche = st.button("Cập nhật biên chế lớp", key="btn_capnhat_bienche_lop", use_container_width=True,type="primary")
-        with col4:
-            st.write("")
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
