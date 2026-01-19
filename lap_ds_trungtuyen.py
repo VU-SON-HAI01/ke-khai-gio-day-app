@@ -196,6 +196,7 @@ if selected_columns:
     if not df_selected.empty:
         st.markdown("### Danh sách đã chọn")
         st.dataframe(df_selected, use_container_width=True)
+        st.divider()
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             so_qd = "Chờ QĐ"
@@ -292,8 +293,9 @@ if selected_columns:
                 "Ngày ký biên chế lớp",
                 key="ngayky_bienche_lop"
             )
-        with col4:
             capnhat_bienche = st.button("Cập nhật biên chế lớp", key="btn_capnhat_bienche_lop", use_container_width=True,type="primary")
+        with col4:
+            st.write("")
 else:
     st.warning("Vui lòng chọn ít nhất một cột để hiển thị.")
 
