@@ -94,20 +94,19 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
                 )
             except Exception:
                 ngay_min, ngay_max = None, None
-with st.expander("Chọn cột hiển thị", expanded=True):
-    all_columns = list(filtered_df.columns)
-    default_cols = [
-        "MÃ HSTS",
-        "HỌ ĐỆM",
-        "TÊN",
-        "NGÀY SINH",
-        "GIỚI TÍNH",
-        "CCCD",
-        "Số điện thoại"
-    ]
-    # Chỉ lấy các cột mặc định nếu có trong all_columns
-    default_cols = [col for col in default_cols if col in all_columns]
-    selected_columns = st.multiselect("Chọn cột", all_columns, default=default_cols)
+all_columns = list(filtered_df.columns)
+default_cols = [
+    "MÃ HSTS",
+    "HỌ ĐỆM",
+    "TÊN",
+    "NGÀY SINH",
+    "GIỚI TÍNH",
+    "CCCD",
+    "Số điện thoại"
+]
+# Chỉ lấy các cột mặc định nếu có trong all_columns
+default_cols = [col for col in default_cols if col in all_columns]
+selected_columns = st.multiselect("Chọn cột", all_columns, default=default_cols)
 # Áp dụng bộ lọc
 if ma_hsts:
     filtered_df = filtered_df[filtered_df[df.columns[0]].str.contains(ma_hsts, case=False, na=False)]
