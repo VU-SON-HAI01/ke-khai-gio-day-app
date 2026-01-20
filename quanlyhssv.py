@@ -210,7 +210,7 @@ with col1:
         if st.button(" ƀ ", key="btn_c_caron_table", type="tertiary"):
             current_name = st.session_state.get("ho_ten", "")
             st.session_state["ho_ten"] = current_name + "ƀ"
-    with row2[10]:
+    with row2[11]:
         st.write("")  # Ô trống để canh đều 
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
