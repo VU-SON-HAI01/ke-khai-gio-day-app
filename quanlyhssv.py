@@ -683,17 +683,29 @@ with col3:
             "Trình độ tốt nghiệp": st.session_state.get("trinhdo_totnghiep", ""),
             "Hạnh kiểm": st.session_state.get("hanh_kiem", ""),
             "Năm tốt nghiệp": st.session_state.get("nam_tot_nghiep", ""),
-            "Điểm Toán": st.session_state.get("diem_toan", ""),
-            "Điểm Văn": st.session_state.get("diem_van", ""),
-            "Tiếng Anh": st.session_state.get("diem_tieng_anh", ""),
-            "GDCD": st.session_state.get("diem_gdcd", ""),
-            "Công nghệ": st.session_state.get("diem_cong_nghe", ""),
-            "Tin học": st.session_state.get("diem_tin_hoc", ""),
-            "KH tự nhiên": st.session_state.get("diem_kh_tn", ""),
-            "Lịch sử và Địa lý": st.session_state.get("diem_ls_dl", ""),
-            "Tổng điểm Ưu tiên": st.session_state.get("tong_diem_uu_tien", ""),
-            "Tổng điểm + ưu tiên 2 môn": st.session_state.get("tong_diem_2_mon_uu_tien", ""),
-            "Tổng điểm + ưu tiên 8 môn": st.session_state.get("tong_diem_8_mon_uu_tien", ""),
+        }
+        # Thêm logic điểm theo trình độ đăng ký
+        if st.session_state.get("trinh_do", "") in ["Cao đẳng", "Liên thông CĐ"]:
+            du_lieu.update({
+                "Điểm Toán": st.session_state.get("diem_toan", ""),
+                "Điểm Văn": st.session_state.get("diem_van", ""),
+                "Tổng điểm Ưu tiên": st.session_state.get("tong_diem_uu_tien", ""),
+                "Tổng điểm + ưu tiên 2 môn": st.session_state.get("tong_diem_2_mon_uu_tien", ""),
+            })
+        else:
+            du_lieu.update({
+                "Điểm Toán": st.session_state.get("diem_toan", ""),
+                "Điểm Văn": st.session_state.get("diem_van", ""),
+                "Tiếng Anh": st.session_state.get("diem_tieng_anh", ""),
+                "GDCD": st.session_state.get("diem_gdcd", ""),
+                "Công nghệ": st.session_state.get("diem_cong_nghe", ""),
+                "Tin học": st.session_state.get("diem_tin_hoc", ""),
+                "KH tự nhiên": st.session_state.get("diem_kh_tn", ""),
+                "Lịch sử và Địa lý": st.session_state.get("diem_ls_dl", ""),
+                "Tổng điểm Ưu tiên": st.session_state.get("tong_diem_uu_tien", ""),
+                "Tổng điểm + ưu tiên 8 môn": st.session_state.get("tong_diem_8_mon_uu_tien", ""),
+            })
+        du_lieu.update({
             "Nguyện vọng 1": st.session_state.get("nv1", ""),
             "Nguyện vọng 2": st.session_state.get("nv2", ""),
             "Nguyện vọng 3": st.session_state.get("nv3", ""),
@@ -702,7 +714,7 @@ with col3:
             "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
             # Định dạng ngày nộp hồ sơ sang dd/mm/yyyy nếu có
             "Ngày nộp hồ sơ": format_ngay_nop_hs(st.session_state.get("ngay_nop_hs", "")),
-        }
+        })
         # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
         if st.button("Lưu tất cả thông tin"):
             def split_ho_ten(ho_ten_full):
