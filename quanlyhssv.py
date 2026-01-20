@@ -114,8 +114,8 @@ with col1:
         unsafe_allow_html=True
     )
     # Bảng 2 hàng 5 cột với các nút ký tự đặc biệt
-    row1 = st.columns(5)
-    row2 = st.columns(5)
+    row1 = st.columns(6)
+    row2 = st.columns(6)
     with row1[0]:
         if st.button(" ŏ ", key="btn_o_breve_table", type="tertiary"):
             current_name = st.session_state.get("ho_ten", "")
@@ -133,7 +133,13 @@ with col1:
             current_name = st.session_state.get("ho_ten", "")
             st.session_state["ho_ten"] = current_name + "Ŭ"
     with row1[4]:
-        st.write("")
+        if st.button(" Ơ̆ ", key="btn_OE_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "Ơ̆"
+    with row1[5]:
+        if st.button(" ơ̆ ", key="btn_oe_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "ơ̆"
     for i, col in enumerate(row2):
         with col:
             st.write(f"H2C{i+1}")
