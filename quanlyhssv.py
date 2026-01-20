@@ -113,16 +113,30 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-    colkt1, colkt2 = st.columns(2)
-    with colkt1:
-        if st.button(" ŏ ", type="tertiary"):
+    # Bảng 2 hàng 5 cột với các nút ký tự đặc biệt
+    row1 = st.columns(5)
+    row2 = st.columns(5)
+    with row1[0]:
+        if st.button(" ŏ ", key="btn_o_breve_table", type="tertiary"):
             current_name = st.session_state.get("ho_ten", "")
             st.session_state["ho_ten"] = current_name + "ŏ"
-    with colkt2:
-        if st.button(" Ŏ ", type="tertiary"):
+    with row1[1]:
+        if st.button(" Ŏ ", key="btn_O_breve_table", type="tertiary"):
             current_name = st.session_state.get("ho_ten", "")
             st.session_state["ho_ten"] = current_name + "Ŏ"
-    
+    with row1[2]:
+        if st.button(" ŭ ", key="btn_u_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "ŭ"
+    with row1[3]:
+        if st.button(" Ŭ ", key="btn_U_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "Ŭ"
+    with row1[4]:
+        st.write("")
+    for i, col in enumerate(row2):
+        with col:
+            st.write(f"H2C{i+1}")
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
     import datetime
