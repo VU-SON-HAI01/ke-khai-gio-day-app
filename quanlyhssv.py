@@ -524,15 +524,15 @@ with col3:
             tong_diem_2_mon = round(diem_toan + diem_van, 1)
             st.session_state["tong_diem_2_mon"] = tong_diem_2_mon
         with st.expander("Điểm ưu tiên", expanded=True):
-            diem_uu_tien = st.number_input(":green[ĐIỂM ƯU TIÊN KHÁC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien", 0.0))
-            diem_uu_tien = round(diem_uu_tien, 2)
-            st.session_state["diem_uu_tien"] = diem_uu_tien
-            diem_uu_tien_khu_vuc = st.number_input(":green[ƯU TIÊN THEO KHU VỰC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_khu_vuc", 0.0))
-            diem_uu_tien_khu_vuc = round(diem_uu_tien_khu_vuc, 2)
-            st.session_state["diem_uu_tien_khu_vuc"] = diem_uu_tien_khu_vuc
             diem_uu_tien_doi_tuong = st.number_input(":green[ƯU TIÊN THEO ĐỐI TƯỢNG]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_doi_tuong", 0.0))
             diem_uu_tien_doi_tuong = round(diem_uu_tien_doi_tuong, 2)
             st.session_state["diem_uu_tien_doi_tuong"] = diem_uu_tien_doi_tuong
+            diem_uu_tien_khu_vuc = st.number_input(":green[ƯU TIÊN THEO KHU VỰC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_khu_vuc", 0.0))
+            diem_uu_tien_khu_vuc = round(diem_uu_tien_khu_vuc, 2)
+            st.session_state["diem_uu_tien_khu_vuc"] = diem_uu_tien_khu_vuc
+            diem_uu_tien = st.number_input(":green[ĐIỂM ƯU TIÊN KHÁC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien", 0.0))
+            diem_uu_tien = round(diem_uu_tien, 2)
+            st.session_state["diem_uu_tien"] = diem_uu_tien
             tong_diem_uu_tien = round(diem_uu_tien + diem_uu_tien_khu_vuc + diem_uu_tien_doi_tuong, 2)
             st.session_state["tong_diem_uu_tien"] = tong_diem_uu_tien
         tong_diem = round(tong_diem_2_mon + tong_diem_uu_tien, 2)
@@ -586,15 +586,15 @@ with col3:
             tong_diem_mon = round(tong_diem_mon, 1)
             st.session_state["tong_diem_8_mon"] = tong_diem_mon
         with st.expander("Điểm ưu tiên", expanded=True):
-            diem_uu_tien = st.number_input(":green[ĐIỂM ƯU TIÊN KHÁC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien", 0.0),)
-            diem_uu_tien = round(diem_uu_tien, 2)
-            st.session_state["diem_uu_tien"] = diem_uu_tien
-            diem_uu_tien_khu_vuc = st.number_input(":green[ƯU TIÊN THEO KHU VỰC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_khu_vuc", 0.0))
-            diem_uu_tien_khu_vuc = round(diem_uu_tien_khu_vuc, 2)
-            st.session_state["diem_uu_tien_khu_vuc"] = diem_uu_tien_khu_vuc
             diem_uu_tien_doi_tuong = st.number_input(":green[ƯU TIÊN THEO ĐỐI TƯỢNG]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_doi_tuong", 0.0))
             diem_uu_tien_doi_tuong = round(diem_uu_tien_doi_tuong, 2)
             st.session_state["diem_uu_tien_doi_tuong"] = diem_uu_tien_doi_tuong
+            diem_uu_tien_khu_vuc = st.number_input(":green[ƯU TIÊN THEO KHU VỰC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_khu_vuc", 0.0))
+            diem_uu_tien_khu_vuc = round(diem_uu_tien_khu_vuc, 2)
+            st.session_state["diem_uu_tien_khu_vuc"] = diem_uu_tien_khu_vuc
+            diem_uu_tien = st.number_input(":green[ĐIỂM ƯU TIÊN KHÁC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien", 0.0),)
+            diem_uu_tien = round(diem_uu_tien, 2)
+            st.session_state["diem_uu_tien"] = diem_uu_tien
             tong_diem_uu_tien = round(diem_uu_tien + diem_uu_tien_khu_vuc + diem_uu_tien_doi_tuong, 2)
             st.session_state["tong_diem_uu_tien"] = tong_diem_uu_tien
         tong_diem = round(tong_diem_mon + tong_diem_uu_tien, 2)
