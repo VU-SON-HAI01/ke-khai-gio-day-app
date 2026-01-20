@@ -113,7 +113,8 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-    st.expander("Ký tự đặc biệt", expanded=False):
+    
+    with st.expander("Ký tự đặc biệt", expanded=False):
         row1 = st.columns(12)
         row2 = st.columns(12)
         with row1[0]:
