@@ -115,15 +115,15 @@ with col1:
     )
     col_ht1, col_ht2 = st.columns([3,1])
     with col_ht1:
-        ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""), key="ho_ten_input")
-        st.session_state["ho_ten"] = ho_ten
-    with col_ht2:
         if st.button(" ŏ ", key="btn_o_breve", type="tertiary"):
             current_name = st.session_state.get("ho_ten", "")
             st.session_state["ho_ten"] = current_name + "ŏ"
+    with col_ht2:
         if st.button(" Ŏ ", key="btn_O_breve", type="tertiary"):
             current_name = st.session_state.get("ho_ten", "")
             st.session_state["ho_ten"] = current_name + "Ŏ"
+    ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""), key="ho_ten_input")
+    st.session_state["ho_ten"] = ho_ten
     import datetime
     ngay_sinh = st.date_input(
         ":green[NGÀY SINH]",
