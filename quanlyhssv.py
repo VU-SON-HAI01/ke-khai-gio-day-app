@@ -113,10 +113,10 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-    if st.button("ký tự: ŏ"):
-    # Insert at the end (or you can implement cursor logic if needed)
+    if st.button("ŏ", type="tertiary"):
         current_name = st.session_state.get("ho_ten", "")
-        st.session_state["ho_ten"] = current_name + "Ă̆"
+        st.session_state["ho_ten"] = current_name + "ŏ"
+
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
     import datetime
