@@ -203,11 +203,11 @@ with col1:
             current_name = st.session_state.get("ho_ten", "")
             st.session_state["ho_ten"] = current_name + "Č"
     with row2[9]:
-        if st.button(" č ", key="btn_c_caron_table", type="tertiary"):
+        if st.button(" č ", key="btn_cs_caron_table", type="tertiary"):
             current_name = st.session_state.get("ho_ten", "")
             st.session_state["ho_ten"] = current_name + "č"
     with row2[10]:
-        if st.button(" ƀ ", key="btn_c_caron_table", type="tertiary"):
+        if st.button(" ƀ ", key="btn_as_caron_table", type="tertiary"):
             current_name = st.session_state.get("ho_ten", "")
             st.session_state["ho_ten"] = current_name + "ƀ"
     with row2[11]:
