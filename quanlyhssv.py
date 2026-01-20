@@ -113,7 +113,7 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-    if st.button("ký tự :Ă̆"):
+    if st.button("ký tự: ŏ"):
     # Insert at the end (or you can implement cursor logic if needed)
         current_name = st.session_state.get("ho_ten", "")
         st.session_state["ho_ten"] = current_name + "Ă̆"
