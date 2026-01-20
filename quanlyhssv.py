@@ -113,14 +113,12 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-    st.button("Â̆")
-    ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
-    st.session_state["ho_ten"] = ho_ten
-    # Button to insert 'Ă̆' into HỌ VÀ TÊN
     if st.button("ký tự :Ă̆"):
-        # Insert at the end (or you can implement cursor logic if needed)
+    # Insert at the end (or you can implement cursor logic if needed)
         current_name = st.session_state.get("ho_ten", "")
         st.session_state["ho_ten"] = current_name + "Ă̆"
+    ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
+    st.session_state["ho_ten"] = ho_ten
     import datetime
     ngay_sinh = st.date_input(
         ":green[NGÀY SINH]",
