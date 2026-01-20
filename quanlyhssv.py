@@ -514,7 +514,7 @@ with col3:
         st.session_state["hanh_kiem"] = hanh_kiem
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
-        with st.expander("Nhập điểm 2 môn", expanded=True):
+        with st.expander("Nhập điểm 2 môn", expanded=False):
             diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0.0, max_value=10.0, step=1.0, value=st.session_state.get("diem_toan", 0.0))
             diem_toan = round(diem_toan, 1)
             st.session_state["diem_toan"] = diem_toan
@@ -525,7 +525,7 @@ with col3:
             st.session_state["tong_diem_2_mon"] = tong_diem_2_mon
         with st.expander("Điểm ưu tiên", expanded=True):
             diem_uu_tien = st.number_input(":green[ĐIỂM ƯU TIÊN KHÁC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien", 0.0), key="diem_uu_tien")
-            diem_uu_tien = round(diem_uu_tien, 1)
+            diem_uu_tien = round(diem_uu_tien, 2)
             st.session_state["diem_uu_tien"] = diem_uu_tien
             diem_uu_tien_khu_vuc = st.number_input(":green[ƯU TIÊN THEO KHU VỰC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_khu_vuc", 0.0), key="diem_uu_tien_khu_vuc")
             diem_uu_tien_khu_vuc = round(diem_uu_tien_khu_vuc, 2)
@@ -533,9 +533,10 @@ with col3:
             diem_uu_tien_doi_tuong = st.number_input(":green[ƯU TIÊN THEO ĐỐI TƯỢNG]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_doi_tuong", 0.0), key="diem_uu_tien_doi_tuong")
             diem_uu_tien_doi_tuong = round(diem_uu_tien_doi_tuong, 2)
             st.session_state["diem_uu_tien_doi_tuong"] = diem_uu_tien_doi_tuong
-            tong_diem_uu_tien = round(diem_uu_tien + diem_uu_tien_khu_vuc + diem_uu_tien_doi_tuong, 1)
+            tong_diem_uu_tien = round(diem_uu_tien + diem_uu_tien_khu_vuc + diem_uu_tien_doi_tuong, 2)
             st.session_state["tong_diem_uu_tien"] = tong_diem_uu_tien
-        tong_diem = round(tong_diem_2_mon + tong_diem_uu_tien, 1)
+        tong_diem = round(tong_diem_2_mon + tong_diem_uu_tien, 2)
+        st.session_state["tong_diem_2_mon_uu_tien"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.markdown(
             """
@@ -586,7 +587,7 @@ with col3:
             st.session_state["tong_diem_8_mon"] = tong_diem_mon
         with st.expander("Điểm ưu tiên", expanded=True):
             diem_uu_tien = st.number_input(":green[ĐIỂM ƯU TIÊN KHÁC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien", 0.0), key="diem_uu_tien")
-            diem_uu_tien = round(diem_uu_tien, 1)
+            diem_uu_tien = round(diem_uu_tien, 2)
             st.session_state["diem_uu_tien"] = diem_uu_tien
             diem_uu_tien_khu_vuc = st.number_input(":green[ƯU TIÊN THEO KHU VỰC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_khu_vuc", 0.0), key="diem_uu_tien_khu_vuc")
             diem_uu_tien_khu_vuc = round(diem_uu_tien_khu_vuc, 2)
@@ -594,11 +595,10 @@ with col3:
             diem_uu_tien_doi_tuong = st.number_input(":green[ƯU TIÊN THEO ĐỐI TƯỢNG]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_doi_tuong", 0.0), key="diem_uu_tien_doi_tuong")
             diem_uu_tien_doi_tuong = round(diem_uu_tien_doi_tuong, 2)
             st.session_state["diem_uu_tien_doi_tuong"] = diem_uu_tien_doi_tuong
-            tong_diem_uu_tien = round(diem_uu_tien + diem_uu_tien_khu_vuc + diem_uu_tien_doi_tuong, 1)
+            tong_diem_uu_tien = round(diem_uu_tien + diem_uu_tien_khu_vuc + diem_uu_tien_doi_tuong, 2)
             st.session_state["tong_diem_uu_tien"] = tong_diem_uu_tien
-        tongdiem = tong_diem_mon + tong_diem_uu_tien
-        tong_diem = round(tongdiem, 1)
-        st.session_state["tong_diem_8_mon"] = tong_diem
+        tong_diem = round(tong_diem_mon + tong_diem_uu_tien, 2)
+        st.session_state["tong_diem_8_mon_uu_tien"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.markdown(
             """
