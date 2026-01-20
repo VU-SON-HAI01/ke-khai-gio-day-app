@@ -113,14 +113,17 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-    if st.button(" ŏ ", type="tertiary"):
-        current_name = st.session_state.get("ho_ten", "")
-        st.session_state["ho_ten"] = current_name + "ŏ"
-    if st.button(" Ŏ ", type="tertiary"):
-        current_name = st.session_state.get("ho_ten", "")
-        st.session_state["ho_ten"] = current_name + "Ŏ"
-    ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
-    st.session_state["ho_ten"] = ho_ten
+    col_ht1, col_ht2 = st.columns([3,1])
+    with col_ht1:
+        ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""), key="ho_ten_input")
+        st.session_state["ho_ten"] = ho_ten
+    with col_ht2:
+        if st.button(" ŏ ", key="btn_o_breve", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "ŏ"
+        if st.button(" Ŏ ", key="btn_O_breve", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "Ŏ"
     import datetime
     ngay_sinh = st.date_input(
         ":green[NGÀY SINH]",
