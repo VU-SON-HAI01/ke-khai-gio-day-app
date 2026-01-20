@@ -521,8 +521,21 @@ with col3:
             diem_van = st.number_input(":green[ĐIỂM VĂN]", min_value=0.0, max_value=10.0, step=1.0, value=st.session_state.get("diem_van", 0.0))
             diem_van = round(diem_van, 1)
             st.session_state["diem_van"] = diem_van
-        tong_diem = round(diem_toan + diem_van, 1)
-        st.session_state["tong_diem_2_mon"] = tong_diem
+            tong_diem_2_mon = round(diem_toan + diem_van, 1)
+            st.session_state["tong_diem_2_mon"] = tong_diem_2_mon
+        with st.expander("Điểm ưu tiên", expanded=True):
+            diem_uu_tien = st.number_input(":green[ĐIỂM ƯU TIÊN KHÁC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien", 0.0), key="diem_uu_tien")
+            diem_uu_tien = round(diem_uu_tien, 1)
+            st.session_state["diem_uu_tien"] = diem_uu_tien
+            diem_uu_tien_khu_vuc = st.number_input(":green[ƯU TIÊN THEO KHU VỰC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_khu_vuc", 0.0), key="diem_uu_tien_khu_vuc")
+            diem_uu_tien_khu_vuc = round(diem_uu_tien_khu_vuc, 2)
+            st.session_state["diem_uu_tien_khu_vuc"] = diem_uu_tien_khu_vuc
+            diem_uu_tien_doi_tuong = st.number_input(":green[ƯU TIÊN THEO ĐỐI TƯỢNG]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_doi_tuong", 0.0), key="diem_uu_tien_doi_tuong")
+            diem_uu_tien_doi_tuong = round(diem_uu_tien_doi_tuong, 2)
+            st.session_state["diem_uu_tien_doi_tuong"] = diem_uu_tien_doi_tuong
+            tong_diem_uu_tien = round(diem_uu_tien + diem_uu_tien_khu_vuc + diem_uu_tien_doi_tuong, 1)
+            st.session_state["tong_diem_uu_tien"] = tong_diem_uu_tien
+        tong_diem = round(tong_diem_2_mon + tong_diem_uu_tien, 1)
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.markdown(
             """
@@ -564,12 +577,27 @@ with col3:
                 ("KH tự nhiên", "diem_kh_tn"),
                 ("Lịch sử và Địa lý", "diem_ls_dl")
             ]
-            tong_diem = 0.0
+            tong_diem_mon = 0.0
             for ten_mon, key_mon in mon_list:
                 diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=1.0 ,value=st.session_state.get(key_mon, 0.0), key=key_mon)
                 diem = round(diem, 1)
-                tong_diem += diem
-            tong_diem = round(tong_diem, 1)
+                tong_diem_mon += diem
+            tong_diem_mon = round(tong_diem_mon, 1)
+            st.session_state["tong_diem_8_mon"] = tong_diem_mon
+        with st.expander("Điểm ưu tiên", expanded=True):
+            diem_uu_tien = st.number_input(":green[ĐIỂM ƯU TIÊN KHÁC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien", 0.0), key="diem_uu_tien")
+            diem_uu_tien = round(diem_uu_tien, 1)
+            st.session_state["diem_uu_tien"] = diem_uu_tien
+            diem_uu_tien_khu_vuc = st.number_input(":green[ƯU TIÊN THEO KHU VỰC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_khu_vuc", 0.0), key="diem_uu_tien_khu_vuc")
+            diem_uu_tien_khu_vuc = round(diem_uu_tien_khu_vuc, 2)
+            st.session_state["diem_uu_tien_khu_vuc"] = diem_uu_tien_khu_vuc
+            diem_uu_tien_doi_tuong = st.number_input(":green[ƯU TIÊN THEO ĐỐI TƯỢNG]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_doi_tuong", 0.0), key="diem_uu_tien_doi_tuong")
+            diem_uu_tien_doi_tuong = round(diem_uu_tien_doi_tuong, 2)
+            st.session_state["diem_uu_tien_doi_tuong"] = diem_uu_tien_doi_tuong
+            tong_diem_uu_tien = round(diem_uu_tien + diem_uu_tien_khu_vuc + diem_uu_tien_doi_tuong, 1)
+            st.session_state["tong_diem_uu_tien"] = tong_diem_uu_tien
+        tongdiem = tong_diem_mon + tong_diem_uu_tien
+        tong_diem = round(tongdiem, 1)
         st.session_state["tong_diem_8_mon"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.markdown(
