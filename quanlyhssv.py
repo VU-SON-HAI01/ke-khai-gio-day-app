@@ -114,8 +114,9 @@ with col1:
         unsafe_allow_html=True
     )
     # Bảng 2 hàng 9 cột với các nút ký tự đặc biệt
-    row1 = st.columns(10)
-    row2 = st.columns(9)
+    # Bảng 2 hàng 11 cột với các nút ký tự đặc biệt
+    row1 = st.columns(12)
+    row2 = st.columns(12)
     with row1[0]:
         if st.button(" ŏ ", key="btn_o_breve_table", type="tertiary"):
             current_name = st.session_state.get("ho_ten", "")
@@ -156,10 +157,61 @@ with col1:
         if st.button(" ĕ ", key="btn_e_breve_table", type="tertiary"):
             current_name = st.session_state.get("ho_ten", "")
             st.session_state["ho_ten"] = current_name + "ĕ"
-    
-    for i, col in enumerate(row2):
-        with col:
-            st.write(f"H2C{i+1}")
+    with row1[10]:
+        if st.button(" Ĭ ", key="btn_I_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "Ĭ"
+    with row1[11]:
+        if st.button(" ĭ ", key="btn_i_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "ĭ"
+    # Row 2: các nút ký tự đặc biệt tổ hợp
+    with row2[0]:
+        if st.button(" â̆ ", key="btn_a_circ_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "â̆"
+    with row2[1]:
+        if st.button(" Â̆ ", key="btn_A_circ_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "Â̆"
+    with row2[2]:
+        if st.button(" ê̆ ", key="btn_e_circ_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "ê̆"
+    with row2[3]:
+        if st.button(" Ê̆ ", key="btn_E_circ_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "Ê̆"
+    with row2[4]:
+        if st.button(" ô̆ ", key="btn_o_circ_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "ô̆"
+    with row2[5]:
+        if st.button(" Ô̆ ", key="btn_O_circ_breve_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "Ô̆"
+    with row2[6]:
+        if st.button(" Ñ ", key="btn_N_tilde_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "Ñ"
+    with row2[7]:
+        if st.button(" ñ ", key="btn_n_tilde_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "ñ"
+    with row2[8]:
+        if st.button(" Č ", key="btn_C_caron_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "Č"
+    with row2[9]:
+        if st.button(" č ", key="btn_c_caron_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "č"
+    with row2[10]:
+        if st.button(" ƀ ", key="btn_c_caron_table", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "ƀ"
+    with row2[10]:
+        st.write("")  # Ô trống để canh đều 
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
     import datetime
