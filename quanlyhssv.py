@@ -97,8 +97,9 @@ with col3:
     unsafe_allow_html=True
     )
     import datetime
-    default_ngay_nop_hs = st.session_state.get("ngay_nop_hs", datetime.date.today())
-    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:", format="DD/MM/YYYY", value=default_ngay_nop_hs)
+    default_ngay_nop_hs = st.session_state.get("ngay_nop" \
+    "_hs", datetime.date.today())
+    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:họ", format="DD/MM/YYYY", value=default_ngay_nop_hs)
     st.session_state["ngay_nop_hs"] = ngay_nop_hs
 st.divider()
 col1, col2, col3 = st.columns(3)
@@ -112,8 +113,14 @@ with col1:
         """,
         unsafe_allow_html=True
     )
+    st.button("Â̆")
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
+    # Button to insert 'Ă̆' into HỌ VÀ TÊN
+    if st.button("ký tự :Ă̆"):
+        # Insert at the end (or you can implement cursor logic if needed)
+        current_name = st.session_state.get("ho_ten", "")
+        st.session_state["ho_ten"] = current_name + "Ă̆"
     import datetime
     ngay_sinh = st.date_input(
         ":green[NGÀY SINH]",
