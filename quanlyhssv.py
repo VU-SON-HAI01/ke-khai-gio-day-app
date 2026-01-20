@@ -97,16 +97,6 @@ with col3:
     unsafe_allow_html=True
     )
     import datetime
-
-    # Bảng 2 hàng 5 cột
-    row1 = st.columns(5)
-    row2 = st.columns(5)
-    for i, col in enumerate(row1):
-        with col:
-            st.write(f"H1C{i+1}")
-    for i, col in enumerate(row2):
-        with col:
-            st.write(f"H2C{i+1}")
     default_ngay_nop_hs = st.session_state.get("ngay_nop" \
     "_hs", datetime.date.today())
     ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:họ", format="DD/MM/YYYY", value=default_ngay_nop_hs)
@@ -123,13 +113,15 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-    
-    if st.button(" ŏ ", type="tertiary"):
-        current_name = st.session_state.get("ho_ten", "")
-        st.session_state["ho_ten"] = current_name + "ŏ"
-    if st.button(" Ŏ ", type="tertiary"):
-        current_name = st.session_state.get("ho_ten", "")
-        st.session_state["ho_ten"] = current_name + "Ŏ"
+    colkt1, colkt2 = st.columns(2)
+    with colkt1:
+        if st.button(" ŏ ", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "ŏ"
+    with colkt2:
+        if st.button(" Ŏ ", type="tertiary"):
+            current_name = st.session_state.get("ho_ten", "")
+            st.session_state["ho_ten"] = current_name + "Ŏ"
     
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
