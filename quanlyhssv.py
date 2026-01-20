@@ -690,7 +690,7 @@ with col3:
                 "Điểm Toán": st.session_state.get("diem_toan", ""),
                 "Điểm Văn": st.session_state.get("diem_van", ""),
                 "Tổng điểm Ưu tiên": st.session_state.get("tong_diem_uu_tien", ""),
-                "Tổng điểm + ưu tiên 2 môn": st.session_state.get("tong_diem_2_mon_uu_tien", ""),
+                "Tổng điểm 2 môn + ưu tiên": st.session_state.get("tong_diem_2_mon_uu_tien", ""),
             })
         else:
             du_lieu.update({
@@ -703,18 +703,19 @@ with col3:
                 "KH tự nhiên": st.session_state.get("diem_kh_tn", ""),
                 "Lịch sử và Địa lý": st.session_state.get("diem_ls_dl", ""),
                 "Tổng điểm Ưu tiên": st.session_state.get("tong_diem_uu_tien", ""),
-                "Tổng điểm + ưu tiên 8 môn": st.session_state.get("tong_diem_8_mon_uu_tien", ""),
+                "Tổng điểm 8 môn + ưu tiên": st.session_state.get("tong_diem_8_mon_uu_tien", ""),
             })
         du_lieu.update({
             "Nguyện vọng 1": st.session_state.get("nv1", ""),
             "Nguyện vọng 2": st.session_state.get("nv2", ""),
             "Nguyện vọng 3": st.session_state.get("nv3", ""),
-            "Đăng ký học văn hóa": st.session_state.get("trinhdo_totnghiep_vh", ""),
             "Trình độ đăng ký": st.session_state.get("trinh_do", ""),
             "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
             # Định dạng ngày nộp hồ sơ sang dd/mm/yyyy nếu có
             "Ngày nộp hồ sơ": format_ngay_nop_hs(st.session_state.get("ngay_nop_hs", "")),
         })
+        if st.session_state.get("trinh_do", "") not in ["Cao đẳng", "Liên thông CĐ"]:
+            du_lieu["Đăng ký học văn hóa"] = st.session_state.get("trinhdo_totnghiep_vh", "")
         # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
         if st.button("Lưu tất cả thông tin"):
             def split_ho_ten(ho_ten_full):
