@@ -523,7 +523,7 @@ with col3:
             st.session_state["diem_van"] = diem_van
             tong_diem_2_mon = round(diem_toan + diem_van, 1)
             st.session_state["tong_diem_2_mon"] = tong_diem_2_mon
-        with st.expander("Điểm ưu tiên", expanded=True):
+        with st.expander("Điểm ưu tiên", expanded=False):
             diem_uu_tien_doi_tuong = st.number_input(":green[ƯU TIÊN THEO ĐỐI TƯỢNG]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_doi_tuong", 0.0))
             diem_uu_tien_doi_tuong = round(diem_uu_tien_doi_tuong, 2)
             st.session_state["diem_uu_tien_doi_tuong"] = diem_uu_tien_doi_tuong
@@ -567,7 +567,7 @@ with col3:
         nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
         st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
         # Nhập điểm các 8 môn
-        with st.expander("Nhập điểm 8 môn", expanded=True):
+        with st.expander("Nhập điểm 8 môn", expanded=False):
             mon_list = [
                 ("Toán", "diem_toan"),
                 ("Văn", "diem_van"),
@@ -585,7 +585,7 @@ with col3:
                 tong_diem_mon += diem
             tong_diem_mon = round(tong_diem_mon, 1)
             st.session_state["tong_diem_8_mon"] = tong_diem_mon
-        with st.expander("Điểm ưu tiên", expanded=True):
+        with st.expander("Điểm ưu tiên", expanded=False):
             diem_uu_tien_doi_tuong = st.number_input(":green[ƯU TIÊN THEO ĐỐI TƯỢNG]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_doi_tuong", 0.0))
             diem_uu_tien_doi_tuong = round(diem_uu_tien_doi_tuong, 2)
             st.session_state["diem_uu_tien_doi_tuong"] = diem_uu_tien_doi_tuong
