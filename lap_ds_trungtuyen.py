@@ -95,21 +95,19 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         nv1_list = df[df.columns[23]].dropna().unique().tolist()
         nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
         # --- Bộ lọc ngày nộp hồ sơ ---
-
-        if ngay_nop_col:
-            try:
-                # Chuyển đổi cột ngày sang datetime, bỏ giá trị lỗi
-                # Lấy giá trị mặc định cho widget date_input từ session_state nếu có
-                default_range = st.session_state.get("custom_range", (min_date.date() if pd.notnull(min_date) else None, max_date.date() if pd.notnull(max_date) else None))
-                ngay_min, ngay_max = st.date_input(
-                    "Lọc khoảng ngày nộp hồ sơ:",
-                    default_range,
-                    min_value=min_date.date() if pd.notnull(min_date) else None,
-                    max_value=max_date.date() if pd.notnull(max_date) else None,
-                    key="custom_range",
-                    format="DD/MM/YYYY"
-                )
-            except Exception:
+        try:
+            # Chuyển đổi cột ngày sang datetime, bỏ giá trị lỗi
+            # Lấy giá trị mặc định cho widget date_input từ session_state nếu có
+            default_range = st.session_state.get("custom_range", (min_date.date() if pd.notnull(min_date) else None, max_date.date() if pd.notnull(max_date) else None))
+            ngay_min, ngay_max = st.date_input(
+                "Lọc khoảng ngày nộp hồ sơ:",
+                default_range,
+                min_value=min_date.date() if pd.notnull(min_date) else None,
+                max_value=max_date.date() if pd.notnull(max_date) else None,
+                key="custom_range",
+                format="DD/MM/YYYY"
+            )
+        except Exception:
                 ngay_min, ngay_max = None, None
 # Áp dụng bộ lọc
 if ma_hsts:
