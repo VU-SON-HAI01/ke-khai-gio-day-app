@@ -343,7 +343,41 @@ with col1:
     if so_dien_thoai:
         if not (so_dien_thoai.isdigit() and len(so_dien_thoai) in [10, 11] and so_dien_thoai[0] == "0"):
             st.warning("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.")
-    st.divider()
+    # Lấy danh sách dân tộc và tôn giáo từ file Excel
+    dan_toc_options = ["Kinh (Việt)"]
+    ton_giao_options = ["Không"]
+    dan_toc_error = None
+    try:
+        df_dantoc = pd.read_excel(os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx"), sheet_name="DAN_TOC")
+        col_dantoc = None
+        for col in df_dantoc.columns:
+            if "tên dân tộc" in str(col).strip().lower():
+                col_dantoc = col
+                break
+        if col_dantoc:
+            dan_toc_options = df_dantoc[col_dantoc].dropna().unique().tolist()
+        else:
+            dan_toc_error = "Không tìm thấy cột 'Tên dân tộc' trong sheet DAN_TOC."
+    except Exception as e:
+        dan_toc_error = f"Không load được danh sách dân tộc: {e}"
+    try:
+        df_tongiao = pd.read_excel(os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx"), sheet_name="TON_GIAO")
+        col_tongiao = None
+        for col in df_tongiao.columns:
+            if "tên tôn giáo" in str(col).strip().lower():
+                col_tongiao = col
+                break
+        if col_tongiao:
+            ton_giao_options = df_tongiao[col_tongiao].dropna().unique().tolist()
+    except Exception:
+        pass
+    if dan_toc_error:
+        st.error(dan_toc_error)
+    dan_toc = st.selectbox(":green[DÂN TỘC]", dan_toc_options, index=dan_toc_options.index(st.session_state.get("dan_toc", dan_toc_options[0])) if st.session_state.get("dan_toc", dan_toc_options[0]) in dan_toc_options else 0)
+    st.session_state["dan_toc"] = dan_toc
+    ton_giao = st.selectbox(":green[TÔN GIÁO]", ton_giao_options, index=ton_giao_options.index(st.session_state.get("ton_giao", ton_giao_options[0])) if st.session_state.get("ton_giao", ton_giao_options[0]) in ton_giao_options else 0)
+    st.session_state["ton_giao"] = ton_giao
+        st.divider()
     noisinh_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=False, key="noisinh_diachi_cu")
     st.markdown(":green[NƠI SINH]")
     import json
@@ -393,40 +427,6 @@ with col1:
             key="que_quan_moi_select_newonly"
         )
         st.session_state["que_quan_moi"] = que_quan_moi
-    # Lấy danh sách dân tộc và tôn giáo từ file Excel
-    dan_toc_options = ["Kinh (Việt)"]
-    ton_giao_options = ["Không"]
-    dan_toc_error = None
-    try:
-        df_dantoc = pd.read_excel(os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx"), sheet_name="DAN_TOC")
-        col_dantoc = None
-        for col in df_dantoc.columns:
-            if "tên dân tộc" in str(col).strip().lower():
-                col_dantoc = col
-                break
-        if col_dantoc:
-            dan_toc_options = df_dantoc[col_dantoc].dropna().unique().tolist()
-        else:
-            dan_toc_error = "Không tìm thấy cột 'Tên dân tộc' trong sheet DAN_TOC."
-    except Exception as e:
-        dan_toc_error = f"Không load được danh sách dân tộc: {e}"
-    try:
-        df_tongiao = pd.read_excel(os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx"), sheet_name="TON_GIAO")
-        col_tongiao = None
-        for col in df_tongiao.columns:
-            if "tên tôn giáo" in str(col).strip().lower():
-                col_tongiao = col
-                break
-        if col_tongiao:
-            ton_giao_options = df_tongiao[col_tongiao].dropna().unique().tolist()
-    except Exception:
-        pass
-    if dan_toc_error:
-        st.error(dan_toc_error)
-    dan_toc = st.selectbox(":green[DÂN TỘC]", dan_toc_options, index=dan_toc_options.index(st.session_state.get("dan_toc", dan_toc_options[0])) if st.session_state.get("dan_toc", dan_toc_options[0]) in dan_toc_options else 0)
-    st.session_state["dan_toc"] = dan_toc
-    ton_giao = st.selectbox(":green[TÔN GIÁO]", ton_giao_options, index=ton_giao_options.index(st.session_state.get("ton_giao", ton_giao_options[0])) if st.session_state.get("ton_giao", ton_giao_options[0]) in ton_giao_options else 0)
-    st.session_state["ton_giao"] = ton_giao
 
 with col2:
     st.markdown(
