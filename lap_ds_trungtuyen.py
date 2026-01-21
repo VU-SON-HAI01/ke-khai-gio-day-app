@@ -74,6 +74,7 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         ten = st.text_input("Tên", key="ten")
         # Bộ lọc CCCD
         cccd_list = df[df.columns[6]].dropna().unique().tolist()
+        st.write(cccd_list)
         cccd = st.text_input("CCCD", key="cccd")
     with col2:
         # Bộ lọc Năm tuyển sinh (từ Mã HSTS)
