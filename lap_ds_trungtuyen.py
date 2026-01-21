@@ -73,9 +73,8 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         ho_dem = st.text_input("Họ đệm", key="ho_dem")
         ten = st.text_input("Tên", key="ten")
         # Bộ lọc CCCD
-        cccd_list = df[df.columns[6]].dropna().unique().tolist()
-        st.write(cccd_list)
-        cccd = st.text_input("CCCD", key="cccd")
+        cccd_list = [x for x in df[df.columns[6]].dropna().unique().tolist() if str(x).strip() != ""]
+        cccd = st.selectbox("CCCD", [""] + cccd_list, key="cccd")
     with col2:
         # Bộ lọc Năm tuyển sinh (từ Mã HSTS)
         df['NĂM TUYỂN SINH'] = df[df.columns[0]].apply(lambda x: str(x)[:2] if pd.notnull(x) and len(str(x)) >= 2 else None)
