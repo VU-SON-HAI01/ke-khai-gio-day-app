@@ -82,22 +82,37 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         dan_toc = st.selectbox("Dân tộc", [""] + dan_toc_list, key="dan_toc")
         ton_giao_list = df[df.columns[13]].dropna().unique().tolist()
         ton_giao = st.selectbox("Tôn giáo", [""] + ton_giao_list, key="ton_giao")
+        gioi_tinh = st.selectbox("Giới tính", ["", "Nam", "Nữ"], key="gioi_tinh")
     with col3:
         trinh_do_list = df[df.columns[29]].unique().tolist()
         trinh_do = st.selectbox("Trình độ đăng ký", [""] + trinh_do_list, key="trinh_do")
         co_so_list = df[df.columns[27]].dropna().unique().tolist()
         co_so = st.selectbox("Cơ sở nhận hồ sơ", [""] + co_so_list, key="co_so")
-        gioi_tinh = st.selectbox("Giới tính", ["", "Nam", "Nữ"], key="gioi_tinh")
+        
     with col4:
         # Bộ lọc CCCD
         cccd_list = df[df.columns[6]].dropna().unique().tolist()
         cccd = st.text_input("CCCD", key="cccd")
         nv1_list = df[df.columns[23]].dropna().unique().tolist()
         nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
+
+        # Bộ lọc Người nhập HS
+        # Tìm cột phù hợp cho "Người nhập HS" (ưu tiên tên cột chứa "người nhập" hoặc "nhap hs", không phân biệt hoa thường)
+        nguoi_nhap_col = None
+        for col in df.columns:
+            if "người nhập hồ sơ" in col.lower() or "nguoi nhap" in col.lower() or "nhap hs" in col.lower():
+                nguoi_nhap_col = col
+                break
+        if nguoi_nhap_col:
+            nguoi_nhap_list = df[nguoi_nhap_col].dropna().unique().tolist()
+            nguoi_nhap = st.selectbox("Người nhập HS", [""] + nguoi_nhap_list, key="nguoi_nhap_hs")
+        else:
+            nguoi_nhap = ""
+
         # --- Bộ lọc ngày nộp hồ sơ ---
         try:
             # Chuyển đổi cột ngày sang datetime, bỏ giá trị lỗi
-            # Lấy giá trị mặc định cho widget date_input từ session_state nếu có
+            #S Lấy giá trị mặc định cho widget date_input từ session_state nếu có
             default_range = st.session_state.get("custom_range", (min_date.date() if pd.notnull(min_date) else None, max_date.date() if pd.notnull(max_date) else None))
             ngay_min, ngay_max = st.date_input(
                 "Lọc khoảng ngày nộp hồ sơ:",
@@ -108,7 +123,8 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
                 format="DD/MM/YYYY"
             )
         except Exception:
-                ngay_min, ngay_max = None, None
+            ngay_min, ngay_max = None, None
+
 # Áp dụng bộ lọc
 if ma_hsts:
     filtered_df = filtered_df[filtered_df[df.columns[0]].str.contains(ma_hsts, case=False, na=False)]
@@ -127,6 +143,9 @@ if trinh_do:
     filtered_df = filtered_df[filtered_df[df.columns[29]].str.contains(trinh_do, case=False, na=False)]
 if co_so:
     filtered_df = filtered_df[filtered_df[df.columns[27]].str.contains(co_so, case=False, na=False)]
+# Lọc theo Người nhập HS
+if 'nguoi_nhap' in locals() and nguoi_nhap and nguoi_nhap_col:
+    filtered_df = filtered_df[filtered_df[nguoi_nhap_col].str.contains(nguoi_nhap, case=False, na=False)]
 
 # Lọc theo Năm tuyển sinh
 if 'nam_tuyensinh' in locals() and nam_tuyensinh:
