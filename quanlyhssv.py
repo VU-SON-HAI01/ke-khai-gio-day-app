@@ -142,7 +142,7 @@ with col1:
     )
     # Các ký tự đặc biệt của Tên Tây nguyên
     with st.popover("Ký tự đặc biệt",icon="🔣"):
-        render_special_char_buttons(st.session_state["ho_ten"] if "ho_ten" in st.session_state else "")
+        st.session_state.get("ho_ten", "") = render_special_char_buttons(st.session_state["ho_ten"] if "ho_ten" in st.session_state else "")
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
     import datetime
