@@ -72,6 +72,9 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         ma_hsts = st.selectbox("Mã HSTS", [""] + ma_hsts_list, key="ma_hsts")
         ho_dem = st.text_input("Họ đệm", key="ho_dem")
         ten = st.text_input("Tên", key="ten")
+        # Bộ lọc CCCD
+        cccd_list = df[df.columns[6]].dropna().unique().tolist()
+        cccd = st.text_input("CCCD", key="cccd")
     with col2:
         # Bộ lọc Năm tuyển sinh (từ Mã HSTS)
         df['NĂM TUYỂN SINH'] = df[df.columns[0]].apply(lambda x: str(x)[:2] if pd.notnull(x) and len(str(x)) >= 2 else None)
@@ -116,9 +119,6 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         except Exception:
             ngay_min, ngay_max = None, None
     with col4:
-        # Bộ lọc CCCD
-        cccd_list = df[df.columns[6]].dropna().unique().tolist()
-        cccd = st.text_input("CCCD", key="cccd")
         nv1_list = df[df.columns[23]].dropna().unique().tolist()
         nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
 
