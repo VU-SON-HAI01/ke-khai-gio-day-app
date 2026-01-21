@@ -201,6 +201,104 @@ def render_special_char_buttons_ho_ten():
                 st.session_state["ho_ten"] = current_name + "ƀ"
         with row2[11]:
             st.write("")  # Ô trống để canh đều 
+def render_special_char_buttons_bo():
+        row1 = st.columns(12)
+        row2 = st.columns(12)
+        with row1[0]:
+            if st.button(" ŏ ", key="btn_o_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "ŏ"
+        with row1[1]:
+            if st.button(" Ŏ ", key="btn_O_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Ŏ"
+        with row1[2]:
+            if st.button(" ŭ ", key="btn_u_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "ŭ"
+        with row1[3]:
+            if st.button(" Ŭ ", key="btn_U_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Ŭ"
+        with row1[4]:
+            if st.button(" Ơ̆ ", key="btn_OE_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Ơ̆"
+        with row1[5]:
+            if st.button(" ơ̆ ", key="btn_oe_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "ơ̆"
+        with row1[6]:
+            if st.button(" Ư̆ ", key="btn_U_breve_hook_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Ư̆"
+        with row1[7]:        
+            if st.button(" ư̆ ", key="btn_u_breve_hook_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "ư̆"
+        with row1[8]:
+            if st.button(" Ĕ ", key="btn_E_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Ĕ"
+        with row1[9]:
+            if st.button(" ĕ ", key="btn_e_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "ĕ"
+        with row1[10]:
+            if st.button(" Ĭ ", key="btn_I_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Ĭ"
+        with row1[11]:
+            if st.button(" ĭ ", key="btn_i_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "ĭ"
+        # Row 2: các nút ký tự đặc biệt tổ hợp
+        with row2[0]:
+            if st.button(" â̆ ", key="btn_a_circ_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "â̆"
+        with row2[1]:
+            if st.button(" Â̆ ", key="btn_A_circ_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Â̆"
+        with row2[2]:
+            if st.button(" ê̆ ", key="btn_e_circ_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "ê̆"
+        with row2[3]:
+            if st.button(" Ê̆ ", key="btn_E_circ_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Ê̆"
+        with row2[4]:
+            if st.button(" ô̆ ", key="btn_o_circ_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "ô̆"
+        with row2[5]:
+            if st.button(" Ô̆ ", key="btn_O_circ_breve_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Ô̆"
+        with row2[6]:
+            if st.button(" Ñ ", key="btn_N_tilde_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Ñ"
+        with row2[7]:
+            if st.button(" ñ ", key="btn_n_tilde_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "ñ"
+        with row2[8]:
+            if st.button(" Č ", key="btn_C_caron_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "Č"
+        with row2[9]:
+            if st.button(" č ", key="btn_cs_caron_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "č"
+        with row2[10]:
+            if st.button(" ƀ ", key="btn_as_caron_table", type="tertiary"):
+                current_name = st.session_state.get("ho_ten", "")
+                st.session_state["ho_ten"] = current_name + "ƀ"
+        with row2[11]:
+            st.write("")  # Ô trống để canh đều 
 col1, col2, col3 = st.columns(3)
 df= pd.DataFrame()
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
@@ -338,8 +436,10 @@ with col2:
         """,
         unsafe_allow_html=True
     )
-    cha = st.text_input(":green[HỌ TÊN BỐ]", value=st.session_state.get("cha", ""))
-    st.session_state["cha"] = cha
+    with st.popover("Ký tự đặc biệt",icon="🔣"):
+        render_special_char_buttons_bo()
+    bo = st.text_input(":green[HỌ TÊN BỐ]", value=st.session_state.get("bo", ""))
+    st.session_state["bo"] = bo
     me = st.text_input(":green[HỌ TÊN MẸ]", value=st.session_state.get("me", ""))
     st.session_state["me"] = me
     
@@ -774,7 +874,7 @@ with col3:
             "Quê quán (mới)": st.session_state.get("que_quan_moi", ""),
             "Dân tộc": st.session_state.get("dan_toc", ""),
             "Tôn giáo": st.session_state.get("ton_giao", ""),
-            "Họ tên cha": st.session_state.get("cha", ""),
+            "Họ tên bố": st.session_state.get("bo", ""),
             "Họ tên mẹ": st.session_state.get("me", ""),
             "Tỉnh/TP cũ": st.session_state.get("tinh_tp_cu", ""),
             "Quận/Huyện cũ": st.session_state.get("quan_huyen_cu", ""),
@@ -866,7 +966,7 @@ with col3:
                 st.session_state.get("que_quan_moi", ""),  # 12: QUÊ QUÁN (Mới)
                 st.session_state.get("dan_toc", ""),  # 13: Dân tộc
                 st.session_state.get("ton_giao", ""),  # 14: Tôn giáo
-                st.session_state.get("cha", ""),  # 15: Họ tên cha
+                st.session_state.get("bo", ""),  # 15: Họ tên bố
                 st.session_state.get("me", ""),  # 16: Họ tên mẹ
                 st.session_state.get("diachi_chitiet_cu", ""),  # 17: Địa chỉ chi tiết cũ
                 st.session_state.get("tinh_tp_cu", ""),  # 18: Tỉnh/TP cũ
