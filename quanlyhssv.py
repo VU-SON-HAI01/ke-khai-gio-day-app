@@ -56,65 +56,7 @@ fields = [
     ("Cancel", "button")
 ]
 
-# Hiển thị 3 form trên 3 cột song song
-col1, col2,col3 = st.columns(3)
-with col1:
-    st.markdown(
-        """
-        <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-        <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
-        """,
-        unsafe_allow_html=True
-    )
-    trinh_do = st.radio(
-        "Chọn trình độ đăng ký học:",
-        ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
-        horizontal=True,
-        index=["Cao đẳng", "Trung cấp", "Liên thông CĐ"].index(st.session_state.get("trinh_do", "Cao đẳng")) if st.session_state.get("trinh_do") else 0
-    )
-    st.session_state["trinh_do"] = trinh_do
-with col2:
-    st.markdown(
-    """
-    <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-    <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>CƠ SỞ NHẬN HỒ SƠ</span><br>
-    """,
-    unsafe_allow_html=True
-    )
-    co_so = st.radio(
-        "Chọn cơ sở nhận hồ sơ:",
-        ["Cơ sở chính (594 Lê Duẩn)", "Cơ sở 2 (30 Y Ngông)"],
-        horizontal=True,
-        index=["Cơ sở chính (594 Lê Duẩn)", "Cơ sở 2 (30 Y Ngông)"].index(st.session_state.get("co_so", "Cơ sở chính (594 Lê Duẩn)")) if st.session_state.get("co_so") else 0
-    )
-    st.session_state["co_so"] = co_so
-with col3:
-    st.markdown(
-    """
-    <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-    <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>THỜI GIAN NHẬN HỒ SƠ</span><br>
-    """,
-    unsafe_allow_html=True
-    )
-    import datetime
-    default_ngay_nop_hs = st.session_state.get("ngay_nop" \
-    "_hs", datetime.date.today())
-    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:họ", format="DD/MM/YYYY", value=default_ngay_nop_hs)
-    st.session_state["ngay_nop_hs"] = ngay_nop_hs
-st.divider()
-col1, col2, col3 = st.columns(3)
-df= pd.DataFrame()
-# Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
-with col1:
-    st.markdown(
-        """
-        <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-        <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>THÔNG TIN CHUNG</span><br>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    def render_special_char_buttons():
+def render_special_char_buttons():
         row1 = st.columns(12)
         row2 = st.columns(12)
         with row1[0]:
@@ -212,7 +154,65 @@ with col1:
                 st.session_state["ho_ten"] = current_name + "ƀ"
         with row2[11]:
             st.write("")  # Ô trống để canh đều 
-    # Gọi hàm ở vị trí mong muốn
+
+# Hiển thị 3 form trên 3 cột song song
+col1, col2,col3 = st.columns(3)
+with col1:
+    st.markdown(
+        """
+        <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
+        <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
+        """,
+        unsafe_allow_html=True
+    )
+    trinh_do = st.radio(
+        "Chọn trình độ đăng ký học:",
+        ["Cao đẳng", "Trung cấp", "Liên thông CĐ"],
+        horizontal=True,
+        index=["Cao đẳng", "Trung cấp", "Liên thông CĐ"].index(st.session_state.get("trinh_do", "Cao đẳng")) if st.session_state.get("trinh_do") else 0
+    )
+    st.session_state["trinh_do"] = trinh_do
+with col2:
+    st.markdown(
+    """
+    <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
+    <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>CƠ SỞ NHẬN HỒ SƠ</span><br>
+    """,
+    unsafe_allow_html=True
+    )
+    co_so = st.radio(
+        "Chọn cơ sở nhận hồ sơ:",
+        ["Cơ sở chính (594 Lê Duẩn)", "Cơ sở 2 (30 Y Ngông)"],
+        horizontal=True,
+        index=["Cơ sở chính (594 Lê Duẩn)", "Cơ sở 2 (30 Y Ngông)"].index(st.session_state.get("co_so", "Cơ sở chính (594 Lê Duẩn)")) if st.session_state.get("co_so") else 0
+    )
+    st.session_state["co_so"] = co_so
+with col3:
+    st.markdown(
+    """
+    <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
+    <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>THỜI GIAN NHẬN HỒ SƠ</span><br>
+    """,
+    unsafe_allow_html=True
+    )
+    import datetime
+    default_ngay_nop_hs = st.session_state.get("ngay_nop" \
+    "_hs", datetime.date.today())
+    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:họ", format="DD/MM/YYYY", value=default_ngay_nop_hs)
+    st.session_state["ngay_nop_hs"] = ngay_nop_hs
+st.divider()
+col1, col2, col3 = st.columns(3)
+df= pd.DataFrame()
+# Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
+with col1:
+    st.markdown(
+        """
+        <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
+        <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>THÔNG TIN CHUNG</span><br>
+        """,
+        unsafe_allow_html=True
+    )
+    # Các ký tự đặc biệt của Tên Tây nguyên
     with st.popover("Ký tự đặc biệt",icon="ℹ🔣"):
         render_special_char_buttons()
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
