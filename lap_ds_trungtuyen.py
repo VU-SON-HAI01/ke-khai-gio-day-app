@@ -96,18 +96,11 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
                 nguoi_nhap_col = col
                 break
         if nguoi_nhap_col:
-            nguoi_nhap_list = df[nguoi_nhap_col].dropna().unique().tolist()
+            nguoi_nhap_list = [x for x in df[nguoi_nhap_col].dropna().unique().tolist() if str(x).strip() != ""]
             nguoi_nhap = st.selectbox("Người nhập HS", [""] + nguoi_nhap_list, key="nguoi_nhap_hs")
         else:
             nguoi_nhap = ""
-    with col4:
-        # Bộ lọc CCCD
-        cccd_list = df[df.columns[6]].dropna().unique().tolist()
-        cccd = st.text_input("CCCD", key="cccd")
-        nv1_list = df[df.columns[23]].dropna().unique().tolist()
-        nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
-
-        # --- Bộ lọc ngày nộp hồ sơ ---
+                # --- Bộ lọc ngày nộp hồ sơ ---
         try:
             # Chuyển đổi cột ngày sang datetime, bỏ giá trị lỗi
             #S Lấy giá trị mặc định cho widget date_input từ session_state nếu có
@@ -122,6 +115,12 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
             )
         except Exception:
             ngay_min, ngay_max = None, None
+    with col4:
+        # Bộ lọc CCCD
+        cccd_list = df[df.columns[6]].dropna().unique().tolist()
+        cccd = st.text_input("CCCD", key="cccd")
+        nv1_list = df[df.columns[23]].dropna().unique().tolist()
+        nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
 
 # Áp dụng bộ lọc
 if ma_hsts:
