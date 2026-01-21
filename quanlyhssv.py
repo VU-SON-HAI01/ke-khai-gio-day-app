@@ -99,7 +99,7 @@ with col3:
     import datetime
     default_ngay_nop_hs = st.session_state.get("ngay_nop" \
     "_hs", datetime.date.today())
-    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:họ", format="DD/MM/YYYY", value=default_ngay_nop_hs)
+    ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:", format="DD/MM/YYYY", value=default_ngay_nop_hs)
     st.session_state["ngay_nop_hs"] = ngay_nop_hs
 st.divider()
 
