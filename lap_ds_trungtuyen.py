@@ -270,10 +270,45 @@ if selected_columns:
                         - Nhấn nút bên dưới để tải về file Excel
                         """)
                 with colb2:
+                    mau_ds_gop_nganh = st.checkbox("Lập danh sách gộp nhiều ngành", key="lap_danh_sach_gop_nganh", value=False)
+                    import openpyxl
+                    import shutil
+                    import tempfile
+                    # Chọn file mẫu phù hợp
+                    if mau_ds_gop_nganh:
+                        template_path = "data_base/DS_TRUNGTUYEN_DOT.xlsx"
+                        out_filename = "DS_TRUNGTUYEN_DOT_out.xlsx"
+                    else:
+                        template_path = "data_base/DS_TRUNGTUYEN_NGANH.xlsx"
+                        out_filename = "DS_TRUNGTUYEN_NGANH_out.xlsx"
+
+                    # Tạo file tạm từ template để ghi dữ liệu
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+                        shutil.copyfile(template_path, tmp.name)
+                        wb = openpyxl.load_workbook(tmp.name)
+                        ws = wb.active
+                        # Lấy danh sách cột từ file upload (csv)
+                        upload_columns = [
+                            "Chọn","MÃ HSTS","HỌ ĐỆM","TÊN","NGÀY SINH","GIỚI TÍNH","NƠI SINH (Mới)","QUÊ QUÁN (Mới)",
+                            "DÂN TỘC","TÔN GIÁO","Địa chỉ chi tiết","Phường/Xã (Mới)","Tỉnh/TP (Mới)",
+                            "Ngữ Văn","Toán","Tổng điểm (2 môn)","Ưu tiên theo đối tượng","Ưu tiên theo khu vực",
+                            "Tổng điểm Ư.T","Hạnh Kiểm","Năm tốt nghiệp","Số điện thoại"
+                        ]
+                        # Lọc và sắp xếp lại df_selected theo đúng thứ tự cột upload (bỏ cột không có trong df_selected)
+                        export_cols = [col for col in upload_columns if col in df_selected.columns]
+                        export_df = df_selected[export_cols].copy()
+                        # Dán dữ liệu vào file template, bắt đầu từ dòng 11
+                        for i, row in enumerate(export_df.values, start=11):
+                            for j, value in enumerate(row, start=1):
+                                ws.cell(row=i, column=j, value=value)
+                        wb.save(tmp.name)
+                        tmp.seek(0)
+                        result_bytes = tmp.read()
+
                     st.download_button(
-                        label="Tải về file Excel",type="primary",
-                        data=output,
-                        file_name="danh_sach_chon.xlsx",
+                        label="Tải về file Excel", type="primary",
+                        data=result_bytes,
+                        file_name=out_filename,
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         use_container_width=True,
                         key="download_danhsachchon_excel"
