@@ -289,7 +289,7 @@ if selected_columns:
                         ws = wb.active
                         # Lấy danh sách cột từ file upload (csv)
                         upload_columns = [
-                            "Chọn","MÃ HSTS","HỌ ĐỆM","TÊN","NGÀY SINH","GIỚI TÍNH","NƠI SINH (Mới)","QUÊ QUÁN (Mới)",
+                            "MÃ HSTS","HỌ ĐỆM","TÊN","NGÀY SINH","GIỚI TÍNH","NƠI SINH (Mới)","QUÊ QUÁN (Mới)",
                             "DÂN TỘC","TÔN GIÁO","Địa chỉ chi tiết","Phường/Xã (Mới)","Tỉnh/TP (Mới)",
                             "Ngữ Văn","Toán","Tổng điểm (2 môn)","Ưu tiên theo đối tượng","Ưu tiên theo khu vực",
                             "Tổng điểm Ư.T","Hạnh Kiểm","Năm tốt nghiệp","Số điện thoại"
@@ -303,6 +303,9 @@ if selected_columns:
                             if col not in export_df.columns:
                                 export_df[col] = ""
                         export_df = export_df[upload_columns]
+                        # Thay cột 'MÃ HSTS' bằng số thứ tự tăng dần bắt đầu từ 1
+                        if "MÃ HSTS" in export_df.columns:
+                            export_df["MÃ HSTS"] = range(1, len(export_df) + 1)
                         # Dán dữ liệu vào file template, bắt đầu từ dòng 11
                         for i, row in enumerate(export_df.values, start=11):
                             for j, value in enumerate(row, start=1):
