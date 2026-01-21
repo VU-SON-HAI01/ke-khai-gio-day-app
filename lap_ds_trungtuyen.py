@@ -294,9 +294,15 @@ if selected_columns:
                             "Ngữ Văn","Toán","Tổng điểm (2 môn)","Ưu tiên theo đối tượng","Ưu tiên theo khu vực",
                             "Tổng điểm Ư.T","Hạnh Kiểm","Năm tốt nghiệp","Số điện thoại"
                         ]
-                        # Lọc và sắp xếp lại df_selected theo đúng thứ tự cột upload (bỏ cột không có trong df_selected)
-                        export_cols = [col for col in upload_columns if col in df_selected.columns]
-                        export_df = df_selected[export_cols].copy()
+                        # Lấy danh sách MÃ HSTS đã chọn
+                        ma_hsts_selected = df_selected["MÃ HSTS"].tolist() if "MÃ HSTS" in df_selected.columns else []
+                        # Lọc dữ liệu gốc theo MÃ HSTS đã chọn
+                        export_df = df[df["MÃ HSTS"].isin(ma_hsts_selected)].copy() if ma_hsts_selected else pd.DataFrame(columns=upload_columns)
+                        # Đảm bảo đúng thứ tự và đủ cột như upload_columns
+                        for col in upload_columns:
+                            if col not in export_df.columns:
+                                export_df[col] = ""
+                        export_df = export_df[upload_columns]
                         # Dán dữ liệu vào file template, bắt đầu từ dòng 11
                         for i, row in enumerate(export_df.values, start=11):
                             for j, value in enumerate(row, start=1):
