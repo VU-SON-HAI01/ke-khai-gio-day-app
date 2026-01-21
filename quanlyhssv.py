@@ -57,57 +57,30 @@ fields = [
 ]
 
 def render_special_char_buttons(current_name):
-    row1 = st.columns(12)
-    row2 = st.columns(12)
-    # Row 1
-    if st.button(" ŏ ", key="btn_o_breve_table", type="tertiary"):
-        current_name += "ŏ"
-    if st.button(" Ŏ ", key="btn_O_breve_table", type="tertiary"):
-        current_name += "Ŏ"
-    if st.button(" ŭ ", key="btn_u_breve_table", type="tertiary"):
-        current_name += "ŭ"
-    if st.button(" Ŭ ", key="btn_U_breve_table", type="tertiary"):
-        current_name += "Ŭ"
-    if st.button(" Ơ̆ ", key="btn_OE_breve_table", type="tertiary"):
-        current_name += "Ơ̆"
-    if st.button(" ơ̆ ", key="btn_oe_breve_table", type="tertiary"):
-        current_name += "ơ̆"
-    if st.button(" Ư̆ ", key="btn_U_breve_hook_table", type="tertiary"):
-        current_name += "Ư̆"
-    if st.button(" ư̆ ", key="btn_u_breve_hook_table", type="tertiary"):
-        current_name += "ư̆"
-    if st.button(" Ĕ ", key="btn_E_breve_table", type="tertiary"):
-        current_name += "Ĕ"
-    if st.button(" ĕ ", key="btn_e_breve_table", type="tertiary"):
-        current_name += "ĕ"
-    if st.button(" Ĭ ", key="btn_I_breve_table", type="tertiary"):
-        current_name += "Ĭ"
-    if st.button(" ĭ ", key="btn_i_breve_table", type="tertiary"):
-        current_name += "ĭ"
-    # Row 2
-    if st.button(" â̆ ", key="btn_a_circ_breve_table", type="tertiary"):
-        current_name += "â̆"
-    if st.button(" Â̆ ", key="btn_A_circ_breve_table", type="tertiary"):
-        current_name += "Â̆"
-    if st.button(" ê̆ ", key="btn_e_circ_breve_table", type="tertiary"):
-        current_name += "ê̆"
-    if st.button(" Ê̆ ", key="btn_E_circ_breve_table", type="tertiary"):
-        current_name += "Ê̆"
-    if st.button(" ô̆ ", key="btn_o_circ_breve_table", type="tertiary"):
-        current_name += "ô̆"
-    if st.button(" Ô̆ ", key="btn_O_circ_breve_table", type="tertiary"):
-        current_name += "Ô̆"
-    if st.button(" Ñ ", key="btn_N_tilde_table", type="tertiary"):
-        current_name += "Ñ"
-    if st.button(" ñ ", key="btn_n_tilde_table", type="tertiary"):
-        current_name += "ñ"
-    if st.button(" Č ", key="btn_C_caron_table", type="tertiary"):
-        current_name += "Č"
-    if st.button(" č ", key="btn_cs_caron_table", type="tertiary"):
-        current_name += "č"
-    if st.button(" ƀ ", key="btn_as_caron_table", type="tertiary"):
-        current_name += "ƀ"
-    row2[11].write("")  # Ô trống để canh đều
+    # Hàng 1
+    chars_row1 = [
+        ("ŏ", "btn_o_breve_table"), ("Ŏ", "btn_O_breve_table"), ("ŭ", "btn_u_breve_table"), ("Ŭ", "btn_U_breve_table"),
+        ("Ơ̆", "btn_OE_breve_table"), ("ơ̆", "btn_oe_breve_table"), ("Ư̆", "btn_U_breve_hook_table"), ("ư̆", "btn_u_breve_hook_table"),
+        ("Ĕ", "btn_E_breve_table"), ("ĕ", "btn_e_breve_table"), ("Ĭ", "btn_I_breve_table"), ("ĭ", "btn_i_breve_table")
+    ]
+    row1 = st.columns(len(chars_row1))
+    for idx, (char, key) in enumerate(chars_row1):
+        with row1[idx]:
+            if st.button(f" {char} ", key=key, type="tertiary"):
+                current_name += char
+
+    # Hàng 2
+    chars_row2 = [
+        ("â̆", "btn_a_circ_breve_table"), ("Â̆", "btn_A_circ_breve_table"), ("ê̆", "btn_e_circ_breve_table"), ("Ê̆", "btn_E_circ_breve_table"),
+        ("ô̆", "btn_o_circ_breve_table"), ("Ô̆", "btn_O_circ_breve_table"), ("Ñ", "btn_N_tilde_table"), ("ñ", "btn_n_tilde_table"),
+        ("Č", "btn_C_caron_table"), ("č", "btn_cs_caron_table"), ("ƀ", "btn_as_caron_table")
+    ]
+    row2 = st.columns(len(chars_row2)+1)  # +1 để có 1 ô trống cuối hàng
+    for idx, (char, key) in enumerate(chars_row2):
+        with row2[idx]:
+            if st.button(f" {char} ", key=key, type="tertiary"):
+                current_name += char
+    row2[-1].write("")  # Ô trống để canh đều
     return current_name
 
 # Hiển thị 3 form trên 3 cột song song
