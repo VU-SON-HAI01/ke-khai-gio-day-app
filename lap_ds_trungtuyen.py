@@ -214,6 +214,11 @@ if selected_columns:
 
     if not df_selected.empty:
         st.markdown("### Danh sách đã chọn")
+        # Thêm các cột Nguyện Vọng 1, 2, 3 nếu chưa có
+        for nv_col in ["Nguyện Vọng 1", "Nguyện Vọng 2", "Nguyện Vọng 3"]:
+            if nv_col not in df_selected.columns:
+                df_selected[nv_col] = ""
+        # Đảm bảo đúng thứ tự: các cột mới thêm sẽ ở cuối
         st.dataframe(df_selected, use_container_width=True)
         st.divider()
         tab1, tab2, tab3 = st.tabs(["Tải danh sách chọn", "Cập nhật QĐ trúng tuyển", "Cập nhật biên chế lớp"])
