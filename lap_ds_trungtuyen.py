@@ -218,6 +218,12 @@ if selected_columns:
         for nv_col in ["Nguyện Vọng 1", "Nguyện Vọng 2", "Nguyện Vọng 3"]:
             if nv_col not in df_selected.columns:
                 df_selected[nv_col] = ""
+        upload_columns = [
+                            "MÃ HSTS","HỌ ĐỆM","TÊN","NGÀY SINH","GIỚI TÍNH","NƠI SINH (Mới)","QUÊ QUÁN (Mới)",
+                            "DÂN TỘC","TÔN GIÁO","Địa chỉ chi tiết","Phường/Xã (Mới)","Tỉnh/TP (Mới)",
+                            "Ngữ Văn","Toán","Tổng điểm (2 môn)","Ưu tiên theo đối tượng","Ưu tiên theo khu vực",
+                            "Tổng điểm Ư.T","Hạnh Kiểm","Năm tốt nghiệp","Số điện thoại"
+                        ]
         # Đảm bảo đúng thứ tự: các cột mới thêm sẽ ở cuối
         st.dataframe(df_selected, use_container_width=True)
         st.divider()
@@ -297,12 +303,21 @@ if selected_columns:
                             "MÃ HSTS","HỌ ĐỆM","TÊN","NGÀY SINH","GIỚI TÍNH","NƠI SINH (Mới)","QUÊ QUÁN (Mới)",
                             "DÂN TỘC","TÔN GIÁO","Địa chỉ chi tiết","Phường/Xã (Mới)","Tỉnh/TP (Mới)",
                             "Ngữ Văn","Toán","Tổng điểm (2 môn)","Ưu tiên theo đối tượng","Ưu tiên theo khu vực",
-                            "Tổng điểm Ư.T","Hạnh Kiểm","Năm tốt nghiệp","Số điện thoại"
+                            "Tổng điểm Ư.T","Hạnh Kiểm","Năm tốt nghiệp","Số điện thoại",
+                            "Nguyện Vọng 1","Nguyện Vọng 2","Nguyện Vọng 3"
                         ]
                         # Lấy danh sách MÃ HSTS đã chọn
                         ma_hsts_selected = df_selected["MÃ HSTS"].tolist() if "MÃ HSTS" in df_selected.columns else []
-                        # Lọc dữ liệu gốc theo MÃ HSTS đã chọn
+                        # Lấy dữ liệu gốc theo MÃ HSTS đã chọn
                         export_df = df[df["MÃ HSTS"].isin(ma_hsts_selected)].copy() if ma_hsts_selected else pd.DataFrame(columns=upload_columns)
+                        # Thêm các cột Nguyện Vọng 1,2,3 từ df_selected nếu có
+                        for nv_col in ["Nguyện Vọng 1", "Nguyện Vọng 2", "Nguyện Vọng 3"]:
+                            if nv_col in df_selected.columns:
+                                # Map theo thứ tự MÃ HSTS đã chọn
+                                nv_map = dict(zip(df_selected["MÃ HSTS"], df_selected[nv_col]))
+                                export_df[nv_col] = export_df["MÃ HSTS"].map(nv_map).fillna("")
+                            else:
+                                export_df[nv_col] = ""
                         # Đảm bảo đúng thứ tự và đủ cột như upload_columns
                         for col in upload_columns:
                             if col not in export_df.columns:
