@@ -62,7 +62,7 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         ]
         for key in filter_keys:
             if key == "custom_range":
-                st.session_state[key] = (min_date.date(), max_date.date()) if min_date is not None and max_date is not None else None
+                st.session_state[key] = ("", "")
             else:
                 st.session_state[key] = ""
 
