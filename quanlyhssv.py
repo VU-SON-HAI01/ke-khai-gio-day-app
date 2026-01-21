@@ -143,9 +143,57 @@ with col1:
     # Các ký tự đặc biệt của Tên Tây nguyên
     with st.popover("Ký tự đặc biệt",icon="🔣"):
         render_special_char_buttons(st.session_state["ho_ten"] if "ho_ten" in st.session_state else "")
-    ho_ten = render_special_char_buttons(st.session_state.get("ho_ten", ""))
-    ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=ho_ten)
+    # Lấy giá trị hiện tại và vị trí con trỏ (nếu có)
+    ho_ten = st.session_state.get("ho_ten", "")
+    cursor_pos = st.session_state.get("ho_ten_cursor_pos", len(ho_ten))
+
+    # Hàm chèn ký tự vào vị trí con trỏ
+    def insert_at_cursor(text, insert, pos):
+        if pos is None:
+            pos = len(text)
+        return text[:pos] + insert + text[pos:]
+
+    # Biến lưu ký tự vừa bấm (nếu có)
+    special_char = None
+    def special_char_callback(char):
+        st.session_state["_special_char"] = char
+
+    # Hiển thị bảng ký tự đặc biệt, truyền callback để lưu ký tự vừa chọn
+    chars_row1 = [
+        ("ŏ", "btn_o_breve_table"), ("Ŏ", "btn_O_breve_table"), ("ŭ", "btn_u_breve_table"), ("Ŭ", "btn_U_breve_table"),
+        ("Ơ̆", "btn_OE_breve_table"), ("ơ̆", "btn_oe_breve_table"), ("Ư̆", "btn_U_breve_hook_table"), ("ư̆", "btn_u_breve_hook_table"),
+        ("Ĕ", "btn_E_breve_table"), ("ĕ", "btn_e_breve_table"), ("Ĭ", "btn_I_breve_table"), ("ĭ", "btn_i_breve_table")
+    ]
+    chars_row2 = [
+        ("â̆", "btn_a_circ_breve_table"), ("Â̆", "btn_A_circ_breve_table"), ("ê̆", "btn_e_circ_breve_table"), ("Ê̆", "btn_E_circ_breve_table"),
+        ("ô̆", "btn_o_circ_breve_table"), ("Ô̆", "btn_O_circ_breve_table"), ("Ñ", "btn_N_tilde_table"), ("ñ", "btn_n_tilde_table"),
+        ("Č", "btn_C_caron_table"), ("č", "btn_cs_caron_table"), ("ƀ", "btn_as_caron_table")
+    ]
+    with st.expander("Ký tự đặc biệt", expanded=False):
+        row1 = st.columns(len(chars_row1))
+        for idx, (char, key) in enumerate(chars_row1):
+            with row1[idx]:
+                if st.button(f" {char} ", key=key, type="tertiary"):
+                    special_char_callback(char)
+        row2 = st.columns(len(chars_row2)+1)
+        for idx, (char, key) in enumerate(chars_row2):
+            with row2[idx]:
+                if st.button(f" {char} ", key=key, type="tertiary"):
+                    special_char_callback(char)
+        row2[-1].write("")
+
+    # Nếu vừa bấm ký tự đặc biệt thì chèn vào vị trí con trỏ
+    special_char = st.session_state.pop("_special_char", None)
+    if special_char:
+        ho_ten = insert_at_cursor(ho_ten, special_char, cursor_pos)
+        # Sau khi chèn, cập nhật lại vị trí con trỏ
+        cursor_pos = cursor_pos + len(special_char)
+
+    # Hiển thị text_input và lưu lại vị trí con trỏ nếu có
+    ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=ho_ten, key="ho_ten")
+    # (Lưu ý: Streamlit không hỗ trợ lấy vị trí con trỏ thực tế từ text_input, nên chỉ cập nhật khi bấm ký tự đặc biệt)
     st.session_state["ho_ten"] = ho_ten
+    st.session_state["ho_ten_cursor_pos"] = cursor_pos
     import datetime
     ngay_sinh = st.date_input(
         ":green[NGÀY SINH]",
