@@ -88,14 +88,6 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
         trinh_do = st.selectbox("Trình độ đăng ký", [""] + trinh_do_list, key="trinh_do")
         co_so_list = df[df.columns[27]].dropna().unique().tolist()
         co_so = st.selectbox("Cơ sở nhận hồ sơ", [""] + co_so_list, key="co_so")
-        
-    with col4:
-        # Bộ lọc CCCD
-        cccd_list = df[df.columns[6]].dropna().unique().tolist()
-        cccd = st.text_input("CCCD", key="cccd")
-        nv1_list = df[df.columns[23]].dropna().unique().tolist()
-        nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
-
         # Bộ lọc Người nhập HS
         # Tìm cột phù hợp cho "Người nhập HS" (ưu tiên tên cột chứa "người nhập" hoặc "nhap hs", không phân biệt hoa thường)
         nguoi_nhap_col = None
@@ -108,6 +100,12 @@ with st.expander("Bộ lọc dữ liệu", expanded=True):
             nguoi_nhap = st.selectbox("Người nhập HS", [""] + nguoi_nhap_list, key="nguoi_nhap_hs")
         else:
             nguoi_nhap = ""
+    with col4:
+        # Bộ lọc CCCD
+        cccd_list = df[df.columns[6]].dropna().unique().tolist()
+        cccd = st.text_input("CCCD", key="cccd")
+        nv1_list = df[df.columns[23]].dropna().unique().tolist()
+        nv1 = st.selectbox("Nguyện vọng 1", [""] + nv1_list, key="nv1")
 
         # --- Bộ lọc ngày nộp hồ sơ ---
         try:
