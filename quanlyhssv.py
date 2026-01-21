@@ -213,7 +213,7 @@ with col1:
         with row2[11]:
             st.write("")  # Ô trống để canh đều 
     # Gọi hàm ở vị trí mong muốn
-    with st.popover("Hướng dẫn",icon="ℹ️"):
+    with st.popover("Ký tự đặc biệt",icon="ℹ🔣"):
         render_special_char_buttons()
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
