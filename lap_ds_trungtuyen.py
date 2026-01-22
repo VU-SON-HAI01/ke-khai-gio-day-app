@@ -222,7 +222,7 @@ if selected_columns:
                             "MÃ HSTS","HỌ ĐỆM","TÊN","NGÀY SINH","GIỚI TÍNH","NƠI SINH (Mới)","QUÊ QUÁN (Mới)",
                             "DÂN TỘC","TÔN GIÁO","Địa chỉ chi tiết","Phường/Xã (Mới)","Tỉnh/TP (Mới)",
                             "Ngữ Văn","Toán","","Ưu tiên theo đối tượng","","Ưu tiên theo khu vực",
-                            "Tổng điểm Ư.T","Tổng điểm (2 môn)""Hạnh Kiểm","Năm tốt nghiệp","Số điện thoại"
+                            "Tổng điểm Ư.T","Tổng điểm (2 môn)","Hạnh Kiểm","Năm tốt nghiệp","Số điện thoại"
                         ]
         # Đảm bảo đúng thứ tự: các cột mới thêm sẽ ở cuối
         st.dataframe(df_selected, use_container_width=True)
