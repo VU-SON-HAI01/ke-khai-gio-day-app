@@ -55,6 +55,14 @@ if df is not None:
             mime="text/csv",
             use_container_width=True
         )
+    # Biểu đồ Nguyện vọng 1
+    st.markdown("#### Biểu đồ số lượng học sinh theo Nguyện vọng 1")
+    if "Nguyện Vọng 1" in df.columns:
+        nv1_counts = df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
+        st.bar_chart(nv1_counts)
+    else:
+        st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
+
     st.markdown("#### Thống kê nhanh theo cột bất kỳ")
     col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(df.columns))
     if col_stat:
