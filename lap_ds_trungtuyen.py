@@ -221,7 +221,7 @@ if selected_columns:
         upload_columns = [
                             "MÃ HSTS","HỌ ĐỆM","TÊN","NGÀY SINH","GIỚI TÍNH","NƠI SINH (Mới)","QUÊ QUÁN (Mới)",
                             "DÂN TỘC","TÔN GIÁO","Địa chỉ chi tiết","Phường/Xã (Mới)","Tỉnh/TP (Mới)",
-                            "Ngữ Văn","Toán","","Ưu tiên theo đối tượng","","Ưu tiên theo khu vực",
+                            "Ngữ Văn","Toán","Ưu tiên theo đối tượng","Ưu tiên theo khu vực",
                             "Tổng điểm Ư.T","Tổng điểm (2 môn)","Hạnh Kiểm","Năm tốt nghiệp","Số điện thoại"
                         ]
         # Đảm bảo đúng thứ tự: các cột mới thêm sẽ ở cuối
@@ -285,35 +285,62 @@ if selected_columns:
                     import openpyxl
                     import shutil
                     import tempfile
-                    # Chọn file mẫu phù hợp
+
+                    # Định nghĩa cấu trúc cột cho từng template
+                    upload_columns_nganh = [
+                        "MÃ HSTS", "HỌ VÀ", "TÊN", "NGÀY SINH", "GIỚI TÍNH", "NƠI SINH", "DÂN TỘC", "TÔN GIÁO", "THÔN/Buôn", "PHƯỜNG/XÃ", "TỈNH/TP",
+                        "ĐIỂM MÔN TOÁN", "ĐIỂM MÔN VĂN", "TỔNG ĐIỂM MÔN", "ĐIỂM Ư.T 1", "ĐIỂM Ư.T 2", "ƯU TIÊN THEO KHU VỰC", "TỔNG ĐIỂM Ư.T", "TỔNG ĐIỂM", "HẠNH KIỂM LỚP 12", "NĂM TỐT NGHIỆP", "SỐ ĐIỆN THOẠI", "GHI CHÚ"
+                    ]
+                    upload_columns_dot = [
+                        "MÃ HSTS", "HỌ VÀ", "TÊN", "NGÀY SINH", "GIỚI TÍNH", "NƠI SINH", "DÂN TỘC", "TÔN GIÁO", "THÔN/Buôn", "PHƯỜNG/XÃ", "TỈNH/TP",
+                        "ĐIỂM MÔN TOÁN", "ĐIỂM MÔN VĂN", "TỔNG ĐIỂM MÔN", "ĐIỂM Ư.T 1", "ĐIỂM Ư.T 2", "ƯU TIÊN THEO KHU VỰC", "TỔNG ĐIỂM Ư.T", "TỔNG ĐIỂM", "NGHỀ DỰ TUYỂN", "HẠNH KIỂM LỚP 12", "NĂM TỐT NGHIỆP", "SỐ ĐIỆN THOẠI", "GHI CHÚ"
+                    ]
+                    # Mapping tên cột dữ liệu gốc sang tên upload_columns
+                    column_mapping = {
+                        # upload_columns_nganh/dot : df.columns
+                        "HỌ VÀ": "HỌ ĐỆM",
+                        "NƠI SINH": "NƠI SINH (Mới)",
+                        "THÔN/Buôn": "Địa chỉ chi tiết",
+                        "PHƯỜNG/XÃ": "Phường/Xã (Mới)",
+                        "TỈNH/TP": "Tỉnh/TP (Mới)",
+                        "ĐIỂM MÔN TOÁN": "Toán",
+                        "ĐIỂM MÔN VĂN": "Ngữ Văn",
+                        "ĐIỂM Ư.T 1": "Ưu tiên theo đối tượng",
+                        "ƯU TIÊN THEO KHU VỰC": "Ưu tiên theo khu vực",
+                        "HẠNH KIỂM LỚP 12": "Hạnh Kiểm",
+                        "NĂM TỐT NGHIỆP": "Năm tốt nghiệp",
+                        "SỐ ĐIỆN THOẠI": "Số điện thoại",
+                        # ...bổ sung thêm nếu cần
+                    }
                     if mau_ds_gop_nganh:
                         template_path = "data_base/DS_TRUNGTUYEN_DOT.xlsx"
                         out_filename = "DS_TRUNGTUYEN_DOT_out.xlsx"
+                        upload_columns = upload_columns_dot
                     else:
                         template_path = "data_base/DS_TRUNGTUYEN_NGANH.xlsx"
                         out_filename = "DS_TRUNGTUYEN_NGANH_out.xlsx"
+                        upload_columns = upload_columns_nganh
 
                     # Tạo file tạm từ template để ghi dữ liệu
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
                         shutil.copyfile(template_path, tmp.name)
                         wb = openpyxl.load_workbook(tmp.name)
                         ws = wb.active
-                        # Lấy danh sách cột từ file upload (csv)
-                        upload_columns = [
-                            "MÃ HSTS","HỌ ĐỆM","TÊN","NGÀY SINH","GIỚI TÍNH","NƠI SINH (Mới)","QUÊ QUÁN (Mới)",
-                            "DÂN TỘC","TÔN GIÁO","Địa chỉ chi tiết","Phường/Xã (Mới)","Tỉnh/TP (Mới)",
-                            "Ngữ Văn","Toán","Tổng điểm (2 môn)","Ưu tiên theo đối tượng","Ưu tiên theo khu vực",
-                            "Tổng điểm Ư.T","Hạnh Kiểm","Năm tốt nghiệp","Số điện thoại",
-                            "Nguyện Vọng 1","Nguyện Vọng 2","Nguyện Vọng 3"
-                        ]
                         # Lấy danh sách MÃ HSTS đã chọn
                         ma_hsts_selected = df_selected["MÃ HSTS"].tolist() if "MÃ HSTS" in df_selected.columns else []
                         # Lấy dữ liệu gốc theo MÃ HSTS đã chọn
-                        export_df = df[df["MÃ HSTS"].isin(ma_hsts_selected)].copy() if ma_hsts_selected else pd.DataFrame(columns=upload_columns)
+                        df_goc = df[df["MÃ HSTS"].isin(ma_hsts_selected)].copy() if ma_hsts_selected else pd.DataFrame()
+                        # Tạo export_df với đúng cột upload_columns, lấy dữ liệu từ df_goc với mapping tên cột
+                        export_df = pd.DataFrame()
+                        for col in upload_columns:
+                            src_col = column_mapping.get(col, col)
+                            if src_col in df_goc.columns:
+                                export_df[col] = df_goc[src_col].values
+                            else:
+                                export_df[col] = ""
                         # Thêm các cột Nguyện Vọng 1,2,3 từ df_selected nếu có
                         for nv_col in ["Nguyện Vọng 1", "Nguyện Vọng 2", "Nguyện Vọng 3"]:
                             if nv_col in df_selected.columns:
-                                # Map theo thứ tự MÃ HSTS đã chọn
                                 nv_map = dict(zip(df_selected["MÃ HSTS"], df_selected[nv_col]))
                                 export_df[nv_col] = export_df["MÃ HSTS"].map(nv_map).fillna("")
                             else:
@@ -323,6 +350,26 @@ if selected_columns:
                             if col not in export_df.columns:
                                 export_df[col] = ""
                         export_df = export_df[upload_columns]
+                        # Đảm bảo cột 'GHI CHÚ' luôn rỗng và 'ĐIỂM Ư.T 2' luôn là 0
+                        if "GHI CHÚ" in export_df.columns:
+                            export_df["GHI CHÚ"] = ""
+                        if "ĐIỂM Ư.T 2" in export_df.columns:
+                            export_df["ĐIỂM Ư.T 2"] = 0
+                        # Tính toán các cột điểm
+                        def to_float(x):
+                            try:
+                                return float(str(x).replace(",", "."))
+                            except:
+                                return 0.0
+                        # TỔNG ĐIỂM MÔN = ĐIỂM MÔN TOÁN + ĐIỂM MÔN VĂN
+                        export_df["TỔNG ĐIỂM MÔN"] = export_df[["ĐIỂM MÔN TOÁN", "ĐIỂM MÔN VĂN"]].apply(lambda r: to_float(r[0]) + to_float(r[1]), axis=1)
+                        # TỔNG ĐIỂM Ư.T = ĐIỂM Ư.T 1 + ĐIỂM Ư.T 2 + ƯU TIÊN THEO KHU VỰC
+                        export_df["TỔNG ĐIỂM Ư.T"] = export_df[["ĐIỂM Ư.T 1", "ĐIỂM Ư.T 2", "ƯU TIÊN THEO KHU VỰC"]].apply(lambda r: to_float(r[0]) + to_float(r[1]) + to_float(r[2]), axis=1)
+                        # TỔNG ĐIỂM = TỔNG ĐIỂM MÔN + TỔNG ĐIỂM Ư.T
+                        export_df["TỔNG ĐIỂM"] = export_df["TỔNG ĐIỂM MÔN"] + export_df["TỔNG ĐIỂM Ư.T"]
+                        # Nếu là file gộp ngành thì thêm cột Nghề dự tuyển từ Nguyện vọng 1
+                        if mau_ds_gop_nganh:
+                            export_df["NGHỀ DỰ TUYỂN"] = export_df["Nguyện Vọng 1"] if "Nguyện Vọng 1" in export_df.columns else ""
                         # Thay cột 'MÃ HSTS' bằng số thứ tự tăng dần bắt đầu từ 1
                         if "MÃ HSTS" in export_df.columns:
                             export_df["MÃ HSTS"] = range(1, len(export_df) + 1)
