@@ -306,6 +306,7 @@ if selected_columns:
                         "ĐIỂM MÔN TOÁN": "Toán",
                         "ĐIỂM MÔN VĂN": "Ngữ Văn",
                         "ĐIỂM Ư.T 1": "Ưu tiên theo đối tượng",
+                        "ĐIỂM Ư.T 2": "ĐIỂM Ư.T 2",  # sẽ bị set 0 ở dưới
                         "ƯU TIÊN THEO KHU VỰC": "Ưu tiên theo khu vực",
                         "HẠNH KIỂM LỚP 12": "Hạnh Kiểm",
                         "NĂM TỐT NGHIỆP": "Năm tốt nghiệp",
@@ -373,6 +374,11 @@ if selected_columns:
                         # Thay cột 'MÃ HSTS' bằng số thứ tự tăng dần bắt đầu từ 1
                         if "MÃ HSTS" in export_df.columns:
                             export_df["MÃ HSTS"] = range(1, len(export_df) + 1)
+                        # Dán dữ liệu vào file template, bắt đầu từ dòng 11
+                        # Đảm bảo cột điểm là số thực, dùng dấu chấm (đặt đúng vị trí trước khi ghi vào Excel)
+                        for diem_col in ["ĐIỂM MÔN TOÁN", "ĐIỂM MÔN VĂN"]:
+                            if diem_col in export_df.columns:
+                                export_df[diem_col] = export_df[diem_col].apply(lambda x: str(x).replace(",", ".") if pd.notnull(x) else "")
                         # Dán dữ liệu vào file template, bắt đầu từ dòng 11
                         for i, row in enumerate(export_df.values, start=11):
                             for j, value in enumerate(row, start=1):
