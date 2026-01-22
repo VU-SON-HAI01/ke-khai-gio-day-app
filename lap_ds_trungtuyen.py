@@ -288,11 +288,11 @@ if selected_columns:
 
                     # Định nghĩa cấu trúc cột cho từng template
                     upload_columns_nganh = [
-                        "MÃ HSTS", "HỌ VÀ", "TÊN", "NGÀY SINH", "GIỚI TÍNH", "NƠI SINH", "DÂN TỘC", "TÔN GIÁO", "THÔN/Buôn", "PHƯỜNG/XÃ", "TỈNH/TP",
+                        "MÃ HSTS", "HỌ VÀ", "TÊN", "NGÀY SINH", "GIỚI TÍNH", "NƠI SINH","QUÊ QUÁN", "DÂN TỘC", "TÔN GIÁO", "THÔN/Buôn", "PHƯỜNG/XÃ", "TỈNH/TP",
                         "ĐIỂM MÔN TOÁN", "ĐIỂM MÔN VĂN", "TỔNG ĐIỂM MÔN", "ĐIỂM Ư.T 1", "ĐIỂM Ư.T 2", "ƯU TIÊN THEO KHU VỰC", "TỔNG ĐIỂM Ư.T", "TỔNG ĐIỂM", "HẠNH KIỂM LỚP 12", "NĂM TỐT NGHIỆP", "SỐ ĐIỆN THOẠI", "GHI CHÚ"
                     ]
                     upload_columns_dot = [
-                        "MÃ HSTS", "HỌ VÀ", "TÊN", "NGÀY SINH", "GIỚI TÍNH", "NƠI SINH", "DÂN TỘC", "TÔN GIÁO", "THÔN/Buôn", "PHƯỜNG/XÃ", "TỈNH/TP",
+                        "MÃ HSTS", "HỌ VÀ", "TÊN", "NGÀY SINH", "GIỚI TÍNH", "NƠI SINH", "QUÊ QUÁN", "DÂN TỘC", "TÔN GIÁO", "THÔN/Buôn", "PHƯỜNG/XÃ", "TỈNH/TP",
                         "ĐIỂM MÔN TOÁN", "ĐIỂM MÔN VĂN", "TỔNG ĐIỂM MÔN", "ĐIỂM Ư.T 1", "ĐIỂM Ư.T 2", "ƯU TIÊN THEO KHU VỰC", "TỔNG ĐIỂM Ư.T", "TỔNG ĐIỂM", "NGHỀ DỰ TUYỂN", "HẠNH KIỂM LỚP 12", "NĂM TỐT NGHIỆP", "SỐ ĐIỆN THOẠI", "GHI CHÚ"
                     ]
                     # Mapping tên cột dữ liệu gốc sang tên upload_columns
@@ -300,6 +300,7 @@ if selected_columns:
                         # upload_columns_nganh/dot : df.columns
                         "HỌ VÀ": "HỌ ĐỆM",
                         "NƠI SINH": "NƠI SINH (Mới)",
+                        "QUÊ QUÁN": "QUÊ QUÁN (Mới)",
                         "THÔN/Buôn": "Địa chỉ chi tiết",
                         "PHƯỜNG/XÃ": "Phường/Xã (Mới)",
                         "TỈNH/TP": "Tỉnh/TP (Mới)",
