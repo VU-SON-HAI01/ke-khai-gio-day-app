@@ -14,41 +14,30 @@ with st.expander("Hướng dẫn sử dụng", expanded=False):
     """)
 
 # Tải dữ liệu nguồn
-st.subheader("1. Tải dữ liệu nguồn")
-data_source = st.radio("Chọn nguồn dữ liệu:", ["Google Sheet", "File Excel"], horizontal=True)
-
+st.subheader("1. Dữ liệu tuyển sinh từ Google Sheet")
 df = None
-if data_source == "Google Sheet":
-    try:
-        google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
-        thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
-        sheet_name = "TUYENSINH"
-        if "gcp_service_account" not in st.secrets:
-            raise KeyError("gcp_service_account")
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
-        gc = gspread.authorize(credentials)
-        sh = gc.open_by_key(thong_tin_hssv_id)
-        worksheet = sh.worksheet(sheet_name)
-        data = worksheet.get_all_values()
-        if not data or len(data) < 3:
-            st.warning("Không có đủ dữ liệu HSSV trong Google Sheet!")
-        else:
-            df = pd.DataFrame(data[2:], columns=data[1])
-            st.success(f"Đã tải {len(df)} dòng dữ liệu từ Google Sheet.")
-    except Exception as e:
-        st.error(f"Lỗi truy cập Google Sheet: {e}")
-else:
-    uploaded_file = st.file_uploader("Chọn file Excel (.xlsx)", type=["xlsx"])
-    if uploaded_file:
-        try:
-            df = pd.read_excel(uploaded_file)
-            st.success(f"Đã tải {len(df)} dòng dữ liệu từ file Excel.")
-        except Exception as e:
-            st.error(f"Lỗi đọc file: {e}")
+try:
+    google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
+    thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
+    sheet_name = "TUYENSINH"
+    if "gcp_service_account" not in st.secrets:
+        raise KeyError("gcp_service_account")
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
+    gc = gspread.authorize(credentials)
+    sh = gc.open_by_key(thong_tin_hssv_id)
+    worksheet = sh.worksheet(sheet_name)
+    data = worksheet.get_all_values()
+    if not data or len(data) < 3:
+        st.warning("Không có đủ dữ liệu HSSV trong Google Sheet!")
+    else:
+        df = pd.DataFrame(data[2:], columns=data[1])
+        st.success(f"Đã tải {len(df)} dòng dữ liệu từ Google Sheet.")
+except Exception as e:
+    st.error(f"Lỗi truy cập Google Sheet: {e}")
 
 # Hiển thị và tổng hợp dữ liệu
 if df is not None:
