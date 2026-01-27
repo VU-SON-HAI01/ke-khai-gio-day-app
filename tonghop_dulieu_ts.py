@@ -14,7 +14,7 @@ with st.expander("Hướng dẫn sử dụng", expanded=False):
     """)
 
 # Tải dữ liệu nguồn
-st.subheader("1. Dữ liệu tuyển sinh từ Google Sheet")
+st.subheader("Dữ liệu báo tổng hợp")
 df = None
 try:
     google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
@@ -31,11 +31,30 @@ try:
     sh = gc.open_by_key(thong_tin_hssv_id)
     worksheet = sh.worksheet(sheet_name)
     data = worksheet.get_all_values()
+    
+    
     if not data or len(data) < 3:
-        st.warning("Không có đủ dữ liệu HSSV trong Google Sheet!")
+        st.warning("Không có đủ dữ liệu HSSV theo năm tuyển sinh!")
     else:
         df = pd.DataFrame(data[2:], columns=data[1])
-        st.success(f"Đã tải {len(df)} dòng dữ liệu từ Google Sheet.")
+        st.success(f"Đã tải {len(df)} dòng dữ theo năm tuyển sinh.")
+        # Thêm selector chọn năm và lọc theo Mã HSTS
+        st.markdown("#### Chọn năm để lọc danh sách HSTS")
+        selected_year = st.selectbox("Chọn năm", options=["2023", "2024", "2025", "2026"], index=1)
+        confirm_filter = st.button("Xác nhận", key="confirm_filter")
+        if confirm_filter:
+            # Lọc các Mã HSTS có 4 số đầu là năm đã chọn
+            if "Mã HSTS" in df.columns:
+                filtered_df = df[df["Mã HSTS"].astype(str).str.startswith(selected_year)]
+                st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
+                st.dataframe(filtered_df, use_container_width=True)
+                st.download_button(
+                    label=f"Tải danh sách HSTS năm {selected_year}",
+                    data=filtered_df.to_csv(index=False).encode('utf-8-sig'),
+                    file_name=f"danhsach_hsts_{selected_year}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
 except Exception as e:
     st.error(f"Lỗi truy cập Google Sheet: {e}")
 
