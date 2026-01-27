@@ -41,59 +41,59 @@ try:
         if confirm_filter:
             # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh (dạng 6 số, ví dụ 250001 cho 2025)
             if "Mã HSTS" in df.columns:
-                st.write("Đang lọc dữ liệu theo năm tuyển sinh...")
-                year_code = selected_year[-2:]
-                # Loại bỏ khoảng trắng, ép kiểu, kiểm tra 2S số đầu
-                ma_hsts_str = df["Mã HSTS"].astype(str).str.strip().str.zfill(6)
-                # DEBUG: Hiển thị danh sách mã và year_code
-                # st.write("DEBUG - year_code:", year_code)
-                # st.write("DEBUG - Mã HSTS:", ma_hsts_str.tolist())
-                filtered_df = df[ma_hsts_str.str[:2] == year_code]
-                # Nếu vẫn không có dữ liệu, thử lọc theo các giá trị khác
-                if filtered_df.empty:
-                    st.warning(f"DEBUG: Không tìm thấy dữ liệu với year_code={year_code}. Ví dụ mã: {ma_hsts_str.head(10).tolist()}")
-                if not filtered_df.empty:
-                    st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
-                    st.dataframe(filtered_df, use_container_width=True)
-                    st.download_button(
-                        label=f"Tải danh sách HSTS năm {selected_year}",
-                        data=filtered_df.to_csv(index=False).encode('utf-8-sig'),
-                        file_name=f"danhsach_hsts_{selected_year}.csv",
-                        mime="text/csv",
-                        use_container_width=True
-                    )
-                    st.success(f"Đã tải {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
-                    # Hiển thị và tổng hợp dữ liệu chỉ sau khi xác nhận lọc và có dữ liệu
-                    st.subheader("2. Tổng hợp nhanh")
-                    st.dataframe(filtered_df, use_container_width=True)
-                    st.markdown("#### Thống kê theo ngành, năm, giới tính")
-                    col_group = st.multiselect("Chọn các cột nhóm thống kê", options=list(filtered_df.columns), default=[col for col in ["NGÀNH", "NĂM TUYỂN SINH", "GIỚI TÍNH"] if col in filtered_df.columns])
-                    if col_group:
-                        summary = filtered_df.groupby(col_group).size().reset_index(name="Số lượng")
-                        st.dataframe(summary, use_container_width=True)
+                with st.spinner("Đang lọc dữ liệu theo năm tuyển sinh..."):
+                    year_code = selected_year[-2:]
+                    # Loại bỏ khoảng trắng, ép kiểu, kiểm tra 2S số đầu
+                    ma_hsts_str = df["Mã HSTS"].astype(str).str.strip().str.zfill(6)
+                    # DEBUG: Hiển thị danh sách mã và year_code
+                    # st.write("DEBUG - year_code:", year_code)
+                    # st.write("DEBUG - Mã HSTS:", ma_hsts_str.tolist())
+                    filtered_df = df[ma_hsts_str.str[:2] == year_code]
+                    # Nếu vẫn không có dữ liệu, thử lọc theo các giá trị khác
+                    if filtered_df.empty:
+                        st.warning(f"DEBUG: Không tìm thấy dữ liệu với year_code={year_code}. Ví dụ mã: {ma_hsts_str.head(10).tolist()}")
+                    if not filtered_df.empty:
+                        st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
+                        st.dataframe(filtered_df, use_container_width=True)
                         st.download_button(
-                            label="Tải báo cáo tổng hợp",
-                            data=summary.to_csv(index=False).encode('utf-8-sig'),
-                            file_name="tonghop_tuyensinh.csv",
+                            label=f"Tải danh sách HSTS năm {selected_year}",
+                            data=filtered_df.to_csv(index=False).encode('utf-8-sig'),
+                            file_name=f"danhsach_hsts_{selected_year}.csv",
                             mime="text/csv",
                             use_container_width=True
                         )
-                    # Biểu đồ Nguyện vọng 1
-                    st.markdown("#### Biểu đồ số lượng học sinh theo Nguyện vọng 1")
-                    if "Nguyện Vọng 1" in filtered_df.columns:
-                        nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
-                        st.bar_chart(nv1_counts)
-                    else:
-                        st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
+                        st.success(f"Đã tải {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
+                        # Hiển thị và tổng hợp dữ liệu chỉ sau khi xác nhận lọc và có dữ liệu
+                        st.subheader("2. Tổng hợp nhanh")
+                        st.dataframe(filtered_df, use_container_width=True)
+                        st.markdown("#### Thống kê theo ngành, năm, giới tính")
+                        col_group = st.multiselect("Chọn các cột nhóm thống kê", options=list(filtered_df.columns), default=[col for col in ["NGÀNH", "NĂM TUYỂN SINH", "GIỚI TÍNH"] if col in filtered_df.columns])
+                        if col_group:
+                            summary = filtered_df.groupby(col_group).size().reset_index(name="Số lượng")
+                            st.dataframe(summary, use_container_width=True)
+                            st.download_button(
+                                label="Tải báo cáo tổng hợp",
+                                data=summary.to_csv(index=False).encode('utf-8-sig'),
+                                file_name="tonghop_tuyensinh.csv",
+                                mime="text/csv",
+                                use_container_width=True
+                            )
+                        # Biểu đồ Nguyện vọng 1
+                        st.markdown("#### Biểu đồ số lượng học sinh theo Nguyện vọng 1")
+                        if "Nguyện Vọng 1" in filtered_df.columns:
+                            nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
+                            st.bar_chart(nv1_counts)
+                        else:
+                            st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
 
-                    st.markdown("#### Thống kê nhanh theo cột bất kỳ")
-                    col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns))
-                    if col_stat:
-                        freq = filtered_df[col_stat].value_counts().reset_index()
-                        freq.columns = [col_stat, "Số lượng"]
-                        st.dataframe(freq, use_container_width=True)
-                else:
-                    st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
+                        st.markdown("#### Thống kê nhanh theo cột bất kỳ")
+                        col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns))
+                        if col_stat:
+                            freq = filtered_df[col_stat].value_counts().reset_index()
+                            freq.columns = [col_stat, "Số lượng"]
+                            st.dataframe(freq, use_container_width=True)
+                    else:
+                        st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
             else:
                 st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
         else:
