@@ -57,22 +57,7 @@ try:
                             mime="text/csv",
                             use_container_width=True
                         )
-                        st.success(f"Đã tải {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
-                        # Hiển thị và tổng hợp dữ liệu chỉ sau khi xác nhận lọc và có dữ liệu
-                        st.subheader("2. Tổng hợp nhanh")
-                        st.dataframe(filtered_df, use_container_width=True)
-                        st.markdown("#### Thống kê theo ngành, năm, giới tính")
-                        col_group = st.multiselect("Chọn các cột nhóm thống kê", options=list(filtered_df.columns), default=[col for col in ["NGÀNH", "NĂM TUYỂN SINH", "GIỚI TÍNH"] if col in filtered_df.columns])
-                        if col_group:
-                            summary = filtered_df.groupby(col_group).size().reset_index(name="Số lượng")
-                            st.dataframe(summary, use_container_width=True)
-                            st.download_button(
-                                label="Tải báo cáo tổng hợp",
-                                data=summary.to_csv(index=False).encode('utf-8-sig'),
-                                file_name="tonghop_tuyensinh.csv",
-                                mime="text/csv",
-                                use_container_width=True
-                            )
+                        st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
                         # Biểu đồ Nguyện vọng 1
                         st.markdown("#### Biểu đồ số lượng học sinh theo Nguyện vọng 1")
                         if "Nguyện Vọng 1" in filtered_df.columns:
