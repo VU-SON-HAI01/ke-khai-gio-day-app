@@ -39,10 +39,12 @@ try:
         confirm_filter = st.button("Xác nhận", key="confirm_filter")
         filtered_df = None
         if confirm_filter:
-            # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh
+            # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh (dạng 6 số, ví dụ 250001 cho 2025)
             if "Mã HSTS" in df.columns:
                 year_code = selected_year[-2:]
-                filtered_df = df[df["Mã HSTS"].astype(str).str[:2] == year_code]
+                # Đảm bảo mã là chuỗi 6 ký tự, thêm số 0 ở đầu nếu thiếu
+                ma_hsts_str = df["Mã HSTS"].astype(str).str.zfill(6)
+                filtered_df = df[ma_hsts_str.str[:2] == year_code]
                 if not filtered_df.empty:
                     st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
                     st.dataframe(filtered_df, use_container_width=True)
