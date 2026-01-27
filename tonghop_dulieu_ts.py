@@ -45,18 +45,15 @@ try:
                 with st.spinner("Đang lọc dữ liệu theo năm tuyển sinh..."):
                     year_code = selected_year[-2:]
                     ma_hsts_str = df["MÃ HSTS"].astype(str).str.strip().str.zfill(6)
-                    # DEBUG: Hiển thị toàn bộ danh sách mã và year_code để kiểm tra
-                    st.write(f"DEBUG: year_code={year_code}")
-                    st.write(f"DEBUG: Mã HSTS đầu tiên: {ma_hsts_str.head(20).tolist()}")
                     filtered_df = df[ma_hsts_str.str[:2] == year_code]
                     if filtered_df.empty:
-                        st.warning(f"DEBUG: Không tìm thấy dữ liệu với year_code={year_code}. Ví dụ mã: {ma_hsts_str.head(10).tolist()}")
+                        st.warning(f"DEBUG: Không tìm thấy dữ liệu với năm ={year_code}.")
                     if not filtered_df.empty:
                         st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
                         st.dataframe(filtered_df, use_container_width=True)
                         st.download_button(
                             label=f"Tải danh sách HSTS năm {selected_year}",
-                            data=filtered_df.to_csv(index=False).encode('utf-8-sig'),
+                            data=filtered_df.to_csv(indFex=False).encode('utf-8-sig'),
                             file_name=f"danhsach_hsts_{selected_year}.csv",
                             mime="text/csv",
                             use_container_width=True
