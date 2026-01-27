@@ -54,7 +54,7 @@ try:
                 )
                 st.success(f"Đã tải {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
         else:
-            st.success(f"Đã tải {len(df)} dòng dữ theo năm tuyển sinh.")
+            st.success(f"Đã kiểm tra toàn bộ {len(df)} dòng dữ liệu.")
         st.dataframe(filtered_df, use_container_width=True)
         # Hiển thị và tổng hợp dữ liệu chỉ sau khi xác nhận lọc
         if confirm_filter and filtered_df is not None:
