@@ -34,14 +34,13 @@ try:
         st.warning("Không có đủ dữ liệu HSSV!")
     else:
         df = pd.DataFrame(data[2:], columns=data[1])
-        # Thêm selector chọn năm và lọc theo Mã HSTS
         st.markdown("#### Chọn năm tuyển sinh")
         selected_year = st.selectbox("Năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
         confirm_filter = st.button("Xác nhận", key="confirm_filter")
+        filtered_df = None
         if confirm_filter:
-            # Lọc các Mã HSTS có 4 số đầu là năm đã chọn
+            # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh
             if "Mã HSTS" in df.columns:
-                # Lấy 2 số cuối của năm tuyển sinh
                 year_code = selected_year[-2:]
                 filtered_df = df[df["Mã HSTS"].astype(str).str[:2] == year_code]
                 st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
@@ -53,40 +52,38 @@ try:
                     mime="text/csv",
                     use_container_width=True
                 )
-                df = filtered_df
-        st.success(f"Đã tải {len(df)} dòng dữ theo năm tuyển sinh.")
+                st.success(f"Đã tải {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
+        else:
+            st.success(f"Đã tải {len(df)} dòng dữ theo năm tuyển sinh.")
+        # Hiển thị và tổng hợp dữ liệu chỉ sau khi xác nhận lọc
+        if confirm_filter and filtered_df is not None:
+            st.subheader("2. Tổng hợp nhanh")
+            st.dataframe(filtered_df, use_container_width=True)
+            st.markdown("#### Thống kê theo ngành, năm, giới tính")
+            col_group = st.multiselect("Chọn các cột nhóm thống kê", options=list(filtered_df.columns), default=[col for col in ["NGÀNH", "NĂM TUYỂN SINH", "GIỚI TÍNH"] if col in filtered_df.columns])
+            if col_group:
+                summary = filtered_df.groupby(col_group).size().reset_index(name="Số lượng")
+                st.dataframe(summary, use_container_width=True)
+                st.download_button(
+                    label="Tải báo cáo tổng hợp",
+                    data=summary.to_csv(index=False).encode('utf-8-sig'),
+                    file_name="tonghop_tuyensinh.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+            # Biểu đồ Nguyện vọng 1
+            st.markdown("#### Biểu đồ số lượng học sinh theo Nguyện vọng 1")
+            if "Nguyện Vọng 1" in filtered_df.columns:
+                nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
+                st.bar_chart(nv1_counts)
+            else:
+                st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
+
+            st.markdown("#### Thống kê nhanh theo cột bất kỳ")
+            col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns))
+            if col_stat:
+                freq = filtered_df[col_stat].value_counts().reset_index()
+                freq.columns = [col_stat, "Số lượng"]
+                st.dataframe(freq, use_container_width=True)
 except Exception as e:
-    st.error(f"Lỗi truy cập Google Sheet: {e}")
-
-# Hiển thị và tổng hợp dữ liệu
-if df is not None:
-    st.subheader("2. Tổng hợp nhanh")
-    st.dataframe(df, use_container_width=True)
-    st.markdown("#### Thống kê theo ngành, năm, giới tính")
-    col_group = st.multiselect("Chọn các cột nhóm thống kê", options=list(df.columns), default=[col for col in ["NGÀNH", "NĂM TUYỂN SINH", "GIỚI TÍNH"] if col in df.columns])
-    if col_group:
-        summary = df.groupby(col_group).size().reset_index(name="Số lượng")
-        st.dataframe(summary, use_container_width=True)
-        st.download_button(
-            label="Tải báo cáo tổng hợp",
-            data=summary.to_csv(index=False).encode('utf-8-sig'),
-            file_name="tonghop_tuyensinh.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-    # Biểu đồ Nguyện vọng 1
-    st.markdown("#### Biểu đồ số lượng học sinh theo Nguyện vọng 1")
-    if "Nguyện Vọng 1" in df.columns:
-        nv1_counts = df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
-        st.bar_chart(nv1_counts)
-    else:
-        st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
-
-    st.markdown("#### Thống kê nhanh theo cột bất kỳ")
-    col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(df.columns))
-    if col_stat:
-        freq = df[col_stat].value_counts().reset_index()
-        freq.columns = [col_stat, "Số lượng"]
-        st.dataframe(freq, use_container_width=True)
-else:
-    st.info("Vui lòng tải dữ liệu để bắt đầu tổng hợp.")
+    st.error(f"Lỗi truy cập dữ liệu: {e}")
