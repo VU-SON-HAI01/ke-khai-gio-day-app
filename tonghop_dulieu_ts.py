@@ -41,6 +41,7 @@ try:
         if confirm_filter:
             # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh (dạng 6 số, ví dụ 250001 cho 2025)
             if "Mã HSTS" in df.columns:
+                st.write("Đang lọc dữ liệu theo năm tuyển sinh...")
                 year_code = selected_year[-2:]
                 # Loại bỏ khoảng trắng, ép kiểu, kiểm tra 2S số đầu
                 ma_hsts_str = df["Mã HSTS"].astype(str).str.strip().str.zfill(6)
