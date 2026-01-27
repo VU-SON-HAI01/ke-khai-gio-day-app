@@ -44,13 +44,11 @@ try:
             if "Mã HSTS" in df.columns:
                 with st.spinner("Đang lọc dữ liệu theo năm tuyển sinh..."):
                     year_code = selected_year[-2:]
-                    # Loại bỏ khoảng trắng, ép kiểu, kiểm tra 2S số đầu
                     ma_hsts_str = df["Mã HSTS"].astype(str).str.strip().str.zfill(6)
-                    # DEBUG: Hiển thị danh sách mã và year_code
-                    # st.write("DEBUG - year_code:", year_code)
-                    # st.write("DEBUG - Mã HSTS:", ma_hsts_str.tolist())
+                    # DEBUG: Hiển thị toàn bộ danh sách mã và year_code để kiểm tra
+                    st.write(f"DEBUG: year_code={year_code}")
+                    st.write(f"DEBUG: Mã HSTS đầu tiên: {ma_hsts_str.head(20).tolist()}")
                     filtered_df = df[ma_hsts_str.str[:2] == year_code]
-                    # Nếu vẫn không có dữ liệu, thử lọc theo các giá trị khác
                     if filtered_df.empty:
                         st.warning(f"DEBUG: Không tìm thấy dữ liệu với year_code={year_code}. Ví dụ mã: {ma_hsts_str.head(10).tolist()}")
                     if not filtered_df.empty:
