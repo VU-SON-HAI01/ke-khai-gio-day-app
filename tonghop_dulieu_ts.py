@@ -33,7 +33,6 @@ try:
     if not data or len(data) < 3:
         st.warning("Không có đủ dữ liệu HSSV!")
     else:
-        
         df = pd.DataFrame(data[2:], columns=data[1])
         st.markdown("#### Chọn năm tuyển sinh")
         selected_year = st.selectbox("Năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
@@ -43,6 +42,7 @@ try:
             st.write(f"Đã tải {len(data)-2} dòng dữ liệu từ Google Sheet.")
             # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh (dạng 6 số, ví dụ 250001 cho 2025)
             if "Mã HSTS" in df.columns:
+                st.write(f"Đã tải {len(data)-2} dòng dữ liệu từ Google Sheet.Mã HSTS")
                 with st.spinner("Đang lọc dữ liệu theo năm tuyển sinh..."):
                     year_code = selected_year[-2:]
                     ma_hsts_str = df["Mã HSTS"].astype(str).str.strip().str.zfill(6)
