@@ -41,13 +41,12 @@ try:
         if confirm_filter:
             # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh (dạng 6 số, ví dụ 250001 cho 2025)
             if "MÃ HSTS" in df.columns:
-                st.write(f"Đã tải {len(data)-2} dòng dữ liệu từ Google Sheet.Mã HSTS")
                 with st.spinner("Đang lọc dữ liệu theo năm tuyển sinh..."):
                     year_code = selected_year[-2:]
                     ma_hsts_str = df["MÃ HSTS"].astype(str).str.strip().str.zfill(6)
                     filtered_df = df[ma_hsts_str.str[:2] == year_code]
                     if filtered_df.empty:
-                        st.warning(f"DEBUG: Không tìm thấy dữ liệu với năm ={year_code}.")
+                        st.warning(f"Thông báo: Không tìm thấy dữ liệu với năm ={selected_year}.")
                     if not filtered_df.empty:
                         st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
                         st.dataframe(filtered_df, use_container_width=True)
