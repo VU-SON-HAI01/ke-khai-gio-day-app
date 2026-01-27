@@ -85,5 +85,7 @@ try:
                 freq = filtered_df[col_stat].value_counts().reset_index()
                 freq.columns = [col_stat, "Số lượng"]
                 st.dataframe(freq, use_container_width=True)
+        else:
+            st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
 except Exception as e:
     st.error(f"Lỗi truy cập dữ liệu: {e}")
