@@ -41,7 +41,9 @@ try:
         if confirm_filter:
             # Lọc các Mã HSTS có 4 số đầu là năm đã chọn
             if "Mã HSTS" in df.columns:
-                filtered_df = df[df["Mã HSTS"].astype(str).str.startswith(selected_year)]
+                # Lấy 2 số cuối của năm tuyển sinh
+                year_code = selected_year[-2:]
+                filtered_df = df[df["Mã HSTS"].astype(str).str[:2] == year_code]
                 st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
                 st.dataframe(filtered_df, use_container_width=True)
                 st.download_button(
