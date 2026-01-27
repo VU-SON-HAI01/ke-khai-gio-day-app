@@ -52,7 +52,7 @@ try:
                         st.dataframe(filtered_df, use_container_width=True)
                         st.download_button(
                             label=f"Tải danh sách HSTS năm {selected_year}",
-                            data=filtered_df.to_csv(indFex=False).encode('utf-8-sig'),
+                            data=filtered_df.to_csv(index=False).encode('utf-8-sig'),
                             file_name=f"danhsach_hsts_{selected_year}.csv",
                             mime="text/csv",
                             use_container_width=True
