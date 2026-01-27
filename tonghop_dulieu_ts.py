@@ -14,7 +14,6 @@ with st.expander("Hướng dẫn sử dụng", expanded=False):
     """)
 
 # Tải dữ liệu nguồn
-st.subheader("Dữ liệu báo tổng hợp")
 df = None
 try:
     google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
@@ -31,13 +30,10 @@ try:
     sh = gc.open_by_key(thong_tin_hssv_id)
     worksheet = sh.worksheet(sheet_name)
     data = worksheet.get_all_values()
-    
-    
     if not data or len(data) < 3:
-        st.warning("Không có đủ dữ liệu HSSV theo năm tuyển sinh!")
+        st.warning("Không có đủ dữ liệu HSSV!")
     else:
         df = pd.DataFrame(data[2:], columns=data[1])
-        st.success(f"Đã tải {len(df)} dòng dữ theo năm tuyển sinh.")
         # Thêm selector chọn năm và lọc theo Mã HSTS
         st.markdown("#### Chọn năm để lọc danh sách HSTS")
         selected_year = st.selectbox("Chọn năm", options=["2023", "2024", "2025", "2026"], index=1)
@@ -55,6 +51,8 @@ try:
                     mime="text/csv",
                     use_container_width=True
                 )
+                df = filtered_df
+        st.success(f"Đã tải {len(df)} dòng dữ theo năm tuyển sinh.")
 except Exception as e:
     st.error(f"Lỗi truy cập Google Sheet: {e}")
 
