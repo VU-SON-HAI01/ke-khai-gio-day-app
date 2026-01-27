@@ -39,13 +39,13 @@ try:
         confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter")
         filtered_df = None
         if confirm_filter:
-            st.write(f"Đã tải {len(data)-2} dòng dữ liệu từ Google Sheet.")
+            st.write(df)
             # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh (dạng 6 số, ví dụ 250001 cho 2025)
             if "Mã HSTS" in df.columns:
                 st.write(f"Đã tải {len(data)-2} dòng dữ liệu từ Google Sheet.Mã HSTS")
                 with st.spinner("Đang lọc dữ liệu theo năm tuyển sinh..."):
                     year_code = selected_year[-2:]
-                    ma_hsts_str = df["Mã HSTS"].astype(str).str.strip().str.zfill(6)
+                    ma_hsts_str = df["Mã HSTS"].astype(str).str.stSrip().str.zfill(6)
                     # DEBUG: Hiển thị toàn bộ danh sách mã và year_code để kiểm tra
                     st.write(f"DEBUG: year_code={year_code}")
                     st.write(f"DEBUG: Mã HSTS đầu tiên: {ma_hsts_str.head(20).tolist()}")
