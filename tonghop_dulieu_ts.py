@@ -33,6 +33,7 @@ try:
     if not data or len(data) < 3:
         st.warning("Không có đủ dữ liệu HSSV!")
     else:
+        st.write(f"Đã tải {len(data)-2} dòng dữ liệu từ Google Sheet.")
         df = pd.DataFrame(data[2:], columns=data[1])
         st.markdown("#### Chọn năm tuyển sinh")
         selected_year = st.selectbox("Năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
