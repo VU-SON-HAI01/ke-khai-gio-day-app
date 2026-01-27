@@ -36,7 +36,7 @@ try:
         df = pd.DataFrame(data[2:], columns=data[1])
         # Thêm selector chọn năm và lọc theo Mã HSTS
         st.markdown("#### Chọn năm tuyển sinh")
-        selected_year = st.selectbox("Năm tuyển sinh (Vd: Năm tuyển sinh 2025 - 2026 thì chọn 2025)", options=["2023", "2024", "2025", "2026"], index=1)
+        selected_year = st.selectbox("Năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
         confirm_filter = st.button("Xác nhận", key="confirm_filter")
         if confirm_filter:
             # Lọc các Mã HSTS có 4 số đầu là năm đã chọn
