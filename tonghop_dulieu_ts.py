@@ -36,15 +36,21 @@ try:
         df = pd.DataFrame(data[2:], columns=data[1])
         st.markdown("#### Chọn năm tuyển sinh")
         selected_year = st.selectbox("Năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
-        confirm_filter = st.button("Xác nhận", key="confirm_filter")
+        confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter")
         filtered_df = None
         if confirm_filter:
             # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh (dạng 6 số, ví dụ 250001 cho 2025)
             if "Mã HSTS" in df.columns:
                 year_code = selected_year[-2:]
-                # Đảm bảo mã là chuỗi 6 ký tự, thêm số 0 ở đầu nếu thiếu
-                ma_hsts_str = df["Mã HSTS"].astype(str).str.zfill(6)
+                # Loại bỏ khoảng trắng, ép kiểu, kiểm tra 2S số đầu
+                ma_hsts_str = df["Mã HSTS"].astype(str).str.strip().str.zfill(6)
+                # DEBUG: Hiển thị danh sách mã và year_code
+                # st.write("DEBUG - year_code:", year_code)
+                # st.write("DEBUG - Mã HSTS:", ma_hsts_str.tolist())
                 filtered_df = df[ma_hsts_str.str[:2] == year_code]
+                # Nếu vẫn không có dữ liệu, thử lọc theo các giá trị khác
+                if filtered_df.empty:
+                    st.warning(f"DEBUG: Không tìm thấy dữ liệu với year_code={year_code}. Ví dụ mã: {ma_hsts_str.head(10).tolist()}")
                 if not filtered_df.empty:
                     st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
                     st.dataframe(filtered_df, use_container_width=True)
