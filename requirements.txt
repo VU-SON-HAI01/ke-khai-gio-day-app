@@ -1,3 +1,5 @@
+# Bieu do va Trinh bay
+plotly
 # Main App Framework
 streamlit
 streamlit-oauth

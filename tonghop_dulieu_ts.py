@@ -1,3 +1,5 @@
+import numpy as np
+import plotly.express as px
 import streamlit as st
 import pandas as pd
 import gspread
@@ -79,6 +81,123 @@ try:
         elif confirm_filter:
             st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
         else:
-            st.success(f"Đã kiểm tra toàn bộ {len(df)} dòng dữ liệu.")
+            st.success(f"Đã kiểm tra toàn bộ {len(df)} dòng dữ liệu.")   
 except Exception as e:
     st.error(f"Lỗi truy cập dữ liệu: {e}")
+
+
+# --- 1. CẤU HÌNH HỆ THỐNG ---
+st.markdown("---")
+st.header("🎯 Xét tuyển thông minh (Demo)")
+QUOTA_CONFIG = {
+    "Công nghệ ô tô": {"quota": 40, "bonus": 0.0},
+    "Điện": {"quota": 30, "bonus": 0.0},
+    "Cơ khí": {"quota": 20, "bonus": 1.0}
+}
+OVERSAMPLE_RATE = 0.10
+WEIGHT_EARLY = 0.05
+WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
+
+# --- 2. HÀM LOGIC XÉT TUYỂN ---
+def run_admission_logic(df_input, quotas):
+    def calc_score(row):
+        score = row['Diem_Thuc']
+        score += QUOTA_CONFIG.get(row['NV1'], {}).get('bonus', 0)
+        if row['Nop_Som']: score += WEIGHT_EARLY
+        return round(score, 3)
+    df_proc = df_input.copy()
+    df_proc['Diem_XT'] = df_proc.apply(calc_score, axis=1)
+    df_proc = df_proc.sort_values(by=['Diem_XT', 'Mã HSTS'], ascending=[False, True])
+    actual_quotas = {k: int(v['quota'] * (1 + OVERSAMPLE_RATE)) for k, v in quotas.items()}
+    current_counts = {k: 0 for k in quotas.keys()}
+    results = []
+    for _, row in df_proc.iterrows():
+        assigned_major = "Trượt"
+        assigned_nv = None
+        for i in range(1, 4):
+            nv_name = row[f'NV{i}']
+            if current_counts[nv_name] < actual_quotas[nv_name]:
+                assigned_major = nv_name
+                assigned_nv = f"NV{i}"
+                current_counts[nv_name] += 1
+                break
+        results.append({
+            **row.to_dict(),
+            'Kết quả': assigned_major,
+            'Loại NV': assigned_nv,
+            'Trạng thái': "Trúng tuyển" if assigned_major != "Trượt" else "Không trúng tuyển"
+        })
+    return pd.DataFrame(results), current_counts, actual_quotas
+
+# --- 3. TẠO DỮ LIỆU MẪU (100 HỒ SƠ) ---
+@st.cache_data
+def get_mock_data():
+    np.random.seed(42)
+    majors = list(QUOTA_CONFIG.keys())
+    data = []
+    for i in range(1, 101):
+        data.append({
+            'Mã HSTS': i,
+            'Họ tên': f'Thí sinh {i}',
+            'Diem_Thuc': round(np.random.uniform(15, 29), 2),
+            'Nop_Som': np.random.choice([True, False]),
+            'NV1': np.random.choice(majors),
+            'NV2': np.random.choice(majors),
+            'NV3': np.random.choice(majors)
+        })
+    return pd.DataFrame(data)
+
+# --- 4. GIAO DIỆN STREAMLIT ---
+st.subheader("🚀 Hệ thống Điều phối Tuyển sinh Pro (Demo)")
+st.markdown(f"**Cấu hình:** Vượt chỉ tiêu {OVERSAMPLE_RATE*100}% | Ưu tiên Cơ khí (+1.0) | Ưu tiên nộp sớm (+{WEIGHT_EARLY})")
+
+df_raw = get_mock_data()
+df_final, counts, max_quotas = run_admission_logic(df_raw, QUOTA_CONFIG)
+
+# Sidebar: Kiểm tra nhanh hồ sơ 101
+st.sidebar.header("🔍 Kiểm tra nhanh hồ sơ 101")
+with st.sidebar.form("check_101"):
+    s_name = st.text_input("Tên thí sinh", "Thí sinh 101")
+    s_score = st.number_input("Điểm thực tế", 0.0, 30.0, 20.0)
+    s_nv1 = st.selectbox("Nguyện vọng 1", list(QUOTA_CONFIG.keys()))
+    s_nv2 = st.selectbox("Nguyện vọng 2", list(QUOTA_CONFIG.keys()), index=1)
+    s_nv3 = st.selectbox("Nguyện vọng 3", list(QUOTA_CONFIG.keys()), index=2)
+    s_early = st.checkbox("Nộp sớm", True)
+    btn_check = st.form_submit_button("Kết quả & Đề xuất")
+
+if btn_check:
+    new_hs = pd.DataFrame([{
+        'Mã HSTS': 101, 'Họ tên': s_name, 'Diem_Thuc': s_score,
+        'Nop_Som': s_early, 'NV1': s_nv1, 'NV2': s_nv2, 'NV3': s_nv3
+    }])
+    df_with_101 = pd.concat([df_raw, new_hs], ignore_index=True)
+    df_res_101, counts_101, _ = run_admission_logic(df_with_101, QUOTA_CONFIG)
+    res_101 = df_res_101[df_res_101['Mã HSTS'] == 101].iloc[0]
+
+    st.sidebar.divider()
+    if res_101['Trạng thái'] == "Trúng tuyển":
+        st.sidebar.success(f"✅ Đỗ: **{res_101['Kết quả']}** ({res_101['Loại NV']})")
+    else:
+        st.sidebar.error("❌ Kết quả: Không trúng tuyển")
+    st.sidebar.info("💡 **Gợi ý nghề nghiệp:**")
+    for m in QUOTA_CONFIG.keys():
+        if counts_101[m] < max_quotas[m]:
+            st.sidebar.write(f"👉 Nên chọn **{m}** (Còn trống)")
+        else:
+            min_score = df_res_101[df_res_101['Kết quả'] == m]['Diem_XT'].min()
+            if res_101['Diem_XT'] >= min_score:
+                st.sidebar.write(f"👉 Có thể đỗ **{m}** (Dựa trên điểm)")
+
+# Hiển thị biểu đồ
+st.subheader("📊 Tình trạng lấp đầy chỉ tiêu (+10%)")
+chart_data = pd.DataFrame({
+    "Ngành": list(counts.keys()),
+    "Đã tuyển": list(counts.values()),
+    "Chỉ tiêu tối đa": list(max_quotas.values())
+})
+fig = px.bar(chart_data, x="Ngành", y=["Đã tuyển", "Chỉ tiêu tối đa"], barmode="group", color_discrete_sequence=['#00CC96', '#EF553B'])
+st.plotly_chart(fig, use_container_width=True)
+
+# Hiển thị danh sách
+st.subheader("📋 Danh sách xét tuyển chi tiết (Sắp xếp theo thứ tự ưu tiên)")
+st.dataframe(df_final[['Mã HSTS', 'Họ tên', 'Diem_Thuc', 'Diem_XT', 'NV1', 'Kết quả', 'Trạng thái']], use_container_width=True)
