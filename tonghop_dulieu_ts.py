@@ -105,7 +105,12 @@ st.header("🎯 Xét tuyển thông minh (theo dữ liệu lọc)")
 
 # Lấy danh sách ngành từ dữ liệu đã lọc (nếu có)
 if xettuyen_nguyenvong_df is not None and not xettuyen_nguyenvong_df.empty:
-    nganh_list = list(sorted(set(xettuyen_nguyenvong_df['NV1'].unique()) | set(xettuyen_nguyenvong_df['NV2'].unique()) | set(xettuyen_nguyenvong_df['NV3'].unique())))
+    # Lấy danh sách ngành từ các cột đúng tên tiếng Việt
+    cols_nv = [c for c in ["Nguyện Vọng 1", "Nguyện Vọng 2", "Nguyện Vọng 3"] if c in xettuyen_nguyenvong_df.columns]
+    nganh_set = set()
+    for col in cols_nv:
+        nganh_set.update(xettuyen_nguyenvong_df[col].dropna().astype(str).str.strip().unique())
+    nganh_list = list(sorted(nganh_set))
 else:
     nganh_list = ["Công nghệ ô tô", "Điện", "Cơ khí"]
 
