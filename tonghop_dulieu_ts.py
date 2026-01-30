@@ -5,7 +5,7 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 st.set_page_config(page_title="Tổng hợp dữ liệu tuyển sinh", layout="wide")
-st.markdown("#### TỔNG HỢP DỮ LIỆU TUYỂN SINH")
+st.markdown('<span style="color: orange; font-size: 1.5em; font-weight: bold;">TỔNG HỢP DỮ LIỆU TUYỂN SINH</span>', unsafe_allow_html=True)
 
 # Hướng dẫn sử dụng
 with st.expander("Hướng dẫn sử dụng", expanded=False):
