@@ -202,8 +202,11 @@ if not quota_inputs:
     quota_inputs = st.session_state.get('nganh_chitieu_map', {}).copy()
 bonus_inputs = st.session_state.get('bonus_inputs', {})
 if not bonus_inputs:
-    # Lấy mặc định từ map ưu tiên ngành nếu có
-    bonus_inputs = {nganh: float(st.session_state.get('nganh_uutien_map', {}).get(nganh, 0.0)) for nganh in nganh_list}
+    nganh_uutien_map = st.session_state.get('nganh_uutien_map', {})
+    if 'nganh_list' in locals() and nganh_list:
+        bonus_inputs = {nganh: float(nganh_uutien_map.get(nganh, 0.0)) for nganh in nganh_list}
+    else:
+        bonus_inputs = {}
 oversample = st.session_state.get('oversample', 10)
 weight_early = st.session_state.get('weight_early', 0.05)
 
