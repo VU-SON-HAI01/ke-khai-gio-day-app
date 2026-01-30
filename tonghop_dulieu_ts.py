@@ -196,7 +196,9 @@ def show_bonus_dialog():
         st.session_state['bonus_inputs'] = bonus_inputs
         st.session_state['oversample'] = oversample
         st.session_state['weight_early'] = weight_early
+        # Nếu có quota_inputs trong session_state thì cập nhật lại quota_inputs và bonus_inputs toàn cục
         st.success("Đã lưu tham số ưu tiên!")
+        st.rerun()
 st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
 
 # Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
@@ -206,11 +208,9 @@ quota_inputs = st.session_state.get('quota_inputs', {})
 if not quota_inputs:
     quota_inputs = st.session_state.get('nganh_chitieu_map', {}).copy()
 bonus_inputs = st.session_state.get('bonus_inputs', {})
-nganh_uutien_map = st.session_state.get('nganh_uutien_map', {})
-if 'nganh_list' in locals() and nganh_list:
-    bonus_inputs = {nganh: float(nganh_uutien_map.get(nganh, 0.0)) for nganh in nganh_list}
-else:
-    bonus_inputs = {}
+if not bonus_inputs:
+    bonus_inputs = st.session_state['nganh_uutien_map']
+    
 oversample = st.session_state.get('oversample', 10)
 weight_early = st.session_state.get('weight_early', 0.05)
 
