@@ -142,11 +142,16 @@ if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chiti
                 nganh_chitieu_map[ten] = int(float(str(chitieu_ts).replace(",", ".")))
             except:
                 pass
-            nganh_uutien_map[ten] = uutien_nganh
+            # Đảm bảo giá trị là float, chuyển dấu phẩy sang chấm nếu cần
+            try:
+                nganh_uutien_map[ten] = float(str(uutien_nganh).replace(",", "."))
+            except:
+                nganh_uutien_map[ten] = 0.0
     # Lưu map vào session_state để dùng lại
     st.session_state['nganh_chitieu_map'] = nganh_chitieu_map.copy()
     st.session_state['nganh_uutien_map'] = nganh_uutien_map.copy()
 
+st.write(st.session_state['nganh_uutien_map'])
 # Form 1: Nhập chỉ tiêu tuyển sinh từng ngành (hiển thị mã ngành)
 
 @st.dialog("Điều chỉnh chỉ tiêu", width="medium")
@@ -201,12 +206,11 @@ quota_inputs = st.session_state.get('quota_inputs', {})
 if not quota_inputs:
     quota_inputs = st.session_state.get('nganh_chitieu_map', {}).copy()
 bonus_inputs = st.session_state.get('bonus_inputs', {})
-if not bonus_inputs:
-    nganh_uutien_map = st.session_state.get('nganh_uutien_map', {})
-    if 'nganh_list' in locals() and nganh_list:
-        bonus_inputs = {nganh: float(nganh_uutien_map.get(nganh, 0.0)) for nganh in nganh_list}
-    else:
-        bonus_inputs = {}
+nganh_uutien_map = st.session_state.get('nganh_uutien_map', {})
+if 'nganh_list' in locals() and nganh_list:
+    bonus_inputs = {nganh: float(nganh_uutien_map.get(nganh, 0.0)) for nganh in nganh_list}
+else:
+    bonus_inputs = {}
 oversample = st.session_state.get('oversample', 10)
 weight_early = st.session_state.get('weight_early', 0.05)
 
