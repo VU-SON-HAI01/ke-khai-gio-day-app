@@ -45,7 +45,7 @@ try:
         st.warning("Không có đủ dữ liệu HSSV!")
     else:
         df = pd.DataFrame(data[2:], columns=data[1])
-        st.markdown("#### Chọn năm tuyển sinh")
+        st.markdown("# Năm tuyển sinh")
         selected_year = st.selectbox("Năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
         confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter")
         if 'filtered_df' not in st.session_state:
@@ -169,8 +169,6 @@ def show_quota_dialog():
         st.success("Đã lưu chỉ tiêu ngành!")
         st.rerun()            
 
-st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog)
-
 # Form 2: Nhập điểm ưu tiên từng ngành
 
 @st.dialog("Điều chỉnh tham số ưu tiên", width="medium")
@@ -199,8 +197,13 @@ def show_bonus_dialog():
         # Nếu có quota_inputs trong session_state thì cập nhật lại quota_inputs và bonus_inputs toàn cục
         st.success("Đã lưu tham số ưu tiên!")
         st.rerun()
-st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
 
+
+col1, col2 = st.columns(2)
+with col1:
+    st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog)
+with col2:
+    st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
 # Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
 
 # Lấy quota_inputs, nếu rỗng thì lấy mặc định từ nganh_chitieu_map
