@@ -18,6 +18,33 @@ with st.expander("Hướng dẫn sử dụng", expanded=False):
 # Tải dữ liệu nguồn
 df = None
 df_chitieu = None
+
+# Tạo ánh xạ tên ngành <-> mã ngành từ df_chitieu
+nganh_ma_map = {}
+nganh_chitieu_map = {}
+nganh_uutien_map = {}
+if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns and 'MÃ_CĐ_TC' in df_chitieu.columns and 'CHỈ TIÊU' in df_chitieu.columns and 'ƯU TIÊN NGÀNH' in df_chitieu.columns:
+    for _, row in df_chitieu.iterrows():
+        ten = str(row['TÊN_CĐ_TC']).strip()
+        ma = str(row['MÃ_CĐ_TC']).strip()
+        chitieu_ts = row['CHỈ TIÊU']
+        uutien_nganh = row['ƯU TIÊN NGÀNH']
+        if ten:
+            nganh_ma_map[ten] = ma
+            # Lưu giá trị chỉ tiêu nếu là số, nếu không thì bỏ qua
+            try:
+                nganh_chitieu_map[ten] = int(float(str(chitieu_ts).replace(",", ".")))
+            except:
+                pass
+            # Đảm bảo giá trị là float, chuyển dấu phẩy sang chấm nếu cần
+            try:
+                nganh_uutien_map[ten] = float(str(uutien_nganh).replace(",", "."))
+            except:
+                nganh_uutien_map[ten] = 0.0
+    # Lưu map vào session_state để dùng lại
+    st.session_state['nganh_chitieu_map'] = nganh_chitieu_map.copy()
+    st.session_state['nganh_uutien_map'] = nganh_uutien_map.copy()
+
 try:
     google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
     thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
@@ -108,6 +135,18 @@ try:
                     st.bar_chart(nv2_counts)
                 else:
                     st.info("Không tìm thấy cột 'Nguyện Vọng 2' trong dữ liệu.")
+
+                # Biểu đồ chỉ tiêu ngành
+                st.markdown("###### BIỂU ĐỒ CHỈ TIÊU NGÀNH ĐÀO TẠO")
+                nganh_chitieu_map = st.session_state.get('nganh_chitieu_map', {})
+                if nganh_chitieu_map:
+                    df_chitieu_chart = pd.DataFrame({
+                        "Ngành đào tạo": list(nganh_chitieu_map.keys()),
+                        "Chỉ tiêu": list(nganh_chitieu_map.values())
+                    })
+                    st.bar_chart(df_chitieu_chart.set_index("Ngành đào tạo"))
+                else:
+                    st.info("Không có dữ liệu chỉ tiêu ngành để hiển thị.")
             with tab3:
                 st.markdown("#### Thống kê nhanh theo cột bất kỳ")
                 col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns), key="col_stat_tab")
@@ -140,32 +179,6 @@ elif xettuyen_nguyenvong_df is not None and not xettuyen_nguyenvong_df.empty:
 else:
     nganh_list = ["Công nghệ ô tô", "Điện", "Cơ khí"]
 
-
-# Tạo ánh xạ tên ngành <-> mã ngành từ df_chitieu
-nganh_ma_map = {}
-nganh_chitieu_map = {}
-nganh_uutien_map = {}
-if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns and 'MÃ_CĐ_TC' in df_chitieu.columns and 'CHỈ TIÊU' in df_chitieu.columns and 'ƯU TIÊN NGÀNH' in df_chitieu.columns:
-    for _, row in df_chitieu.iterrows():
-        ten = str(row['TÊN_CĐ_TC']).strip()
-        ma = str(row['MÃ_CĐ_TC']).strip()
-        chitieu_ts = row['CHỈ TIÊU']
-        uutien_nganh = row['ƯU TIÊN NGÀNH']
-        if ten:
-            nganh_ma_map[ten] = ma
-            # Lưu giá trị chỉ tiêu nếu là số, nếu không thì bỏ qua
-            try:
-                nganh_chitieu_map[ten] = int(float(str(chitieu_ts).replace(",", ".")))
-            except:
-                pass
-            # Đảm bảo giá trị là float, chuyển dấu phẩy sang chấm nếu cần
-            try:
-                nganh_uutien_map[ten] = float(str(uutien_nganh).replace(",", "."))
-            except:
-                nganh_uutien_map[ten] = 0.0
-    # Lưu map vào session_state để dùng lại
-    st.session_state['nganh_chitieu_map'] = nganh_chitieu_map.copy()
-    st.session_state['nganh_uutien_map'] = nganh_uutien_map.copy()
 
 # Form 1: Nhập chỉ tiêu tuyển sinh từng ngành (hiển thị mã ngành)
 @st.dialog("Điều chỉnh chỉ tiêu", width="medium")
