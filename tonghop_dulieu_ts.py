@@ -185,8 +185,8 @@ def show_bonus_dialog():
                 bonus_inputs[nganh] = st.number_input(
                     f"Ưu tiên điểm ({ma_nganh})", min_value=0.0, max_value=5.0,
                     value=default_bonus, step=0.1, key=f"bonus_{nganh}")
-    oversample = st.slider("Tỷ lệ vượt chỉ tiêu (%)", min_value=0, max_value=50, value=10, step=1, key="oversample")
-    weight_early = st.number_input("Ưu tiên nộp sớm (+ điểm)", min_value=0.0, max_value=2.0, value=0.05, step=0.01, key="weight_early")
+    oversample = st.slider("Tỷ lệ vượt chỉ tiêu (%)", min_value=0, max_value=50, value=10, step=1, key="oversample_slider")
+    weight_early = st.number_input("Ưu tiên nộp sớm (+ điểm)", min_value=0.0, max_value=2.0, value=0.05, step=0.01, key="weight_early_input")
     if st.button("Xét tuyển với cấu hình này"):
         st.session_state['bonus_inputs'] = bonus_inputs
         st.session_state['oversample'] = oversample
