@@ -17,6 +17,7 @@ with st.expander("Hướng dẫn sử dụng", expanded=False):
 
 # Tải dữ liệu nguồn
 df = None
+df_chitieu = None
 try:
     google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
     thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
@@ -31,6 +32,14 @@ try:
     gc = gspread.authorize(credentials)
     sh = gc.open_by_key(thong_tin_hssv_id)
     worksheet = sh.worksheet(sheet_name)
+    
+    worksheet_ct = sh.worksheet("CHI_TIEU_TS")
+    data_ct = worksheet_ct.get_all_values()
+    if data_ct and len(data_ct) > 1:
+        df_chitieu = pd.DataFrame(data_ct[1:], columns=data_ct[0])
+    else:
+        st.warning("Không có dữ liệu chỉ tiêu!")
+    
     data = worksheet.get_all_values()
     if not data or len(data) < 3:
         st.warning("Không có đủ dữ liệu HSSV!")
@@ -103,9 +112,10 @@ xettuyen_nguyenvong_df = st.session_state['filtered_df']
 st.markdown("---")
 st.header("🎯 Xét tuyển thông minh (theo dữ liệu lọc)")
 
-# Lấy danh sách ngành từ dữ liệu đã lọc (nếu có)
-if xettuyen_nguyenvong_df is not None and not xettuyen_nguyenvong_df.empty:
-    # Lấy danh sách ngành từ các cột đúng tên tiếng Việt
+# Lấy danh sách ngành từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, ưu tiên bảng chỉ tiêu
+if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
+    nganh_list = list(df_chitieu['TÊN_CĐ_TC'].dropna().astype(str).str.strip().unique())
+elif xettuyen_nguyenvong_df is not None and not xettuyen_nguyenvong_df.empty:
     cols_nv = [c for c in ["Nguyện Vọng 1", "Nguyện Vọng 2", "Nguyện Vọng 3"] if c in xettuyen_nguyenvong_df.columns]
     nganh_set = set()
     for col in cols_nv:
