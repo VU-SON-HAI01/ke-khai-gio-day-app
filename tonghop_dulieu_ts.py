@@ -128,11 +128,13 @@ else:
 # Tạo ánh xạ tên ngành <-> mã ngành từ df_chitieu
 nganh_ma_map = {}
 nganh_chitieu_map = {}
-if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns and 'MÃ_CĐ_TC' in df_chitieu.columns and 'CHỈ TIÊU' in df_chitieu.columns:
+nganh_uutien_map = {}
+if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns and 'MÃ_CĐ_TC' in df_chitieu.columns and 'CHỈ TIÊU' in df_chitieu.columns and 'ƯU TIÊN NGÀNH' in df_chitieu.columns:
     for _, row in df_chitieu.iterrows():
         ten = str(row['TÊN_CĐ_TC']).strip()
         ma = str(row['MÃ_CĐ_TC']).strip()
         chitieu_ts = row['CHỈ TIÊU']
+        uutien_nganh = row['ƯU TIÊN NGÀNH']
         if ten:
             nganh_ma_map[ten] = ma
             # Lưu giá trị chỉ tiêu nếu là số, nếu không thì bỏ qua
@@ -140,9 +142,15 @@ if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chiti
                 nganh_chitieu_map[ten] = int(float(str(chitieu_ts).replace(",", ".")))
             except:
                 pass
+            nganh_uutien_map[ten] = uutien_nganh
+    # Lưu map vào session_state để dùng lại
+    st.session_state['nganh_chitieu_map'] = nganh_chitieu_map.copy()
+    st.session_state['nganh_uutien_map'] = nganh_uutien_map.copy()
 
 # Form 1: Nhập chỉ tiêu tuyển sinh từng ngành (hiển thị mã ngành)
-with st.form("form_quota_config"):
+
+@st.dialog("Điều chỉnh chỉ tiêu", width="medium")
+def show_quota_dialog():
     st.subheader("Nhập chỉ tiêu tuyển sinh từng ngành")
     quota_inputs = {}
     cols_quota = st.columns(4)
@@ -153,10 +161,16 @@ with st.form("form_quota_config"):
                 quota_inputs[nganh] = st.number_input(
                     f"Chỉ tiêu ngành ({ma_nganh})", min_value=1, max_value=500,
                     value=nganh_chitieu_map[nganh], key=f"quota_{nganh}")
-    submit_quota = st.form_submit_button("Lưu chỉ tiêu ngành")
+    if st.button("Xác nhận chỉ tiêu ngành"):
+        st.session_state['quota_inputs'] = quota_inputs.copy()
+        st.success("Đã lưu chỉ tiêu ngành!")
+if st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog):
+    show_quota_dialog()
 
 # Form 2: Nhập điểm ưu tiên từng ngành
-with st.form("form_bonus_config"):
+
+@st.dialog("Điều chỉnh tham số ưu tiên", width="medium")
+def show_bonus_dialog():
     st.subheader("Nhập điểm ưu tiên từng ngành")
     bonus_inputs = {}
     cols_bonus = st.columns(4)
@@ -169,12 +183,28 @@ with st.form("form_bonus_config"):
                     value=1.0 if "Cơ khí" in nganh else 0.0, step=0.1, key=f"bonus_{nganh}")
     oversample = st.slider("Tỷ lệ vượt chỉ tiêu (%)", min_value=0, max_value=50, value=10, step=1, key="oversample")
     weight_early = st.number_input("Ưu tiên nộp sớm (+ điểm)", min_value=0.0, max_value=2.0, value=0.05, step=0.01, key="weight_early")
-    submit_bonus = st.form_submit_button("Xét tuyển với cấu hình này")
+    if st.button("Xét tuyển với cấu hình này"):
+        st.session_state['bonus_inputs'] = bonus_inputs
+        st.session_state['oversample'] = oversample
+        st.session_state['weight_early'] = weight_early
+        st.success("Đã lưu tham số ưu tiên!")
+if st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog):
+    show_bonus_dialog()
+
+
+# Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
+quota_inputs = st.session_state.get('quota_inputs', {})
+bonus_inputs = st.session_state.get('bonus_inputs', {})
+oversample = st.session_state.get('oversample', 10)
+weight_early = st.session_state.get('weight_early', 0.05)
 
 QUOTA_CONFIG = {nganh: {"quota": quota_inputs.get(nganh, 20), "bonus": bonus_inputs.get(nganh, 0.0)} for nganh in nganh_list}
-OVERSAMPLE_RATE = oversample / 100 if 'oversample' in locals() else 0.10
-WEIGHT_EARLY = weight_early if 'weight_early' in locals() else 0.05
+OVERSAMPLE_RATE = oversample / 100
+WEIGHT_EARLY = weight_early
 WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
+
+# submit_quota: True nếu đã có quota_inputs và bonus_inputs trong session_state
+submit_quota = bool(quota_inputs and bonus_inputs)
 
 # --- 2. HÀM LOGIC XÉT TUYỂN ---
 def run_admission_logic(df_input, quotas):
