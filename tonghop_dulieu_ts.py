@@ -177,9 +177,14 @@ def show_bonus_dialog():
         ma_nganh = nganh_ma_map.get(nganh, "")
         if nganh in nganh_chitieu_map:
             with cols_bonus[idx % 4]:
+                # Lấy giá trị mặc định từ map ưu tiên ngành nếu có
+                try:
+                    default_bonus = float(st.session_state.get('nganh_uutien_map', {}).get(nganh, 0.0))
+                except Exception:
+                    default_bonus = 0.0
                 bonus_inputs[nganh] = st.number_input(
                     f"Ưu tiên điểm ({ma_nganh})", min_value=0.0, max_value=5.0,
-                    value=1.0 if "Cơ khí" in nganh else 0.0, step=0.1, key=f"bonus_{nganh}")
+                    value=default_bonus, step=0.1, key=f"bonus_{nganh}")
     oversample = st.slider("Tỷ lệ vượt chỉ tiêu (%)", min_value=0, max_value=50, value=10, step=1, key="oversample")
     weight_early = st.number_input("Ưu tiên nộp sớm (+ điểm)", min_value=0.0, max_value=2.0, value=0.05, step=0.01, key="weight_early")
     if st.button("Xét tuyển với cấu hình này"):
