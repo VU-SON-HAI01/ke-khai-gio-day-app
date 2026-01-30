@@ -93,12 +93,19 @@ try:
                 )
                 st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
             with tab2:
-                st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG HỌC SINH THEO NGUYỆN VỌNG 1")
+                st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 1)")
                 if "Nguyện Vọng 1" in filtered_df.columns:
                     nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
                     st.bar_chart(nv1_counts)
                 else:
                     st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
+
+                st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 2)")
+                if "Nguyện Vọng 2" in filtered_df.columns:
+                    nv2_counts = filtered_df["Nguyện Vọng 2"].value_counts().sort_values(ascending=False)
+                    st.bar_chart(nv2_counts)
+                else:
+                    st.info("Không tìm thấy cột 'Nguyện Vọng 2' trong dữ liệu.")
             with tab3:
                 st.markdown("#### Thống kê nhanh theo cột bất kỳ")
                 col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns), key="col_stat_tab")
