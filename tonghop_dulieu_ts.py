@@ -44,13 +44,14 @@ try:
     if not data or len(data) < 3:
         st.warning("Không có đủ dữ liệu HSSV!")
     else:
-        col_namts1,col_namts2 = st.columns(2)
+        col_namts1,col_namts2 = st.columns([2,8])
         with col_namts1:
             df = pd.DataFrame(data[2:], columns=data[1])
             st.markdown("##### NĂM TUYỂN SINH")
             selected_year = st.selectbox("Chọn năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
+            confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter", use_container_width=True)
         with col_namts2:
-            confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter")
+            pass
         if 'filtered_df' not in st.session_state:
             st.session_state['filtered_df'] = None
         if confirm_filter:
