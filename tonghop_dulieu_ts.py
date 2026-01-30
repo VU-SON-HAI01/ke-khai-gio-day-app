@@ -164,8 +164,7 @@ def show_quota_dialog():
     if st.button("Xác nhận chỉ tiêu ngành"):
         st.session_state['quota_inputs'] = quota_inputs.copy()
         st.success("Đã lưu chỉ tiêu ngành!")
-if st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog):
-    show_quota_dialog()
+st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog)
 
 # Form 2: Nhập điểm ưu tiên từng ngành
 
@@ -188,8 +187,7 @@ def show_bonus_dialog():
         st.session_state['oversample'] = oversample
         st.session_state['weight_early'] = weight_early
         st.success("Đã lưu tham số ưu tiên!")
-if st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog):
-    show_bonus_dialog()
+st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
 
 
 # Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
