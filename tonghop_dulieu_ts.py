@@ -195,8 +195,15 @@ def show_bonus_dialog():
 st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
 
 # Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
+
+# Lấy quota_inputs, nếu rỗng thì lấy mặc định từ nganh_chitieu_map
 quota_inputs = st.session_state.get('quota_inputs', {})
+if not quota_inputs:
+    quota_inputs = st.session_state.get('nganh_chitieu_map', {}).copy()
 bonus_inputs = st.session_state.get('bonus_inputs', {})
+if not bonus_inputs:
+    # Lấy mặc định từ map ưu tiên ngành nếu có
+    bonus_inputs = {nganh: float(st.session_state.get('nganh_uutien_map', {}).get(nganh, 0.0)) for nganh in nganh_list}
 oversample = st.session_state.get('oversample', 10)
 weight_early = st.session_state.get('weight_early', 0.05)
 
@@ -234,8 +241,12 @@ def run_admission_logic(df_input, quotas):
             df_proc[col] = df_proc[col].astype(str).str.strip()
     # Tính điểm xét tuyển
     def calc_score(row):
-        score = float(row.get('diem_thuc', 0))
-        score += QUOTA_CONFIG.get(row.get('nv1', ''), {}).get('bonus', 0)
+        # Lấy điểm thực
+        score = float(row['diem_thuc']) if 'diem_thuc' in row and pd.notnull(row['diem_thuc']) else 0
+        # Lấy bonus ngành NV1 nếu có
+        nv1 = row['nv1'] if 'nv1' in row else ''
+        bonus = QUOTA_CONFIG[nv1]['bonus'] if nv1 in QUOTA_CONFIG else 0
+        score += bonus
         # Ưu tiên nộp sớm nếu có cột ngày nhập
         if 'ngay_nhap' in row and pd.notnull(row['ngay_nhap']) and str(row['ngay_nhap']).strip() != '':
             score += WEIGHT_EARLY
@@ -252,7 +263,7 @@ def run_admission_logic(df_input, quotas):
         assigned_nv = None
         for i in range(1, 4):
             nv_col = f'nv{i}'
-            nv_name = row.get(nv_col, '')
+            nv_name = row[nv_col] if nv_col in row and pd.notnull(row[nv_col]) else ''
             if nv_name in current_counts and current_counts[nv_name] < actual_quotas[nv_name]:
                 assigned_major = nv_name
                 assigned_nv = f"NV{i}"
@@ -266,7 +277,7 @@ def run_admission_logic(df_input, quotas):
             'Kết quả': assigned_major,
             'Loại NV': assigned_nv,
             'Trạng thái': "Trúng tuyển" if assigned_major != "Trượt" else "Không trúng tuyển",
-            'Điểm chuẩn ngành trúng': diem_chuan.get(assigned_major) if assigned_major != "Trượt" else None
+            'Điểm chuẩn ngành trúng': diem_chuan[assigned_major] if assigned_major != "Trượt" else None
         })
     return pd.DataFrame(results), current_counts, actual_quotas
 
