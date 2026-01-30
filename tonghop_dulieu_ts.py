@@ -47,7 +47,7 @@ try:
         col_namts1,col_namts2 = st.columns([2,8])
         with col_namts1:
             df = pd.DataFrame(data[2:], columns=data[1])
-            st.markdown("##### NĂM TUYỂN SINH")
+            st.markdown("###### NĂM TUYỂN SINH")
             selected_year = st.selectbox("Chọn năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
             confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter", use_container_width=True)
         with col_namts2:
@@ -70,7 +70,7 @@ try:
         if filtered_df is not None and not filtered_df.empty:
             tab1, tab2, tab3 = st.tabs([f"Hồ sơ tuyển sinh", "Biểu đồ", "Thống kê nhanh"])
             with tab1:
-                st.markdown(f"##### Danh sách HSTS năm {selected_year} (Hiện {len(filtered_df)} hồ sơ)")
+                st.markdown(f"###### Danh sách HSTS năm {selected_year} (Hiện {len(filtered_df)} hồ sơ)")
                 cols_show = [
                     "MÃ HSTS",
                     "HỌ ĐỆM",
@@ -93,7 +93,7 @@ try:
                 )
                 st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
             with tab2:
-                st.markdown("##### BIỂU ĐỒ SỐ LƯỢNG HỌC SINH THEO NGUYỆN VỌNG 1")
+                st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG HỌC SINH THEO NGUYỆN VỌNG 1")
                 if "Nguyện Vọng 1" in filtered_df.columns:
                     nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
                     st.bar_chart(nv1_counts)
