@@ -102,7 +102,9 @@ try:
 
                 st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 2)")
                 if "Nguyện Vọng 2" in filtered_df.columns:
-                    nv2_counts = filtered_df["Nguyện Vọng 2"].value_counts().sort_values(ascending=False)
+                    nv2_series = filtered_df["Nguyện Vọng 2"].dropna().astype(str).str.strip()
+                    nv2_series = nv2_series[nv2_series != ""]
+                    nv2_counts = nv2_series.value_counts().sort_values(ascending=False)
                     st.bar_chart(nv2_counts)
                 else:
                     st.info("Không tìm thấy cột 'Nguyện Vọng 2' trong dữ liệu.")
