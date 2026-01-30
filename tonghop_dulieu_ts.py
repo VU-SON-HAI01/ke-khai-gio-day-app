@@ -118,10 +118,16 @@ with st.form("form_quota_config"):
     st.subheader("Nhập chỉ tiêu tuyển sinh từng ngành")
     quota_inputs = {}
     bonus_inputs = {}
-    for nganh in nganh_list:
-        cols = st.columns([2,1])
-        quota_inputs[nganh] = cols[0].number_input(f"Chỉ tiêu ngành {nganh}", min_value=1, max_value=500, value=40 if "ô tô" in nganh else 30 if "Điện" in nganh else 20)
-        bonus_inputs[nganh] = cols[1].number_input(f"Ưu tiên cộng điểm ({nganh})", min_value=0.0, max_value=5.0, value=1.0 if "Cơ khí" in nganh else 0.0, step=0.1)
+    # Chia thành 4 cột cho mỗi ngành
+    cols_all = st.columns(4)
+    for idx, nganh in enumerate(nganh_list):
+        with cols_all[idx % 4]:
+            quota_inputs[nganh] = st.number_input(
+                f"Chỉ tiêu ngành {nganh}", min_value=1, max_value=500,
+                value=40 if "ô tô" in nganh else 30 if "Điện" in nganh else 20, key=f"quota_{nganh}")
+            bonus_inputs[nganh] = st.number_input(
+                f"Ưu tiên điểm ({nganh})", min_value=0.0, max_value=5.0,
+                value=1.0 if "Cơ khí" in nganh else 0.0, step=0.1, key=f"bonus_{nganh}")
     oversample = st.slider("Tỷ lệ vượt chỉ tiêu (%)", min_value=0, max_value=50, value=10, step=1)
     weight_early = st.number_input("Ưu tiên nộp sớm (+ điểm)", min_value=0.0, max_value=2.0, value=0.05, step=0.01)
     submit_quota = st.form_submit_button("Xét tuyển với cấu hình này")
