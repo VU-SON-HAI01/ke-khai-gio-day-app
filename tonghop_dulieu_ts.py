@@ -67,8 +67,9 @@ try:
                 st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
         filtered_df = st.session_state['filtered_df']
         if filtered_df is not None and not filtered_df.empty:
-            tab1, tab2, tab3 = st.tabs([f"Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)", "Biểu đồ NV1", "Thống kê nhanh"])
+            tab1, tab2, tab3 = st.tabs([f"Hồ sơ tuyển sinh", "Biểu đồ NV1", "Thống kê nhanh"])
             with tab1:
+                st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
                 cols_show = [
                     "MÃ HSTS",
                     "HỌ ĐỆM",
