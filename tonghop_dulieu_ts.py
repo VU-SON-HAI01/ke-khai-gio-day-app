@@ -67,41 +67,43 @@ try:
                 st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
         filtered_df = st.session_state['filtered_df']
         if filtered_df is not None and not filtered_df.empty:
-            st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
-            cols_show = [
-                "MÃ HSTS",
-                "HỌ ĐỆM",
-                "TÊN",
-                "NGÀY SINH",
-                "Ngày nhập hồ sơ",
-                "Tổng điểm",
-                "Nguyện Vọng 1",
-                "Nguyện Vọng 2",
-                "Nguyện Vọng 3"
-            ]
-            cols_exist = [c for c in cols_show if c in filtered_df.columns]
-            st.dataframe(filtered_df[cols_exist], use_container_width=True)
-            st.download_button(
-                label=f"Tải danh sách HSTS năm {selected_year}",
-                data=filtered_df[cols_exist].to_csv(index=False).encode('utf-8-sig'),
-                file_name=f"danhsach_hsts_{selected_year}.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-            st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
-            # Biểu đồ Nguyện vọng 1
-            st.markdown("#### Biểu đồ số lượng học sinh theo Nguyện vọng 1")
-            if "Nguyện Vọng 1" in filtered_df.columns:
-                nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
-                st.bar_chart(nv1_counts)
-            else:
-                st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
-            st.markdown("#### Thống kê nhanh theo cột bất kỳ")
-            col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns))
-            if col_stat:
-                freq = filtered_df[col_stat].value_counts().reset_index()
-                freq.columns = [col_stat, "Số lượng"]
-                st.dataframe(freq, use_container_width=True)
+            tab1, tab2, tab3 = st.tabs([f"Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)", "Biểu đồ NV1", "Thống kê nhanh"])
+            with tab1:
+                cols_show = [
+                    "MÃ HSTS",
+                    "HỌ ĐỆM",
+                    "TÊN",
+                    "NGÀY SINH",
+                    "Ngày nhập hồ sơ",
+                    "Tổng điểm",
+                    "Nguyện Vọng 1",
+                    "Nguyện Vọng 2",
+                    "Nguyện Vọng 3"
+                ]
+                cols_exist = [c for c in cols_show if c in filtered_df.columns]
+                st.dataframe(filtered_df[cols_exist], use_container_width=True)
+                st.download_button(
+                    label=f"Tải danh sách HSTS năm {selected_year}",
+                    data=filtered_df[cols_exist].to_csv(index=False).encode('utf-8-sig'),
+                    file_name=f"danhsach_hsts_{selected_year}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+                st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
+            with tab2:
+                st.markdown("#### Biểu đồ số lượng học sinh theo Nguyện vọng 1")
+                if "Nguyện Vọng 1" in filtered_df.columns:
+                    nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
+                    st.bar_chart(nv1_counts)
+                else:
+                    st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
+            with tab3:
+                st.markdown("#### Thống kê nhanh theo cột bất kỳ")
+                col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns), key="col_stat_tab")
+                if col_stat:
+                    freq = filtered_df[col_stat].value_counts().reset_index()
+                    freq.columns = [col_stat, "Số lượng"]
+                    st.dataframe(freq, use_container_width=True)
         elif confirm_filter:
             st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
         else:
