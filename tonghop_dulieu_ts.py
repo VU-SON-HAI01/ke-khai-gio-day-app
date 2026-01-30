@@ -157,6 +157,10 @@ st.write(st.session_state['nganh_uutien_map'])
 @st.dialog("Điều chỉnh chỉ tiêu", width="medium")
 def show_quota_dialog():
     st.subheader("Nhập chỉ tiêu tuyển sinh từng ngành")
+    if st.button("Xác nhận chỉ tiêu ngành"):
+        st.session_state['quota_inputs'] = quota_inputs.copy()
+        st.success("Đã lưu chỉ tiêu ngành!")
+        st.rerun()
     quota_inputs = {}
     cols_quota = st.columns(4)
     for idx, nganh in enumerate(nganh_list):
@@ -166,10 +170,7 @@ def show_quota_dialog():
                 quota_inputs[nganh] = st.number_input(
                     f"Chỉ tiêu ngành ({ma_nganh})", min_value=1, max_value=500,
                     value=nganh_chitieu_map[nganh], key=f"quota_{nganh}")
-    if st.button("Xác nhận chỉ tiêu ngành"):
-        st.session_state['quota_inputs'] = quota_inputs.copy()
-        st.success("Đã lưu chỉ tiêu ngành!")
-        st.rerun()
+
 st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog)
 
 # Form 2: Nhập điểm ưu tiên từng ngành
