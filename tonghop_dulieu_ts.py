@@ -5,7 +5,7 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 st.set_page_config(page_title="Tổng hợp dữ liệu tuyển sinh", layout="wide")
-st.title("TỔNG HỢP DỮ LIỆU TUYỂN SINH")
+st.title("#### TỔNG HỢP DỮ LIỆU TUYỂN SINH")
 
 # Hướng dẫn sử dụng
 with st.expander("Hướng dẫn sử dụng", expanded=False):
@@ -68,9 +68,9 @@ try:
                 st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
         filtered_df = st.session_state['filtered_df']
         if filtered_df is not None and not filtered_df.empty:
-            tab1, tab2, tab3 = st.tabs([f"Hồ sơ tuyển sinh", "Biểu đồ NV1", "Thống kê nhanh"])
+            tab1, tab2, tab3 = st.tabs([f"Hồ sơ tuyển sinh", "Biểu đồ", "Thống kê nhanh"])
             with tab1:
-                st.markdown(f"##### Danh sách HSTS năm {selected_year} ({len(filtered_df)} dòng)")
+                st.markdown(f"##### Danh sách HSTS năm {selected_year} (Hiện {len(filtered_df)} hồ sơ)")
                 cols_show = [
                     "MÃ HSTS",
                     "HỌ ĐỆM",
@@ -93,7 +93,7 @@ try:
                 )
                 st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
             with tab2:
-                st.markdown("#### Biểu đồ số lượng học sinh theo Nguyện vọng 1")
+                st.markdown("##### BIỂU ĐỒ SỐ LƯỢNG HỌC SINH THEO NGUYỆN VỌNG 1")
                 if "Nguyện Vọng 1" in filtered_df.columns:
                     nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
                     st.bar_chart(nv1_counts)
