@@ -189,12 +189,14 @@ def show_bonus_dialog():
         st.success("Đã lưu tham số ưu tiên!")
 st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
 
-
 # Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
 quota_inputs = st.session_state.get('quota_inputs', {})
 bonus_inputs = st.session_state.get('bonus_inputs', {})
 oversample = st.session_state.get('oversample', 10)
 weight_early = st.session_state.get('weight_early', 0.05)
+
+st.write(quota_inputs)
+st.write(bonus_inputs)
 
 QUOTA_CONFIG = {nganh: {"quota": quota_inputs.get(nganh, 20), "bonus": bonus_inputs.get(nganh, 0.0)} for nganh in nganh_list}
 OVERSAMPLE_RATE = oversample / 100
