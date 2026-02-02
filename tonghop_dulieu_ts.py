@@ -338,7 +338,7 @@ else:
                         x=max_y,
                         mode="lines+markers",
                         name="Điểm cao nhất",
-                        line=dict(color="#00CC96", width=3),
+                        line=dict(color="#00CC96", width=1),
                         marker=dict(symbol="circle", size=8),
                         orientation="h"
                     ))
@@ -347,7 +347,7 @@ else:
                         x=min_y,
                         mode="lines+markers",
                         name="Điểm thấp nhất",
-                        line=dict(color="#EF553B", width=3, dash="dash"),
+                        line=dict(color="#EF553B", width=1, dash="dash"),
                         marker=dict(symbol="diamond", size=8),
                         orientation="h"
                     ))
