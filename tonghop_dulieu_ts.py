@@ -119,7 +119,7 @@ try:
     if not data or len(data) < 3:
         st.warning("Không có đủ dữ liệu HSSV!")
     else:
-        col_namts1,col_namts2 = st.columns([2,8])
+        col_namts1,col_namts2,col_namts3 = st.columns([2,2,6])
         with col_namts1:
             df = pd.DataFrame(data[2:], columns=data[1])
             st.markdown("###### NĂM TUYỂN SINH")
@@ -153,11 +153,8 @@ try:
             else:
                 nganh_list = ["Công nghệ ô tô", "Điện", "Cơ khí"]
 
-            col1, col2 = st.columns(2)
-            with col1:
-                st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog)
-            with col2:
-                st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
+            st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog)
+            st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
             # Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
 
             # Lấy quota_inputs, nếu rỗng thì lấy mặc định từ nganh_chitieu_map
@@ -178,8 +175,8 @@ try:
             OVERSAMPLE_RATE = oversample / 100
             WEIGHT_EARLY = weight_early
             WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
-
-
+        with col_namts2:
+            pass
 
         filtered_df = st.session_state['filtered_df']
         if filtered_df is not None and not filtered_df.empty:
