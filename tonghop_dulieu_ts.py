@@ -153,8 +153,8 @@ try:
             else:
                 nganh_list = ["Công nghệ ô tô", "Điện", "Cơ khí"]
 
-            st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog)
-            st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
+            st.button("Điều chỉnh chỉ tiêu ngành", type="primary", use_container_width=True,on_click=show_quota_dialog)
+            st.button("Điều chỉnh tham số ưu tiên", type="primary", use_container_width=True,on_click=show_bonus_dialog)
             # Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
 
             # Lấy quota_inputs, nếu rỗng thì lấy mặc định từ nganh_chitieu_map
@@ -177,7 +177,6 @@ try:
             WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
         with col_namts2:
             pass
-
         filtered_df = st.session_state['filtered_df']
         if filtered_df is not None and not filtered_df.empty:
             tab1, tab2, tab3 = st.tabs([f"Hồ sơ tuyển sinh", "Biểu đồ", "Thống kê nhanh"])
