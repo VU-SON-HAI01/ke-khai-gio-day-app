@@ -306,6 +306,7 @@ else:
                     nv1_ma = nv1_nganh_chuan.map(lambda x: ten2ma_map.get(x, None))
                     # Tính tổng điểm + ưu tiên ngành
                     diem_thuc = pd.to_numeric(filtered_df["Tổng điểm"], errors="coerce")
+                    st.write(diem_thuc)
                     # Lấy bonus theo mã ngành
                     def get_bonus(ma):
                         if ma in bonus_inputs:
