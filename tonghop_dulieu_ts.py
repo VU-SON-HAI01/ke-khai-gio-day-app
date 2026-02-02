@@ -376,7 +376,7 @@ else:
                         y=y_labels,
                         x=max_y,
                         mode="markers",
-                        marker=dict(color="#00FF00", size=7, symbol="circle"),
+                        marker=dict(color="#00CC00", size=7, symbol="circle"),
                         name="Điểm cao nhất"
                     ))
                     fig_range.add_trace(go.Scatter(
