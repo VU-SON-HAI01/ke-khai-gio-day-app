@@ -184,7 +184,9 @@ else:
         with tab2:
             st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 1)")
             if "Nguyện Vọng 1" in filtered_df.columns:
-                nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
+                # Đếm số lượng NV1 cho từng ngành trong nganh_list (danh sách chỉ tiêu)
+                nv1_series = filtered_df["Nguyện Vọng 1"].astype(str).str.strip()
+                nv1_counts = pd.Series({nganh: (nv1_series == nganh).sum() for nganh in nganh_list})
                 st.bar_chart(nv1_counts)
             else:
                 st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
