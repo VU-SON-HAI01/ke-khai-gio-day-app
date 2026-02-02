@@ -359,7 +359,7 @@ else:
                         y=y_labels,
                         x=max_y,
                         mode="markers",
-                        marker=dict(color="#00CC96", size=5, symbol="circle-open"),
+                        marker=dict(color="#00CC96", size=5, symbol="circle"),
                         name="Điểm cao nhất"
                     ))
                     fig_range.update_layout(
