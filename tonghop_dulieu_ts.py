@@ -141,6 +141,10 @@ else:
         # Lấy danh sách ngành chỉ từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, nếu không thì dùng mặc định
         if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
             nganh_list = list(df_chitieu['TÊN_CĐ_TC'].dropna().astype(str).str.strip().unique())
+            # Tạo malop_list là danh sách mã ngành (MÃ_CĐ_TC)
+            malop_list = list(df_chitieu['MÃ_CĐ_TC'].dropna().astype(str).str.strip().unique())
+            # Tạo ánh xạ tên ngành sang mã ngành
+            ten2ma_map = {str(row['TÊN_CĐ_TC']).strip().upper(): str(row['MÃ_CĐ_TC']).strip() for _, row in df_chitieu.iterrows()}
         else:
             nganh_list = ["Công nghệ ô tô", "Điện", "Cơ khí"]
         st.button("Điều chỉnh chỉ tiêu ngành", type="primary", use_container_width=True,on_click=show_quota_dialog)
@@ -162,6 +166,8 @@ else:
         st.write(bonus_inputs)
 
         QUOTA_CONFIG = {nganh: {"quota": chitieu_dieuchinh_df.get(nganh, 20), "bonus": bonus_inputs.get(nganh, 0.0)} for nganh in nganh_list}
+        # QUOTA_CONFIG theo mã ngành
+        QUOTA_CONFIG = {ma: {"quota": chitieu_dieuchinh_df.get(ma, 20), "bonus": bonus_inputs.get(ma, 0.0)} for ma in malop_list}
         OVERSAMPLE_RATE = oversample / 100
         WEIGHT_EARLY = weight_early
         WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
@@ -195,7 +201,7 @@ else:
             st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
         with tab2:
 
-            st.markdown("###### BIỂU ĐỒ KẾT HỢP: SỐ LƯỢNG NGUYỆN VỌNG 1 VÀ CHỈ TIÊU THEO NGÀNH")
+            st.markdown("###### BIỂU ĐỒ KẾT HỢP: SỐ LƯỢNG NGUYỆN VỌNG 1, NGUYỆN VỌNG 2 VÀ CHỈ TIÊU THEO MÃ NGÀNH")
             if "Nguyện Vọng 1" in filtered_df.columns and chitieu_dieuchinh_df:
                 # Chuẩn hóa tên ngành NV1 và NV2 về đúng định dạng TÊN_CĐ_TC (VD: TC.CÔNG NGHỆ Ô TÔ)
                 nv1_raw = filtered_df["Nguyện Vọng 1"].astype(str).str.strip()
@@ -215,21 +221,24 @@ else:
                 # Tạo tên ngành chuẩn hóa dạng "TC.CÔNG NGHỆ Ô TÔ" hoặc "CĐ.CÔNG NGHỆ Ô TÔ"
                 nv1_nganh_chuan = trinhdo_raw + "." + nv1_raw.str.upper()
                 nv2_nganh_chuan = trinhdo_raw + "." + nv2_raw.str.upper() if nv2_raw is not None else pd.Series([None]*len(filtered_df))
-                # Đếm số lượng NV1 và NV2 cho từng ngành trong nganh_list (danh sách chỉ tiêu)
-                nv1_counts = pd.Series({nganh: (nv1_nganh_chuan == nganh).sum() for nganh in nganh_list})
-                nv2_counts = pd.Series({nganh: (nv2_nganh_chuan == nganh).sum() for nganh in nganh_list})
+                # Mapping tên ngành chuẩn hóa sang mã ngành (MÃ_CĐ_TC)
+                nv1_ma = nv1_nganh_chuan.map(lambda x: ten2ma_map.get(x, None))
+                nv2_ma = nv2_nganh_chuan.map(lambda x: ten2ma_map.get(x, None))
+                # Đếm số lượng NV1 và NV2 cho từng mã ngành trong malop_list
+                nv1_counts = pd.Series({ma: (nv1_ma == ma).sum() for ma in malop_list})
+                nv2_counts = pd.Series({ma: (nv2_ma == ma).sum() for ma in malop_list})
                 # Chuẩn hóa dữ liệu cho biểu đồ kết hợp
                 df_combo = pd.DataFrame({
-                    "Ngành đào tạo": nganh_list,
-                    "Chỉ tiêu": [chitieu_dieuchinh_df.get(nganh, 0) for nganh in nganh_list],
-                    "Nguyện vọng 1": [nv1_counts.get(nganh, 0) for nganh in nganh_list],
-                    "Nguyện vọng 2": [nv2_counts.get(nganh, 0) for nganh in nganh_list]
+                    "Mã ngành": malop_list,
+                    "Chỉ tiêu": [chitieu_dieuchinh_df.get(ma, 0) for ma in malop_list],
+                    "Nguyện vọng 1": [nv1_counts.get(ma, 0) for ma in malop_list],
+                    "Nguyện vọng 2": [nv2_counts.get(ma, 0) for ma in malop_list]
                 })
                 import plotly.graph_objects as go
                 fig_combo = go.Figure()
                 # Bar chỉ tiêu (màu đỏ)
                 fig_combo.add_trace(go.Bar(
-                    y=df_combo["Ngành đào tạo"],
+                    y=df_combo["Mã ngành"],
                     x=df_combo["Chỉ tiêu"],
                     name="Chỉ tiêu",
                     orientation="h",
@@ -239,7 +248,7 @@ else:
                 ))
                 # Bar nguyện vọng 1 (màu xanh lá)
                 fig_combo.add_trace(go.Bar(
-                    y=df_combo["Ngành đào tạo"],
+                    y=df_combo["Mã ngành"],
                     x=df_combo["Nguyện vọng 1"],
                     name="Nguyện vọng 1",
                     orientation="h",
@@ -249,7 +258,7 @@ else:
                 ))
                 # Bar nguyện vọng 2 (màu xanh dương)
                 fig_combo.add_trace(go.Bar(
-                    y=df_combo["Ngành đào tạo"],
+                    y=df_combo["Mã ngành"],
                     x=df_combo["Nguyện vọng 2"],
                     name="Nguyện vọng 2",
                     orientation="h",
@@ -259,7 +268,7 @@ else:
                 ))
                 fig_combo.update_layout(
                     barmode="group",
-                    yaxis_title="Ngành đào tạo",
+                    yaxis_title="Mã ngành",
                     xaxis_title="Số lượng",
                     height=40*len(df_combo),
                     yaxis=dict(ticklabelposition="outside left", anchor="x", automargin=True),
