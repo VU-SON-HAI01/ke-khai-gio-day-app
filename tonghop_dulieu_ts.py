@@ -116,114 +116,109 @@ def show_bonus_dialog():
         st.success("Đã lưu tham số ưu tiên!")
         st.rerun()
 
-try:
-    if not data or len(data) < 3:
-        st.warning("Không có đủ dữ liệu HSSV!")
-    else:
-        col_namts1,col_namts2,col_namts3 = st.columns([2,2,6])
-        with col_namts1:
-            df = pd.DataFrame(data[2:], columns=data[1])
-            st.markdown("###### NĂM TUYỂN SINH")
-            selected_year = st.selectbox("Chọn năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
-            confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter", use_container_width=True)
-        with col_namts2:
-            # Lấy danh sách ngành chỉ từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, nếu không thì dùng mặc định
-            if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
-                nganh_list = list(df_chitieu['TÊN_CĐ_TC'].dropna().astype(str).str.strip().unique())
-            else:
-                nganh_list = ["Công nghệ ô tô", "Điện", "Cơ khí"]
-            st.write(nganh_list)
-            st.button("Điều chỉnh chỉ tiêu ngành", type="primary", use_container_width=True,on_click=show_quota_dialog)
-            st.button("Điều chỉnh tham số ưu tiên", type="primary", use_container_width=True,on_click=show_bonus_dialog)
-            # Lấy các Sbiến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
-
-            # Lấy quota_inputs, nếu rỗng thì lấy mặc định từ nganh_chitieu_map
-            quota_inputs = st.session_state.get('quota_inputs', {})
-            if not quota_inputs:
-                quota_inputs = st.session_state.get('nganh_chitieu_map', {}).copy()
-            bonus_inputs = st.session_state.get('bonus_inputs', {})
-            if not bonus_inputs:
-                bonus_inputs = st.session_state.get('nganh_uutien_map', {})
-    
-            oversample = st.session_state.get('oversample', 10)
-            weight_early = st.session_state.get('weight_early', 0.05)
-
-            st.write(quota_inputs)
-            st.write(bonus_inputs)
-
-            QUOTA_CONFIG = {nganh: {"quota": quota_inputs.get(nganh, 20), "bonus": bonus_inputs.get(nganh, 0.0)} for nganh in nganh_list}
-            OVERSAMPLE_RATE = oversample / 100
-            WEIGHT_EARLY = weight_early
-            WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
-        with col_namts3:
-            pass
-        filtered_df = st.session_state['filtered_df']
-        if filtered_df is not None and not filtered_df.empty:
-            tab1, tab2, tab3 = st.tabs([f"Hồ sơ tuyển sinh", "Biểu đồ", "Thống kê nhanh"])
-            with tab1:
-                st.markdown(f"###### Danh sách HSTS năm {selected_year} (Hiện {len(filtered_df)} hồ sơ)")
-                cols_show = [
-                    "MÃ HSTS",
-                    "HỌ ĐỆM",
-                    "TÊN",
-                    "NGÀY SINH",
-                    "Ngày nhập hồ sơ",
-                    "Tổng điểm",
-                    "Nguyện Vọng 1",
-                    "Nguyện Vọng 2",
-                    "Nguyện Vọng 3"
-                ]
-                cols_exist = [c for c in cols_show if c in filtered_df.columns]
-                st.dataframe(filtered_df[cols_exist], use_container_width=True)
-                st.download_button(
-                    label=f"Tải danh sách HSTS năm {selected_year}",
-                    data=filtered_df[cols_exist].to_csv(index=False).encode('utf-8-sig'),
-                    file_name=f"danhsach_hsts_{selected_year}.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
-                st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
-            with tab2:
-                st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 1)")
-                if "Nguyện Vọng 1" in filtered_df.columns:
-                    nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
-                    st.bar_chart(nv1_counts)
-                else:
-                    st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
-
-                st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 2)")
-                if "Nguyện Vọng 2" in filtered_df.columns:
-                    nv2_series = filtered_df["Nguyện Vọng 2"].dropna().astype(str).str.strip()
-                    nv2_series = nv2_series[nv2_series != ""]
-                    nv2_counts = nv2_series.value_counts().sort_values(ascending=False)
-                    st.bar_chart(nv2_counts)
-                else:
-                    st.info("Không tìm thấy cột 'Nguyện Vọng 2' trong dữ liệu.")
-                # Biểu đồ chỉ tiêu ngành
-                st.markdown("###### BIỂU ĐỒ CHỈ TIÊU NGÀNH ĐÀO TẠO")
-                nganh_chitieu_map = st.session_state.get('nganh_chitieu_map', {})
-                if nganh_chitieu_map:
-                    df_chitieu_chart = pd.DataFrame({
-                        "Ngành đào tạo": list(nganh_chitieu_map.keys()),
-                        "Chỉ tiêu": list(nganh_chitieu_map.values())
-                    })
-                    st.bar_chart(df_chitieu_chart.set_index("Ngành đào tạo"))
-                else:
-                    st.info("Không có dữ liệu chỉ tiêu ngành để hiển thị.")
-            with tab3:
-                st.markdown("#### Thống kê nhanh theo cột bất kỳ")
-                col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns), key="col_stat_tab")
-                if col_stat:
-                    freq = filtered_df[col_stat].value_counts().reset_index()
-                    freq.columns = [col_stat, "Số lượng"]
-                    st.dataframe(freq, use_container_width=True)
-        elif confirm_filter:
-            st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
+if not data or len(data) < 3:
+    st.warning("Không có đủ dữ liệu HSSV!")
+else:
+    col_namts1,col_namts2,col_namts3 = st.columns([2,2,6])
+    with col_namts1:
+        df = pd.DataFrame(data[2:], columns=data[1])
+        st.markdown("###### NĂM TUYỂN SINH")
+        selected_year = st.selectbox("Chọn năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
+        confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter", use_container_width=True)
+    with col_namts2:
+        # Lấy danh sách ngành chỉ từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, nếu không thì dùng mặc định
+        if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
+            nganh_list = list(df_chitieu['TÊN_CĐ_TC'].dropna().astype(str).str.strip().unique())
         else:
-            st.success(f"Đã kiểm tra toàn bộ {len(df)} dòng dữ liệu.")   
-except Exception as e:
-    st.error(f"Lỗi truy cập dữ liệu: {e}")
+            nganh_list = ["Công nghệ ô tô", "Điện", "Cơ khí"]
+        st.button("Điều chỉnh chỉ tiêu ngành", type="primary", use_container_width=True,on_click=show_quota_dialog)
+        st.button("Điều chỉnh tham số ưu tiên", type="primary", use_container_width=True,on_click=show_bonus_dialog)
+        # Lấy các Sbiến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
 
+        # Lấy quota_inputs, nếu rỗng thì lấy mặc định từ nganh_chitieu_map
+        quota_inputs = st.session_state.get('quota_inputs', {})
+        if not quota_inputs:
+            quota_inputs = st.session_state.get('nganh_chitieu_map', {}).copy()
+        bonus_inputs = st.session_state.get('bonus_inputs', {})
+        if not bonus_inputs:
+            bonus_inputs = st.session_state.get('nganh_uutien_map', {})
+
+        oversample = st.session_state.get('oversample', 10)
+        weight_early = st.session_state.get('weight_early', 0.05)
+
+        st.write(quota_inputs)
+        st.write(bonus_inputs)
+
+        QUOTA_CONFIG = {nganh: {"quota": quota_inputs.get(nganh, 20), "bonus": bonus_inputs.get(nganh, 0.0)} for nganh in nganh_list}
+        OVERSAMPLE_RATE = oversample / 100
+        WEIGHT_EARLY = weight_early
+        WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
+    with col_namts3:
+        pass
+    filtered_df = st.session_state['filtered_df']
+    if filtered_df is not None and not filtered_df.empty:
+        tab1, tab2, tab3 = st.tabs([f"Hồ sơ tuyển sinh", "Biểu đồ", "Thống kê nhanh"])
+        with tab1:
+            st.markdown(f"###### Danh sách HSTS năm {selected_year} (Hiện {len(filtered_df)} hồ sơ)")
+            cols_show = [
+                "MÃ HSTS",
+                "HỌ ĐỆM",
+                "TÊN",
+                "NGÀY SINH",
+                "Ngày nhập hồ sơ",
+                "Tổng điểm",
+                "Nguyện Vọng 1",
+                "Nguyện Vọng 2",
+                "Nguyện Vọng 3"
+            ]
+            cols_exist = [c for c in cols_show if c in filtered_df.columns]
+            st.dataframe(filtered_df[cols_exist], use_container_width=True)
+            st.download_button(
+                label=f"Tải danh sách HSTS năm {selected_year}",
+                data=filtered_df[cols_exist].to_csv(index=False).encode('utf-8-sig'),
+                file_name=f"danhsach_hsts_{selected_year}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+            st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
+        with tab2:
+            st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 1)")
+            if "Nguyện Vọng 1" in filtered_df.columns:
+                nv1_counts = filtered_df["Nguyện Vọng 1"].value_counts().sort_values(ascending=False)
+                st.bar_chart(nv1_counts)
+            else:
+                st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
+
+            st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 2)")
+            if "Nguyện Vọng 2" in filtered_df.columns:
+                nv2_series = filtered_df["Nguyện Vọng 2"].dropna().astype(str).str.strip()
+                nv2_series = nv2_series[nv2_series != ""]
+                nv2_counts = nv2_series.value_counts().sort_values(ascending=False)
+                st.bar_chart(nv2_counts)
+            else:
+                st.info("Không tìm thấy cột 'Nguyện Vọng 2' trong dữ liệu.")
+            # Biểu đồ chỉ tiêu ngành
+            st.markdown("###### BIỂU ĐỒ CHỈ TIÊU NGÀNH ĐÀO TẠO")
+            nganh_chitieu_map = st.session_state.get('nganh_chitieu_map', {})
+            if nganh_chitieu_map:
+                df_chitieu_chart = pd.DataFrame({
+                    "Ngành đào tạo": list(nganh_chitieu_map.keys()),
+                    "Chỉ tiêu": list(nganh_chitieu_map.values())
+                })
+                st.bar_chart(df_chitieu_chart.set_index("Ngành đào tạo"))
+            else:
+                st.info("Không có dữ liệu chỉ tiêu ngành để hiển thị.")
+        with tab3:
+            st.markdown("#### Thống kê nhanh theo cột bất kỳ")
+            col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns), key="col_stat_tab")
+            if col_stat:
+                freq = filtered_df[col_stat].value_counts().reset_index()
+                freq.columns = [col_stat, "Số lượng"]
+                st.dataframe(freq, use_container_width=True)
+    elif confirm_filter:
+        st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
+    else:
+        st.success(f"Đã kiểm tra toàn bộ {len(df)} dòng dữ liệu.")   
 # --- 1. CẤU HÌNH HỆ THỐNG ---
 st.markdown("---")
 st.header("🎯 Xét tuyển thông minh (theo dữ liệu lọc)")
