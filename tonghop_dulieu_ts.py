@@ -202,7 +202,10 @@ def show_quota_dialog():
 @st.dialog("Điều chỉnh tham số ưu tiên", width="medium")
 def show_bonus_dialog():
     st.subheader("Nhập điểm ưu tiên từng ngành")
-    bonus_inputs = {}
+    if 'nganh_uutien_map' in st.session_state:
+        bonus_inputs = st.session_state['nganh_uutien_map']
+    else:
+        bonus_inputs = {}
     cols_bonus = st.columns(4)
     for idx, nganh in enumerate(nganh_list):
         ma_nganh = nganh_ma_map.get(nganh, "")
