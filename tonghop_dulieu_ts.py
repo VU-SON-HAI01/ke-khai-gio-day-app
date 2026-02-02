@@ -332,6 +332,23 @@ else:
                     max_y = [max_scores.get(ma, None) for ma in y_labels]
                     min_y = [min_scores.get(ma, None) for ma in y_labels]
                     import plotly.graph_objects as go
+                    # Tính điểm trúng tuyển cho từng ngành
+                    diem_trungtuyen = []
+                    for ma in y_labels:
+                        # Lấy danh sách NV1 theo mã ngành
+                        df_nganh = df_tmp[df_tmp["Mã ngành"] == ma].copy()
+                        df_nganh = df_nganh.sort_values("Điểm XT", ascending=False)
+                        # Lấy chỉ tiêu ngành
+                        quota = chitieu_dieuchinh_df.get(ma, 0)
+                        # Lấy số lượng hồ sơ theo chỉ tiêu
+                        df_trungtuyen = df_nganh.head(quota)
+                        # Điểm trúng tuyển là tổng điểm thấp nhất trong nhóm này
+                        if not df_trungtuyen.empty:
+                            diem_tt = df_trungtuyen["Điểm XT"].min()
+                        else:
+                            diem_tt = None
+                        diem_trungtuyen.append(diem_tt)
+
                     # Bar thể hiện khoảng điểm: base=min, width=max-min
                     bar_widths = [mx - mn if mx is not None and mn is not None else 0 for mn, mx in zip(min_y, max_y)]
                     bar_bases = [mn if mn is not None else 0 for mn in min_y]
@@ -347,20 +364,27 @@ else:
                         textposition="outside",
                         width=0.5
                     ))
-                    # Thêm marker cho min (tròn đỏ) và max (tròn xanh)
+                    # Thêm marker cho min (tròn đỏ), max (tròn xanh), trúng tuyển (tròn vàng)
                     fig_range.add_trace(go.Scatter(
                         y=y_labels,
                         x=min_y,
                         mode="markers",
-                        marker=dict(color="#EF553B", size=5, symbol="circle"),
+                        marker=dict(color="#EF553B", size=7, symbol="circle"),
                         name="Điểm thấp nhất"
                     ))
                     fig_range.add_trace(go.Scatter(
                         y=y_labels,
                         x=max_y,
                         mode="markers",
-                        marker=dict(color="#00CC96", size=5, symbol="circle"),
+                        marker=dict(color="#00CC96", size=7, symbol="circle"),
                         name="Điểm cao nhất"
+                    ))
+                    fig_range.add_trace(go.Scatter(
+                        y=y_labels,
+                        x=diem_trungtuyen,
+                        mode="markers",
+                        marker=dict(color="gold", size=10, symbol="diamond"),
+                        name="Điểm trúng tuyển"
                     ))
                     fig_range.update_layout(
                         yaxis_title="Mã ngành",
