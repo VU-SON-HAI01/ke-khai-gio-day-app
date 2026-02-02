@@ -126,36 +126,15 @@ try:
             selected_year = st.selectbox("Chọn năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
             confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter", use_container_width=True)
         with col_namts2:
-            if 'filtered_df' not in st.session_state:
-                st.session_state['filtered_df'] = None
-            if confirm_filter:
-                # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh (dạng 6 số, ví dụ 250001 cho 2025)
-                if "MÃ HSTS" in df.columns:
-                    with st.spinner("Đang lọc dữ liệu theo năm tuyển sinh..."):
-                        year_code = selected_year[-2:]
-                        ma_hsts_str = df["MÃ HSTS"].astype(str).str.strip().str.zfill(6)
-                        filtered_df = df[ma_hsts_str.str[:2] == year_code]
-                        st.session_state['filtered_df'] = filtered_df
-                        if filtered_df.empty:
-                            st.warning(f"Thông báo: Không tìm thấy dữ liệu với năm ={selected_year}.")
-                else:
-                    st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
-            # Lấy danh sách ngành từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, ưu tiên bảng chỉ tiêu
-            xettuyen_nguyenvong_df = st.session_state.get('filtered_df', None)
+            # Lấy danh sách ngành chỉ từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, nếu không thì dùng mặc định
             if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
                 nganh_list = list(df_chitieu['TÊN_CĐ_TC'].dropna().astype(str).str.strip().unique())
-            elif xettuyen_nguyenvong_df is not None and not xettuyen_nguyenvong_df.empty:
-                cols_nv = [c for c in ["Nguyện Vọng 1", "Nguyện Vọng 2", "Nguyện Vọng 3"] if c in xettuyen_nguyenvong_df.columns]
-                nganh_set = set()
-                for col in cols_nv:
-                    nganh_set.update(xettuyen_nguyenvong_df[col].dropna().astype(str).str.strip().unique())
-                nganh_list = list(sorted(nganh_set))
             else:
                 nganh_list = ["Công nghệ ô tô", "Điện", "Cơ khí"]
-
+            st.write(nganh_list)
             st.button("Điều chỉnh chỉ tiêu ngành", type="primary", use_container_width=True,on_click=show_quota_dialog)
             st.button("Điều chỉnh tham số ưu tiên", type="primary", use_container_width=True,on_click=show_bonus_dialog)
-            # Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
+            # Lấy các Sbiến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
 
             # Lấy quota_inputs, nếu rỗng thì lấy mặc định từ nganh_chitieu_map
             quota_inputs = st.session_state.get('quota_inputs', {})
@@ -164,7 +143,7 @@ try:
             bonus_inputs = st.session_state.get('bonus_inputs', {})
             if not bonus_inputs:
                 bonus_inputs = st.session_state.get('nganh_uutien_map', {})
-                
+    
             oversample = st.session_state.get('oversample', 10)
             weight_early = st.session_state.get('weight_early', 0.05)
 
@@ -175,7 +154,7 @@ try:
             OVERSAMPLE_RATE = oversample / 100
             WEIGHT_EARLY = weight_early
             WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
-        with col_namts2:
+        with col_namts3:
             pass
         filtered_df = st.session_state['filtered_df']
         if filtered_df is not None and not filtered_df.empty:
