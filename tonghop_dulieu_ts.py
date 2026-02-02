@@ -362,7 +362,7 @@ else:
                         name="Khoảng điểm (min-max)",
                         text=[f"{mn:.2f} - {mx:.2f}" if mn is not None and mx is not None else "" for mn, mx in zip(min_y, max_y)],
                         textposition="outside",
-                        width=0.5
+                        width=0.3
                     ))
                     # Thêm marker cho min (tròn đỏ), max (tròn xanh), trúng tuyển (tròn vàng)
                     fig_range.add_trace(go.Scatter(
