@@ -226,7 +226,12 @@ else:
                     text="Chỉ tiêu",
                     color_discrete_sequence=["#636EFA"]
                 )
-                fig_chitieu.update_layout(yaxis_title="Ngành đào tạo", xaxis_title="Chỉ tiêu", height=40*len(df_chitieu_chart))
+                fig_chitieu.update_layout(
+                    yaxis_title="Ngành đào tạo",
+                    xaxis_title="Chỉ tiêu",
+                    height=40*len(df_chitieu_chart),
+                    yaxis=dict(ticklabelposition="outside left", anchor="x", automargin=True)
+                )
                 st.plotly_chart(fig_chitieu, use_container_width=True)
             else:
                 st.info("Không có dữ liệu chỉ tiêu ngành để hiển thị.")
