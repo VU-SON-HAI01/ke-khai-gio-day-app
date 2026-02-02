@@ -146,7 +146,7 @@ else:
             else:
                 filtered = df.copy()
             st.session_state['filtered_df'] = filtered.reset_index(drop=True)
-        
+        st.write(st.session_state['filtered_df'] )
     with col_namts2:
         # Lấy danh sách ngành chỉ từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, nếu không thì dùng mặc định
         if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
