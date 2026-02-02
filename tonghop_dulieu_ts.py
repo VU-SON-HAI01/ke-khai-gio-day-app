@@ -243,7 +243,7 @@ if not quota_inputs:
     quota_inputs = st.session_state.get('nganh_chitieu_map', {}).copy()
 bonus_inputs = st.session_state.get('bonus_inputs', {})
 if not bonus_inputs:
-    bonus_inputs = st.session_state['nganh_uutien_map']
+    bonus_inputs = st.session_state.get('nganh_uutien_map', {})
     
 oversample = st.session_state.get('oversample', 10)
 weight_early = st.session_state.get('weight_early', 0.05)
