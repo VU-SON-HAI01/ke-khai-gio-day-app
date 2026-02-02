@@ -129,12 +129,14 @@ else:
         if confirm_filter:
             # Lấy ký tự cuối của năm tuyển sinh
             year_last = str(selected_year)[-1]
+            st.write(f"Đang lọc dữ liệu theo năm tuyển sinh kết thúc bằng: {year_last}")
             # Lọc theo ký tự đầu của MÃ HSTS
             if "MÃ HSTS" in df.columns:
                 filtered = df[df["MÃ HSTS"].astype(str).str[0] == year_last]
             else:
                 filtered = df.copy()
             st.session_state['filtered_df'] = filtered.reset_index(drop=True)
+        
     with col_namts2:
         # Lấy danh sách ngành chỉ từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, nếu không thì dùng mặc định
         if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
