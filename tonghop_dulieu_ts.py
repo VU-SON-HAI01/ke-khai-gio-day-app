@@ -125,6 +125,16 @@ else:
         st.markdown("###### NĂM TUYỂN SINH")
         selected_year = st.selectbox("Chọn năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
         confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter", use_container_width=True)
+        # Lọc dữ liệu theo năm tuyển sinh khi nhấn xác nhận
+        if confirm_filter:
+            # Lấy ký tự cuối của năm tuyển sinh
+            year_last = str(selected_year)[-1]
+            # Lọc theo ký tự đầu của MÃ HSTS
+            if "MÃ HSTS" in df.columns:
+                filtered = df[df["MÃ HSTS"].astype(str).str[0] == year_last]
+            else:
+                filtered = df.copy()
+            st.session_state['filtered_df'] = filtered.reset_index(drop=True)
     with col_namts2:
         # Lấy danh sách ngành chỉ từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, nếu không thì dùng mặc định
         if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
