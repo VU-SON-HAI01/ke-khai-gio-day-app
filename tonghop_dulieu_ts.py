@@ -303,9 +303,9 @@ else:
                         trinhdo_raw = pd.Series(["TC"]*len(filtered_df))
                     nv1_nganh_chuan = trinhdo_raw + "." + nv1_raw.str.upper()
                     nv1_ma = nv1_nganh_chuan.map(lambda x: ten2ma_map.get(x, None))
-                    # Tính tổng điểm + ưu tiên ngành
-                    st.write(filtered_df["Tổng điểm"])
-                    diem_thuc = pd.to_numeric(filtered_df["Tổng điểm"], errors="coerce")
+                    # Xử lý giá trị thập phân dạng 13,45 thành 13.45
+                    tong_diem_str = filtered_df["Tổng điểm"].astype(str).str.replace(",", ".")
+                    diem_thuc = pd.to_numeric(tong_diem_str, errors="coerce")
 
                     # Lấy bonus theo mã ngành
                     def get_bonus(ma):
