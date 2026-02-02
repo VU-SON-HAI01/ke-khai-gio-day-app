@@ -155,7 +155,7 @@ else:
         WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
     with col_namts3:
         pass
-    filtered_df = st.session_state['filtered_df']
+    filtered_df = st.session_state.get('filtered_df', pd.DataFrame())
     if filtered_df is not None and not filtered_df.empty:
         tab1, tab2, tab3 = st.tabs([f"Hồ sơ tuyển sinh", "Biểu đồ", "Thống kê nhanh"])
         with tab1:
