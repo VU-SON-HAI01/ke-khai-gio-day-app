@@ -358,7 +358,7 @@ else:
                         x=bar_widths,
                         base=bar_bases,
                         orientation="h",
-                        marker_color="#00FFFF",
+                        marker_color="#EEEEEE",
                         name="Khoảng điểm (min-max)",
                         text=[f"{mn:.2f} - {mx:.2f}" if mn is not None and mx is not None else "" for mn, mx in zip(min_y, max_y)],
                         textposition="outside",
