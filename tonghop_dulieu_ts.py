@@ -194,14 +194,50 @@ else:
             )
             st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
         with tab2:
-            st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 1)")
-            if "Nguyện Vọng 1" in filtered_df.columns:
-                # Đếm số lượng NV1 cho từng ngành trong nganh_list (danh sách chỉ tiêu)
+
+            st.markdown("###### BIỂU ĐỒ KẾT HỢP: SỐ LƯỢNG NGUYỆN VỌNG 1 VÀ CHỈ TIÊU THEO NGÀNH")
+            if "Nguyện Vọng 1" in filtered_df.columns and chitieu_dieuchinh_df:
                 nv1_series = filtered_df["Nguyện Vọng 1"].astype(str).str.strip()
                 nv1_counts = pd.Series({nganh: (nv1_series == nganh).sum() for nganh in nganh_list})
-                st.bar_chart(nv1_counts)
+                # Chuẩn hóa dữ liệu cho biểu đồ kết hợp
+                df_combo = pd.DataFrame({
+                    "Ngành đào tạo": nganh_list,
+                    "Chỉ tiêu": [chitieu_dieuchinh_df.get(nganh, 0) for nganh in nganh_list],
+                    "Nguyện vọng 1": [nv1_counts.get(nganh, 0) for nganh in nganh_list]
+                })
+                import plotly.graph_objects as go
+                fig_combo = go.Figure()
+                # Bar chỉ tiêu (màu đỏ)
+                fig_combo.add_trace(go.Bar(
+                    y=df_combo["Ngành đào tạo"],
+                    x=df_combo["Chỉ tiêu"],
+                    name="Chỉ tiêu",
+                    orientation="h",
+                    marker_color="#EF553B",
+                    text=df_combo["Chỉ tiêu"],
+                    textposition="outside"
+                ))
+                # Bar nguyện vọng 1 (màu xanh)
+                fig_combo.add_trace(go.Bar(
+                    y=df_combo["Ngành đào tạo"],
+                    x=df_combo["Nguyện vọng 1"],
+                    name="Nguyện vọng 1",
+                    orientation="h",
+                    marker_color="#00CC96",
+                    text=df_combo["Nguyện vọng 1"],
+                    textposition="outside"
+                ))
+                fig_combo.update_layout(
+                    barmode="group",
+                    yaxis_title="Ngành đào tạo",
+                    xaxis_title="Số lượng",
+                    height=40*len(df_combo),
+                    yaxis=dict(ticklabelposition="outside left", anchor="x", automargin=True),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                )
+                st.plotly_chart(fig_combo, use_container_width=True)
             else:
-                st.info("Không tìm thấy cột 'Nguyện Vọng 1' trong dữ liệu.")
+                st.info("Không đủ dữ liệu để hiển thị biểu đồ kết hợp.")
 
             st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 2)")
             if "Nguyện Vọng 2" in filtered_df.columns:
