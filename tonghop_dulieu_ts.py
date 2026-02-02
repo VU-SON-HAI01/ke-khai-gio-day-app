@@ -146,7 +146,6 @@ else:
             else:
                 filtered = df.copy()
             st.session_state['filtered_df'] = filtered.reset_index(drop=True)
-        st.write(st.session_state['filtered_df'] )
     with col_namts2:
         # Lấy danh sách ngành chỉ từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, nếu không thì dùng mặc định
         if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
@@ -305,8 +304,9 @@ else:
                     nv1_nganh_chuan = trinhdo_raw + "." + nv1_raw.str.upper()
                     nv1_ma = nv1_nganh_chuan.map(lambda x: ten2ma_map.get(x, None))
                     # Tính tổng điểm + ưu tiên ngành
+                    st.write(filtered_df["Tổng điểm"])
                     diem_thuc = pd.to_numeric(filtered_df["Tổng điểm"], errors="coerce")
-                    st.write(diem_thuc)
+
                     # Lấy bonus theo mã ngành
                     def get_bonus(ma):
                         if ma in bonus_inputs:
