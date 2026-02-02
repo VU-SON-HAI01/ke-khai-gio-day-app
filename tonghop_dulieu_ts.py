@@ -210,107 +210,107 @@ else:
             )
             st.success(f"Thông báo Đã tìm thấy {len(filtered_df)} dòng dữ theo năm tuyển sinh.")
         with tab2:
+            with st.expander("Biểu đồ số lượng đăng ký Nguyện vọng theo ngành", expanded=False):
+                st.markdown("###### BIỂU ĐỒ KẾT HỢP: SỐ LƯỢNG NGUYỆN VỌNG 1, NGUYỆN VỌNG 2 VÀ CHỈ TIÊU THEO MÃ NGÀNH")
+                if "Nguyện Vọng 1" in filtered_df.columns and chitieu_dieuchinh_df:
+                    # Chuẩn hóa tên ngành NV1 và NV2 về đúng định dạng TÊN_CĐ_TC (VD: TC.CÔNG NGHỆ Ô TÔ)
+                    nv1_raw = filtered_df["Nguyện Vọng 1"].astype(str).str.strip()
+                    nv2_raw = filtered_df["Nguyện Vọng 2"].astype(str).str.strip() if "Nguyện Vọng 2" in filtered_df.columns else pd.Series([None]*len(filtered_df))
+                    # Lấy trình độ từ cột "CĐ/TC" hoặc "TRÌNH ĐỘ" nếu có
+                    if "CĐ/TC" in filtered_df.columns:
+                        trinhdo_col = "CĐ/TC"
+                    elif "TRÌNH ĐỘ" in filtered_df.columns:
+                        trinhdo_col = "TRÌNH ĐỘ"
+                    else:
+                        trinhdo_col = None
+                    if trinhdo_col:
+                        trinhdo_raw = filtered_df[trinhdo_col].astype(str).str.strip().str.upper()
+                    else:
+                        trinhdo_raw = pd.Series(["TC"]*len(filtered_df))  # Mặc định TC nếu không có
 
-            st.markdown("###### BIỂU ĐỒ KẾT HỢP: SỐ LƯỢNG NGUYỆN VỌNG 1, NGUYỆN VỌNG 2 VÀ CHỈ TIÊU THEO MÃ NGÀNH")
-            if "Nguyện Vọng 1" in filtered_df.columns and chitieu_dieuchinh_df:
-                # Chuẩn hóa tên ngành NV1 và NV2 về đúng định dạng TÊN_CĐ_TC (VD: TC.CÔNG NGHỆ Ô TÔ)
-                nv1_raw = filtered_df["Nguyện Vọng 1"].astype(str).str.strip()
-                nv2_raw = filtered_df["Nguyện Vọng 2"].astype(str).str.strip() if "Nguyện Vọng 2" in filtered_df.columns else pd.Series([None]*len(filtered_df))
-                # Lấy trình độ từ cột "CĐ/TC" hoặc "TRÌNH ĐỘ" nếu có
-                if "CĐ/TC" in filtered_df.columns:
-                    trinhdo_col = "CĐ/TC"
-                elif "TRÌNH ĐỘ" in filtered_df.columns:
-                    trinhdo_col = "TRÌNH ĐỘ"
+                    # Tạo tên ngành chuẩn hóa dạng "TC.CÔNG NGHỆ Ô TÔ" hoặc "CĐ.CÔNG NGHỆ Ô TÔ"
+                    nv1_nganh_chuan = trinhdo_raw + "." + nv1_raw.str.upper()
+                    nv2_nganh_chuan = trinhdo_raw + "." + nv2_raw.str.upper() if nv2_raw is not None else pd.Series([None]*len(filtered_df))
+                    # Mapping tên ngành chuẩn hóa sang mã ngành (MÃ_CĐ_TC)
+                    nv1_ma = nv1_nganh_chuan.map(lambda x: ten2ma_map.get(x, None))
+                    nv2_ma = nv2_nganh_chuan.map(lambda x: ten2ma_map.get(x, None))
+                    # Đếm số lượng NV1 và NV2 cho từng mã ngành trong malop_list
+                    nv1_counts = pd.Series({ma: (nv1_ma == ma).sum() for ma in malop_list})
+                    nv2_counts = pd.Series({ma: (nv2_ma == ma).sum() for ma in malop_list})
+                    # Chuẩn hóa dữ liệu cho biểu đồ kết hợp
+                    df_combo = pd.DataFrame({
+                        "Mã ngành": malop_list,
+                        "Chỉ tiêu": [chitieu_dieuchinh_df.get(ma, 0) for ma in malop_list],
+                        "Nguyện vọng 1": [nv1_counts.get(ma, 0) for ma in malop_list],
+                        "Nguyện vọng 2": [nv2_counts.get(ma, 0) for ma in malop_list]
+                    })
+                    import plotly.graph_objects as go
+                    fig_combo = go.Figure()
+                    # Bar chỉ tiêu (màu đỏ)
+                    fig_combo.add_trace(go.Bar(
+                        y=df_combo["Mã ngành"],
+                        x=df_combo["Chỉ tiêu"],
+                        name="Chỉ tiêu",
+                        orientation="h",
+                        marker_color="#EF553B",
+                        text=df_combo["Chỉ tiêu"],
+                        textposition="outside"
+                    ))
+                    # Bar nguyện vọng 1 (màu xanh lá)
+                    fig_combo.add_trace(go.Bar(
+                        y=df_combo["Mã ngành"],
+                        x=df_combo["Nguyện vọng 1"],
+                        name="Nguyện vọng 1",
+                        orientation="h",
+                        marker_color="#00CC96",
+                        text=df_combo["Nguyện vọng 1"],
+                        textposition="outside"
+                    ))
+                    # Bar nguyện vọng 2 (màu xanh dương)
+                    fig_combo.add_trace(go.Bar(
+                        y=df_combo["Mã ngành"],
+                        x=df_combo["Nguyện vọng 2"],
+                        name="Nguyện vọng 2",
+                        orientation="h",
+                        marker_color="#1f77b4",
+                        text=df_combo["Nguyện vọng 2"],
+                        textposition="outside"
+                    ))
+                    fig_combo.update_layout(
+                        barmode="group",
+                        yaxis_title="Mã ngành",
+                        xaxis_title="Số lượng",
+                        height=40*len(df_combo),
+                        yaxis=dict(ticklabelposition="outside left", anchor="x", automargin=True),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                    )
+                    st.plotly_chart(fig_combo, use_container_width=True)
                 else:
-                    trinhdo_col = None
-                if trinhdo_col:
-                    trinhdo_raw = filtered_df[trinhdo_col].astype(str).str.strip().str.upper()
+                    st.info("Không đủ dữ liệu để hiển thị biểu đồ kết hợp.")
+                # Biểu đồ chỉ tiêu ngành sử dụng chitieu_dieuchinh_df
+                st.markdown("###### BIỂU ĐỒ CHỈ TIÊU NGÀNH ĐÀO TẠO")
+                if chitieu_dieuchinh_df:
+                    df_chitieu_chart = pd.DataFrame({
+                        "Ngành đào tạo": list(chitieu_dieuchinh_df.keys()),
+                        "Chỉ tiêu": list(chitieu_dieuchinh_df.values())
+                    })
+                    fig_chitieu = px.bar(
+                        df_chitieu_chart,
+                        y="Ngành đào tạo",
+                        x="Chỉ tiêu",
+                        orientation="h",
+                        text="Chỉ tiêu",
+                        color_discrete_sequence=["#636EFA"]
+                    )
+                    fig_chitieu.update_layout(
+                        yaxis_title="Ngành đào tạo",
+                        xaxis_title="Chỉ tiêu",
+                        height=40*len(df_chitieu_chart),
+                        yaxis=dict(ticklabelposition="outside left", anchor="x", automargin=True)
+                    )
+                    st.plotly_chart(fig_chitieu, use_container_width=True)
                 else:
-                    trinhdo_raw = pd.Series(["TC"]*len(filtered_df))  # Mặc định TC nếu không có
-
-                # Tạo tên ngành chuẩn hóa dạng "TC.CÔNG NGHỆ Ô TÔ" hoặc "CĐ.CÔNG NGHỆ Ô TÔ"
-                nv1_nganh_chuan = trinhdo_raw + "." + nv1_raw.str.upper()
-                nv2_nganh_chuan = trinhdo_raw + "." + nv2_raw.str.upper() if nv2_raw is not None else pd.Series([None]*len(filtered_df))
-                # Mapping tên ngành chuẩn hóa sang mã ngành (MÃ_CĐ_TC)
-                nv1_ma = nv1_nganh_chuan.map(lambda x: ten2ma_map.get(x, None))
-                nv2_ma = nv2_nganh_chuan.map(lambda x: ten2ma_map.get(x, None))
-                # Đếm số lượng NV1 và NV2 cho từng mã ngành trong malop_list
-                nv1_counts = pd.Series({ma: (nv1_ma == ma).sum() for ma in malop_list})
-                nv2_counts = pd.Series({ma: (nv2_ma == ma).sum() for ma in malop_list})
-                # Chuẩn hóa dữ liệu cho biểu đồ kết hợp
-                df_combo = pd.DataFrame({
-                    "Mã ngành": malop_list,
-                    "Chỉ tiêu": [chitieu_dieuchinh_df.get(ma, 0) for ma in malop_list],
-                    "Nguyện vọng 1": [nv1_counts.get(ma, 0) for ma in malop_list],
-                    "Nguyện vọng 2": [nv2_counts.get(ma, 0) for ma in malop_list]
-                })
-                import plotly.graph_objects as go
-                fig_combo = go.Figure()
-                # Bar chỉ tiêu (màu đỏ)
-                fig_combo.add_trace(go.Bar(
-                    y=df_combo["Mã ngành"],
-                    x=df_combo["Chỉ tiêu"],
-                    name="Chỉ tiêu",
-                    orientation="h",
-                    marker_color="#EF553B",
-                    text=df_combo["Chỉ tiêu"],
-                    textposition="outside"
-                ))
-                # Bar nguyện vọng 1 (màu xanh lá)
-                fig_combo.add_trace(go.Bar(
-                    y=df_combo["Mã ngành"],
-                    x=df_combo["Nguyện vọng 1"],
-                    name="Nguyện vọng 1",
-                    orientation="h",
-                    marker_color="#00CC96",
-                    text=df_combo["Nguyện vọng 1"],
-                    textposition="outside"
-                ))
-                # Bar nguyện vọng 2 (màu xanh dương)
-                fig_combo.add_trace(go.Bar(
-                    y=df_combo["Mã ngành"],
-                    x=df_combo["Nguyện vọng 2"],
-                    name="Nguyện vọng 2",
-                    orientation="h",
-                    marker_color="#1f77b4",
-                    text=df_combo["Nguyện vọng 2"],
-                    textposition="outside"
-                ))
-                fig_combo.update_layout(
-                    barmode="group",
-                    yaxis_title="Mã ngành",
-                    xaxis_title="Số lượng",
-                    height=40*len(df_combo),
-                    yaxis=dict(ticklabelposition="outside left", anchor="x", automargin=True),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-                )
-                st.plotly_chart(fig_combo, use_container_width=True)
-            else:
-                st.info("Không đủ dữ liệu để hiển thị biểu đồ kết hợp.")
-            # Biểu đồ chỉ tiêu ngành sử dụng chitieu_dieuchinh_df
-            st.markdown("###### BIỂU ĐỒ CHỈ TIÊU NGÀNH ĐÀO TẠO")
-            if chitieu_dieuchinh_df:
-                df_chitieu_chart = pd.DataFrame({
-                    "Ngành đào tạo": list(chitieu_dieuchinh_df.keys()),
-                    "Chỉ tiêu": list(chitieu_dieuchinh_df.values())
-                })
-                fig_chitieu = px.bar(
-                    df_chitieu_chart,
-                    y="Ngành đào tạo",
-                    x="Chỉ tiêu",
-                    orientation="h",
-                    text="Chỉ tiêu",
-                    color_discrete_sequence=["#636EFA"]
-                )
-                fig_chitieu.update_layout(
-                    yaxis_title="Ngành đào tạo",
-                    xaxis_title="Chỉ tiêu",
-                    height=40*len(df_chitieu_chart),
-                    yaxis=dict(ticklabelposition="outside left", anchor="x", automargin=True)
-                )
-                st.plotly_chart(fig_chitieu, use_container_width=True)
-            else:
-                st.info("Không có dữ liệu chỉ tiêu ngành để hiển thị.")
+                    st.info("Không có dữ liệu chỉ tiêu ngành để hiển thị.")
         with tab3:
             st.markdown("#### Thống kê nhanh theo cột bất kỳ")
             col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns), key="col_stat_tab")
