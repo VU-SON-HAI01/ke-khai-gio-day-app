@@ -18,7 +18,30 @@ with st.expander("Hướng dẫn sử dụng", expanded=False):
 # Tải dữ liệu nguồn
 df = None
 df_chitieu = None
-
+try:
+    google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
+    thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
+    sheet_name = "TUYENSINH"
+    if "gcp_service_account" not in st.secrets:
+        raise KeyError("gcp_service_account")
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
+    gc = gspread.authorize(credentials)
+    sh = gc.open_by_key(thong_tin_hssv_id)
+    worksheet = sh.worksheet(sheet_name)
+    
+    worksheet_ct = sh.worksheet("CHI_TIEU_TS")
+    data_ct = worksheet_ct.get_all_values()
+    if data_ct and len(data_ct) > 1:
+        df_chitieu = pd.DataFrame(data_ct[1:], columns=data_ct[0])
+    else:
+        st.warning("Không có dữ liệu chỉ tiêu!")
+    data = worksheet.get_all_values()
+except Exception as e:
+    st.error(f"Lỗi truy cập dữ liệu: {e}")
 # Tạo ánh xạ tên ngành <-> mã ngành từ df_chitieu
 nganh_ma_map = {}
 nganh_chitieu_map = {}
@@ -94,28 +117,6 @@ def show_bonus_dialog():
         st.rerun()
 
 try:
-    google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
-    thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
-    sheet_name = "TUYENSINH"
-    if "gcp_service_account" not in st.secrets:
-        raise KeyError("gcp_service_account")
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
-    credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
-    gc = gspread.authorize(credentials)
-    sh = gc.open_by_key(thong_tin_hssv_id)
-    worksheet = sh.worksheet(sheet_name)
-    
-    worksheet_ct = sh.worksheet("CHI_TIEU_TS")
-    data_ct = worksheet_ct.get_all_values()
-    if data_ct and len(data_ct) > 1:
-        df_chitieu = pd.DataFrame(data_ct[1:], columns=data_ct[0])
-    else:
-        st.warning("Không có dữ liệu chỉ tiêu!")
-    
-    data = worksheet.get_all_values()
     if not data or len(data) < 3:
         st.warning("Không có đủ dữ liệu HSSV!")
     else:
