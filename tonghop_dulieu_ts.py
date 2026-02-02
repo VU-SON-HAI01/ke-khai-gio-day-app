@@ -287,30 +287,80 @@ else:
                     st.plotly_chart(fig_combo, use_container_width=True)
                 else:
                     st.info("Không đủ dữ liệu để hiển thị biểu đồ kết hợp.")
-                # Biểu đồ chỉ tiêu ngành sử dụng chitieu_dieuchinh_df
-                st.markdown("###### BIỂU ĐỒ CHỈ TIÊU NGÀNH ĐÀO TẠO")
-                if chitieu_dieuchinh_df:
-                    df_chitieu_chart = pd.DataFrame({
-                        "Ngành đào tạo": list(chitieu_dieuchinh_df.keys()),
-                        "Chỉ tiêu": list(chitieu_dieuchinh_df.values())
+            with st.expander("Đồ thị điểm cao nhất và thấp nhất theo ngành", expanded=False):
+                st.markdown("###### ĐIỂM CAO NHẤT VÀ THẤP NHẤT THEO MÃ NGÀNH (TỔNG ĐIỂM + ƯU TIÊN)")
+                if filtered_df is not None and not filtered_df.empty and "Nguyện Vọng 1" in filtered_df.columns:
+                    # Chuẩn hóa tên ngành NV1 về mã ngành
+                    nv1_raw = filtered_df["Nguyện Vọng 1"].astype(str).str.strip()
+                    if "CĐ/TC" in filtered_df.columns:
+                        trinhdo_col = "CĐ/TC"
+                    elif "TRÌNH ĐỘ" in filtered_df.columns:
+                        trinhdo_col = "TRÌNH ĐỘ"
+                    else:
+                        trinhdo_col = None
+                    if trinhdo_col:
+                        trinhdo_raw = filtered_df[trinhdo_col].astype(str).str.strip().str.upper()
+                    else:
+                        trinhdo_raw = pd.Series(["TC"]*len(filtered_df))
+                    nv1_nganh_chuan = trinhdo_raw + "." + nv1_raw.str.upper()
+                    nv1_ma = nv1_nganh_chuan.map(lambda x: ten2ma_map.get(x, None))
+                    # Tính tổng điểm + ưu tiên ngành
+                    diem_thuc = filtered_df["Tổng điểm"].astype(float)
+                    # Lấy bonus theo mã ngành
+                    def get_bonus(ma):
+                        if ma in bonus_inputs:
+                            try:
+                                return float(bonus_inputs[ma])
+                            except:
+                                return 0.0
+                        return 0.0
+                    bonus_arr = nv1_ma.map(get_bonus)
+                    diem_xt = diem_thuc + bonus_arr
+                    # Tạo DataFrame tạm cho việc groupby
+                    df_tmp = pd.DataFrame({
+                        "Mã ngành": nv1_ma,
+                        "Điểm XT": diem_xt
                     })
-                    fig_chitieu = px.bar(
-                        df_chitieu_chart,
-                        y="Ngành đào tạo",
-                        x="Chỉ tiêu",
-                        orientation="h",
-                        text="Chỉ tiêu",
-                        color_discrete_sequence=["#636EFA"]
+                    # Lọc bỏ các hồ sơ không có mã ngành hợp lệ
+                    df_tmp = df_tmp[df_tmp["Mã ngành"].notnull()]
+                    # Tìm điểm cao nhất và thấp nhất theo mã ngành
+                    max_scores = df_tmp.groupby("Mã ngành")["Điểm XT"].max()
+                    min_scores = df_tmp.groupby("Mã ngành")["Điểm XT"].min()
+                    # Đảm bảo thứ tự theo malop_list
+                    y_labels = [ma for ma in malop_list if ma in max_scores.index]
+                    max_y = [max_scores.get(ma, None) for ma in y_labels]
+                    min_y = [min_scores.get(ma, None) for ma in y_labels]
+                    import plotly.graph_objects as go
+                    fig_line = go.Figure()
+                    fig_line.add_trace(go.Scatter(
+                        y=y_labels,
+                        x=max_y,
+                        mode="lines+markers",
+                        name="Điểm cao nhất",
+                        line=dict(color="#00CC96", width=3),
+                        marker=dict(symbol="circle", size=8),
+                        orientation="h"
+                    ))
+                    fig_line.add_trace(go.Scatter(
+                        y=y_labels,
+                        x=min_y,
+                        mode="lines+markers",
+                        name="Điểm thấp nhất",
+                        line=dict(color="#EF553B", width=3, dash="dash"),
+                        marker=dict(symbol="diamond", size=8),
+                        orientation="h"
+                    ))
+                    fig_line.update_layout(
+                        yaxis_title="Mã ngành",
+                        xaxis_title="Tổng điểm + Ưu tiên",
+                        height=40*len(y_labels)+120,
+                        yaxis=dict(ticklabelposition="outside left", automargin=True),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                     )
-                    fig_chitieu.update_layout(
-                        yaxis_title="Ngành đào tạo",
-                        xaxis_title="Chỉ tiêu",
-                        height=40*len(df_chitieu_chart),
-                        yaxis=dict(ticklabelposition="outside left", anchor="x", automargin=True)
-                    )
-                    st.plotly_chart(fig_chitieu, use_container_width=True)
+                    st.plotly_chart(fig_line, use_container_width=True)
                 else:
-                    st.info("Không có dữ liệu chỉ tiêu ngành để hiển thị.")
+                    st.info("Không đủ dữ liệu để hiển thị biểu đồ điểm cao/thấp nhất.")
+
         with tab3:
             st.markdown("#### Thống kê nhanh theo cột bất kỳ")
             col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns), key="col_stat_tab")
