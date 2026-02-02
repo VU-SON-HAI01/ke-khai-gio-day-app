@@ -271,7 +271,7 @@ else:
                         x=df_combo["Nguyện vọng 2"],
                         name="Nguyện vọng 2",
                         orientation="h",
-                        marker_color="#1f77b4",
+                        marker_color="#0026ff",
                         text=df_combo["Nguyện vọng 2"],
                         textposition="outside"
                     ))
@@ -341,7 +341,7 @@ else:
                         x=bar_widths,
                         base=bar_bases,
                         orientation="h",
-                        marker_color="#1f77b4",
+                        marker_color="#0026ff",
                         name="Khoảng điểm (min-max)",
                         text=[f"{mn:.2f} - {mx:.2f}" if mn is not None and mx is not None else "" for mn, mx in zip(min_y, max_y)],
                         textposition="outside",
