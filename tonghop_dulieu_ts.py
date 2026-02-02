@@ -332,43 +332,46 @@ else:
                     max_y = [max_scores.get(ma, None) for ma in y_labels]
                     min_y = [min_scores.get(ma, None) for ma in y_labels]
                     import plotly.graph_objects as go
-                    fig_bar = go.Figure()
-                    # Bar min điểm (bên trái, màu đỏ)
-                    fig_bar.add_trace(go.Bar(
+                    # Bar thể hiện khoảng điểm: base=min, width=max-min
+                    bar_widths = [mx - mn if mx is not None and mn is not None else 0 for mn, mx in zip(min_y, max_y)]
+                    bar_bases = [mn if mn is not None else 0 for mn in min_y]
+                    fig_range = go.Figure()
+                    fig_range.add_trace(go.Bar(
                         y=y_labels,
-                        x=min_y,
-                        name="Điểm thấp nhất",
-                        orientation="h",
-                        marker_color="#EF553B",
-                        text=min_y,
-                        textposition="outside",
-                        offsetgroup=0,
-                        width=0.4
-                    ))
-                    # Bar max điểm (bên phải, màu xanh lá)
-                    fig_bar.add_trace(go.Bar(
-                        y=y_labels,
-                        x=max_y,
-                        name="Điểm cao nhất",
+                        x=bar_widths,
+                        base=bar_bases,
                         orientation="h",
                         marker_color="#00CC96",
-                        text=max_y,
+                        name="Khoảng điểm (min-max)",
+                        text=[f"{mn:.2f} - {mx:.2f}" if mn is not None and mx is not None else "" for mn, mx in zip(min_y, max_y)],
                         textposition="outside",
-                        offsetgroup=1,
-                        width=0.4
+                        width=0.5
                     ))
-                    fig_bar.update_layout(
-                        barmode="overlay",
+                    # Thêm marker cho min (tròn đỏ) và max (tròn xanh)
+                    fig_range.add_trace(go.Scatter(
+                        y=y_labels,
+                        x=min_y,
+                        mode="markers",
+                        marker=dict(color="#EF553B", size=12, symbol="circle"),
+                        name="Điểm thấp nhất"
+                    ))
+                    fig_range.add_trace(go.Scatter(
+                        y=y_labels,
+                        x=max_y,
+                        mode="markers",
+                        marker=dict(color="#00CC96", size=12, symbol="circle-open"),
+                        name="Điểm cao nhất"
+                    ))
+                    fig_range.update_layout(
                         yaxis_title="Mã ngành",
                         xaxis_title="Tổng điểm + Ưu tiên",
                         height=40*len(y_labels)+120,
                         yaxis=dict(ticklabelposition="outside left", automargin=True),
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                     )
-                    st.plotly_chart(fig_bar, use_container_width=True)
+                    st.plotly_chart(fig_range, use_container_width=True)
                 else:
                     st.info("Không đủ dữ liệu để hiển thị biểu đồ điểm cao/thấp nhất.")
-
         with tab3:
             st.markdown("#### Thống kê nhanh theo cột bất kỳ")
             col_stat = st.selectbox("Chọn cột để thống kê tần suất", options=list(filtered_df.columns), key="col_stat_tab")
