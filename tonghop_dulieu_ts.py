@@ -45,6 +45,54 @@ if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chiti
     st.session_state['nganh_chitieu_map'] = nganh_chitieu_map.copy()
     st.session_state['nganh_uutien_map'] = nganh_uutien_map.copy()
 
+# Form 1: Nhập chỉ tiêu tuyển sinh từng ngành (hiển thị mã ngành)
+@st.dialog("Điều chỉnh chỉ tiêu", width="medium")
+def show_quota_dialog():
+    st.subheader("Nhập chỉ tiêu tuyển sinh từng ngành")
+    quota_inputs = {}
+    cols_quota = st.columns(4)
+    for idx, nganh in enumerate(nganh_list):
+        ma_nganh = nganh_ma_map.get(nganh, "")
+        with cols_quota[idx % 4]:
+            if nganh in nganh_chitieu_map:
+                quota_inputs[nganh] = st.number_input(
+                    f"Chỉ tiêu ngành ({ma_nganh})", min_value=1, max_value=500,
+                    value=nganh_chitieu_map[nganh], key=f"quota_{nganh}")
+    if st.button("Xác nhận chỉ tiêu ngành"):
+        st.session_state['quota_inputs'] = quota_inputs.copy()
+        st.success("Đã lưu chỉ tiêu ngành!")
+        st.rerun()            
+# Form 2: Nhập điểm ưu tiên từng ngành
+@st.dialog("Điều chỉnh tham số ưu tiên", width="medium")
+def show_bonus_dialog():
+    st.subheader("Nhập điểm ưu tiên từng ngành")
+    if 'nganh_uutien_map' in st.session_state:
+        bonus_inputs = st.session_state['nganh_uutien_map']
+    else:
+        bonus_inputs = {}
+    cols_bonus = st.columns(4)
+    for idx, nganh in enumerate(nganh_list):
+        ma_nganh = nganh_ma_map.get(nganh, "")
+        if nganh in nganh_chitieu_map:
+            with cols_bonus[idx % 4]:
+                # Lấy giá trị mặc định từ map ưu tiên ngành nếu có
+                try:
+                    default_bonus = float(st.session_state.get('nganh_uutien_map', {}).get(nganh, 0.0))
+                except Exception:
+                    default_bonus = 0.0
+                bonus_inputs[nganh] = st.number_input(
+                    f"Ưu tiên điểm ({ma_nganh})", min_value=0.0, max_value=5.0,
+                    value=default_bonus, step=0.1, key=f"bonus_{nganh}")
+    oversample = st.slider("Tỷ lệ vượt chỉ tiêu (%)", min_value=0, max_value=50, value=10, step=1, key="oversample_slider")
+    weight_early = st.number_input("Ưu tiên nộp sớm (+ điểm)", min_value=0.0, max_value=2.0, value=0.05, step=0.01, key="weight_early_input")
+    if st.button("Xét tuyển với cấu hình này"):
+        st.session_state['bonus_inputs'] = bonus_inputs
+        st.session_state['oversample'] = oversample
+        st.session_state['weight_early'] = weight_early
+        # Nếu có quota_inputs trong session_state thì cập nhật lại quota_inputs và bonus_inputs toàn cục
+        st.success("Đã lưu tham số ưu tiên!")
+        st.rerun()
+
 try:
     google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
     thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
@@ -78,21 +126,61 @@ try:
             selected_year = st.selectbox("Chọn năm tuyển sinh *(VD: Năm tuyển sinh 2025 - 2026 thì chọn 2025)*", options=["2023", "2024", "2025", "2026"], index=1)
             confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter", use_container_width=True)
         with col_namts2:
-            pass
-        if 'filtered_df' not in st.session_state:
-            st.session_state['filtered_df'] = None
-        if confirm_filter:
-            # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh (dạng 6 số, ví dụ 250001 cho 2025)
-            if "MÃ HSTS" in df.columns:
-                with st.spinner("Đang lọc dữ liệu theo năm tuyển sinh..."):
-                    year_code = selected_year[-2:]
-                    ma_hsts_str = df["MÃ HSTS"].astype(str).str.strip().str.zfill(6)
-                    filtered_df = df[ma_hsts_str.str[:2] == year_code]
-                    st.session_state['filtered_df'] = filtered_df
-                    if filtered_df.empty:
-                        st.warning(f"Thông báo: Không tìm thấy dữ liệu với năm ={selected_year}.")
+            if 'filtered_df' not in st.session_state:
+                st.session_state['filtered_df'] = None
+            if confirm_filter:
+                # Lọc các Mã HSTS có 2 số đầu là năm tuyển sinh (dạng 6 số, ví dụ 250001 cho 2025)
+                if "MÃ HSTS" in df.columns:
+                    with st.spinner("Đang lọc dữ liệu theo năm tuyển sinh..."):
+                        year_code = selected_year[-2:]
+                        ma_hsts_str = df["MÃ HSTS"].astype(str).str.strip().str.zfill(6)
+                        filtered_df = df[ma_hsts_str.str[:2] == year_code]
+                        st.session_state['filtered_df'] = filtered_df
+                        if filtered_df.empty:
+                            st.warning(f"Thông báo: Không tìm thấy dữ liệu với năm ={selected_year}.")
+                else:
+                    st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
+            # Lấy danh sách ngành từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, ưu tiên bảng chỉ tiêu
+            xettuyen_nguyenvong_df = st.session_state.get('filtered_df', None)
+            if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
+                nganh_list = list(df_chitieu['TÊN_CĐ_TC'].dropna().astype(str).str.strip().unique())
+            elif xettuyen_nguyenvong_df is not None and not xettuyen_nguyenvong_df.empty:
+                cols_nv = [c for c in ["Nguyện Vọng 1", "Nguyện Vọng 2", "Nguyện Vọng 3"] if c in xettuyen_nguyenvong_df.columns]
+                nganh_set = set()
+                for col in cols_nv:
+                    nganh_set.update(xettuyen_nguyenvong_df[col].dropna().astype(str).str.strip().unique())
+                nganh_list = list(sorted(nganh_set))
             else:
-                st.info("Không tồn tại dữ liệu tuyển sinh của năm đã chọn.")
+                nganh_list = ["Công nghệ ô tô", "Điện", "Cơ khí"]
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog)
+            with col2:
+                st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
+            # Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
+
+            # Lấy quota_inputs, nếu rỗng thì lấy mặc định từ nganh_chitieu_map
+            quota_inputs = st.session_state.get('quota_inputs', {})
+            if not quota_inputs:
+                quota_inputs = st.session_state.get('nganh_chitieu_map', {}).copy()
+            bonus_inputs = st.session_state.get('bonus_inputs', {})
+            if not bonus_inputs:
+                bonus_inputs = st.session_state.get('nganh_uutien_map', {})
+                
+            oversample = st.session_state.get('oversample', 10)
+            weight_early = st.session_state.get('weight_early', 0.05)
+
+            st.write(quota_inputs)
+            st.write(bonus_inputs)
+
+            QUOTA_CONFIG = {nganh: {"quota": quota_inputs.get(nganh, 20), "bonus": bonus_inputs.get(nganh, 0.0)} for nganh in nganh_list}
+            OVERSAMPLE_RATE = oversample / 100
+            WEIGHT_EARLY = weight_early
+            WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
+
+
+
         filtered_df = st.session_state['filtered_df']
         if filtered_df is not None and not filtered_df.empty:
             tab1, tab2, tab3 = st.tabs([f"Hồ sơ tuyển sinh", "Biểu đồ", "Thống kê nhanh"])
@@ -159,102 +247,12 @@ try:
             st.success(f"Đã kiểm tra toàn bộ {len(df)} dòng dữ liệu.")   
 except Exception as e:
     st.error(f"Lỗi truy cập dữ liệu: {e}")
-    
-xettuyen_nguyenvong_df = st.session_state['filtered_df']
 
 # --- 1. CẤU HÌNH HỆ THỐNG ---
 st.markdown("---")
 st.header("🎯 Xét tuyển thông minh (theo dữ liệu lọc)")
 
-# Lấy danh sách ngành từ cột 'TÊN_CĐ_TC' trong df_chitieu nếu có, ưu tiên bảng chỉ tiêu
-if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chitieu.columns:
-    nganh_list = list(df_chitieu['TÊN_CĐ_TC'].dropna().astype(str).str.strip().unique())
-elif xettuyen_nguyenvong_df is not None and not xettuyen_nguyenvong_df.empty:
-    cols_nv = [c for c in ["Nguyện Vọng 1", "Nguyện Vọng 2", "Nguyện Vọng 3"] if c in xettuyen_nguyenvong_df.columns]
-    nganh_set = set()
-    for col in cols_nv:
-        nganh_set.update(xettuyen_nguyenvong_df[col].dropna().astype(str).str.strip().unique())
-    nganh_list = list(sorted(nganh_set))
-else:
-    nganh_list = ["Công nghệ ô tô", "Điện", "Cơ khí"]
 
-
-# Form 1: Nhập chỉ tiêu tuyển sinh từng ngành (hiển thị mã ngành)
-@st.dialog("Điều chỉnh chỉ tiêu", width="medium")
-def show_quota_dialog():
-    st.subheader("Nhập chỉ tiêu tuyển sinh từng ngành")
-    quota_inputs = {}
-    cols_quota = st.columns(4)
-    for idx, nganh in enumerate(nganh_list):
-        ma_nganh = nganh_ma_map.get(nganh, "")
-        with cols_quota[idx % 4]:
-            if nganh in nganh_chitieu_map:
-                quota_inputs[nganh] = st.number_input(
-                    f"Chỉ tiêu ngành ({ma_nganh})", min_value=1, max_value=500,
-                    value=nganh_chitieu_map[nganh], key=f"quota_{nganh}")
-    if st.button("Xác nhận chỉ tiêu ngành"):
-        st.session_state['quota_inputs'] = quota_inputs.copy()
-        st.success("Đã lưu chỉ tiêu ngành!")
-        st.rerun()            
-
-# Form 2: Nhập điểm ưu tiên từng ngành
-
-@st.dialog("Điều chỉnh tham số ưu tiên", width="medium")
-def show_bonus_dialog():
-    st.subheader("Nhập điểm ưu tiên từng ngành")
-    if 'nganh_uutien_map' in st.session_state:
-        bonus_inputs = st.session_state['nganh_uutien_map']
-    else:
-        bonus_inputs = {}
-    cols_bonus = st.columns(4)
-    for idx, nganh in enumerate(nganh_list):
-        ma_nganh = nganh_ma_map.get(nganh, "")
-        if nganh in nganh_chitieu_map:
-            with cols_bonus[idx % 4]:
-                # Lấy giá trị mặc định từ map ưu tiên ngành nếu có
-                try:
-                    default_bonus = float(st.session_state.get('nganh_uutien_map', {}).get(nganh, 0.0))
-                except Exception:
-                    default_bonus = 0.0
-                bonus_inputs[nganh] = st.number_input(
-                    f"Ưu tiên điểm ({ma_nganh})", min_value=0.0, max_value=5.0,
-                    value=default_bonus, step=0.1, key=f"bonus_{nganh}")
-    oversample = st.slider("Tỷ lệ vượt chỉ tiêu (%)", min_value=0, max_value=50, value=10, step=1, key="oversample_slider")
-    weight_early = st.number_input("Ưu tiên nộp sớm (+ điểm)", min_value=0.0, max_value=2.0, value=0.05, step=0.01, key="weight_early_input")
-    if st.button("Xét tuyển với cấu hình này"):
-        st.session_state['bonus_inputs'] = bonus_inputs
-        st.session_state['oversample'] = oversample
-        st.session_state['weight_early'] = weight_early
-        # Nếu có quota_inputs trong session_state thì cập nhật lại quota_inputs và bonus_inputs toàn cục
-        st.success("Đã lưu tham số ưu tiên!")
-        st.rerun()
-
-
-col1, col2 = st.columns(2)
-with col1:
-    st.button("Điều chỉnh chỉ tiêu ngành", type="primary", on_click=show_quota_dialog)
-with col2:
-    st.button("Điều chỉnh tham số ưu tiên", type="primary", on_click=show_bonus_dialog)
-# Lấy các biến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
-
-# Lấy quota_inputs, nếu rỗng thì lấy mặc định từ nganh_chitieu_map
-quota_inputs = st.session_state.get('quota_inputs', {})
-if not quota_inputs:
-    quota_inputs = st.session_state.get('nganh_chitieu_map', {}).copy()
-bonus_inputs = st.session_state.get('bonus_inputs', {})
-if not bonus_inputs:
-    bonus_inputs = st.session_state.get('nganh_uutien_map', {})
-    
-oversample = st.session_state.get('oversample', 10)
-weight_early = st.session_state.get('weight_early', 0.05)
-
-st.write(quota_inputs)
-st.write(bonus_inputs)
-
-QUOTA_CONFIG = {nganh: {"quota": quota_inputs.get(nganh, 20), "bonus": bonus_inputs.get(nganh, 0.0)} for nganh in nganh_list}
-OVERSAMPLE_RATE = oversample / 100
-WEIGHT_EARLY = weight_early
-WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
 
 # submit_quota: True nếu đã có quota_inputs và bonus_inputs trong session_state
 submit_quota = bool(quota_inputs and bonus_inputs)
@@ -384,18 +382,19 @@ if xettuyen_nguyenvong_df is not None and not xettuyen_nguyenvong_df.empty and s
         nv1_counts = xettuyen_nguyenvong_df["Nguyện Vọng 1"].dropna().astype(str).str.strip().value_counts() if "Nguyện Vọng 1" in xettuyen_nguyenvong_df.columns else pd.Series(dtype=int)
         nv2_counts = xettuyen_nguyenvong_df["Nguyện Vọng 2"].dropna().astype(str).str.strip()
         nv2_counts = nv2_counts[nv2_counts != ""].value_counts() if "Nguyện Vọng 2" in xettuyen_nguyenvong_df.columns else pd.Series(dtype=int)
-        # Lấy chỉ tiêu tối đa
+        # Lấy chỉ tiêu tuyển sinh thực tế từ session_state (ưu tiên dữ liệu gốc, không phải chỉ tiêu tối đa đã cộng oversample)
+        nganh_chitieu_map = st.session_state.get('nganh_chitieu_map', {})
         nganh_list_bar = list(max_quotas.keys())
         chart_data = pd.DataFrame({
             "Ngành": nganh_list_bar,
-            "Chỉ tiêu tối đa": [max_quotas.get(nganh, 0) for nganh in nganh_list_bar],
+            "Chỉ tiêu tuyển sinh": [nganh_chitieu_map.get(nganh, 0) for nganh in nganh_list_bar],
             "Đăng ký NV1": [nv1_counts.get(nganh, 0) for nganh in nganh_list_bar],
             "Đăng ký NV2": [nv2_counts.get(nganh, 0) for nganh in nganh_list_bar],
         })
         fig = px.bar(
             chart_data,
             x="Ngành",
-            y=["Chỉ tiêu tối đa", "Đăng ký NV1", "Đăng ký NV2"],
+            y=["Chỉ tiêu tuyển sinh", "Đăng ký NV1", "Đăng ký NV2"],
             barmode="group",
             color_discrete_sequence=['#EF553B', '#00CC96', '#636EFA']
         )
