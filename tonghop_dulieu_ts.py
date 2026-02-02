@@ -323,6 +323,10 @@ def get_mock_data():
 # --- 4. GIAO DIỆN STREAMLIT ---
 st.subheader("🚀 Hệ thống Điều phối Tuyển sinh Pro (theo dữ liệu lọc)")
 st.markdown(f"**Cấu hình:** Vượt chỉ tiêu {OVERSAMPLE_RATE*100}% | Ưu tiên cộng điểm ngành | Ưu tiên nộp sớm (+{WEIGHT_EARLY})")
+if 'xettuyen_nguyenvong_df' in locals():
+    pass
+else:
+    xettuyen_nguyenvong_df = pd.DataFrame()
 
 if xettuyen_nguyenvong_df is not None and not xettuyen_nguyenvong_df.empty and submit_quota:
     df_final, counts, max_quotas = run_admission_logic(xettuyen_nguyenvong_df, QUOTA_CONFIG)
