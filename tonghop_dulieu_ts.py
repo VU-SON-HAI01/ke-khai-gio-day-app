@@ -136,9 +136,9 @@ else:
         # Lấy các Sbiến cấu hình từ session_state nếu có, nếu không thì dùng mặc định
 
         # Lấy quota_inputs, nếu rỗng thì lấy mặc định từ nganh_chitieu_map
-        quota_inputs = st.session_state.get('quota_inputs', {})
-        if not quota_inputs:
-            quota_inputs = st.session_state.get('nganh_chitieu_map', {}).copy()
+        chitieu_dieuchinh_df = st.session_state.get('quota_inputs', {})
+        if not chitieu_dieuchinh_df:
+            chitieu_dieuchinh_df = st.session_state.get('nganh_chitieu_map', {}).copy()
         bonus_inputs = st.session_state.get('bonus_inputs', {})
         if not bonus_inputs:
             bonus_inputs = st.session_state.get('nganh_uutien_map', {})
@@ -146,10 +146,10 @@ else:
         oversample = st.session_state.get('oversample', 10)
         weight_early = st.session_state.get('weight_early', 0.05)
 
-        st.write(quota_inputs)
+        st.write(chitieu_dieuchinh_df)
         st.write(bonus_inputs)
 
-        QUOTA_CONFIG = {nganh: {"quota": quota_inputs.get(nganh, 20), "bonus": bonus_inputs.get(nganh, 0.0)} for nganh in nganh_list}
+        QUOTA_CONFIG = {nganh: {"quota": chitieu_dieuchinh_df.get(nganh, 20), "bonus": bonus_inputs.get(nganh, 0.0)} for nganh in nganh_list}
         OVERSAMPLE_RATE = oversample / 100
         WEIGHT_EARLY = weight_early
         WEIGHT_NV = {1: 0.03, 2: 0.02, 3: 0.01}
@@ -197,13 +197,12 @@ else:
                 st.bar_chart(nv2_counts)
             else:
                 st.info("Không tìm thấy cột 'Nguyện Vọng 2' trong dữ liệu.")
-            # Biểu đồ chỉ tiêu ngành
+            # Biểu đồ chỉ tiêu ngành sử dụng chitieu_dieuchinh_df
             st.markdown("###### BIỂU ĐỒ CHỈ TIÊU NGÀNH ĐÀO TẠO")
-            nganh_chitieu_map = st.session_state.get('nganh_chitieu_map', {})
-            if nganh_chitieu_map:
+            if chitieu_dieuchinh_df:
                 df_chitieu_chart = pd.DataFrame({
-                    "Ngành đào tạo": list(nganh_chitieu_map.keys()),
-                    "Chỉ tiêu": list(nganh_chitieu_map.values())
+                    "Ngành đào tạo": list(chitieu_dieuchinh_df.keys()),
+                    "Chỉ tiêu": list(chitieu_dieuchinh_df.values())
                 })
                 st.bar_chart(df_chitieu_chart.set_index("Ngành đào tạo"))
             else:
@@ -226,7 +225,7 @@ st.header("🎯 Xét tuyển thông minh (theo dữ liệu lọc)")
 
 
 # submit_quota: True nếu đã có quota_inputs và bonus_inputs trong session_state
-submit_quota = bool(quota_inputs and bonus_inputs)
+submit_quota = bool(chitieu_dieuchinh_df and bonus_inputs)
 
 # --- 2. HÀM LOGIC XÉT TUYỂN ---
 def run_admission_logic(df_input, quotas):
