@@ -52,11 +52,16 @@ if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chiti
         ma = str(row['MÃ_CĐ_TC']).strip()
         chitieu_ts = row['CHỈ TIÊU']
         uutien_nganh = row['ƯU TIÊN NGÀNH']
-        if ten:
+        if ten and ma:
             nganh_ma_map[ten] = ma
-            # Lưu giá trị chỉ tiêu nếu là số, nếu không thì bỏ qua
+            # Lưu giá trị chỉ tiêu theo tên ngành (cũ)
             try:
                 nganh_chitieu_map[ten] = int(float(str(chitieu_ts).replace(",", ".")))
+            except:
+                pass
+            # Lưu giá trị chỉ tiêu theo mã ngành (mới, để dùng cho biểu đồ mã ngành)
+            try:
+                nganh_chitieu_map[ma] = int(float(str(chitieu_ts).replace(",", ".")))
             except:
                 pass
             # Đảm bảo giá trị là float, chuyển dấu phẩy sang chấm nếu cần
@@ -64,6 +69,11 @@ if df_chitieu is not None and not df_chitieu.empty and 'TÊN_CĐ_TC' in df_chiti
                 nganh_uutien_map[ten] = float(str(uutien_nganh).replace(",", "."))
             except:
                 nganh_uutien_map[ten] = 0.0
+            # Ưu tiên ngành theo mã ngành (nếu cần)
+            try:
+                nganh_uutien_map[ma] = float(str(uutien_nganh).replace(",", "."))
+            except:
+                nganh_uutien_map[ma] = 0.0
     # Lưu map vào session_state để dùng lại
     st.session_state['nganh_chitieu_map'] = nganh_chitieu_map.copy()
     st.session_state['nganh_uutien_map'] = nganh_uutien_map.copy()
@@ -162,8 +172,8 @@ else:
         oversample = st.session_state.get('oversample', 10)
         weight_early = st.session_state.get('weight_early', 0.05)
 
-        st.write(chitieu_dieuchinh_df)
-        st.write(bonus_inputs)
+        #st.write(chitieu_dieuchinh_df)
+        #st.write(bonus_inputs)
 
         QUOTA_CONFIG = {nganh: {"quota": chitieu_dieuchinh_df.get(nganh, 20), "bonus": bonus_inputs.get(nganh, 0.0)} for nganh in nganh_list}
         # QUOTA_CONFIG theo mã ngành
