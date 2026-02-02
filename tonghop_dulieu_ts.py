@@ -206,7 +206,16 @@ else:
                     "Ngành đào tạo": list(chitieu_dieuchinh_df.keys()),
                     "Chỉ tiêu": list(chitieu_dieuchinh_df.values())
                 })
-                st.bar_chart(df_chitieu_chart.set_index("Ngành đào tạo"))
+                fig_chitieu = px.bar(
+                    df_chitieu_chart,
+                    y="Ngành đào tạo",
+                    x="Chỉ tiêu",
+                    orientation="h",
+                    text="Chỉ tiêu",
+                    color_discrete_sequence=["#636EFA"]
+                )
+                fig_chitieu.update_layout(yaxis_title="Ngành đào tạo", xaxis_title="Chỉ tiêu", height=40*len(df_chitieu_chart))
+                st.plotly_chart(fig_chitieu, use_container_width=True)
             else:
                 st.info("Không có dữ liệu chỉ tiêu ngành để hiển thị.")
         with tab3:
