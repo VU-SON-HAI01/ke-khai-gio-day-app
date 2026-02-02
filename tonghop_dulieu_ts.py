@@ -127,12 +127,12 @@ else:
         confirm_filter = st.button("Xác nhận", type="primary", key="confirm_filter", use_container_width=True)
         # Lọc dữ liệu theo năm tuyển sinh khi nhấn xác nhận
         if confirm_filter:
-            # Lấy ký tự cuối của năm tuyển sinh
-            year_last = str(selected_year)[-1]
-            st.write(f"Đang lọc dữ liệu theo năm tuyển sinh kết thúc bằng: {year_last}")
-            # Lọc theo ký tự đầu của MÃ HSTS
+            # Lấy 2 ký tự cuối của năm tuyển sinh
+            year_last2 = str(selected_year)[-2:]
+            st.write(f"Đang lọc dữ liệu theo năm tuyển sinh kết thúc bằng: {year_last2}")
+            # Lọc theo 2 ký tự đầu của MÃ HSTS
             if "MÃ HSTS" in df.columns:
-                filtered = df[df["MÃ HSTS"].astype(str).str[0] == year_last]
+                filtered = df[df["MÃ HSTS"].astype(str).str[:2] == year_last2]
             else:
                 filtered = df.copy()
             st.session_state['filtered_df'] = filtered.reset_index(drop=True)
