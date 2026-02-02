@@ -352,14 +352,14 @@ else:
                         y=y_labels,
                         x=min_y,
                         mode="markers",
-                        marker=dict(color="#EF553B", size=12, symbol="circle"),
+                        marker=dict(color="#EF553B", size=15, symbol="circle"),
                         name="Điểm thấp nhất"
                     ))
                     fig_range.add_trace(go.Scatter(
                         y=y_labels,
                         x=max_y,
                         mode="markers",
-                        marker=dict(color="#00CC96", size=12, symbol="circle-open"),
+                        marker=dict(color="#00CC96", size=5, symbol="circle-open"),
                         name="Điểm cao nhất"
                     ))
                     fig_range.update_layout(
