@@ -197,8 +197,9 @@ else:
 
             st.markdown("###### BIỂU ĐỒ KẾT HỢP: SỐ LƯỢNG NGUYỆN VỌNG 1 VÀ CHỈ TIÊU THEO NGÀNH")
             if "Nguyện Vọng 1" in filtered_df.columns and chitieu_dieuchinh_df:
-                # Chuẩn hóa tên ngành NV1 về đúng định dạng TÊN_CĐ_TC (VD: TC.CÔNG NGHỆ Ô TÔ)
+                # Chuẩn hóa tên ngành NV1 và NV2 về đúng định dạng TÊN_CĐ_TC (VD: TC.CÔNG NGHỆ Ô TÔ)
                 nv1_raw = filtered_df["Nguyện Vọng 1"].astype(str).str.strip()
+                nv2_raw = filtered_df["Nguyện Vọng 2"].astype(str).str.strip() if "Nguyện Vọng 2" in filtered_df.columns else pd.Series([None]*len(filtered_df))
                 # Lấy trình độ từ cột "CĐ/TC" hoặc "TRÌNH ĐỘ" nếu có
                 if "CĐ/TC" in filtered_df.columns:
                     trinhdo_col = "CĐ/TC"
@@ -213,13 +214,16 @@ else:
 
                 # Tạo tên ngành chuẩn hóa dạng "TC.CÔNG NGHỆ Ô TÔ" hoặc "CĐ.CÔNG NGHỆ Ô TÔ"
                 nv1_nganh_chuan = trinhdo_raw + "." + nv1_raw.str.upper()
-                # Đếm số lượng NV1 cho từng ngành trong nganh_list (danh sách chỉ tiêu)
+                nv2_nganh_chuan = trinhdo_raw + "." + nv2_raw.str.upper() if nv2_raw is not None else pd.Series([None]*len(filtered_df))
+                # Đếm số lượng NV1 và NV2 cho từng ngành trong nganh_list (danh sách chỉ tiêu)
                 nv1_counts = pd.Series({nganh: (nv1_nganh_chuan == nganh).sum() for nganh in nganh_list})
+                nv2_counts = pd.Series({nganh: (nv2_nganh_chuan == nganh).sum() for nganh in nganh_list})
                 # Chuẩn hóa dữ liệu cho biểu đồ kết hợp
                 df_combo = pd.DataFrame({
                     "Ngành đào tạo": nganh_list,
                     "Chỉ tiêu": [chitieu_dieuchinh_df.get(nganh, 0) for nganh in nganh_list],
-                    "Nguyện vọng 1": [nv1_counts.get(nganh, 0) for nganh in nganh_list]
+                    "Nguyện vọng 1": [nv1_counts.get(nganh, 0) for nganh in nganh_list],
+                    "Nguyện vọng 2": [nv2_counts.get(nganh, 0) for nganh in nganh_list]
                 })
                 import plotly.graph_objects as go
                 fig_combo = go.Figure()
@@ -233,7 +237,7 @@ else:
                     text=df_combo["Chỉ tiêu"],
                     textposition="outside"
                 ))
-                # Bar nguyện vọng 1 (màu xanh)
+                # Bar nguyện vọng 1 (màu xanh lá)
                 fig_combo.add_trace(go.Bar(
                     y=df_combo["Ngành đào tạo"],
                     x=df_combo["Nguyện vọng 1"],
@@ -241,6 +245,16 @@ else:
                     orientation="h",
                     marker_color="#00CC96",
                     text=df_combo["Nguyện vọng 1"],
+                    textposition="outside"
+                ))
+                # Bar nguyện vọng 2 (màu xanh dương)
+                fig_combo.add_trace(go.Bar(
+                    y=df_combo["Ngành đào tạo"],
+                    x=df_combo["Nguyện vọng 2"],
+                    name="Nguyện vọng 2",
+                    orientation="h",
+                    marker_color="#1f77b4",
+                    text=df_combo["Nguyện vọng 2"],
                     textposition="outside"
                 ))
                 fig_combo.update_layout(
@@ -254,15 +268,6 @@ else:
                 st.plotly_chart(fig_combo, use_container_width=True)
             else:
                 st.info("Không đủ dữ liệu để hiển thị biểu đồ kết hợp.")
-
-            st.markdown("###### BIỂU ĐỒ SỐ LƯỢNG THEO NGÀNH (NGUYỆN VỌNG 2)")
-            if "Nguyện Vọng 2" in filtered_df.columns:
-                nv2_series = filtered_df["Nguyện Vọng 2"].dropna().astype(str).str.strip()
-                nv2_series = nv2_series[nv2_series != ""]
-                nv2_counts = nv2_series.value_counts().sort_values(ascending=False)
-                st.bar_chart(nv2_counts)
-            else:
-                st.info("Không tìm thấy cột 'Nguyện Vọng 2' trong dữ liệu.")
             # Biểu đồ chỉ tiêu ngành sử dụng chitieu_dieuchinh_df
             st.markdown("###### BIỂU ĐỒ CHỈ TIÊU NGÀNH ĐÀO TẠO")
             if chitieu_dieuchinh_df:
