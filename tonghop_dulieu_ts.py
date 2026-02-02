@@ -135,7 +135,6 @@ try:
                     st.bar_chart(nv2_counts)
                 else:
                     st.info("Không tìm thấy cột 'Nguyện Vọng 2' trong dữ liệu.")
-
                 # Biểu đồ chỉ tiêu ngành
                 st.markdown("###### BIỂU ĐỒ CHỈ TIÊU NGÀNH ĐÀO TẠO")
                 nganh_chitieu_map = st.session_state.get('nganh_chitieu_map', {})
@@ -377,14 +376,27 @@ if xettuyen_nguyenvong_df is not None and not xettuyen_nguyenvong_df.empty and s
                 if res_new['Diem_XT'] >= min_score:
                     st.sidebar.write(f"👉 Có thể đỗ **{m}** (Dựa trên điểm)")
     # Hiển thị biểu đồ
-    st.subheader("📊 Tình trạng lấp đầy chỉ tiêu (+{:.0f}%)".format(OVERSAMPLE_RATE*100))
-    chart_data = pd.DataFrame({
-        "Ngành": list(counts.keys()),
-        "Đã tuyển": list(counts.values()),
-        "Chỉ tiêu tối đa": list(max_quotas.values())
-    })
-    fig = px.bar(chart_data, x="Ngành", y=["Đã tuyển", "Chỉ tiêu tối đa"], barmode="group", color_discrete_sequence=['#00CC96', '#EF553B'])
-    st.plotly_chart(fig, use_container_width=True)
+        st.subheader(f"📊 So sánh Chỉ tiêu và Đăng ký Nguyện vọng 1, 2 (+{OVERSAMPLE_RATE*100:.0f}%)")
+        # Lấy số lượng đăng ký NV1 và NV2 cho từng ngành
+        nv1_counts = xettuyen_nguyenvong_df["Nguyện Vọng 1"].dropna().astype(str).str.strip().value_counts() if "Nguyện Vọng 1" in xettuyen_nguyenvong_df.columns else pd.Series(dtype=int)
+        nv2_counts = xettuyen_nguyenvong_df["Nguyện Vọng 2"].dropna().astype(str).str.strip()
+        nv2_counts = nv2_counts[nv2_counts != ""].value_counts() if "Nguyện Vọng 2" in xettuyen_nguyenvong_df.columns else pd.Series(dtype=int)
+        # Lấy chỉ tiêu tối đa
+        nganh_list_bar = list(max_quotas.keys())
+        chart_data = pd.DataFrame({
+            "Ngành": nganh_list_bar,
+            "Chỉ tiêu tối đa": [max_quotas.get(nganh, 0) for nganh in nganh_list_bar],
+            "Đăng ký NV1": [nv1_counts.get(nganh, 0) for nganh in nganh_list_bar],
+            "Đăng ký NV2": [nv2_counts.get(nganh, 0) for nganh in nganh_list_bar],
+        })
+        fig = px.bar(
+            chart_data,
+            x="Ngành",
+            y=["Chỉ tiêu tối đa", "Đăng ký NV1", "Đăng ký NV2"],
+            barmode="group",
+            color_discrete_sequence=['#EF553B', '#00CC96', '#636EFA']
+        )
+        st.plotly_chart(fig, use_container_width=True)
     # Hiển thị danh sách
     st.subheader("📋 Danh sách xét tuyển chi tiết (Sắp xếp theo thứ tự ưu tiên)")
     cols_show_xt = [
