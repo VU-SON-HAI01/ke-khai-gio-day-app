@@ -341,7 +341,7 @@ else:
                         x=bar_widths,
                         base=bar_bases,
                         orientation="h",
-                        marker_color="#00CC96",
+                        marker_color="#1f77b4",
                         name="Khoảng điểm (min-max)",
                         text=[f"{mn:.2f} - {mx:.2f}" if mn is not None and mx is not None else "" for mn, mx in zip(min_y, max_y)],
                         textposition="outside",
@@ -352,7 +352,7 @@ else:
                         y=y_labels,
                         x=min_y,
                         mode="markers",
-                        marker=dict(color="#EF553B", size=15, symbol="circle"),
+                        marker=dict(color="#EF553B", size=5, symbol="circle"),
                         name="Điểm thấp nhất"
                     ))
                     fig_range.add_trace(go.Scatter(
