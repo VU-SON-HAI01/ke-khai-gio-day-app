@@ -111,6 +111,8 @@ def show_review_dialog():
         "Ngày sinh": st.session_state.get("ngay_sinh", None),
         "Giới tính": st.session_state.get("gioi_tinh", "Nam"),
         "CCCD": st.session_state.get("cccd", ""),
+        "Ngày cấp CCCD": st.session_state.get("ngay_cap_cccd", ""),
+        "Nơi cấp CCCD": st.session_state.get("noi_cap_cccd", ""),
         "Số điện thoại": st.session_state.get("so_dien_thoai", ""),
         "Nơi sinh (cũ)": st.session_state.get("noi_sinh_cu", ""),
         "Nơi sinh (mới)": st.session_state.get("noi_sinh_moi", ""),
@@ -202,6 +204,7 @@ def show_review_dialog():
             format_ngay_sinh(st.session_state.get("ngay_sinh", None)),  # 4: NGÀY SINH
             st.session_state.get("gioi_tinh", "Nam"),  # 5: GIỚI TÍNH
             st.session_state.get("cccd", ""),  # 6: CCCD
+
             st.session_state.get("so_dien_thoai", ""),  # 7: Số điện thoại
             "",  # 8: Email
             st.session_state.get("noi_sinh_cu", ""),  # 9: NƠI SINH (Cũ)
