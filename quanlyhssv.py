@@ -91,27 +91,27 @@ def show_review_dialog():
     except Exception as e:
         import traceback
         st.error(f"Lỗi truy cập Google Sheet (lấy mã HSTS mới): {e}\n{traceback.format_exc()}")
-    def format_ngay_nop_hs(ngay_nop_hs):
+    def dinh_dang_chuan_date(dinh_dang_dd_mm_yyyy):
         import pandas as pd
         import datetime
-        if isinstance(ngay_nop_hs, (pd.Timestamp, datetime.date, datetime.datetime)) and ngay_nop_hs is not None:
-            return ngay_nop_hs.strftime("%d/%m/%Y")
-        elif isinstance(ngay_nop_hs, str) and ngay_nop_hs:
+        if isinstance(dinh_dang_dd_mm_yyyy, (pd.Timestamp, datetime.date, datetime.datetime)) and dinh_dang_dd_mm_yyyy is not None:
+            return dinh_dang_dd_mm_yyyy.strftime("%d/%m/%Y")
+        elif isinstance(dinh_dang_dd_mm_yyyy, str) and dinh_dang_dd_mm_yyyy:
             import re
-            match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", ngay_nop_hs)
+            match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", dinh_dang_dd_mm_yyyy)
             if match:
                 y, m, d = match.groups()
                 return f"{int(d):02d}/{int(m):02d}/{y}"
-            return ngay_nop_hs
+            return dinh_dang_dd_mm_yyyy
         else:
             return ""
     du_lieu = {
         "Mã hồ sơ tuyển sinh": st.session_state.get("ma_hsts", ""),
         "Họ và tên": st.session_state.get("ho_ten", ""),
-        "Ngày sinh": st.session_state.get("ngay_sinh", ""),
+        "Ngày sinh": dinh_dang_chuan_date(st.session_state.get("ngay_sinh", "")),
         "Giới tính": st.session_state.get("gioi_tinh", "Nam"),
         "CCCD": st.session_state.get("cccd", ""),
-        "Ngày cấp CCCD": st.session_state.get("ngay_cap_cccd", ""),
+        "Ngày cấp CCCD": dinh_dang_chuan_date(st.session_state.get("ngay_cap_cccd", "")),
         "Nơi cấp CCCD": st.session_state.get("noi_cap_cccd", ""),
         "Số điện thoại": st.session_state.get("so_dien_thoai", ""),
         "Nơi sinh (cũ)": st.session_state.get("noi_sinh_cu", ""),
@@ -161,7 +161,7 @@ def show_review_dialog():
         "Trình độ đăng ký": st.session_state.get("trinh_do", ""),
         "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
         # Định dạng ngày nộp hồ sơ sang dd/mm/yyyy nếu có
-        "Ngày nộp hồ sơ": format_ngay_nop_hs(st.session_state.get("ngay_nop_hs", "")),
+        "Ngày nộp hồ sơ": dinh_dang_chuan_date(st.session_state.get("ngay_nop_hs", "")),
     })
     if st.session_state.get("trinh_do", "") not in ["Cao đẳng", "Liên thông CĐ"]:
         du_lieu["Đăng ký học văn hóa"] = st.session_state.get("trinhdo_totnghiep_vh", "")
@@ -182,26 +182,11 @@ def show_review_dialog():
                 ten = ""
             return ho_dem, ten
         ho_dem, ten = split_ho_ten(st.session_state.get("ho_ten", ""))
-        def format_ngay_sinh(ngay_sinh):
-            import pandas as pd
-            import datetime
-            if isinstance(ngay_sinh, (pd.Timestamp, datetime.date, datetime.datetime)) and ngay_sinh is not None:
-                return ngay_sinh.strftime("%d/%m/%Y")
-            elif isinstance(ngay_sinh, str) and ngay_sinh:
-                # Nếu là chuỗi yyyy-mm-dd hoặc yyyy/mm/dd
-                import re
-                match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", ngay_sinh)
-                if match:
-                    y, m, d = match.groups()
-                    return f"{int(d):02d}/{int(m):02d}/{y}"
-                return ngay_sinh
-            else:
-                return ""
         row = [
             st.session_state.get("ma_hsts", ""),  # 1: MÃ HSTS
             ho_dem,  # 2: HỌ ĐỆM
             ten,  # 3: TÊN
-            format_ngay_sinh(st.session_state.get("ngay_sinh", None)),  # 4: NGÀY SINH
+            dinh_dang_chuan_date(st.session_state.get("ngay_sinh", None)),  # 4: NGÀY SINH
             st.session_state.get("gioi_tinh", "Nam"),  # 5: GIỚI TÍNH
             st.session_state.get("cccd", ""),  # 6: CCCD
 
@@ -227,7 +212,7 @@ def show_review_dialog():
             st.session_state.get("nv3", ""),  # 26: Nguyện vọng 3
             st.session_state.get("trinhdo_totnghiep_vh", ""),  # 27: Đăng ký học văn hóa
             st.session_state.get("co_so", ""),  # 28: Cơ sở nhận hồ sơ
-            format_ngay_nop_hs(st.session_state.get("ngay_nop_hs", "")),  # 29: Ngày nộp hồ sơ
+            dinh_dang_chuan_date(st.session_state.get("ngay_nop_hs", "")),  # 29: Ngày nộp hồ sơ
             st.session_state.get("trinh_do", ""),  # 30: Trình độ đăng ký
             st.session_state.get("diachi_chitiet_full_cu") ,  # 31: Địa chỉ chi tiết cũ
             st.session_state.get("diachi_chitiet_full_moi") ,  # 32: Địa chỉ chi tiết mới
