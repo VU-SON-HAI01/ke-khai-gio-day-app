@@ -655,10 +655,11 @@ with col1:
         st.success(f"Chuyển đổi Quê quán (Tỉnh mới): {auto_new_qq}")
     else:
         st.session_state["noi_sinh_cu"] = ""
+        noi_sinh_moi_default = "Tỉnh Đắk Lắk" if "noi_sinh_moi" not in st.session_state or not st.session_state["noi_sinh_moi"] else st.session_state["noi_sinh_moi"]
         noi_sinh_moi = st.selectbox(
             "Nơi sinh (Tỉnh mới)",
             provinces_new,
-            index=provinces_new.index(st.session_state.get("noi_sinh_moi", provinces_new[0])) if st.session_state.get("noi_sinh_moi", provinces_new[0]) in provinces_new else 0,
+            index= provinces_new.index(noi_sinh_moi_default) if noi_sinh_moi_default in provinces_new else 0,
             key="noi_sinh_moi_select_newonly"
         )
         st.session_state["noi_sinh_moi"] = noi_sinh_moi
