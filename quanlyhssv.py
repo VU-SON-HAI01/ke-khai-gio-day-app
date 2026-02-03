@@ -164,7 +164,7 @@ def show_review_dialog():
     if st.session_state.get("trinh_do", "") not in ["Cao đẳng", "Liên thông CĐ"]:
         du_lieu["Đăng ký học văn hóa"] = st.session_state.get("trinhdo_totnghiep_vh", "")
     # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
-    if st.button("Lưu tất cả thông tin"):
+    if st.button("💾 Lưu thông tin",type="primary",key="btn_save_info",use_container_width=True):
         def split_ho_ten(ho_ten_full):
             ho_ten_full = ho_ten_full.strip()
             if ho_ten_full:
