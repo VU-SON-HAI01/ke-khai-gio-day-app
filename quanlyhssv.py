@@ -309,7 +309,7 @@ def render_special_char_buttons_bo():
                 st.session_state["bo"] = current_name + "ƀ"
         with row2[11]:
             st.write("")  # Ô trống để canh đều 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 df= pd.DataFrame()
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
 with col1:
@@ -714,7 +714,7 @@ with col3:
             nganh_options = ["Không có dữ liệu"]
     except Exception as e:
         nganh_options = ["Không load được ngành học"]
-
+with col4:
     if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
         st.markdown(
             f"""
