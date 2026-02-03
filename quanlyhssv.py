@@ -309,7 +309,7 @@ def render_special_char_buttons_bo():
                 st.session_state["bo"] = current_name + "ƀ"
         with row2[11]:
             st.write("")  # Ô trống để canh đều 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3 = st.columns([1, 1, 2])
 df= pd.DataFrame()
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
 with col1:
