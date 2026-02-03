@@ -282,7 +282,7 @@ def show_review_dialog():
             else:
                 style = style_cam if is_empty else style_xanh
             st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
-    st.info("Màu đỏ là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
+    st.info(f"red:[Màu đỏ] là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
 with col1:
@@ -1079,7 +1079,7 @@ with col3:
             st.session_state["nv2"] = nv2
             nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
             st.session_state["nv3"] = nv3
-            if st.button("Xem lại thông tin",type="primary",key="btn_review_info",use_container_width=True):
+            if st.button("💾 Xem lại thông tin và lưu",type="primary",key="btn_review_info",use_container_width=True):
                 show_review_dialog()     
 
 
