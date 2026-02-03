@@ -5,6 +5,9 @@ from google.oauth2.service_account import Credentials
 import streamlit as st
 import pandas as pd
 
+style_box = "border:1px solid #4CAF50; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
+style_font_muc = 'font-size:20px; color:#4CAF50; font-weight:normal;'
+danhmuc_style = 'font-size:22px; color:#2196F3; font-weight:bold;'
 st.set_page_config(page_title="Quản lý HSSV", layout="wide")
 st.markdown(
 # Hiển thị tiêu đề lớn
@@ -65,9 +68,9 @@ fields = [
 col1, col2,col3 = st.columns(3)
 with col1:
     st.markdown(
-        """
-        <div style='border:1px solid #4CAF50; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;'>
-        <span style='font-size:20px; color:#4CAF50; font-weight:normal;'>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
+        f"""
+        <div style={style_box}>
+        <span style={style_font_muc}>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
         """,
         unsafe_allow_html=True
     )
@@ -80,9 +83,9 @@ with col1:
     st.session_state["trinh_do"] = trinh_do
 with col2:
     st.markdown(
-    """
-    <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-    <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>CƠ SỞ NHẬN HỒ SƠ</span><br>
+    f"""
+    <div style={style_box}>
+    <span style={style_font_muc}>CƠ SỞ NHẬN HỒ SƠ</span><br>
     """,
     unsafe_allow_html=True
     )
