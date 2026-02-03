@@ -60,8 +60,8 @@ fields = [
     ("Cancel", "button")
 ]
 
-style_box = "border:1px solid #4CAF50; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
-style_font_muc = 'font-size:20px; color:#4CAF50; font-weight:normal;'
+style_box = "border:1px solid #00CC00; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
+style_font_muc = 'font-size:20px; color:#00CC00; font-weight:normal;'
 
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
