@@ -108,7 +108,7 @@ def show_review_dialog():
     du_lieu = {
         "Mã hồ sơ tuyển sinh": st.session_state.get("ma_hsts", ""),
         "Họ và tên": st.session_state.get("ho_ten", ""),
-        "Ngày sinh": st.session_state.get("ngay_sinh", None),
+        "Ngày sinh": st.session_state.get("ngay_sinh", ""),
         "Giới tính": st.session_state.get("gioi_tinh", "Nam"),
         "CCCD": st.session_state.get("cccd", ""),
         "Ngày cấp CCCD": st.session_state.get("ngay_cap_cccd", ""),
