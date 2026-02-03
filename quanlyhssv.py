@@ -6,8 +6,11 @@ import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Quản lý HSSV", layout="wide")
-st.markdown('<span style="color: red; font-weight: bold;font-size:24pxfont-size:24px;">NHẬP THÔNG TIN NGƯỜI HỌC</span>', unsafe_allow_html=True)
-
+st.markdown(
+    """
+    <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
+    """,
+)
 # Các trường thông tin
 fields = [
     ("Khóa", "text"),
