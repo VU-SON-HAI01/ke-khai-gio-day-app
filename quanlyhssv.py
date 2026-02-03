@@ -249,7 +249,6 @@ def show_review_dialog():
             st.error(f"Lỗi khi thêm dữ liệu vào Google Sheet: {e}")
     keys = list(du_lieu.keys())
     n = len(keys)
-    st.write(n)
     col1, col2 = st.columns(2)
     split = n // 2 + (n % 2)
     style_macdinh = "font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
@@ -571,8 +570,8 @@ with col1:
     # Nơi cấp CCCD
     noi_cap_options = [
         "Bộ Công an",
-        "Cục Cảnh sát quản lý hành chính về trật tự xã hội",
-        "Cục Cảnh sát đăng ký quản lý cư trú và dữ liệu quốc gia về dân cư",
+        "Cục Cảnh sát QLHC về TTXH",
+        "Cục Cảnh sát ĐKQL cư trú và DLQG về dân cư.",
         "Khác"
     ]
     noi_cap_cccd = st.selectbox(":green[NƠI CẤP CCCD]", options=noi_cap_options, index=noi_cap_options.index(st.session_state.get("noi_cap_cccd", "Bộ Công an")) if st.session_state.get("noi_cap_cccd") in noi_cap_options else 0)
