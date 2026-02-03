@@ -162,6 +162,7 @@ def show_review_dialog():
         "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
         # Định dạng ngày nộp hồ sơ sang dd/mm/yyyy nếu có
         "Ngày nộp hồ sơ": dinh_dang_chuan_date(st.session_state.get("ngay_nop_hs", "")),
+        "Người nhập hồ sơ": st.session_state.get("ten_user", ""),
     })
     if st.session_state.get("trinh_do", "") not in ["Cao đẳng", "Liên thông CĐ"]:
         du_lieu["Đăng ký học văn hóa"] = st.session_state.get("trinhdo_totnghiep_vh", "")
@@ -231,6 +232,10 @@ def show_review_dialog():
             "",  # 45: ưu tiên đối tượng
             "",  # 46: Ưu tiên khu vực
             "",  # 47: Tổng điểm ưu tiên
+            "",  # 48: Tổng điểm
+            dinh_dang_chuan_date(st.session_state.get("ngay_cap_cccd", "")),  # 49: Ngày câp CCCD
+            st.session_state.get("noi_cap_cccd", ""),  # 50: Nơi cấp CCCD
+            st.session_state.get("ten_user", ""),  # 51: Tên người nhập
         ]
         import pandas as pd
         col_names = [str(i+1) for i in range(len(row))]
