@@ -101,7 +101,7 @@ with col3:
     st.markdown(
         f"""
         <div style='{style_box}'>
-            <span style='{style_font_muc}'>THỜI GIAN NHẬN HỒ SƠ</span><br>
+            <span style='{style_font_muc}'>THỜI GIAN NHẬP HỒ SƠ</span><br>
         </div>
         """,
         unsafe_allow_html=True
@@ -343,8 +343,24 @@ with col1:
     )
     st.session_state["gioi_tinh"] = gioi_tinh
     # Nhập CCCD
-    cccd = st.text_input(":green[CĂN CƯỚC CÔNG DÂN (CCCD)]", value=st.session_state.get("cccd", ""), max_chars=12)
+    cccd = st.text_input(":green[Số CCCD (CĂN CƯỚC CÔNG DÂN)]", value=st.session_state.get("cccd", ""))
     st.session_state["cccd"] = cccd
+
+    # Ngày cấp CCCD
+    import datetime
+    default_ngay_cap_cccd = st.session_state.get("ngay_cap_cccd", datetime.date.today())
+    ngay_cap_cccd = st.date_input(":green[Ngày cấp CCCD]", value=default_ngay_cap_cccd, format="DD/MM/YYYY")
+    st.session_state["ngay_cap_cccd"] = ngay_cap_cccd
+
+    # Nơi cấp CCCD
+    noi_cap_options = [
+        "Bộ Công an",
+        "Cục Cảnh sát quản lý hành chính về trật tự xã hội",
+        "Cục Cảnh sát đăng ký quản lý cư trú và dữ liệu quốc gia về dân cư",
+        "Khác"
+    ]
+    noi_cap_cccd = st.selectbox(":green[Nơi cấp CCCD]", options=noi_cap_options, index=noi_cap_options.index(st.session_state.get("noi_cap_cccd", "Bộ Công an")) if st.session_state.get("noi_cap_cccd") in noi_cap_options else 0)
+    st.session_state["noi_cap_cccd"] = noi_cap_cccd
     if cccd:
         if not (cccd.isdigit() and len(cccd) == 12 and cccd[0] == "0"):
             st.warning("CCCD phải gồm 12 chữ số và bắt đầu bằng số 0.")
@@ -388,7 +404,6 @@ with col1:
     st.session_state["dan_toc"] = dan_toc
     ton_giao = st.selectbox(":green[TÔN GIÁO]", ton_giao_options, index=ton_giao_options.index(st.session_state.get("ton_giao", ton_giao_options[0])) if st.session_state.get("ton_giao", ton_giao_options[0]) in ton_giao_options else 0)
     st.session_state["ton_giao"] = ton_giao
-    st.divider()
     noisinh_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=False, key="noisinh_diachi_cu")
     st.markdown(":green[NƠI SINH]")
     import json
