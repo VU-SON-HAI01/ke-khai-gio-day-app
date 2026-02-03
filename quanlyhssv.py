@@ -314,9 +314,10 @@ df= pd.DataFrame()
 # Chọn loại địa chỉ bên ngoài form để hiệu lực tức thời
 with col1:
     st.markdown(
-        """
-        <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-        <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>THÔNG TIN CHUNG</span><br>
+        f"""
+        <div style='{style_box}'>
+            <span style='{style_font_muc}'>THÔNG TIN CÁ NHÂN</span><br>
+        </div>
         """,
         unsafe_allow_html=True
     )
@@ -440,9 +441,10 @@ with col1:
 
 with col2:
     st.markdown(
-        """
-        <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-        <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>THÔNG TIN GIA ĐÌNH</span><br>
+        f"""
+        <div style='{style_box}'>
+            <span style='{style_font_muc}'>THÔNG TIN GIA ĐÌNH</span><br>
+        </div>
         """,
         unsafe_allow_html=True
     )
@@ -715,9 +717,10 @@ with col3:
 
     if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
         st.markdown(
-            """
-            <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-            <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>KẾT QUẢ HỌC BẠ</span><br>
+            f"""
+            <div style='{style_box}'>
+                <span style='{style_font_muc}'>THÔNG TIN HỌC TẬP</span><br>
+            </div>
             """,
             unsafe_allow_html=True
         )
@@ -752,9 +755,9 @@ with col3:
         st.session_state["tong_diem_2_mon_uu_tien"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.markdown(
-            """
-            <div style='border:1px solid #4CAF50; border-radius:8px; padding:10px; margin-bottom:10px; text-align:center;'>
-            <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>ĐĂNG KÝ NGÀNH HỌC</span><br>
+            f"""
+            <div style='{style_box}'>
+                <span style='{style_font_muc}'>ĐĂNG KÝ NGÀNH HỌC</span><br>
             </div>
             """,
             unsafe_allow_html=True
@@ -767,9 +770,10 @@ with col3:
         st.session_state["nv3"] = nv3
     else:
         st.markdown(
-            """
-            <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-            <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>KẾT QUẢ HỌC BẠ</span><br>
+            f"""
+            <div style='{style_box}'>
+                <span style='{style_font_muc}'>THÔNG TIN HỌC TẬP</span><br>
+            </div>
             """,
             unsafe_allow_html=True
         )
@@ -814,9 +818,9 @@ with col3:
         st.session_state["tong_diem_8_mon_uu_tien"] = tong_diem
         st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
         st.markdown(
-            """
-            <div style='border:1px solid #4CAF50; border-radius:8px; padding:10px; margin-bottom:10px; text-align:center;'>
-            <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>ĐĂNG KÝ NGÀNH HỌC</span><br>
+            f"""
+            <div style='{style_box}'>
+                <span style='{style_font_muc}'>ĐĂNG KÝ NGÀNH HỌC</span><br>
             </div>
             """,
             unsafe_allow_html=True
