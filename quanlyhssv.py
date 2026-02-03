@@ -575,7 +575,7 @@ with col1:
         "Cục Cảnh sát ĐKQL cư trú và DLQG về dân cư",
         "Khác",
     ]
-    noi_cap_default = st.session_state.get("noi_cap_cccd", "")
+    noi_cap_default = ""
     noi_cap_cccd = st.selectbox("Nơi cấp CCCD:", options=noi_cap_options, index=noi_cap_options.index(noi_cap_default))
     st.session_state["noi_cap_cccd"] = noi_cap_cccd
     if cccd:
