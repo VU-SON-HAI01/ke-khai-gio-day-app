@@ -249,6 +249,7 @@ def show_review_dialog():
             st.error(f"Lỗi khi thêm dữ liệu vào Google Sheet: {e}")
     keys = list(du_lieu.keys())
     n = len(keys)
+    st.write(n)
     col1, col2 = st.columns(2)
     split = n // 2 + (n % 2)
     style_macdinh = "font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
