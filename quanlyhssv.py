@@ -5,6 +5,7 @@ from google.oauth2.service_account import Credentials
 import streamlit as st
 import pandas as pd
 import datetime
+from gspread_formatting import get_row_format, set_row_format
 st.set_page_config(page_title="Quản lý HSSV", layout="wide")
 st.markdown(
 # Hiển thị tiêu đề lớn
@@ -245,6 +246,15 @@ def show_review_dialog():
             data_to_append = df.astype(str).values.tolist()
             worksheet.append_rows(data_to_append)
             st.success("Đã thêm dữ liệu vào cuối danh sách 'TUYENSINH' thành công!")
+            # Thêm dữ liệu mới
+            worksheet.append_rows(data_to_append)
+            # Lấy số dòng hiện tại
+            row_count = worksheet.row_count
+            # Hoặc: row_count = len(worksheet.get_all_values())
+            # Copy định dạng dòng cuối (trước khi thêm) sang dòng mới
+            fmt = get_row_format(worksheet, row_count - 1)  # Dòng cuối trước khi thêm
+            set_row_format(worksheet, row_count, fmt)       # Áp dụng cho dòng mới
+
         except Exception as e:
             st.error(f"Lỗi khi thêm dữ liệu vào Google Sheet: {e}")
     keys = list(du_lieu.keys())
