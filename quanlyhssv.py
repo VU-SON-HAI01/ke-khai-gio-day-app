@@ -282,7 +282,7 @@ def show_review_dialog():
             else:
                 style = style_cam if is_empty else style_xanh
             st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
-    st.info(f":red[Màu đỏ] là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
+    st.info(f":red[Màu đỏ] là dữ liệu bắt buộc phải nhập, :orange[Màu cam] là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
 with col1:
