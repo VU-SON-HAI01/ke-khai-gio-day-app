@@ -967,7 +967,8 @@ with col3:
                 "Đại học": "Tốt nghiệp đại học",
             }
             mapped_trinhdo_map = trinhdo_totnghiep_map.get(trinhdo_totnghiep, trinhdo_totnghiep)
-            st.session_state["trinhdo_totnghiep"] = mapped_trinhdo_map
+            st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
+
             hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
             st.session_state["hanh_kiem"] = hanh_kiem
             nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
