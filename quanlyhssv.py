@@ -588,7 +588,7 @@ with col1:
         if not (so_dien_thoai.isdigit() and len(so_dien_thoai) in [10, 11] and so_dien_thoai[0] == "0"):
             st.warning("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.")
     # Lấy danh sách dân tộc và tôn giáo từ file Excel
-    dan_toc_options = ["Kinh (Việt)"]
+    dan_toc_options = ["Kinh"]
     ton_giao_options = ["Không"]
     dan_toc_error = None
     try:
