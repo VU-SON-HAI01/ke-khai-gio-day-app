@@ -4,6 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import streamlit as st
 import pandas as pd
+import datetime
 st.set_page_config(page_title="Quản lý HSSV", layout="wide")
 st.markdown(
 # Hiển thị tiêu đề lớn
@@ -326,13 +327,12 @@ with col1:
         render_special_char_buttons_ho_ten()
     ho_ten = st.text_input(":green[HỌ VÀ TÊN]", value=st.session_state.get("ho_ten", ""))
     st.session_state["ho_ten"] = ho_ten
-    import datetime
     ngay_sinh = st.date_input(
         ":green[NGÀY SINH]",
         format="DD/MM/YYYY",
         value=st.session_state.get("ngay_sinh", None),
-        min_value=datetime.date(1950, 1, 1),
-        max_value=datetime.date(2020, 1, 1)
+        min_value=datetime.date(1970, 1, 1),
+        max_value=datetime.date(2020, 12, 12)
     )
     st.session_state["ngay_sinh"] = ngay_sinh
     gioi_tinh = st.radio(
@@ -343,11 +343,17 @@ with col1:
     )
     st.session_state["gioi_tinh"] = gioi_tinh
     # Nhập CCCD
-    cccd = st.text_input(":green[Số CCCD (CĂN CƯỚC CÔNG DÂN)]", value=st.session_state.get("cccd", ""))
+    cccd = st.text_input(":green[SỐ CCCD (CĂN CƯỚC CÔNG DÂN)]", value=st.session_state.get("cccd", ""))
     st.session_state["cccd"] = cccd
 
     # Ngày cấp CCCD
-    ngay_cap_cccd = st.date_input(":green[Ngày cấp CCCD]", value=st.session_state.get("ngay_cap_cccd", None), format="DD/MM/YYYY")
+    ngay_cap_cccd = st.date_input(
+        ":green[NGÀY CẤP CCCD]", 
+        value=st.session_state.get("ngay_cap_cccd", None), 
+        format="DD/MM/YYYY",
+        min_value=datetime.date(1970, 1, 1),
+        max_value=datetime.date(2030, 12, 31),
+    )
     st.session_state["ngay_cap_cccd"] = ngay_cap_cccd
 
     # Nơi cấp CCCD
@@ -357,7 +363,7 @@ with col1:
         "Cục Cảnh sát đăng ký quản lý cư trú và dữ liệu quốc gia về dân cư",
         "Khác"
     ]
-    noi_cap_cccd = st.selectbox(":green[Nơi cấp CCCD]", options=noi_cap_options, index=noi_cap_options.index(st.session_state.get("noi_cap_cccd", "Bộ Công an")) if st.session_state.get("noi_cap_cccd") in noi_cap_options else 0)
+    noi_cap_cccd = st.selectbox(":green[NƠI CẤP CCCD]", options=noi_cap_options, index=noi_cap_options.index(st.session_state.get("noi_cap_cccd", "Bộ Công an")) if st.session_state.get("noi_cap_cccd") in noi_cap_options else 0)
     st.session_state["noi_cap_cccd"] = noi_cap_cccd
     if cccd:
         if not (cccd.isdigit() and len(cccd) == 12 and cccd[0] == "0"):
