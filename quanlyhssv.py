@@ -454,7 +454,8 @@ with col2:
     st.session_state["bo"] = bo
     me = st.text_input(":green[HỌ TÊN MẸ]", value=st.session_state.get("me", ""))
     st.session_state["me"] = me
-    st.expander("Địa chỉ nơi cư trú", expanded=False):
+    
+    with st.expander("Địa chỉ nơi cư trú", expanded=False):
         show_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=True)
         if show_diachi_cu:
             # --- ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ (CŨ) động từ API ---
