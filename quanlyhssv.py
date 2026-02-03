@@ -66,7 +66,7 @@ col1, col2,col3 = st.columns(3)
 with col1:
     st.markdown(
         """
-        <div style='border:1px solid #4CAF50; border-radius:8px; padding:8px; margin-bottom:10px; text-align:center;'>
+        <div style='border:1px solid #4CAF50; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;'>
         <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
         """,
         unsafe_allow_html=True
