@@ -456,7 +456,7 @@ with col2:
     st.session_state["me"] = me
     
     with st.expander("Địa chỉ nơi cư trú", expanded=False):
-        show_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=True)
+        show_diachi_cu = st.toggle("Nhập theo địa chỉ cũ", value=True)
         if show_diachi_cu:
             # --- ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ (CŨ) động từ API ---
             import requests
