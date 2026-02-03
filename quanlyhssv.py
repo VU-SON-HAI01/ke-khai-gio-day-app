@@ -1009,73 +1009,78 @@ with col3:
             st.session_state["nv2"] = nv2
             nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
             st.session_state["nv3"] = nv3
+            if st.button("Xem lại thông tin",type="primary",key="btn_review_info",use_container_width=True):
+                show_review_dialog()     
     else:
-        st.markdown(
-            f"""
-            <div style='{style_box}'>
-                <span style='{style_font_muc}'>THÔNG TIN HỌC TẬP</span><br>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","THCS", "HT12","Khác"], horizontal=True, index=["THPT","THCS", "HT12","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
-        st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
-        hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
-        st.session_state["hanh_kiem"] = hanh_kiem
-        nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
-        st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
-        # Nhập điểm các 8 môn
-        with st.expander("Nhập điểm 8 môn", expanded=False):
-            mon_list = [
-                ("Toán", "diem_toan"),
-                ("Văn", "diem_van"),
-                ("Tiếng Anh", "diem_tieng_anh"),
-                ("GDCD", "diem_gdcd"),
-                ("Công nghệ", "diem_cong_nghe"),
-                ("Tin học", "diem_tin_hoc"),
-                ("KH tự nhiên", "diem_kh_tn"),
-                ("Lịch sử và Địa lý", "diem_ls_dl")
-            ]
-            tong_diem_mon = 0.0
-            for ten_mon, key_mon in mon_list:
-                diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=1.0 ,value=st.session_state.get(key_mon, 0.0), key=key_mon)
-                diem = round(diem, 1)
-                tong_diem_mon += diem
-            tong_diem_mon = round(tong_diem_mon, 1)
-            st.session_state["tong_diem_8_mon"] = tong_diem_mon
-        with st.expander("Điểm ưu tiên", expanded=False):
-            diem_uu_tien_doi_tuong = st.number_input(":green[ƯU TIÊN THEO ĐỐI TƯỢNG]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_doi_tuong", 0.0))
-            diem_uu_tien_doi_tuong = round(diem_uu_tien_doi_tuong, 2)
-            st.session_state["diem_uu_tien_doi_tuong"] = diem_uu_tien_doi_tuong
-            diem_uu_tien_khu_vuc = st.number_input(":green[ƯU TIÊN THEO KHU VỰC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_khu_vuc", 0.0))
-            diem_uu_tien_khu_vuc = round(diem_uu_tien_khu_vuc, 2)
-            st.session_state["diem_uu_tien_khu_vuc"] = diem_uu_tien_khu_vuc
-            diem_uu_tien = st.number_input(":green[ĐIỂM ƯU TIÊN KHÁC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien", 0.0),)
-            diem_uu_tien = round(diem_uu_tien, 2)
-            st.session_state["diem_uu_tien"] = diem_uu_tien
-            tong_diem_uu_tien = round(diem_uu_tien + diem_uu_tien_khu_vuc + diem_uu_tien_doi_tuong, 2)
-            st.session_state["tong_diem_uu_tien"] = tong_diem_uu_tien
-        tong_diem = round(tong_diem_mon + tong_diem_uu_tien, 2)
-        st.session_state["tong_diem_8_mon_uu_tien"] = tong_diem
-        st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
-        st.markdown(
-            f"""
-            <div style='{style_box}'>
-                <span style='{style_font_muc}'>ĐĂNG KÝ NGÀNH HỌC</span><br>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
-        st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
-        nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
-        st.session_state["nv1"] = nv1
-        nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])) if st.session_state.get("nv2", nganh_options[0]) in nganh_options else 0)
-        st.session_state["nv2"] = nv2
-        nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
-        st.session_state["nv3"] = nv3
-    if st.button("Xem lại thông tin",type="primary",key="btn_review_info",use_container_width=True):
-        show_review_dialog()     
+        colx1, colx2 = st.columns(2)
+        with colx1:
+            st.markdown(
+                f"""
+                <div style='{style_box}'>
+                    <span style='{style_font_muc}'>THÔNG TIN HỌC TẬP</span><br>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","THCS", "HT12","Khác"], horizontal=True, index=["THPT","THCS", "HT12","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
+            st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
+            hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
+            st.session_state["hanh_kiem"] = hanh_kiem
+            nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
+            st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
+            # Nhập điểm các 8 môn
+            with st.expander("Nhập điểm 8 môn", expanded=False):
+                mon_list = [
+                    ("Toán", "diem_toan"),
+                    ("Văn", "diem_van"),
+                    ("Tiếng Anh", "diem_tieng_anh"),
+                    ("GDCD", "diem_gdcd"),
+                    ("Công nghệ", "diem_cong_nghe"),
+                    ("Tin học", "diem_tin_hoc"),
+                    ("KH tự nhiên", "diem_kh_tn"),
+                    ("Lịch sử và Địa lý", "diem_ls_dl")
+                ]
+                tong_diem_mon = 0.0
+                for ten_mon, key_mon in mon_list:
+                    diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=1.0 ,value=st.session_state.get(key_mon, 0.0), key=key_mon)
+                    diem = round(diem, 1)
+                    tong_diem_mon += diem
+                tong_diem_mon = round(tong_diem_mon, 1)
+                st.session_state["tong_diem_8_mon"] = tong_diem_mon
+            with st.expander("Điểm ưu tiên", expanded=False):
+                diem_uu_tien_doi_tuong = st.number_input(":green[ƯU TIÊN THEO ĐỐI TƯỢNG]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_doi_tuong", 0.0))
+                diem_uu_tien_doi_tuong = round(diem_uu_tien_doi_tuong, 2)
+                st.session_state["diem_uu_tien_doi_tuong"] = diem_uu_tien_doi_tuong
+                diem_uu_tien_khu_vuc = st.number_input(":green[ƯU TIÊN THEO KHU VỰC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien_khu_vuc", 0.0))
+                diem_uu_tien_khu_vuc = round(diem_uu_tien_khu_vuc, 2)
+                st.session_state["diem_uu_tien_khu_vuc"] = diem_uu_tien_khu_vuc
+                diem_uu_tien = st.number_input(":green[ĐIỂM ƯU TIÊN KHÁC]", min_value=0.0, max_value=10.0, step=0.25, value=st.session_state.get("diem_uu_tien", 0.0),)
+                diem_uu_tien = round(diem_uu_tien, 2)
+                st.session_state["diem_uu_tien"] = diem_uu_tien
+                tong_diem_uu_tien = round(diem_uu_tien + diem_uu_tien_khu_vuc + diem_uu_tien_doi_tuong, 2)
+                st.session_state["tong_diem_uu_tien"] = tong_diem_uu_tien
+            tong_diem = round(tong_diem_mon + tong_diem_uu_tien, 2)
+            st.session_state["tong_diem_8_mon_uu_tien"] = tong_diem
+            st.markdown(f"**:blue[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
+        with colx2:
+            st.markdown(
+                f"""
+                <div style='{style_box}'>
+                    <span style='{style_font_muc}'>ĐĂNG KÝ NGÀNH HỌC</span><br>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
+            st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
+            nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
+            st.session_state["nv1"] = nv1
+            nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])) if st.session_state.get("nv2", nganh_options[0]) in nganh_options else 0)
+            st.session_state["nv2"] = nv2
+            nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
+            st.session_state["nv3"] = nv3
+            if st.button("Xem lại thông tin",type="primary",key="btn_review_info",use_container_width=True):
+                show_review_dialog()     
 
 
 # Phần 4: Cấu hình tên file và trang tính QL HSSV
