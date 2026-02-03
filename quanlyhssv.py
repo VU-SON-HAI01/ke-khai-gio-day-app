@@ -9,7 +9,7 @@ st.set_page_config(page_title="Quản lý HSSV", layout="wide")
 st.markdown(
 # Hiển thị tiêu đề lớn
     """
-    📥;<span style='font-size:28px; color: #FF0000; font-weight:bold;'>NHẬP HỒ SƠ TUYỂN SINH</span><br>
+    📥 <span style='font-size:24px; font-weight:bold;'>NHẬP HỒ SƠ TUYỂN SINH</span><br>
     """,
     unsafe_allow_html=True
 )
