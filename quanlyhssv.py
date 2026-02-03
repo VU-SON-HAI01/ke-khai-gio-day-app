@@ -347,9 +347,7 @@ with col1:
     st.session_state["cccd"] = cccd
 
     # Ngày cấp CCCD
-    import datetime
-    default_ngay_cap_cccd = st.session_state.get("ngay_cap_cccd", datetime.date.today())
-    ngay_cap_cccd = st.date_input(":green[Ngày cấp CCCD]", value=default_ngay_cap_cccd, format="DD/MM/YYYY")
+    ngay_cap_cccd = st.date_input(":green[Ngày cấp CCCD]", value=st.session_state.get("ngay_cap_cccd", None), format="DD/MM/YYYY")
     st.session_state["ngay_cap_cccd"] = ngay_cap_cccd
 
     # Nơi cấp CCCD
