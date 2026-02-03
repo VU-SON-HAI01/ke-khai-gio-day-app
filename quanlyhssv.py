@@ -4,10 +4,6 @@ import gspread
 from google.oauth2.service_account import Credentials
 import streamlit as st
 import pandas as pd
-
-style_box = "border:1px solid #4CAF50; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
-style_font_muc = 'font-size:20px; color:#4CAF50; font-weight:normal;'
-danhmuc_style = 'font-size:22px; color:#2196F3; font-weight:bold;'
 st.set_page_config(page_title="Quản lý HSSV", layout="wide")
 st.markdown(
 # Hiển thị tiêu đề lớn
@@ -63,6 +59,9 @@ fields = [
     ("Thay đổi Hiện trạng", "button"),
     ("Cancel", "button")
 ]
+
+style_box = "border:1px solid #4CAF50; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
+style_font_muc = 'font-size:20px; color:#4CAF50; font-weight:normal;'
 
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
