@@ -63,7 +63,226 @@ fields = [
 
 style_box = "border:1px solid #00CC00; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
 style_font_muc = 'font-size:20px; color:#00CC00; font-weight:normal;'
-
+@st.dialog("Xem thông tin đã nhập", width="medium")
+def show_review_dialog():
+    # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key và báo lỗi chi tiết
+    try:
+        google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
+        thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
+        sheet_name = "TUYENSINH"
+        if "gcp_service_account" not in st.secrets:
+            raise KeyError("gcp_service_account")
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
+        gc = gspread.authorize(credentials)
+        sh = gc.open_by_key(thong_tin_hssv_id)
+        worksheet = sh.worksheet(sheet_name)
+        col1_values = worksheet.col_values(1)
+        # Lọc các giá trị số, bỏ qua header hoặc rỗng
+        col1_numbers = [int(v) for v in col1_values if v.strip().isdigit()]
+        if col1_numbers:
+            ma_hsts_new = str(max(col1_numbers) + 1)
+        else:
+            ma_hsts_new = "250001"  # Giá trị mặc định nếu chưa có dữ liệu
+        st.session_state["ma_hsts"] = ma_hsts_new
+    except Exception as e:
+        import traceback
+        st.error(f"Lỗi truy cập Google Sheet (lấy mã HSTS mới): {e}\n{traceback.format_exc()}")
+    def format_ngay_nop_hs(ngay_nop_hs):
+        import pandas as pd
+        import datetime
+        if isinstance(ngay_nop_hs, (pd.Timestamp, datetime.date, datetime.datetime)) and ngay_nop_hs is not None:
+            return ngay_nop_hs.strftime("%d/%m/%Y")
+        elif isinstance(ngay_nop_hs, str) and ngay_nop_hs:
+            import re
+            match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", ngay_nop_hs)
+            if match:
+                y, m, d = match.groups()
+                return f"{int(d):02d}/{int(m):02d}/{y}"
+            return ngay_nop_hs
+        else:
+            return ""
+    du_lieu = {
+        "Mã hồ sơ tuyển sinh": st.session_state.get("ma_hsts", ""),
+        "Họ và tên": st.session_state.get("ho_ten", ""),
+        "Ngày sinh": st.session_state.get("ngay_sinh", None),
+        "Giới tính": st.session_state.get("gioi_tinh", "Nam"),
+        "CCCD": st.session_state.get("cccd", ""),
+        "Số điện thoại": st.session_state.get("so_dien_thoai", ""),
+        "Nơi sinh (cũ)": st.session_state.get("noi_sinh_cu", ""),
+        "Nơi sinh (mới)": st.session_state.get("noi_sinh_moi", ""),
+        "Quê quán (cũ)": st.session_state.get("que_quan_cu", ""),
+        "Quê quán (mới)": st.session_state.get("que_quan_moi", ""),
+        "Dân tộc": st.session_state.get("dan_toc", ""),
+        "Tôn giáo": st.session_state.get("ton_giao", ""),
+        "Họ tên bố": st.session_state.get("bo", ""),
+        "Họ tên mẹ": st.session_state.get("me", ""),
+        "Tỉnh/TP cũ": st.session_state.get("tinh_tp_cu", ""),
+        "Quận/Huyện cũ": st.session_state.get("quan_huyen_cu", ""),
+        "Xã/Phường cũ": st.session_state.get("xa_phuong_cu", ""),
+        "Tỉnh/TP mới": st.session_state.get("tinh_tp_moi", ""),
+        "Xã/Phường mới": st.session_state.get("xa_phuong_moi", ""),
+        "Thôn/Xóm":  st.session_state.get("thon_xom", ""),
+        "Số nhà/Tổ": st.session_state.get("duong_pho", ""),
+        "Trình độ tốt nghiệp": st.session_state.get("trinhdo_totnghiep", ""),
+        "Hạnh kiểm": st.session_state.get("hanh_kiem", ""),
+        "Năm tốt nghiệp": st.session_state.get("nam_tot_nghiep", ""),
+    }
+    # Thêm logic điểm theo trình độ đăng ký
+    if st.session_state.get("trinh_do", "") in ["Cao đẳng", "Liên thông CĐ"]:
+        du_lieu.update({
+            "Điểm Toán": st.session_state.get("diem_toan", ""),
+            "Điểm Văn": st.session_state.get("diem_van", ""),
+            "Tổng điểm Ưu tiên": st.session_state.get("tong_diem_uu_tien", ""),
+            "Tổng điểm 2 môn + ưu tiên": st.session_state.get("tong_diem_2_mon_uu_tien", ""),
+        })
+    else:
+        du_lieu.update({
+            "Điểm Toán": st.session_state.get("diem_toan", ""),
+            "Điểm Văn": st.session_state.get("diem_van", ""),
+            "Tiếng Anh": st.session_state.get("diem_tieng_anh", ""),
+            "GDCD": st.session_state.get("diem_gdcd", ""),
+            "Công nghệ": st.session_state.get("diem_cong_nghe", ""),
+            "Tin học": st.session_state.get("diem_tin_hoc", ""),
+            "KH tự nhiên": st.session_state.get("diem_kh_tn", ""),
+            "Lịch sử và Địa lý": st.session_state.get("diem_ls_dl", ""),
+            "Tổng điểm Ưu tiên": st.session_state.get("tong_diem_uu_tien", ""),
+            "Tổng điểm 8 môn + ưu tiên": st.session_state.get("tong_diem_8_mon_uu_tien", ""),
+        })
+    du_lieu.update({
+        "Nguyện vọng 1": st.session_state.get("nv1", ""),
+        "Nguyện vọng 2": st.session_state.get("nv2", ""),
+        "Nguyện vọng 3": st.session_state.get("nv3", ""),
+        "Trình độ đăng ký": st.session_state.get("trinh_do", ""),
+        "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
+        # Định dạng ngày nộp hồ sơ sang dd/mm/yyyy nếu có
+        "Ngày nộp hồ sơ": format_ngay_nop_hs(st.session_state.get("ngay_nop_hs", "")),
+    })
+    if st.session_state.get("trinh_do", "") not in ["Cao đẳng", "Liên thông CĐ"]:
+        du_lieu["Đăng ký học văn hóa"] = st.session_state.get("trinhdo_totnghiep_vh", "")
+    # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
+    if st.button("Lưu tất cả thông tin"):
+        def split_ho_ten(ho_ten_full):
+            ho_ten_full = ho_ten_full.strip()
+            if ho_ten_full:
+                last_space = ho_ten_full.rfind(" ")
+                if last_space != -1:
+                    ho_dem = ho_ten_full[:last_space]
+                    ten = ho_ten_full[last_space+1:]
+                else:
+                    ho_dem = ho_ten_full
+                    ten = ""
+            else:
+                ho_dem = ""
+                ten = ""
+            return ho_dem, ten
+        ho_dem, ten = split_ho_ten(st.session_state.get("ho_ten", ""))
+        def format_ngay_sinh(ngay_sinh):
+            import pandas as pd
+            import datetime
+            if isinstance(ngay_sinh, (pd.Timestamp, datetime.date, datetime.datetime)) and ngay_sinh is not None:
+                return ngay_sinh.strftime("%d/%m/%Y")
+            elif isinstance(ngay_sinh, str) and ngay_sinh:
+                # Nếu là chuỗi yyyy-mm-dd hoặc yyyy/mm/dd
+                import re
+                match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", ngay_sinh)
+                if match:
+                    y, m, d = match.groups()
+                    return f"{int(d):02d}/{int(m):02d}/{y}"
+                return ngay_sinh
+            else:
+                return ""
+        row = [
+            st.session_state.get("ma_hsts", ""),  # 1: MÃ HSTS
+            ho_dem,  # 2: HỌ ĐỆM
+            ten,  # 3: TÊN
+            format_ngay_sinh(st.session_state.get("ngay_sinh", None)),  # 4: NGÀY SINH
+            st.session_state.get("gioi_tinh", "Nam"),  # 5: GIỚI TÍNH
+            st.session_state.get("cccd", ""),  # 6: CCCD
+            st.session_state.get("so_dien_thoai", ""),  # 7: Số điện thoại
+            "",  # 8: Email
+            st.session_state.get("noi_sinh_cu", ""),  # 9: NƠI SINH (Cũ)
+            st.session_state.get("noi_sinh_moi", ""),  # 10: NƠI SINH (Mới)
+            st.session_state.get("que_quan_cu", ""),  # 11: QUÊ QUÁN (Cũ)
+            st.session_state.get("que_quan_moi", ""),  # 12: QUÊ QUÁN (Mới)
+            st.session_state.get("dan_toc", ""),  # 13: Dân tộc
+            st.session_state.get("ton_giao", ""),  # 14: Tôn giáo
+            st.session_state.get("bo", ""),  # 15: Họ tên bố
+            st.session_state.get("me", ""),  # 16: Họ tên mẹ
+            st.session_state.get("diachi_chitiet_cu", ""),  # 17: Địa chỉ chi tiết cũ
+            st.session_state.get("tinh_tp_cu", ""),  # 18: Tỉnh/TP cũ
+            st.session_state.get("quan_huyen_cu", ""),  # 19: Quận/Huyện cũ
+            st.session_state.get("xa_phuong_cu", ""),  # 20: Xã/Phường cũ
+            st.session_state.get("tinh_tp_moi", ""),  # 21: Tỉnh/TP mới
+            st.session_state.get("xa_phuong_moi", ""),  # 22: Xã/Phường mới
+            st.session_state.get("trinhdo_totnghiep", ""),  # 23: Trình độ tốt nghiệp
+            st.session_state.get("nv1", ""),  # 24: Nguyện vọng 1
+            st.session_state.get("nv2", ""),  # 25: Nguyện vọng 2
+            st.session_state.get("nv3", ""),  # 26: Nguyện vọng 3
+            st.session_state.get("trinhdo_totnghiep_vh", ""),  # 27: Đăng ký học văn hóa
+            st.session_state.get("co_so", ""),  # 28: Cơ sở nhận hồ sơ
+            format_ngay_nop_hs(st.session_state.get("ngay_nop_hs", "")),  # 29: Ngày nộp hồ sơ
+            st.session_state.get("trinh_do", ""),  # 30: Trình độ đăng ký
+            st.session_state.get("diachi_chitiet_full_cu") ,  # 31: Địa chỉ chi tiết cũ
+            st.session_state.get("diachi_chitiet_full_moi") ,  # 32: Địa chỉ chi tiết mới
+            st.session_state.get("diem_toan", ""),  # 33: Điểm Toán
+            st.session_state.get("diem_van", ""),  # 34: Điểm Văn
+            st.session_state.get("diem_tieng_anh", ""),  # 35: Tiếng Anh
+            st.session_state.get("diem_gdcd", ""),  # 36: GDCD
+            st.session_state.get("diem_cong_nghe", ""),  # 37: Công nghệ
+            st.session_state.get("diem_tin_hoc", ""),  # 38: Tin học
+            st.session_state.get("diem_kh_tn", ""),  # 39: KH tự nhiên
+            st.session_state.get("diem_ls_dl", ""),  # 40: Lịch sử và Địa lý
+            st.session_state.get("tong_diem_8_mon", ""),  # 41: Tổng điểm 8 môn
+            st.session_state.get("tong_diem_2_mon", ""),  # 42: Tổng điểm 2 môn
+            st.session_state.get("hanh_kiem", ""),  # 43: Hạnh kiểm
+            st.session_state.get("nam_tot_nghiep", ""),  # 44: Năm tốt nghiệp
+            "",  # 45: ưu tiên đối tượng
+            "",  # 46: Ưu tiên khu vực
+            "",  # 47: Tổng điểm ưu tiên
+        ]
+        import pandas as pd
+        col_names = [str(i+1) for i in range(len(row))]
+        df = pd.DataFrame([row], columns=col_names)
+        # Thêm dữ liệu vào cuối sheet 'TUYENSINH'
+        try:
+            # Chuyển toàn bộ giá trị DataFrame sang string để tránh lỗi serialize
+            data_to_append = df.astype(str).values.tolist()
+            worksheet.append_rows(data_to_append)
+            st.success("Đã thêm dữ liệu vào cuối danh sách 'TUYENSINH' thành công!")
+        except Exception as e:
+            st.error(f"Lỗi khi thêm dữ liệu vào Google Sheet: {e}")
+    keys = list(du_lieu.keys())
+    n = len(keys)
+    col1, col2 = st.columns(2)
+    split = n // 2 + (n % 2)
+    style_macdinh = "font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
+    style_xanh = "color:green;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
+    style_cam = "color:Orange;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
+    style_do = "color:Red;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
+    truong_bat_buoc = ["Họ và tên", "Ngày sinh", "CCCD"]
+    with col1:
+        for k in keys[:split]:
+            value = du_lieu[k]
+            is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
+            if k in truong_bat_buoc and (value is None or (isinstance(value, str) and value.strip() == "")):
+                style = style_do
+            else:
+                style = style_cam if is_empty else style_xanh
+            st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
+    with col2:
+        for k in keys[split:]:
+            value = du_lieu[k]
+            is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
+            if k in truong_bat_buoc and (value is None or (isinstance(value, str) and value.strip() == "")):
+                style = style_do
+            else:
+                style = style_cam if is_empty else style_xanh
+            st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
+    st.info("Màu đỏ là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
 with col1:
@@ -855,226 +1074,6 @@ with col3:
         st.session_state["nv2"] = nv2
         nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
         st.session_state["nv3"] = nv3
-    @st.dialog("Xem thông tin đã nhập", width="medium")
-    def show_review_dialog():
-        # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key và báo lỗi chi tiết
-        try:
-            google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
-            thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
-            sheet_name = "TUYENSINH"
-            if "gcp_service_account" not in st.secrets:
-                raise KeyError("gcp_service_account")
-            scopes = [
-                "https://www.googleapis.com/auth/spreadsheets",
-                "https://www.googleapis.com/auth/drive"
-            ]
-            credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
-            gc = gspread.authorize(credentials)
-            sh = gc.open_by_key(thong_tin_hssv_id)
-            worksheet = sh.worksheet(sheet_name)
-            col1_values = worksheet.col_values(1)
-            # Lọc các giá trị số, bỏ qua header hoặc rỗng
-            col1_numbers = [int(v) for v in col1_values if v.strip().isdigit()]
-            if col1_numbers:
-                ma_hsts_new = str(max(col1_numbers) + 1)
-            else:
-                ma_hsts_new = "250001"  # Giá trị mặc định nếu chưa có dữ liệu
-            st.session_state["ma_hsts"] = ma_hsts_new
-        except Exception as e:
-            import traceback
-            st.error(f"Lỗi truy cập Google Sheet (lấy mã HSTS mới): {e}\n{traceback.format_exc()}")
-        def format_ngay_nop_hs(ngay_nop_hs):
-            import pandas as pd
-            import datetime
-            if isinstance(ngay_nop_hs, (pd.Timestamp, datetime.date, datetime.datetime)) and ngay_nop_hs is not None:
-                return ngay_nop_hs.strftime("%d/%m/%Y")
-            elif isinstance(ngay_nop_hs, str) and ngay_nop_hs:
-                import re
-                match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", ngay_nop_hs)
-                if match:
-                    y, m, d = match.groups()
-                    return f"{int(d):02d}/{int(m):02d}/{y}"
-                return ngay_nop_hs
-            else:
-                return ""
-        du_lieu = {
-            "Mã hồ sơ tuyển sinh": st.session_state.get("ma_hsts", ""),
-            "Họ và tên": st.session_state.get("ho_ten", ""),
-            "Ngày sinh": st.session_state.get("ngay_sinh", None),
-            "Giới tính": st.session_state.get("gioi_tinh", "Nam"),
-            "CCCD": st.session_state.get("cccd", ""),
-            "Số điện thoại": st.session_state.get("so_dien_thoai", ""),
-            "Nơi sinh (cũ)": st.session_state.get("noi_sinh_cu", ""),
-            "Nơi sinh (mới)": st.session_state.get("noi_sinh_moi", ""),
-            "Quê quán (cũ)": st.session_state.get("que_quan_cu", ""),
-            "Quê quán (mới)": st.session_state.get("que_quan_moi", ""),
-            "Dân tộc": st.session_state.get("dan_toc", ""),
-            "Tôn giáo": st.session_state.get("ton_giao", ""),
-            "Họ tên bố": st.session_state.get("bo", ""),
-            "Họ tên mẹ": st.session_state.get("me", ""),
-            "Tỉnh/TP cũ": st.session_state.get("tinh_tp_cu", ""),
-            "Quận/Huyện cũ": st.session_state.get("quan_huyen_cu", ""),
-            "Xã/Phường cũ": st.session_state.get("xa_phuong_cu", ""),
-            "Tỉnh/TP mới": st.session_state.get("tinh_tp_moi", ""),
-            "Xã/Phường mới": st.session_state.get("xa_phuong_moi", ""),
-            "Thôn/Xóm":  st.session_state.get("thon_xom", ""),
-            "Số nhà/Tổ": st.session_state.get("duong_pho", ""),
-            "Trình độ tốt nghiệp": st.session_state.get("trinhdo_totnghiep", ""),
-            "Hạnh kiểm": st.session_state.get("hanh_kiem", ""),
-            "Năm tốt nghiệp": st.session_state.get("nam_tot_nghiep", ""),
-        }
-        # Thêm logic điểm theo trình độ đăng ký
-        if st.session_state.get("trinh_do", "") in ["Cao đẳng", "Liên thông CĐ"]:
-            du_lieu.update({
-                "Điểm Toán": st.session_state.get("diem_toan", ""),
-                "Điểm Văn": st.session_state.get("diem_van", ""),
-                "Tổng điểm Ưu tiên": st.session_state.get("tong_diem_uu_tien", ""),
-                "Tổng điểm 2 môn + ưu tiên": st.session_state.get("tong_diem_2_mon_uu_tien", ""),
-            })
-        else:
-            du_lieu.update({
-                "Điểm Toán": st.session_state.get("diem_toan", ""),
-                "Điểm Văn": st.session_state.get("diem_van", ""),
-                "Tiếng Anh": st.session_state.get("diem_tieng_anh", ""),
-                "GDCD": st.session_state.get("diem_gdcd", ""),
-                "Công nghệ": st.session_state.get("diem_cong_nghe", ""),
-                "Tin học": st.session_state.get("diem_tin_hoc", ""),
-                "KH tự nhiên": st.session_state.get("diem_kh_tn", ""),
-                "Lịch sử và Địa lý": st.session_state.get("diem_ls_dl", ""),
-                "Tổng điểm Ưu tiên": st.session_state.get("tong_diem_uu_tien", ""),
-                "Tổng điểm 8 môn + ưu tiên": st.session_state.get("tong_diem_8_mon_uu_tien", ""),
-            })
-        du_lieu.update({
-            "Nguyện vọng 1": st.session_state.get("nv1", ""),
-            "Nguyện vọng 2": st.session_state.get("nv2", ""),
-            "Nguyện vọng 3": st.session_state.get("nv3", ""),
-            "Trình độ đăng ký": st.session_state.get("trinh_do", ""),
-            "Cơ sở nhận hồ sơ": st.session_state.get("co_so", ""),
-            # Định dạng ngày nộp hồ sơ sang dd/mm/yyyy nếu có
-            "Ngày nộp hồ sơ": format_ngay_nop_hs(st.session_state.get("ngay_nop_hs", "")),
-        })
-        if st.session_state.get("trinh_do", "") not in ["Cao đẳng", "Liên thông CĐ"]:
-            du_lieu["Đăng ký học văn hóa"] = st.session_state.get("trinhdo_totnghiep_vh", "")
-        # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
-        if st.button("Lưu tất cả thông tin"):
-            def split_ho_ten(ho_ten_full):
-                ho_ten_full = ho_ten_full.strip()
-                if ho_ten_full:
-                    last_space = ho_ten_full.rfind(" ")
-                    if last_space != -1:
-                        ho_dem = ho_ten_full[:last_space]
-                        ten = ho_ten_full[last_space+1:]
-                    else:
-                        ho_dem = ho_ten_full
-                        ten = ""
-                else:
-                    ho_dem = ""
-                    ten = ""
-                return ho_dem, ten
-            ho_dem, ten = split_ho_ten(st.session_state.get("ho_ten", ""))
-            def format_ngay_sinh(ngay_sinh):
-                import pandas as pd
-                import datetime
-                if isinstance(ngay_sinh, (pd.Timestamp, datetime.date, datetime.datetime)) and ngay_sinh is not None:
-                    return ngay_sinh.strftime("%d/%m/%Y")
-                elif isinstance(ngay_sinh, str) and ngay_sinh:
-                    # Nếu là chuỗi yyyy-mm-dd hoặc yyyy/mm/dd
-                    import re
-                    match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", ngay_sinh)
-                    if match:
-                        y, m, d = match.groups()
-                        return f"{int(d):02d}/{int(m):02d}/{y}"
-                    return ngay_sinh
-                else:
-                    return ""
-            row = [
-                st.session_state.get("ma_hsts", ""),  # 1: MÃ HSTS
-                ho_dem,  # 2: HỌ ĐỆM
-                ten,  # 3: TÊN
-                format_ngay_sinh(st.session_state.get("ngay_sinh", None)),  # 4: NGÀY SINH
-                st.session_state.get("gioi_tinh", "Nam"),  # 5: GIỚI TÍNH
-                st.session_state.get("cccd", ""),  # 6: CCCD
-                st.session_state.get("so_dien_thoai", ""),  # 7: Số điện thoại
-                "",  # 8: Email
-                st.session_state.get("noi_sinh_cu", ""),  # 9: NƠI SINH (Cũ)
-                st.session_state.get("noi_sinh_moi", ""),  # 10: NƠI SINH (Mới)
-                st.session_state.get("que_quan_cu", ""),  # 11: QUÊ QUÁN (Cũ)
-                st.session_state.get("que_quan_moi", ""),  # 12: QUÊ QUÁN (Mới)
-                st.session_state.get("dan_toc", ""),  # 13: Dân tộc
-                st.session_state.get("ton_giao", ""),  # 14: Tôn giáo
-                st.session_state.get("bo", ""),  # 15: Họ tên bố
-                st.session_state.get("me", ""),  # 16: Họ tên mẹ
-                st.session_state.get("diachi_chitiet_cu", ""),  # 17: Địa chỉ chi tiết cũ
-                st.session_state.get("tinh_tp_cu", ""),  # 18: Tỉnh/TP cũ
-                st.session_state.get("quan_huyen_cu", ""),  # 19: Quận/Huyện cũ
-                st.session_state.get("xa_phuong_cu", ""),  # 20: Xã/Phường cũ
-                st.session_state.get("tinh_tp_moi", ""),  # 21: Tỉnh/TP mới
-                st.session_state.get("xa_phuong_moi", ""),  # 22: Xã/Phường mới
-                st.session_state.get("trinhdo_totnghiep", ""),  # 23: Trình độ tốt nghiệp
-                st.session_state.get("nv1", ""),  # 24: Nguyện vọng 1
-                st.session_state.get("nv2", ""),  # 25: Nguyện vọng 2
-                st.session_state.get("nv3", ""),  # 26: Nguyện vọng 3
-                st.session_state.get("trinhdo_totnghiep_vh", ""),  # 27: Đăng ký học văn hóa
-                st.session_state.get("co_so", ""),  # 28: Cơ sở nhận hồ sơ
-                format_ngay_nop_hs(st.session_state.get("ngay_nop_hs", "")),  # 29: Ngày nộp hồ sơ
-                st.session_state.get("trinh_do", ""),  # 30: Trình độ đăng ký
-                st.session_state.get("diachi_chitiet_full_cu") ,  # 31: Địa chỉ chi tiết cũ
-                st.session_state.get("diachi_chitiet_full_moi") ,  # 32: Địa chỉ chi tiết mới
-                st.session_state.get("diem_toan", ""),  # 33: Điểm Toán
-                st.session_state.get("diem_van", ""),  # 34: Điểm Văn
-                st.session_state.get("diem_tieng_anh", ""),  # 35: Tiếng Anh
-                st.session_state.get("diem_gdcd", ""),  # 36: GDCD
-                st.session_state.get("diem_cong_nghe", ""),  # 37: Công nghệ
-                st.session_state.get("diem_tin_hoc", ""),  # 38: Tin học
-                st.session_state.get("diem_kh_tn", ""),  # 39: KH tự nhiên
-                st.session_state.get("diem_ls_dl", ""),  # 40: Lịch sử và Địa lý
-                st.session_state.get("tong_diem_8_mon", ""),  # 41: Tổng điểm 8 môn
-                st.session_state.get("tong_diem_2_mon", ""),  # 42: Tổng điểm 2 môn
-                st.session_state.get("hanh_kiem", ""),  # 43: Hạnh kiểm
-                st.session_state.get("nam_tot_nghiep", ""),  # 44: Năm tốt nghiệp
-                "",  # 45: ưu tiên đối tượng
-                "",  # 46: Ưu tiên khu vực
-                "",  # 47: Tổng điểm ưu tiên
-            ]
-            import pandas as pd
-            col_names = [str(i+1) for i in range(len(row))]
-            df = pd.DataFrame([row], columns=col_names)
-            # Thêm dữ liệu vào cuối sheet 'TUYENSINH'
-            try:
-                # Chuyển toàn bộ giá trị DataFrame sang string để tránh lỗi serialize
-                data_to_append = df.astype(str).values.tolist()
-                worksheet.append_rows(data_to_append)
-                st.success("Đã thêm dữ liệu vào cuối danh sách 'TUYENSINH' thành công!")
-            except Exception as e:
-                st.error(f"Lỗi khi thêm dữ liệu vào Google Sheet: {e}")
-        keys = list(du_lieu.keys())
-        n = len(keys)
-        col1, col2 = st.columns(2)
-        split = n // 2 + (n % 2)
-        style_macdinh = "font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
-        style_xanh = "color:green;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
-        style_cam = "color:Orange;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
-        style_do = "color:Red;font-weight:normal;display:inline;line-height:0.8;font-size:15px;padding:0;margin:0"
-        truong_bat_buoc = ["Họ và tên", "Ngày sinh", "CCCD"]
-        with col1:
-            for k in keys[:split]:
-                value = du_lieu[k]
-                is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
-                if k in truong_bat_buoc and (value is None or (isinstance(value, str) and value.strip() == "")):
-                    style = style_do
-                else:
-                    style = style_cam if is_empty else style_xanh
-                st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
-        with col2:
-            for k in keys[split:]:
-                value = du_lieu[k]
-                is_empty = value is None or (isinstance(value, str) and value.strip() == "") or (isinstance(value, float) and value == 0.0)
-                if k in truong_bat_buoc and (value is None or (isinstance(value, str) and value.strip() == "")):
-                    style = style_do
-                else:
-                    style = style_cam if is_empty else style_xanh
-                st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
-        st.info("Màu đỏ là dữ liệu bắt buộc phải nhập, màu cam là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
     if st.button("Xem lại thông tin"):
         show_review_dialog()     
         # Nút lưu tổng cuối trang
