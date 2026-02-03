@@ -153,6 +153,7 @@ def show_review_dialog():
             "Lịch sử và Địa lý": st.session_state.get("diem_ls_dl", ""),
             "Tổng điểm Ưu tiên": st.session_state.get("tong_diem_uu_tien", ""),
             "Tổng điểm 8 môn + ưu tiên": st.session_state.get("tong_diem_8_mon_uu_tien", ""),
+            "Đăng ký học văn hóa": st.session_state.get("trinhdo_totnghiep_vh", "")
         })
     du_lieu.update({
         "Nguyện vọng 1": st.session_state.get("nv1", ""),
@@ -164,8 +165,6 @@ def show_review_dialog():
         "Ngày nộp hồ sơ": dinh_dang_chuan_date(st.session_state.get("ngay_nop_hs", "")),
         "Người nhập hồ sơ": st.session_state.get("ten_user", ""),
     })
-    if st.session_state.get("trinh_do", "") not in ["Cao đẳng", "Liên thông CĐ"]:
-        du_lieu["Đăng ký học văn hóa"] = st.session_state.get("trinhdo_totnghiep_vh", "")
     # Chia dữ liệu thành 3 cột để hiển thị, bọc trong div có scrollbar nếu quá dài
     if st.button("💾 Lưu thông tin",type="primary",key="btn_save_info",use_container_width=True):
         def split_ho_ten(ho_ten_full):
