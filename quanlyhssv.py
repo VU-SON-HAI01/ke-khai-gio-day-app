@@ -9,17 +9,10 @@ st.set_page_config(page_title="Quản lý HSSV", layout="wide")
 st.markdown(
 # Hiển thị tiêu đề lớn
     """
-    <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
+    <span style='font-size:24px; color:#990000; font-weight:bold;'>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
     """,
     unsafe_allow_html=True
 )
-
-# Hàm hiển thị chữ đậm màu đỏ
-def red_bold(text):
-    st.markdown(f'<span style="color: red; font-weight: bold;">{text}</span>', unsafe_allow_html=True)
-
-# Ví dụ sử dụng:
-red_bold("Đây là chữ đậm màu đỏ")
 # Các trường thông tin
 fields = [
     ("Khóa", "text"),
