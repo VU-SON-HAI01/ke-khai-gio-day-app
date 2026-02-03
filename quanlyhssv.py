@@ -1009,7 +1009,7 @@ with col3:
             st.session_state["nv2"] = nv2
             nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
             st.session_state["nv3"] = nv3
-            if st.button("📥 Xem lại thông tin và lưu",type="primary",key="btn_review_info",use_container_width=True):
+            if st.button("💾 Xem lại thông tin và lưu",type="primary",key="btn_review_info",use_container_width=True):
                 show_review_dialog()     
     else:
         colx1, colx2 = st.columns(2)
