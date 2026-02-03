@@ -68,8 +68,9 @@ col1, col2,col3 = st.columns(3)
 with col1:
     st.markdown(
         f"""
-        <div style={style_box}>
-        <span style={style_font_muc}>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
+        <div style='{style_box}'>
+            <span style='{style_font_muc}'>TRÌNH ĐỘ ĐĂNG KÝ HỌC</span><br>
+        </div>
         """,
         unsafe_allow_html=True
     )
