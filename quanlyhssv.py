@@ -83,11 +83,12 @@ with col1:
     st.session_state["trinh_do"] = trinh_do
 with col2:
     st.markdown(
-    f"""
-    <div style={style_box}>
-    <span style={style_font_muc}>CƠ SỞ NHẬN HỒ SƠ</span><br>
-    """,
-    unsafe_allow_html=True
+        f"""
+        <div style='{style_box}'>
+            <span style='{style_font_muc}'>CƠ SỞ NHẬN HỒ SƠ</span><br>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
     co_so = st.radio(
         "Chọn cơ sở nhận hồ sơ:",
@@ -98,11 +99,12 @@ with col2:
     st.session_state["co_so"] = co_so
 with col3:
     st.markdown(
-    """
-    <div style='border:1px solid #4CAF50; border-radius:8px; padding:16px; margin-bottom:10px; text-align:center;'>
-    <span style='font-size:24px; color:#4CAF50; font-weight:normal;'>THỜI GIAN NHẬN HỒ SƠ</span><br>
-    """,
-    unsafe_allow_html=True
+        f"""
+        <div style='{style_box}'>
+            <span style='{style_font_muc}'>THỜI GIAN NHẬN HỒ SƠ</span><br>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
     import datetime
     default_ngay_nop_hs = st.session_state.get("ngay_nop" \
