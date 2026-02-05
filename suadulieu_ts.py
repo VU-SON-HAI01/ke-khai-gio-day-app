@@ -230,6 +230,7 @@ def show_review_dialog():
                 style = style_cam if is_empty else style_xanh
             st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
     st.info(f":red[Màu đỏ] là dữ liệu bắt buộc phải nhập, :orange[Màu cam] là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
+@st.dialog("Chọn hồ sơ để sửa", width="medium")
 def update_dialog():
     import gspread
     from google.oauth2.service_account import Credentials
@@ -252,9 +253,7 @@ def update_dialog():
     df = pd.DataFrame(data[1:], columns=data[0]) if len(data) > 1 else pd.DataFrame()
 
     
-    # --- KIỂM SOÁT HIỂN THỊ DIALOG ---
-    if "show_update_dialog" not in st.session_state:
-        st.session_state["show_update_dialog"] = False
+    # --- PHẦN LỌC DỮ LIỆU ---
     filter_option = st.radio(
         "Chọn phương án lọc dữ liệu:",
         ["Lọc theo Mã HSTS", "10 dòng cuối cùng", "Lọc theo người nhập hồ sơ"],
@@ -357,22 +356,11 @@ def update_dialog():
             st.session_state["noi_cap_cccd"] = selected_row.get(df.columns[49], "")
             st.session_state["ten_user"] = selected_row.get(df.columns[50], "")
             st.session_state["so_dien_thoai_gd"] = selected_row.get(df.columns[51], "")
-            st.session_state["show_update_dialog"] = False
             st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
             st.experimental_rerun()
 
-if "show_update_dialog" not in st.session_state:
-    st.session_state["show_update_dialog"] = False
-
-if st.button("Chọn hồ sơ để sửa", key="btn_open_update_dialog"):
-    st.session_state["show_update_dialog"] = True
-    st.experimental_rerun()
-
-if st.session_state.get("show_update_dialog", False):
-    st.dialog("Chọn hồ sơ để sửa", width="medium")(update_dialog)()
-
 # Hiển thị 3 form trên 3 cột song song
-col1, col2, col3 = st.columns(3)
+col1, col2,col3 = st.columns(3)
 with col1:
     st.markdown(
         f"""
