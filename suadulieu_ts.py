@@ -230,6 +230,7 @@ def show_review_dialog():
                 style = style_cam if is_empty else style_xanh
             st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
     st.info(f":red[Màu đỏ] là dữ liệu bắt buộc phải nhập, :orange[Màu cam] là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
+@st.dialog("Chọn hồ sơ để sửa", width="medium")
 def update_dialog():
     import gspread
     from google.oauth2.service_account import Credentials
