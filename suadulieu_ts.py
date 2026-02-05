@@ -279,13 +279,17 @@ def update_dialog():
         filtered_display = filtered.iloc[:, :10].copy()
         if 'Chọn' not in filtered_display.columns:
             filtered_display['Chọn'] = False
+        # Đưa cột 'Chọn' lên đầu
+        cols = ['Chọn'] + [col for col in filtered_display.columns if col != 'Chọn']
+        filtered_display = filtered_display[cols]
         edited_df = st.data_editor(
             filtered_display,
             use_container_width=True,
             column_config={
                 'Chọn': st.column_config.CheckboxColumn("Chọn", required=True)
             },
-            disabled=[col for col in filtered_display.columns if col != 'Chọn']
+            disabled=[col for col in filtered_display.columns if col != 'Chọn'],
+            hide_index=True
         )
         selected_rows = edited_df[edited_df['Chọn'] == True]
         if len(selected_rows) == 1:
