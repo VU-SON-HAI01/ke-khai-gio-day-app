@@ -576,7 +576,10 @@ with col1:
     # Ví dụ sử dụng sau khi nhập CCCD:
     cccd = st.text_input(":green[SỐ CCCD (CĂN CƯỚC CÔNG DÂN)]", value=st.session_state.get("cccd", ""))
     valid_cccd, msg_cccd = validate_cccd(cccd)
-    st.session_state["cccd"] = cccd
+    if not valid_cccd and cccd:
+        st.error(msg_cccd)
+    else:
+        st.session_state["cccd"] = cccd
 
     # Ngày cấp CCCD
     ngay_cap_cccd = st.date_input(
@@ -599,9 +602,6 @@ with col1:
     noi_cap_default = ""
     noi_cap_cccd = st.selectbox(":green[NƠI CẤP CCCD]:", options=noi_cap_options, index=noi_cap_options.index(noi_cap_default))
     st.session_state["noi_cap_cccd"] = noi_cap_cccd
-    if cccd:
-        if not (cccd.isdigit() and len(cccd) == 12 and cccd[0] == "0"):
-            st.warning("CCCD phải gồm 12 chữ số và bắt đầu bằng số 0.")
 
     so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
     st.session_state["so_dien_thoai"] = so_dien_thoai
