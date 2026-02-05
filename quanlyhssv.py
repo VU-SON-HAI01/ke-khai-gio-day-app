@@ -555,145 +555,146 @@ with col1:
         index=["Nam", "Nữ"].index(st.session_state.get("gioi_tinh", "Nam")) if st.session_state.get("gioi_tinh") else 0
     )
     st.session_state["gioi_tinh"] = gioi_tinh
-    # Nhập số điện thoại
-    so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
-    st.session_state["so_dien_thoai"] = so_dien_thoai
-    if so_dien_thoai:
-        if not (so_dien_thoai.isdigit() and len(so_dien_thoai) in [10, 11] and so_dien_thoai[0] == "0"):
-            st.warning("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.")
-    # Nhập CCCD
-    def validate_cccd(cccd):
-    # Kiểm tra độ dài
-        if len(cccd) != 12:
-            return False, "Số CCCD phải đúng 12 chữ số."
-        # Kiểm tra chỉ chứa số
-        if not cccd.isdigit():
-            return False, "Số CCCD chỉ được chứa ký tự số (0-9)."
-        # Kiểm tra 3 số đầu là mã tỉnh/thành phố
-        ma_tinh = cccd[:3]
-        try:
-            ma_tinh_int = int(ma_tinh)
-        except ValueError:
-            return False, "3 số đầu CCCD phải là số hợp lệ."
-        if not (1 <= ma_tinh_int <= 96):
-            return False, "3 số đầu CCCD phải là mã tỉnh/thành phố từ 001 đến 096."
-        return True, "Số CCCD hợp lệ."
+    with st.expander("Địa chỉ nơi cư trú", expanded=False):
+        # Nhập số điện thoại
+        so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
+        st.session_state["so_dien_thoai"] = so_dien_thoai
+        if so_dien_thoai:
+            if not (so_dien_thoai.isdigit() and len(so_dien_thoai) in [10, 11] and so_dien_thoai[0] == "0"):
+                st.warning("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.")
+        # Nhập CCCD
+        def validate_cccd(cccd):
+        # Kiểm tra độ dài
+            if len(cccd) != 12:
+                return False, "Số CCCD phải đúng 12 chữ số."
+            # Kiểm tra chỉ chứa số
+            if not cccd.isdigit():
+                return False, "Số CCCD chỉ được chứa ký tự số (0-9)."
+            # Kiểm tra 3 số đầu là mã tỉnh/thành phố
+            ma_tinh = cccd[:3]
+            try:
+                ma_tinh_int = int(ma_tinh)
+            except ValueError:
+                return False, "3 số đầu CCCD phải là số hợp lệ."
+            if not (1 <= ma_tinh_int <= 96):
+                return False, "3 số đầu CCCD phải là mã tỉnh/thành phố từ 001 đến 096."
+            return True, "Số CCCD hợp lệ."
 
-    # Ví dụ sử dụng sau khi nhập CCCD:
-    cccd = st.text_input(":green[SỐ CCCD (CĂN CƯỚC CÔNG DÂN)]", value=st.session_state.get("cccd", ""))
-    valid_cccd, msg_cccd = validate_cccd(cccd)
-    if not valid_cccd and cccd:
-        st.error(msg_cccd)
-    else:
-        pass
-    st.session_state["cccd"] = cccd
-    
-    # Ngày cấp CCCD
-    ngay_cap_cccd = st.date_input(
-        ":green[NGÀY CẤP CCCD]", 
-        value=st.session_state.get("ngay_cap_cccd", None), 
-        format="DD/MM/YYYY",
-        min_value=datetime.date(1970, 1, 1),
-        max_value=datetime.date(2030, 12, 31),
-    )
-    st.session_state["ngay_cap_cccd"] = ngay_cap_cccd
-
-    # Nơi cấp CCCD
-    noi_cap_options = [
-        "",
-        "Bộ Công an",
-        "Cục Cảnh sát QLHC về TTXH",
-        "Cục Cảnh sát ĐKQL cư trú và DLQG về dân cư",
-        "Khác",
-    ]
-    noi_cap_default = ""
-    noi_cap_cccd = st.selectbox(":green[NƠI CẤP CCCD]:", options=noi_cap_options, index=noi_cap_options.index(noi_cap_default))
-    st.session_state["noi_cap_cccd"] = noi_cap_cccd
-
-    # Lấy danh sách dân tộc và tôn giáo từ file Excel
-    dan_toc_options = ["Kinh"]
-    ton_giao_options = ["Không"]
-    dan_toc_error = None
-    try:
-        df_dantoc = pd.read_excel(os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx"), sheet_name="DAN_TOC")
-        col_dantoc = None
-        for col in df_dantoc.columns:
-            if "tên dân tộc" in str(col).strip().lower():
-                col_dantoc = col
-                break
-        if col_dantoc:
-            dan_toc_options = df_dantoc[col_dantoc].dropna().unique().tolist()
+        # Ví dụ sử dụng sau khi nhập CCCD:
+        cccd = st.text_input(":green[SỐ CCCD (CĂN CƯỚC CÔNG DÂN)]", value=st.session_state.get("cccd", ""))
+        valid_cccd, msg_cccd = validate_cccd(cccd)
+        if not valid_cccd and cccd:
+            st.error(msg_cccd)
         else:
-            dan_toc_error = "Không tìm thấy cột 'Tên dân tộc' trong sheet DAN_TOC."
-    except Exception as e:
-        dan_toc_error = f"Không load được danh sách dân tộc: {e}"
-    try:
-        df_tongiao = pd.read_excel(os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx"), sheet_name="TON_GIAO")
-        col_tongiao = None
-        for col in df_tongiao.columns:
-            if "tên tôn giáo" in str(col).strip().lower():
-                col_tongiao = col
-                break
-        if col_tongiao:
-            ton_giao_options = df_tongiao[col_tongiao].dropna().unique().tolist()
-    except Exception:
-        pass
-    if dan_toc_error:
-        st.error(dan_toc_error)
-    dan_toc = st.selectbox(":green[DÂN TỘC]", dan_toc_options, index=dan_toc_options.index(st.session_state.get("dan_toc", dan_toc_options[0])) if st.session_state.get("dan_toc", dan_toc_options[0]) in dan_toc_options else 0)
-    st.session_state["dan_toc"] = dan_toc
-    ton_giao = st.selectbox(":green[TÔN GIÁO]", ton_giao_options, index=ton_giao_options.index(st.session_state.get("ton_giao", ton_giao_options[0])) if st.session_state.get("ton_giao", ton_giao_options[0]) in ton_giao_options else 0)
-    st.session_state["ton_giao"] = ton_giao
-    noisinh_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=False, key="noisinh_diachi_cu")
-    st.markdown(":green[NƠI SINH]")
-    import json
-    with open("data_base/viet_nam_tinh_thanh_mapping_objects.json", "r", encoding="utf-8") as f:
-        mapping = json.load(f)
-        provinces_old = ["(Trống)"] + [f'{item["type"]} {item["old"]}' for item in mapping]
-    provinces_new = [f'{item["type"]} {item["new"]}' for item in mapping]
-    provinces_new = list(dict.fromkeys(provinces_new))
-    def convert_province(old_full, mapping):
-        for item in mapping:
-            if f'{item["type"]} {item["old"]}' == old_full:
-                return f'{item["type"]} {item["new"]}'
-        return provinces_new[0]
-    if noisinh_diachi_cu:
-        noi_sinh_cu_default = "Tỉnh Đắk Lắk" if "noi_sinh_cu" not in st.session_state or not st.session_state["noi_sinh_cu"] else st.session_state["noi_sinh_cu"]
-        noi_sinh_cu = st.selectbox(
-            "Nơi sinh (Tỉnh cũ)",
-            provinces_old,
-            index=provinces_old.index(noi_sinh_cu_default) if noi_sinh_cu_default in provinces_old else 0,
-            key="noi_sinh_cu_select"
+            pass
+        st.session_state["cccd"] = cccd
+        
+        # Ngày cấp CCCD
+        ngay_cap_cccd = st.date_input(
+            ":green[NGÀY CẤP CCCD]", 
+            value=st.session_state.get("ngay_cap_cccd", None), 
+            format="DD/MM/YYYY",
+            min_value=datetime.date(1970, 1, 1),
+            max_value=datetime.date(2030, 12, 31),
         )
-        st.session_state["noi_sinh_cu"] = noi_sinh_cu
-        auto_new = convert_province(noi_sinh_cu, mapping) if noi_sinh_cu else provinces_new[0]
-        st.session_state["noi_sinh_moi"] = auto_new
-        st.success(f"Chuyển đổi Nơi sinh (Tỉnh mới): {auto_new}")
-        st.markdown(":green[QUÊ QUÁN]")
-        que_quan_cu_default = "Tỉnh Đắk Lắk" if "que_quan_cu" not in st.session_state or not st.session_state["que_quan_cu"] else st.session_state["que_quan_cu"]
-        que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(que_quan_cu_default) if que_quan_cu_default in provinces_old else 0)
-        st.session_state["que_quan_cu"] = que_quan_cu
-        auto_new_qq = convert_province(que_quan_cu, mapping) if que_quan_cu else provinces_new[0]
-        st.session_state["que_quan_moi"] = auto_new_qq
-        st.success(f"Chuyển đổi Quê quán (Tỉnh mới): {auto_new_qq}")
-    else:
-        st.session_state["noi_sinh_cu"] = ""
-        noi_sinh_moi_default = "Tỉnh Đắk Lắk" if "noi_sinh_moi" not in st.session_state or not st.session_state["noi_sinh_moi"] else st.session_state["noi_sinh_moi"]
-        noi_sinh_moi = st.selectbox(
-            "Nơi sinh (Tỉnh mới)",
-            provinces_new,
-            index= provinces_new.index(noi_sinh_moi_default) if noi_sinh_moi_default in provinces_new else 0,
-            key="noi_sinh_moi_select_newonly"
-        )
-        st.session_state["noi_sinh_moi"] = noi_sinh_moi
-        st.markdown(":green[QUÊ QUÁN]")
-        que_quan_moi = st.selectbox(
-            "Quê quán (Tỉnh mới)",
-            provinces_new,
-            index=provinces_new.index(st.session_state.get("que_quan_moi", provinces_new[0])) if st.session_state.get("que_quan_moi", provinces_new[0]) in provinces_new else 0,
-            key="que_quan_moi_select_newonly"
-        )
-        st.session_state["que_quan_moi"] = que_quan_moi
+        st.session_state["ngay_cap_cccd"] = ngay_cap_cccd
+
+        # Nơi cấp CCCD
+        noi_cap_options = [
+            "",
+            "Bộ Công an",
+            "Cục Cảnh sát QLHC về TTXH",
+            "Cục Cảnh sát ĐKQL cư trú và DLQG về dân cư",
+            "Khác",
+        ]
+        noi_cap_default = ""
+        noi_cap_cccd = st.selectbox(":green[NƠI CẤP CCCD]:", options=noi_cap_options, index=noi_cap_options.index(noi_cap_default))
+        st.session_state["noi_cap_cccd"] = noi_cap_cccd
+
+        # Lấy danh sách dân tộc và tôn giáo từ file Excel
+        dan_toc_options = ["Kinh"]
+        ton_giao_options = ["Không"]
+        dan_toc_error = None
+        try:
+            df_dantoc = pd.read_excel(os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx"), sheet_name="DAN_TOC")
+            col_dantoc = None
+            for col in df_dantoc.columns:
+                if "tên dân tộc" in str(col).strip().lower():
+                    col_dantoc = col
+                    break
+            if col_dantoc:
+                dan_toc_options = df_dantoc[col_dantoc].dropna().unique().tolist()
+            else:
+                dan_toc_error = "Không tìm thấy cột 'Tên dân tộc' trong sheet DAN_TOC."
+        except Exception as e:
+            dan_toc_error = f"Không load được danh sách dân tộc: {e}"
+        try:
+            df_tongiao = pd.read_excel(os.path.join("data_base", "Danh_muc_phanmem_gd.xlsx"), sheet_name="TON_GIAO")
+            col_tongiao = None
+            for col in df_tongiao.columns:
+                if "tên tôn giáo" in str(col).strip().lower():
+                    col_tongiao = col
+                    break
+            if col_tongiao:
+                ton_giao_options = df_tongiao[col_tongiao].dropna().unique().tolist()
+        except Exception:
+            pass
+        if dan_toc_error:
+            st.error(dan_toc_error)
+        dan_toc = st.selectbox(":green[DÂN TỘC]", dan_toc_options, index=dan_toc_options.index(st.session_state.get("dan_toc", dan_toc_options[0])) if st.session_state.get("dan_toc", dan_toc_options[0]) in dan_toc_options else 0)
+        st.session_state["dan_toc"] = dan_toc
+        ton_giao = st.selectbox(":green[TÔN GIÁO]", ton_giao_options, index=ton_giao_options.index(st.session_state.get("ton_giao", ton_giao_options[0])) if st.session_state.get("ton_giao", ton_giao_options[0]) in ton_giao_options else 0)
+        st.session_state["ton_giao"] = ton_giao
+        noisinh_diachi_cu = st.toggle("Nhập địa chỉ cũ", value=False, key="noisinh_diachi_cu")
+        st.markdown(":green[NƠI SINH]")
+        import json
+        with open("data_base/viet_nam_tinh_thanh_mapping_objects.json", "r", encoding="utf-8") as f:
+            mapping = json.load(f)
+            provinces_old = ["(Trống)"] + [f'{item["type"]} {item["old"]}' for item in mapping]
+        provinces_new = [f'{item["type"]} {item["new"]}' for item in mapping]
+        provinces_new = list(dict.fromkeys(provinces_new))
+        def convert_province(old_full, mapping):
+            for item in mapping:
+                if f'{item["type"]} {item["old"]}' == old_full:
+                    return f'{item["type"]} {item["new"]}'
+            return provinces_new[0]
+        if noisinh_diachi_cu:
+            noi_sinh_cu_default = "Tỉnh Đắk Lắk" if "noi_sinh_cu" not in st.session_state or not st.session_state["noi_sinh_cu"] else st.session_state["noi_sinh_cu"]
+            noi_sinh_cu = st.selectbox(
+                "Nơi sinh (Tỉnh cũ)",
+                provinces_old,
+                index=provinces_old.index(noi_sinh_cu_default) if noi_sinh_cu_default in provinces_old else 0,
+                key="noi_sinh_cu_select"
+            )
+            st.session_state["noi_sinh_cu"] = noi_sinh_cu
+            auto_new = convert_province(noi_sinh_cu, mapping) if noi_sinh_cu else provinces_new[0]
+            st.session_state["noi_sinh_moi"] = auto_new
+            st.success(f"Chuyển đổi Nơi sinh (Tỉnh mới): {auto_new}")
+            st.markdown(":green[QUÊ QUÁN]")
+            que_quan_cu_default = "Tỉnh Đắk Lắk" if "que_quan_cu" not in st.session_state or not st.session_state["que_quan_cu"] else st.session_state["que_quan_cu"]
+            que_quan_cu = st.selectbox("Quê quán (Tỉnh cũ)", provinces_old, index=provinces_old.index(que_quan_cu_default) if que_quan_cu_default in provinces_old else 0)
+            st.session_state["que_quan_cu"] = que_quan_cu
+            auto_new_qq = convert_province(que_quan_cu, mapping) if que_quan_cu else provinces_new[0]
+            st.session_state["que_quan_moi"] = auto_new_qq
+            st.success(f"Chuyển đổi Quê quán (Tỉnh mới): {auto_new_qq}")
+        else:
+            st.session_state["noi_sinh_cu"] = ""
+            noi_sinh_moi_default = "Tỉnh Đắk Lắk" if "noi_sinh_moi" not in st.session_state or not st.session_state["noi_sinh_moi"] else st.session_state["noi_sinh_moi"]
+            noi_sinh_moi = st.selectbox(
+                "Nơi sinh (Tỉnh mới)",
+                provinces_new,
+                index= provinces_new.index(noi_sinh_moi_default) if noi_sinh_moi_default in provinces_new else 0,
+                key="noi_sinh_moi_select_newonly"
+            )
+            st.session_state["noi_sinh_moi"] = noi_sinh_moi
+            st.markdown(":green[QUÊ QUÁN]")
+            que_quan_moi = st.selectbox(
+                "Quê quán (Tỉnh mới)",
+                provinces_new,
+                index=provinces_new.index(st.session_state.get("que_quan_moi", provinces_new[0])) if st.session_state.get("que_quan_moi", provinces_new[0]) in provinces_new else 0,
+                key="que_quan_moi_select_newonly"
+            )
+            st.session_state["que_quan_moi"] = que_quan_moi
 
 with col2:
     st.markdown(
