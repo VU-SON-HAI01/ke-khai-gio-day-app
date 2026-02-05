@@ -308,7 +308,21 @@ def update_dialog():
             # Mapping session_state theo đúng thứ tự row lưu vào Google Sheet
             st.session_state["ma_hsts"] = selected_row.get(df.columns[0], "")
             st.session_state["ho_ten"] = f"{selected_row.get(df.columns[1], "")} {selected_row.get(df.columns[2], "")}".strip()
-            st.session_state["ngay_sinh"] = selected_row.get(df.columns[3], "")
+            import datetime
+            def parse_date_str(val):
+                if not val or str(val).strip() == "":
+                    return None
+                try:
+                    # Thử parse theo ISO
+                    return datetime.date.fromisoformat(val)
+                except Exception:
+                    try:
+                        # Thử parse dd/mm/yyyy
+                        d, m, y = [int(x) for x in val.split("/")]
+                        return datetime.date(y, m, d)
+                    except Exception:
+                        return None
+            st.session_state["ngay_sinh"] = parse_date_str(selected_row.get(df.columns[3], ""))
             st.session_state["gioi_tinh"] = selected_row.get(df.columns[4], "Nam")
             st.session_state["cccd"] = selected_row.get(df.columns[5], "")
             st.session_state["so_dien_thoai"] = selected_row.get(df.columns[6], "")
@@ -332,7 +346,7 @@ def update_dialog():
             st.session_state["nv3"] = selected_row.get(df.columns[25], "")
             st.session_state["trinhdo_totnghiep_vh"] = selected_row.get(df.columns[26], "")
             st.session_state["co_so"] = selected_row.get(df.columns[27], "")
-            st.session_state["ngay_nop_hs"] = selected_row.get(df.columns[28], "")
+            st.session_state["ngay_nop_hs"] = parse_date_str(selected_row.get(df.columns[28], ""))
             st.session_state["trinh_do"] = selected_row.get(df.columns[29], "")
             st.session_state["diachi_chitiet_full_cu"] = selected_row.get(df.columns[30], "")
             st.session_state["diachi_chitiet_full_moi"] = selected_row.get(df.columns[31], "")
@@ -352,7 +366,7 @@ def update_dialog():
             st.session_state["diem_uu_tien_khu_vuc"] = selected_row.get(df.columns[45], "")
             st.session_state["tong_diem_uu_tien"] = selected_row.get(df.columns[46], "")
             st.session_state["tong_diem"] = selected_row.get(df.columns[47], "")
-            st.session_state["ngay_cap_cccd"] = selected_row.get(df.columns[48], "")
+            st.session_state["ngay_cap_cccd"] = parse_date_str(selected_row.get(df.columns[48], ""))
             st.session_state["noi_cap_cccd"] = selected_row.get(df.columns[49], "")
             st.session_state["ten_user"] = selected_row.get(df.columns[50], "")
             st.session_state["so_dien_thoai_gd"] = selected_row.get(df.columns[51], "")
