@@ -1027,7 +1027,7 @@ with col3:
                 st.session_state["tong_diem_uu_tien"] = tong_diem_uu_tien
             tong_diem = round(tong_diem_2_mon + tong_diem_uu_tien, 2)
             st.session_state["tong_diem_2_mon_uu_tien"] = tong_diem
-            st.markdown(f"**:violet[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
+            st.markdown(f"**:violet[TỔNG ĐIỂM]:**{tong_diem}")
         with colx2:
             st.markdown(
                 f"""
@@ -1113,7 +1113,7 @@ with col3:
                 st.session_state["tong_diem_uu_tien"] = tong_diem_uu_tien
             tong_diem = round(tong_diem_mon + tong_diem_uu_tien, 2)
             st.session_state["tong_diem_8_mon_uu_tien"] = tong_diem
-            st.markdown(f"**:violet[TỔNG ĐIỂM]:** <span style='color:green;font-weight:bold'>{tong_diem}</span>", unsafe_allow_html=True)
+            st.markdown(f"**:violet[TỔNG ĐIỂM]:**{tong_diem}")
         with colx2:
             st.markdown(
                 f"""
