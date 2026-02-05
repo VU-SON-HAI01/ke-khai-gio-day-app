@@ -61,8 +61,8 @@ fields = [
     ("Cancel", "button")
 ]
 
-style_box = "border:1px solid #689F38; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
-style_font_muc = 'font-size:20px; color:#689F38; font-weight:normal;'
+style_box = "border:1px solid #49E488; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
+style_font_muc = 'font-size:20px; color:#49E488; font-weight:normal;'
 @st.dialog("Xem thông tin đã nhập", width="medium")
 def show_review_dialog():
     # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key và báo lỗi chi tiết
