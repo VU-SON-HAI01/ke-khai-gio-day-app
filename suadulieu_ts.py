@@ -264,6 +264,14 @@ def update_dialog():
                 filtered_display = filtered.iloc[:, :10].copy()
                 if 'Chọn' not in filtered_display.columns:
                     filtered_display['Chọn'] = False
+                # Lưu trạng thái chọn vào session_state để kiểm soát
+                if 'chon_idx' not in st.session_state:
+                    st.session_state['chon_idx'] = None
+                # Nếu trước đó đã chọn, cập nhật cột 'Chọn' tương ứng
+                if st.session_state['chon_idx'] in filtered_display.index:
+                    filtered_display['Chọn'] = [i == st.session_state['chon_idx'] for i in filtered_display.index]
+                else:
+                    filtered_display['Chọn'] = False
                 # Sử dụng st.data_editor, chỉ cho phép chỉnh sửa cột 'Chọn'
                 edited_df = st.data_editor(
                     filtered_display,
@@ -273,13 +281,21 @@ def update_dialog():
                     },
                     disabled=[col for col in filtered_display.columns if col != 'Chọn']
                 )
-                # Lấy dòng có 'Chọn' = True
-                selected_rows = edited_df[edited_df['Chọn'] == True]
-                if len(selected_rows) == 1:
-                    selected_row = filtered.loc[selected_rows.index[0]]
-                elif len(selected_rows) > 1:
-                    st.warning("Chỉ chọn 1 dòng để sửa!")
-                    selected_row = None
+                # Nếu người dùng tick vào một dòng, tự động bỏ tick các dòng còn lại
+                checked_idx = edited_df[edited_df['Chọn'] == True].index
+                if len(checked_idx) > 1:
+                    # Chỉ giữ lại dòng vừa tick cuối cùng
+                    last_checked = checked_idx[-1]
+                    edited_df['Chọn'] = [i == last_checked for i in edited_df.index]
+                    st.session_state['chon_idx'] = last_checked
+                    st.info("Chỉ có thể chọn 1 dòng, đã tự động bỏ tick các dòng khác.")
+                elif len(checked_idx) == 1:
+                    st.session_state['chon_idx'] = checked_idx[0]
+                else:
+                    st.session_state['chon_idx'] = None
+                # Lấy dòng được chọn
+                if st.session_state['chon_idx'] is not None:
+                    selected_row = filtered.loc[st.session_state['chon_idx']]
                 else:
                     selected_row = None
         else:
