@@ -1130,9 +1130,3 @@ with col3:
                 update_dialog()
             if st.button("❌ Xóa hồ sơ",type="primary",key="btn_delete_info",use_container_width=True):
                 pass
-
-# Phần 4: Cấu hình tên file và trang tính QL HSSV
-target_folder_name_hssv = st.secrets["target_folder_name_hssv"] if "target_folder_name_hssv" in st.secrets else "QUAN_LY_HSSV"
-target_folder_id_hssv = st.secrets["target_folder_id_hssv"] if "target_folder_id_hssv" in st.secrets else None
-template_file_id_hssv = st.secrets["template_file_id_hssv"] if "template_file_id_hssv" in st.secrets else None
-target_sheet_name_hssv = "BIEN_CHE_LOP"
