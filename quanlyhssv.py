@@ -1042,7 +1042,7 @@ with col3:
                 "HT12": "Hoàn thành chương trình 12",
                 "Khác": "Khác",
             }
-            current_value = st.session_state.get("trinhdo_totnghiep", "THPT")
+            current_value = st.session_state.get("trinhdo_totnghiep", "THCS")
             if current_value not in options:
                 current_value = "THCS"
             trinhdo_totnghiep = st.radio(
