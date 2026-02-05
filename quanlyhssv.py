@@ -13,53 +13,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-# Các trường thông tin
-fields = [
-    ("Khóa", "text"),
-    ("Lớp", "text"),
-    ("Tel", "text"),
-    ("Cơ sở 1", "checkbox"),
-    ("Cao đẳng", "checkbox"),
-    ("Họ và tên", "text"),
-    ("Năm sinh", "text"),
-    ("Nữ", "checkbox"),
-    ("Nam", "checkbox"),
-    ("Tỉnh/TP", "select", ["Đắk Lắk", "Khác"]),
-    ("Quận/Huyện", "select", ["TP. Buôn Ma Thuột", "Khác"]),
-    ("Xã/Phường", "select", ["P. Ea Tam", "Khác"]),
-    ("Thôn", "checkbox"),
-    ("All Đường", "checkbox"),
-    ("Khối", "checkbox"),
-    ("Tổ dân phố", "checkbox"),
-    ("Đường/Thôn", "text"),
-    ("Dân tộc", "select", ["Kinh (Việt)", "Khác"]),
-    ("Nơi Sinh", "select", ["Đắk Lắk", "Khác"]),
-    ("Quê quán", "select", ["Đắk Lắk", "Khác"]),
-    ("Số nhà/Tổ", "text"),
-    ("Hộ khẩu gốc", "text"),
-    ("Tôn giáo", "select", ["Không", "Khác"]),
-    ("Tuyển sinh", "checkbox"),
-    ("Hộ khẩu dòng", "checkbox"),
-    ("Thêm Tuyển sinh", "button"),
-    ("Dữ liệu", "button"),
-    ("NV1", "text"),
-    ("Điểm TB", "text"),
-    ("NV2", "text"),
-    ("H/kiểm", "text"),
-    ("NV3", "text"),
-    ("Năm TN", "text"),
-    ("Cha", "text"),
-    ("Mẹ", "text"),
-    ("Hiện trạng", "text"),
-    ("Ngày Htrang", "text"),
-    ("Văn hóa BT", "text"),
-    ("Chuyển lớp", "text"),
-    ("Ghi chú", "text"),
-    ("Thông tin lớp", "button"),
-    ("Thêm HSSV mới", "button"),
-    ("Thay đổi Hiện trạng", "button"),
-    ("Cancel", "button")
-]
 
 style_box = "border:1px solid #1E90FF; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
 style_font_muc = 'font-size:20px; color:#1E90FF; font-weight:normal;'
@@ -130,7 +83,7 @@ def show_review_dialog():
         "Xã/Phường mới": st.session_state.get("xa_phuong_moi", ""),
         "Thôn/Xóm":  st.session_state.get("thon_xom", ""),
         "Số nhà/Tổ": st.session_state.get("duong_pho", ""),
-        "Trình độ tốt nghiệp": st.session_state.get("trinhdo_totnghiep", ""),
+        "Trình độ TN": st.session_state.get("trinhdo_totnghiep", ""),
         "Hạnh kiểm": st.session_state.get("hanh_kiem", ""),
         "Năm tốt nghiệp": st.session_state.get("nam_tot_nghiep", ""),
     }
@@ -238,7 +191,7 @@ def show_review_dialog():
             st.session_state.get("ten_user", ""),  # 51: Tên người nhập
             st.session_state.get("so_dien_thoai_gd", ""),  # 52: Số điện thoại gia đình
         ]
-        import pandas as pd
+
         col_names = [str(i+1) for i in range(len(row))]
         df = pd.DataFrame([row], columns=col_names)
         # Thêm dữ liệu vào cuối sheet 'TUYENSINH'
@@ -555,7 +508,7 @@ with col1:
         index=["Nam", "Nữ"].index(st.session_state.get("gioi_tinh", "Nam")) if st.session_state.get("gioi_tinh") else 0
     )
     st.session_state["gioi_tinh"] = gioi_tinh
-    with st.expander("Địa chỉ nơi cư trú", expanded=False):
+    with st.expander("Thông tin cá nhân khác", expanded=False):
         # Nhập số điện thoại
         so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
         st.session_state["so_dien_thoai"] = so_dien_thoai
