@@ -960,6 +960,7 @@ with col3:
                 unsafe_allow_html=True
             )
             trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Trung cấp","Cao đẳng","Đại học"], horizontal=True, index=["THPT","Trung cấp","Cao đẳng","Đại học"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
+            '''
             trinhdo_totnghiep_map = {
                 "THPT": "Tốt nghiệp Trung học phổ thông",
                 "Trung cấp": "Tốt nghiệp Trung cấp",
@@ -968,6 +969,8 @@ with col3:
             }
             mapped_trinhdo_map = trinhdo_totnghiep_map.get(trinhdo_totnghiep, trinhdo_totnghiep)
             st.session_state["trinhdo_totnghiep"] = mapped_trinhdo_map
+            '''
+            st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
 
             hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
             st.session_state["hanh_kiem"] = hanh_kiem
