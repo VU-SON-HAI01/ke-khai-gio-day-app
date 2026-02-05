@@ -357,7 +357,7 @@ def update_dialog():
             st.session_state["ten_user"] = selected_row.get(df.columns[50], "")
             st.session_state["so_dien_thoai_gd"] = selected_row.get(df.columns[51], "")
             st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
-            st.experimental_rerun()
+            st.rerun()
 
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
