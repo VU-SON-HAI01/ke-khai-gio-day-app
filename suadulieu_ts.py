@@ -259,12 +259,18 @@ def update_dialog():
     if ma_hsts_input:
         filtered = df[df[df.columns[0]] == ma_hsts_input]
         if not filtered.empty:
-            selected_row = filtered.iloc[0]
-            st.success(f"Đã tìm thấy hồ sơ Mã HSTS: {ma_hsts_input}")
-            # Hiển thị DataFrame gồm 10 cột đầu của các hồ sơ tìm thấy
-            st.dataframe(filtered.iloc[:, :10], use_container_width=True)
+                st.success(f"Đã tìm thấy {len(filtered)} hồ sơ Mã HSTS: {ma_hsts_input}")
+                st.dataframe(filtered.iloc[:, :10], use_container_width=True)
+                # Nếu có nhiều dòng, cho phép chọn index dòng
+                if len(filtered) > 1:
+                    idx_options = list(filtered.index)
+                    idx_selected = st.radio("Chọn dòng hồ sơ muốn sửa:", idx_options, format_func=lambda x: f"Dòng {x+1}")
+                    selected_row = filtered.loc[idx_selected]
+                else:
+                    selected_row = filtered.iloc[0]
         else:
             st.warning("Không tìm thấy hồ sơ với Mã HSTS này!")
+    st.write(selected_row)
     # Gán dữ liệu vào session_state để hiển thị lên các widget
     if selected_row is not None:
         for col in df.columns:
