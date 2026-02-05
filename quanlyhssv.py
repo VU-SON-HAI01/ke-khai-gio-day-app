@@ -959,7 +959,7 @@ with col3:
                 """,
                 unsafe_allow_html=True
             )
-            trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Trung cấp","Cao đẳng","Đại học"], horizontal=True, index=["THPT","Cao đẳng, Trung cấp","Khác"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
+            trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Trung cấp","Cao đẳng","Đại học"], horizontal=True, index=["THPT","Trung cấp","Cao đẳng","Đại học"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
             trinhdo_totnghiep_map = {
                 "THPT": "Tốt nghiệp Trung học phổ thông",
                 "Trung cấp": "Tốt nghiệp Trung cấp",
