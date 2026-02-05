@@ -260,12 +260,25 @@ def update_dialog():
         filtered = df[df[df.columns[0]] == ma_hsts_input]
         if not filtered.empty:
                 st.success(f"Đã tìm thấy {len(filtered)} hồ sơ Mã HSTS: {ma_hsts_input}")
-                st.dataframe(filtered.iloc[:, :10], use_container_width=True)
-                # Nếu có nhiều dòng, cho phép chọn index dòng
-                if len(filtered) > 1:
-                    idx_options = list(filtered.index)
-                    idx_selected = st.radio("Chọn dòng hồ sơ muốn sửa:", idx_options, format_func=lambda x: f"Dòng {x+1}")
-                    selected_row = filtered.loc[idx_selected]
+                # Hiển thị bảng bằng st.table và nút chọn cho từng dòng
+                import streamlit as st
+                import pandas as pd
+                filtered_display = filtered.iloc[:, :10].copy()
+                filtered_display.reset_index(drop=True, inplace=True)
+                st.table(filtered_display)
+                selected_row = None
+                if len(filtered_display) > 1:
+                    for i, row in filtered_display.iterrows():
+                        cols = st.columns([10,1])
+                        with cols[0]:
+                            st.write(row.to_dict())
+                        with cols[1]:
+                            if st.button(f"Chọn dòng {i+1}", key=f"select_row_{i}"):
+                                selected_row = filtered.iloc[i]
+                                st.session_state['selected_row_idx'] = i
+                    # Nếu đã chọn trước đó thì giữ lại
+                    if 'selected_row_idx' in st.session_state:
+                        selected_row = filtered.iloc[st.session_state['selected_row_idx']]
                 else:
                     selected_row = filtered.iloc[0]
         else:
