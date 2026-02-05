@@ -959,18 +959,24 @@ with col3:
                 """,
                 unsafe_allow_html=True
             )
-            trinhdo_totnghiep = st.radio(":green[TRÌNH ĐỘ TỐT NGHIỆP]", ["THPT","Trung cấp","Cao đẳng","Đại học"], horizontal=True, index=["THPT","Trung cấp","Cao đẳng","Đại học"].index(st.session_state.get("trinhdo_totnghiep", "THPT")))
-
+            options = ["THPT", "Trung cấp", "Cao đẳng", "Đại học"]
             trinhdo_totnghiep_map = {
                 "THPT": "Tốt nghiệp Trung học phổ thông",
                 "Trung cấp": "Tốt nghiệp Trung cấp",
                 "Cao đẳng": "Tốt nghiệp cao đẳng",
                 "Đại học": "Tốt nghiệp đại học",
             }
+            current_value = st.session_state.get("trinhdo_totnghiep", "THPT")
+            if current_value not in options:
+                current_value = "THPT"
+            trinhdo_totnghiep = st.radio(
+                ":green[TRÌNH ĐỘ TỐT NGHIỆP]",
+                options,
+                horizontal=True,
+                index=options.index(current_value)
+            )
             mapped_trinhdo = trinhdo_totnghiep_map.get(trinhdo_totnghiep, trinhdo_totnghiep)
             st.session_state["trinhdo_totnghiep"] = mapped_trinhdo
-
-            #st.session_state["trinhdo_totnghiep"] = trinhdo_totnghiep
 
             hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
             st.session_state["hanh_kiem"] = hanh_kiem
