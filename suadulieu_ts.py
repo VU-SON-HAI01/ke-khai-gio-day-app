@@ -261,6 +261,8 @@ def update_dialog():
         if not filtered.empty:
             selected_row = filtered.iloc[0]
             st.success(f"Đã tìm thấy hồ sơ Mã HSTS: {ma_hsts_input}")
+            # Hiển thị DataFrame gồm 10 cột đầu của các hồ sơ tìm thấy
+            st.dataframe(filtered.iloc[:, :10], use_container_width=True)
         else:
             st.warning("Không tìm thấy hồ sơ với Mã HSTS này!")
     # Gán dữ liệu vào session_state để hiển thị lên các widget
