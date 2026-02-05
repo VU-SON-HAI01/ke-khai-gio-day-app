@@ -122,6 +122,7 @@ def show_review_dialog():
         "Tôn giáo": st.session_state.get("ton_giao", ""),
         "Họ tên bố": st.session_state.get("bo", ""),
         "Họ tên mẹ": st.session_state.get("me", ""),
+        "Số ĐT gia đình": st.session_state.get("so_dien_thoai_gd", ""),
         "Tỉnh/TP cũ": st.session_state.get("tinh_tp_cu", ""),
         "Quận/Huyện cũ": st.session_state.get("quan_huyen_cu", ""),
         "Xã/Phường cũ": st.session_state.get("xa_phuong_cu", ""),
@@ -235,6 +236,7 @@ def show_review_dialog():
             dinh_dang_chuan_date(st.session_state.get("ngay_cap_cccd", "")),  # 49: Ngày câp CCCD
             st.session_state.get("noi_cap_cccd", ""),  # 50: Nơi cấp CCCD
             st.session_state.get("ten_user", ""),  # 51: Tên người nhập
+            st.session_state.get("so_dien_thoai_gd", ""),  # 52: Số điện thoại gia đình
         ]
         import pandas as pd
         col_names = [str(i+1) for i in range(len(row))]
@@ -687,7 +689,8 @@ with col2:
     st.session_state["bo"] = bo
     me = st.text_input(":green[HỌ TÊN MẸ]", value=st.session_state.get("me", ""))
     st.session_state["me"] = me
-    
+    so_dien_thoai_gd = st.text_input(":green[SỐ ĐIỆN THOẠI GIA ĐÌNH]", value=st.session_state.get("so_dien_thoai_gd", ""))
+    st.session_state["so_dien_thoai_gd"] = so_dien_thoai_gd
     with st.expander("Địa chỉ nơi cư trú", expanded=False):
         show_diachi_cu = st.toggle("Nhập theo địa chỉ cũ", value=True)
         if show_diachi_cu:
