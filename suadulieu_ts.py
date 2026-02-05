@@ -251,39 +251,52 @@ def update_dialog():
     # Đọc toàn bộ dữ liệu
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0]) if len(data) > 1 else pd.DataFrame()
-    # Widget nhập Mã HSTS để lọc
-    ma_hsts_input = st.text_input("Nhập Mã HSTS để sửa hồ sơ:", value=st.session_state.get("ma_hsts", ""), key="update_ma_hsts")
-    st.session_state["ma_hsts"] = ma_hsts_input
-    # Lọc hồ sơ theo Mã HSTS
+
+    
+    # --- PHẦN LỌC DỮ LIỆU ---
+    filter_option = st.radio(
+        "Chọn phương án lọc dữ liệu:",
+        ["Lọc theo Mã HSTS", "10 dòng cuối cùng", "Lọc theo người nhập hồ sơ"],
+        horizontal=True,
+        key="radio_phuong_an_loc"
+    )
+    filtered = pd.DataFrame()
+    if filter_option == "Lọc theo Mã HSTS":
+        ma_hsts_input = st.text_input("Nhập Mã HSTS để sửa hồ sơ:", value=st.session_state.get("ma_hsts", ""), key="update_ma_hsts")
+        st.session_state["ma_hsts"] = ma_hsts_input
+        if ma_hsts_input:
+            filtered = df[df[df.columns[0]] == ma_hsts_input]
+    elif filter_option == "10 dòng cuối cùng":
+        filtered = df.tail(10)
+    elif filter_option == "Lọc theo người nhập hồ sơ":
+        nguoi_nhap_list = sorted(df[df.columns[50]].unique())
+        nguoi_nhap = st.selectbox("Chọn người nhập hồ sơ:", nguoi_nhap_list, key="nguoi_nhap_selector")
+        filtered = df[df[df.columns[50]] == nguoi_nhap]
+    # --- HIỂN THỊ VÀ CHỌN DÒNG ---
     selected_row = None
-    if ma_hsts_input:
-        filtered = df[df[df.columns[0]] == ma_hsts_input]
-        if not filtered.empty:
-                st.success(f"Đã tìm thấy {len(filtered)} hồ sơ Mã HSTS: {ma_hsts_input}")
-                # Thêm cột 'Chọn' (True/False) vào DataFrame nếu chưa có
-                filtered_display = filtered.iloc[:, :10].copy()
-                if 'Chọn' not in filtered_display.columns:
-                    filtered_display['Chọn'] = False
-                # Sử dụng st.data_editor, chỉ cho phép chỉnh sửa cột 'Chọn'
-                edited_df = st.data_editor(
-                    filtered_display,
-                    use_container_width=True,
-                    column_config={
-                        'Chọn': st.column_config.CheckboxColumn("Chọn", required=True)
-                    },
-                    disabled=[col for col in filtered_display.columns if col != 'Chọn']
-                )
-                # Lấy dòng có 'Chọn' = True
-                selected_rows = edited_df[edited_df['Chọn'] == True]
-                if len(selected_rows) == 1:
-                    selected_row = filtered.loc[selected_rows.index[0]]
-                elif len(selected_rows) > 1:
-                    st.warning("Chỉ chọn 1 dòng để sửa!")
-                    selected_row = None
-                else:
-                    selected_row = None
+    if not filtered.empty:
+        st.success(f"Đã tìm thấy {len(filtered)} hồ sơ theo tiêu chí lọc!")
+        filtered_display = filtered.iloc[:, :10].copy()
+        if 'Chọn' not in filtered_display.columns:
+            filtered_display['Chọn'] = False
+        edited_df = st.data_editor(
+            filtered_display,
+            use_container_width=True,
+            column_config={
+                'Chọn': st.column_config.CheckboxColumn("Chọn", required=True)
+            },
+            disabled=[col for col in filtered_display.columns if col != 'Chọn']
+        )
+        selected_rows = edited_df[edited_df['Chọn'] == True]
+        if len(selected_rows) == 1:
+            selected_row = filtered.loc[selected_rows.index[0]]
+        elif len(selected_rows) > 1:
+            st.warning("Chỉ chọn 1 dòng để sửa!")
+            selected_row = None
         else:
-            st.warning("Không tìm thấy hồ sơ với Mã HSTS này!")
+            selected_row = None
+    else:
+        st.warning("Không tìm thấy dữ liệu theo tiêu chí lọc!")
     st.write(selected_row)
     # Gán dữ liệu vào session_state để hiển thị lên các widget
     if selected_row is not None:
