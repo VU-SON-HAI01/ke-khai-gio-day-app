@@ -260,19 +260,28 @@ def update_dialog():
         filtered = df[df[df.columns[0]] == ma_hsts_input]
         if not filtered.empty:
                 st.success(f"Đã tìm thấy {len(filtered)} hồ sơ Mã HSTS: {ma_hsts_input}")
-                # Thêm cột 'Chọn' (True/False) vào DataFrame
+                # Thêm cột 'Chọn' (True/False) vào DataFrame nếu chưa có
                 filtered_display = filtered.iloc[:, :10].copy()
-                idx_options = list(filtered_display.index)
-                idx_selected = st.radio(
-                    "Chọn dòng hồ sơ muốn sửa:",
-                    idx_options,
-                    format_func=lambda x: f"Dòng {x+1}",
-                    key="radio_chon_dong"
+                if 'Chọn' not in filtered_display.columns:
+                    filtered_display['Chọn'] = False
+                # Sử dụng st.data_editor, chỉ cho phép chỉnh sửa cột 'Chọn'
+                edited_df = st.data_editor(
+                    filtered_display,
+                    use_container_width=True,
+                    column_config={
+                        'Chọn': st.column_config.CheckboxColumn("Chọn", required=True)
+                    },
+                    disabled=[col for col in filtered_display.columns if col != 'Chọn']
                 )
-                # Tạo cột 'Chọn' với True cho dòng được chọn, False cho dòng còn lại
-                filtered_display['Chọn'] = [i == idx_selected for i in filtered_display.index]
-                st.dataframe(filtered_display, use_container_width=True)
-                selected_row = filtered.loc[idx_selected]
+                # Lấy dòng có 'Chọn' = True
+                selected_rows = edited_df[edited_df['Chọn'] == True]
+                if len(selected_rows) == 1:
+                    selected_row = filtered.loc[selected_rows.index[0]]
+                elif len(selected_rows) > 1:
+                    st.warning("Chỉ chọn 1 dòng để sửa!")
+                    selected_row = None
+                else:
+                    selected_row = None
         else:
             st.warning("Không tìm thấy hồ sơ với Mã HSTS này!")
     st.write(selected_row)
