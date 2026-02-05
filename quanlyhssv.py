@@ -556,7 +556,26 @@ with col1:
     )
     st.session_state["gioi_tinh"] = gioi_tinh
     # Nhập CCCD
+    def validate_cccd(cccd):
+    # Kiểm tra độ dài
+        if len(cccd) != 12:
+            return False, "Số CCCD phải đúng 12 chữ số."
+        # Kiểm tra chỉ chứa số
+        if not cccd.isdigit():
+            return False, "Số CCCD chỉ được chứa ký tự số (0-9)."
+        # Kiểm tra 3 số đầu là mã tỉnh/thành phố
+        ma_tinh = cccd[:3]
+        try:
+            ma_tinh_int = int(ma_tinh)
+        except ValueError:
+            return False, "3 số đầu CCCD phải là số hợp lệ."
+        if not (1 <= ma_tinh_int <= 96):
+            return False, "3 số đầu CCCD phải là mã tỉnh/thành phố từ 001 đến 096."
+        return True, "Số CCCD hợp lệ."
+
+    # Ví dụ sử dụng sau khi nhập CCCD:
     cccd = st.text_input(":green[SỐ CCCD (CĂN CƯỚC CÔNG DÂN)]", value=st.session_state.get("cccd", ""))
+    valid_cccd, msg_cccd = validate_cccd(cccd)
     st.session_state["cccd"] = cccd
 
     # Ngày cấp CCCD
