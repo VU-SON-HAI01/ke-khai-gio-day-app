@@ -9,7 +9,7 @@ st.set_page_config(page_title="Quản lý HSSV", layout="wide")
 st.markdown(
 # Hiển thị tiêu đề lớn
     """
-     <span style='font-size:24px; font-weight:bold;'>📝NHẬP HỒ SƠ TUYỂN SINH</span><br>
+     <span style='font-size:24px; font-weight:bold;'>📝 NHẬP HỒ SƠ TUYỂN SINH</span><br>
     """,
     unsafe_allow_html=True
 )
@@ -182,13 +182,13 @@ def show_review_dialog():
             st.session_state.get("tong_diem_2_mon", ""),  # 42: Tổng điểm 2 môn
             st.session_state.get("hanh_kiem", ""),  # 43: Hạnh kiểm
             st.session_state.get("nam_tot_nghiep", ""),  # 44: Năm tốt nghiệp
-            "",  # 45: ưu tiên đối tượng
-            "",  # 46: Ưu tiên khu vực
-            "",  # 47: Tổng điểm ưu tiên
-            "",  # 48: Tổng điểm
+            st.session_state.get("diem_uu_tien_doi_tuong", ""),  # 45: ưu tiên đối tượng
+            st.session_state.get("diem_uu_tien_khu_vuc", ""),  # 46: Ưu tiên khu vực
+            st.session_state.get("tong_diem_uu_tien", ""),  # 47: Tổng điểm ưu tiên
+            st.session_state.get("tong_diem", ""),  # 48: Tổng điểm
             dinh_dang_chuan_date(st.session_state.get("ngay_cap_cccd", "")),  # 49: Ngày câp CCCD
             st.session_state.get("noi_cap_cccd", ""),  # 50: Nơi cấp CCCD
-            st.session_state.get("ten_user", ""),  # 51: Tên người nhập
+            st.session_state.get("ten_user", ""),  # 51: Tên người nhập hs
             st.session_state.get("so_dien_thoai_gd", ""),  # 52: Số điện thoại gia đình
         ]
 
