@@ -555,6 +555,12 @@ with col1:
         index=["Nam", "Nữ"].index(st.session_state.get("gioi_tinh", "Nam")) if st.session_state.get("gioi_tinh") else 0
     )
     st.session_state["gioi_tinh"] = gioi_tinh
+    # Nhập số điện thoại
+    so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
+    st.session_state["so_dien_thoai"] = so_dien_thoai
+    if so_dien_thoai:
+        if not (so_dien_thoai.isdigit() and len(so_dien_thoai) in [10, 11] and so_dien_thoai[0] == "0"):
+            st.warning("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.")
     # Nhập CCCD
     def validate_cccd(cccd):
     # Kiểm tra độ dài
@@ -579,8 +585,9 @@ with col1:
     if not valid_cccd and cccd:
         st.error(msg_cccd)
     else:
-        st.session_state["cccd"] = cccd
-
+        pass
+    st.session_state["cccd"] = cccd
+    
     # Ngày cấp CCCD
     ngay_cap_cccd = st.date_input(
         ":green[NGÀY CẤP CCCD]", 
@@ -603,11 +610,6 @@ with col1:
     noi_cap_cccd = st.selectbox(":green[NƠI CẤP CCCD]:", options=noi_cap_options, index=noi_cap_options.index(noi_cap_default))
     st.session_state["noi_cap_cccd"] = noi_cap_cccd
 
-    so_dien_thoai = st.text_input(":green[SỐ ĐIỆN THOẠI]", value=st.session_state.get("so_dien_thoai", ""))
-    st.session_state["so_dien_thoai"] = so_dien_thoai
-    if so_dien_thoai:
-        if not (so_dien_thoai.isdigit() and len(so_dien_thoai) in [10, 11] and so_dien_thoai[0] == "0"):
-            st.warning("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.")
     # Lấy danh sách dân tộc và tôn giáo từ file Excel
     dan_toc_options = ["Kinh"]
     ton_giao_options = ["Không"]
