@@ -1037,7 +1037,11 @@ with col3:
             nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
             st.session_state["nv3"] = nv3
             if st.button("💾 Xem lại thông tin và lưu",type="primary",key="btn_review_info",use_container_width=True):
-                show_review_dialog()     
+                show_review_dialog()
+            if st.button("📤Lấy hồ sơ ra để sửa",type="primary",key="btn_fix_info",use_container_width=True):
+                update_dialog()
+            if st.button("❌ Xóa hồ sơ",type="primary",key="btn_delete_info",use_container_width=True):
+                pass   
     else:
         colx1, colx2 = st.columns(2)
         with colx1:
