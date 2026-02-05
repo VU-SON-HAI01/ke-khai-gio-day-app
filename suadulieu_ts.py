@@ -260,27 +260,19 @@ def update_dialog():
         filtered = df[df[df.columns[0]] == ma_hsts_input]
         if not filtered.empty:
                 st.success(f"Đã tìm thấy {len(filtered)} hồ sơ Mã HSTS: {ma_hsts_input}")
-                # Hiển thị bảng bằng st.table và nút chọn cho từng dòng
-                import streamlit as st
-                import pandas as pd
+                # Thêm cột 'Chọn' (True/False) vào DataFrame
                 filtered_display = filtered.iloc[:, :10].copy()
-                filtered_display.reset_index(drop=True, inplace=True)
-                st.table(filtered_display)
-                selected_row = None
-                if len(filtered_display) > 1:
-                    for i, row in filtered_display.iterrows():
-                        cols = st.columns([10,1])
-                        with cols[0]:
-                            st.write(row.to_dict())
-                        with cols[1]:
-                            if st.button(f"Chọn dòng {i+1}", key=f"select_row_{i}"):
-                                selected_row = filtered.iloc[i]
-                                st.session_state['selected_row_idx'] = i
-                    # Nếu đã chọn trước đó thì giữ lại
-                    if 'selected_row_idx' in st.session_state:
-                        selected_row = filtered.iloc[st.session_state['selected_row_idx']]
-                else:
-                    selected_row = filtered.iloc[0]
+                idx_options = list(filtered_display.index)
+                idx_selected = st.radio(
+                    "Chọn dòng hồ sơ muốn sửa:",
+                    idx_options,
+                    format_func=lambda x: f"Dòng {x+1}",
+                    key="radio_chon_dong"
+                )
+                # Tạo cột 'Chọn' với True cho dòng được chọn, False cho dòng còn lại
+                filtered_display['Chọn'] = [i == idx_selected for i in filtered_display.index]
+                st.dataframe(filtered_display, use_container_width=True)
+                selected_row = filtered.loc[idx_selected]
         else:
             st.warning("Không tìm thấy hồ sơ với Mã HSTS này!")
     st.write(selected_row)
