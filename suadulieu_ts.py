@@ -261,7 +261,7 @@ def update_dialog():
 
     # Bộ lọc bắt buộc theo Năm tuyển sinh (lọc theo 2 số đầu của Mã HSTS)
     # Lấy danh sách năm từ dữ liệu, mặc định lấy từ 2020 đến năm hiện tại
-    current_year = datetime.datetime.now().year
+    current_year = datetime.date.today().year
     years = list(range(2020, current_year + 1))
     years_str = [str(y) for y in years]
     nam_tuyensinh = st.selectbox("Chọn năm tuyển sinh:", years_str, index=len(years_str)-1, key="nam_tuyensinh_filter")
