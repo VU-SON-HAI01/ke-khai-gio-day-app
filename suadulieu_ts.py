@@ -307,7 +307,7 @@ def update_dialog():
     years_str = [str(y) for y in years]
     if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
         xem_lichsu_thaydoi("LICH_SU_DATA")
-    colfx1, colfx2 = st.columns([1, 4])
+    colfx1, colfx2, colfx3 = st.columns([1, 3,1])
     with colfx1:
         nam_tuyensinh = st.selectbox("Chọn năm tuyển sinh:", years_str, index=len(years_str)-1, key="nam_tuyensinh_filter")
         # Lọc theo 2 số đầu của Mã HSTS (mã có thể là chuỗi, lấy 2 số đầu)
@@ -321,6 +321,7 @@ def update_dialog():
             key="radio_phuong_an_loc"
         )
         filtered = pd.DataFrame()
+    with colfx3:
         if filter_option == "Mã HSTS":
             ma_hsts_input = st.text_input("Nhập Mã HSTS để sửa hồ sơ:", value=st.session_state.get("ma_hsts", ""), key="update_ma_hsts")
             st.session_state["ma_hsts"] = ma_hsts_input
