@@ -78,7 +78,11 @@ def show_review_dialog():
             ma_hsts_new = str(max(col1_numbers) + 1)
         else:
             ma_hsts_new = "250001"  # Giá trị mặc định nếu chưa có dữ liệu
-        st.session_state["ma_hsts"] = ma_hsts_new
+        chonhinhthuc_capnhat = st.radio("Cập nhật/Thêm hồ sơ mới", options=["Cập nhật", "Thêm mới"], index=0 if st.session_state.get("ma_hsts", "") else 1)
+        if chonhinhthuc_capnhat == "Cập nhật":
+            pass
+        else:
+            st.session_state["ma_hsts"] = ma_hsts_new
     except Exception as e:
         import traceback
         st.error(f"Lỗi truy cập Google Sheet (lấy mã HSTS mới): {e}\n{traceback.format_exc()}")
