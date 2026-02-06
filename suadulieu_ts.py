@@ -82,11 +82,11 @@ def show_review_dialog():
         ma_hsts_load = st.session_state.get("ma_hsts_load", "")
         if ma_hsts_load:
             chonhinhthuc_capnhat = st.radio(
-                "Cập nhật hay Thêm hồ sơ mới",
+                    "Cập nhật/Thêm hồ sơ mới",
                 options=["Cập nhật", "Thêm mới"],
-                width = "content",
                 index=0,
-            )
+                horizontal=True,
+                )
             if chonhinhthuc_capnhat == "Cập nhật":
                 st.session_state["ma_hsts"] = ma_hsts_load
             else:
