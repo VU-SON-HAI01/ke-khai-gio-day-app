@@ -1112,6 +1112,7 @@ with col3:
             nganh_options = ["Không có dữ liệu"]
     except Exception as e:
         nganh_options = ["Không load được ngành học"]
+    st.write(st.session_state["ma_hsts"])
     if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
         colx1, colx2 = st.columns(2)
         with colx1:
@@ -1269,7 +1270,6 @@ with col3:
                 """,
                 unsafe_allow_html=True
             )
-            st.write(st.session_state["ma_hsts"])
             trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
             st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
             nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
