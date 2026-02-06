@@ -402,6 +402,14 @@ def update_dialog():
                 st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
                 st.rerun()
         with col_xoa:
+            if st.button("Kiểm tra sheet LICH_SU_DATA", key="btn_kiemtra_lichsu_data"):
+                try:
+                    ws_history = sh.worksheet("LICH_SU_DATA")
+                    preview = ws_history.get_all_values()[:5]
+                    st.write("Nội dung 5 dòng đầu của sheet LICH_SU_DATA:")
+                    st.write(preview)
+                except Exception as e:
+                    st.error(f"Không truy cập được sheet LICH_SU_DATA: {e}")
             if st.button("Xóa hồ sơ", key="btn_xoa_hoso_selected_row"):
                 try:
                     # Xác định vị trí dòng trong sheet (index + 2 vì header là dòng 1)
