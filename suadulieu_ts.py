@@ -16,7 +16,7 @@ st.markdown(
 # Định dạng hiển thị
 style_box = "border:1px solid #1E90FF; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
 style_font_muc = 'font-size:20px; color:#1E90FF; font-weight:normal;'
-
+        
 def get_float_value(key, default=0.0):
     val = st.session_state.get(key, default)
     try:
@@ -294,7 +294,22 @@ def update_dialog():
     nam_tuyensinh = st.selectbox("Chọn năm tuyển sinh:", years_str, index=len(years_str)-1, key="nam_tuyensinh_filter")
     # Lọc theo 2 số đầu của Mã HSTS (mã có thể là chuỗi, lấy 2 số đầu)
     df_nam_tuyensinh = df[df[df.columns[0]].astype(str).str[:2] == nam_tuyensinh[-2:]]
-
+    def xem_lichsu_thaydoi(key, default=0.0):
+        try:
+            ws_history = sh.worksheet("LICH_SU_DATA")
+            preview = ws_history.get_all_values()[:5]
+            # Chỉ lấy các cột 1,2,3,4,54,55,56 (index 0,1,2,3,53,54,55)
+            preview_selected = []
+            for row in preview:
+                while len(row) < 56:
+                    row.append("")
+                preview_selected.append([row[0], row[1], row[2], row[3], row[53], row[54], row[55]])
+            df_preview = pd.DataFrame(preview_selected, columns=["Cột 1", "Cột 2", "Cột 3", "Cột 4", "Ngày Update", "Nội dung Update", "Người Update"])
+            st.dataframe(df_preview)
+        except Exception as e:
+            st.error(f"Không truy cập được sheet LICH_SU_DATA: {e}")
+    if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
+        xem_lichsu_thaydoi("LICH_SU_DATA")
     # --- PHẦN LỌC DỮ LIỆU ---
     filter_option = st.radio(
         "Chọn phương án lọc dữ liệu:",
@@ -402,20 +417,6 @@ def update_dialog():
                 st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
                 st.rerun()
         with col_xoa:
-            if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data"):
-                try:
-                    ws_history = sh.worksheet("LICH_SU_DATA")
-                    preview = ws_history.get_all_values()[:5]
-                    # Chỉ lấy các cột 1,2,3,4,54,55,56 (index 0,1,2,3,53,54,55)
-                    preview_selected = []
-                    for row in preview:
-                        while len(row) < 56:
-                            row.append("")
-                        preview_selected.append([row[0], row[1], row[2], row[3], row[53], row[54], row[55]])
-                    df_preview = pd.DataFrame(preview_selected, columns=["Cột 1", "Cột 2", "Cột 3", "Cột 4", "Ngày Update", "Nội dung Update", "Người Update"])
-                    st.dataframe(df_preview)
-                except Exception as e:
-                    st.error(f"Không truy cập được sheet LICH_SU_DATA: {e}")
             if st.button("Xóa hồ sơ", key="btn_xoa_hoso_selected_row"):
                 try:
                     # Xác định vị trí dòng trong sheet (index + 2 vì header là dòng 1)
