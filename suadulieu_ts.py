@@ -13,9 +13,10 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
+# Định dạng hiển thị
 style_box = "border:1px solid #1E90FF; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
 style_font_muc = 'font-size:20px; color:#1E90FF; font-weight:normal;'
+
 def get_float_value(key, default=0.0):
     val = st.session_state.get(key, default)
     try:
@@ -27,6 +28,19 @@ def get_float_value(key, default=0.0):
     except Exception:
         st.warning(f"Giá trị không hợp lệ cho trường '{key}', đã đặt về {default}")
         return default
+def dinh_dang_chuan_date(dinh_dang_dd_mm_yyyy):
+    import pandas as pd
+    if isinstance(dinh_dang_dd_mm_yyyy, (pd.Timestamp, datetime.date, datetime.datetime)) and dinh_dang_dd_mm_yyyy is not None:
+        return dinh_dang_dd_mm_yyyy.strftime("%d/%m/%Y")
+    elif isinstance(dinh_dang_dd_mm_yyyy, str) and dinh_dang_dd_mm_yyyy:
+        import re
+        match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", dinh_dang_dd_mm_yyyy)
+        if match:
+            y, m, d = match.groups()
+            return f"{int(d):02d}/{int(m):02d}/{y}"
+        return dinh_dang_dd_mm_yyyy
+    else:
+        return ""
 @st.dialog("Xem thông tin đã nhập", width="medium")
 def show_review_dialog():
     # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key và báo lỗi chi tiết
@@ -55,20 +69,6 @@ def show_review_dialog():
     except Exception as e:
         import traceback
         st.error(f"Lỗi truy cập Google Sheet (lấy mã HSTS mới): {e}\n{traceback.format_exc()}")
-    def dinh_dang_chuan_date(dinh_dang_dd_mm_yyyy):
-        import pandas as pd
-        import datetime
-        if isinstance(dinh_dang_dd_mm_yyyy, (pd.Timestamp, datetime.date, datetime.datetime)) and dinh_dang_dd_mm_yyyy is not None:
-            return dinh_dang_dd_mm_yyyy.strftime("%d/%m/%Y")
-        elif isinstance(dinh_dang_dd_mm_yyyy, str) and dinh_dang_dd_mm_yyyy:
-            import re
-            match = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", dinh_dang_dd_mm_yyyy)
-            if match:
-                y, m, d = match.groups()
-                return f"{int(d):02d}/{int(m):02d}/{y}"
-            return dinh_dang_dd_mm_yyyy
-        else:
-            return ""
     du_lieu = {
         "Mã hồ sơ tuyển sinh": st.session_state.get("ma_hsts", ""),
         "Họ và tên": st.session_state.get("ho_ten", ""),
@@ -323,7 +323,7 @@ def update_dialog():
             # Mapping session_state theo đúng thứ tự row lưu vào Google Sheet
             st.session_state["ma_hsts"] = selected_row.get(df.columns[0], "")
             st.session_state["ho_ten"] = f"{selected_row.get(df.columns[1], "")} {selected_row.get(df.columns[2], "")}".strip()
-            import datetime
+
             def parse_date_str(val):
                 if not val or str(val).strip() == "":
                     return None
@@ -431,7 +431,7 @@ with col3:
         """,
         unsafe_allow_html=True
     )
-    import datetime
+
     default_ngay_nop_hs = st.session_state.get("ngay_nop" \
     "_hs", datetime.date.today())
     ngay_nop_hs = st.date_input("Nhập ngày nhận hồ sơ:", format="DD/MM/YYYY", value=default_ngay_nop_hs)
