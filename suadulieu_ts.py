@@ -285,15 +285,7 @@ def update_dialog():
     # Đọc toàn bộ dữ liệu
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0]) if len(data) > 1 else pd.DataFrame()
-
-    # Bộ lọc bắt buộc theo Năm tuyển sinh (lọc theo 2 số đầu của Mã HSTS)
-    # Lấy danh sách năm từ dữ liệu, mặc định lấy từ 2020 đến năm hiện tại
-    current_year = datetime.date.today().year
-    years = list(range(2023, current_year + 1))
-    years_str = [str(y) for y in years]
-    nam_tuyensinh = st.selectbox("Chọn năm tuyển sinh:", years_str, index=len(years_str)-1, key="nam_tuyensinh_filter")
-    # Lọc theo 2 số đầu của Mã HSTS (mã có thể là chuỗi, lấy 2 số đầu)
-    df_nam_tuyensinh = df[df[df.columns[0]].astype(str).str[:2] == nam_tuyensinh[-2:]]
+     # Xem dữ liệu lich sử thay đổi (LICH_SU_DATA)
     def xem_lichsu_thaydoi(key, default=0.0):
         try:
             ws_history = sh.worksheet("LICH_SU_DATA")
@@ -308,8 +300,19 @@ def update_dialog():
             st.dataframe(df_preview)
         except Exception as e:
             st.error(f"Không truy cập được sheet LICH_SU_DATA: {e}")
-    if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
-        xem_lichsu_thaydoi("LICH_SU_DATA")
+    # Bộ lọc bắt buộc theo Năm tuyển sinh (lọc theo 2 số đầu của Mã HSTS)
+    # Lấy danh sách năm từ dữ liệu, mặc định lấy từ 2020 đến năm hiện tại
+    current_year = datetime.date.today().year
+    years = list(range(2023, current_year + 1))
+    years_str = [str(y) for y in years]
+    colfx1, colfx2 = st.columns([1, 3])
+    with colfx1:
+        nam_tuyensinh = st.selectbox("Chọn năm tuyển sinh:", years_str, index=len(years_str)-1, key="nam_tuyensinh_filter")
+        # Lọc theo 2 số đầu của Mã HSTS (mã có thể là chuỗi, lấy 2 số đầu)
+        df_nam_tuyensinh = df[df[df.columns[0]].astype(str).str[:2] == nam_tuyensinh[-2:]]
+    with colfx2:
+        if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
+            xem_lichsu_thaydoi("LICH_SU_DATA")
     # --- PHẦN LỌC DỮ LIỆU ---
     filter_option = st.radio(
         "Chọn phương án lọc dữ liệu:",
