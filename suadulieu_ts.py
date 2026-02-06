@@ -307,7 +307,7 @@ def update_dialog():
     years_str = [str(y) for y in years]
     if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
         xem_lichsu_thaydoi("LICH_SU_DATA")
-    colfx1, colfx2, colfx3 = st.columns([1,5,2])
+    colfx1, colfx2, colfx3 = st.columns([2,6,2])
     with colfx1:
         nam_tuyensinh = st.selectbox("Chọn năm TS:", years_str, index=len(years_str)-1, key="nam_tuyensinh_filter")
         # Lọc theo 2 số đầu của Mã HSTS (mã có thể là chuỗi, lấy 2 số đầu)
