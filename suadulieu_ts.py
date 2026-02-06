@@ -1116,7 +1116,6 @@ with col3:
             nganh_options = ["Không có dữ liệu"]
     except Exception as e:
         nganh_options = ["Không load được ngành học"]
-    st.write(st.session_state["ma_hsts"])
     if trinh_do == "Cao đẳng" or trinh_do == "Liên thông CĐ":
         colx1, colx2 = st.columns(2)
         with colx1:
