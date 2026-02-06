@@ -81,11 +81,18 @@ def show_review_dialog():
         # Nếu có ma_hsts_load thì không cho chọn 'Cập nhật'
         ma_hsts_load = st.session_state.get("ma_hsts_load", "")
         if ma_hsts_load:
-            chonhinhthuc_capnhat = st.radio(
-                    "Cập nhật/Thêm hồ sơ mới",
-                options=["Cập nhật", "Thêm mới"],
-                index=0,
-                horizontal=True,
+            col_radio, col_help = st.columns([10,1])
+            with col_radio:
+                chonhinhthuc_capnhat = st.radio(
+                    "Chọn Cập nhật/Thêm hồ sơ mới",
+                    options=["Cập nhật", "Thêm mới"],
+                    index=0,
+                    horizontal=True,
+                )
+            with col_help:
+                st.markdown(
+                    '<span title="Chọn \"Cập nhật\" để sửa hồ sơ đã có, hoặc \"Thêm mới\" để tạo hồ sơ mới. Nếu không rõ, hãy hỏi quản trị viên." style="font-size:22px; cursor:help;">❓</span>',
+                    unsafe_allow_html=True
                 )
             if chonhinhthuc_capnhat == "Cập nhật":
                 st.session_state["ma_hsts"] = ma_hsts_load
