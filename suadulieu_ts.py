@@ -331,7 +331,7 @@ def update_dialog():
             filtered = df_nam_tuyensinh.tail(10)
         elif filter_option == "Người nhập HSTS":
             nguoi_nhap_list = sorted(df_nam_tuyensinh[df_nam_tuyensinh.columns[50]].unique())
-            nguoi_nhap = st.selectbox("Chọn người nhập HSTS:", nguoi_nhap_list, key="nguoi_nhap_selector")
+            nguoi_nhap = st.selectbox("Chọn người nhập:", nguoi_nhap_list, key="nguoi_nhap_selector")
             filtered = df_nam_tuyensinh[df_nam_tuyensinh[df_nam_tuyensinh.columns[50]] == nguoi_nhap]
     # --- HIỂN THỊ VÀ CHỌN DÒNG ---
     selected_row = None
