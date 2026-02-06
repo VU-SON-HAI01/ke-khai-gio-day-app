@@ -305,33 +305,33 @@ def update_dialog():
     current_year = datetime.date.today().year
     years = list(range(2023, current_year + 1))
     years_str = [str(y) for y in years]
-    colfx1, colfx2 = st.columns([1, 3])
+    if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
+        xem_lichsu_thaydoi("LICH_SU_DATA")
+    colfx1, colfx2 = st.columns([1, 4])
     with colfx1:
         nam_tuyensinh = st.selectbox("Chọn năm tuyển sinh:", years_str, index=len(years_str)-1, key="nam_tuyensinh_filter")
         # Lọc theo 2 số đầu của Mã HSTS (mã có thể là chuỗi, lấy 2 số đầu)
         df_nam_tuyensinh = df[df[df.columns[0]].astype(str).str[:2] == nam_tuyensinh[-2:]]
     with colfx2:
-        if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
-            xem_lichsu_thaydoi("LICH_SU_DATA")
-    # --- PHẦN LỌC DỮ LIỆU ---
-    filter_option = st.radio(
-        "Chọn phương án lọc dữ liệu:",
-        ["10 Hồ sơ mới nhất", "Mã HSTS", "Người nhập hồ sơ"],
-        horizontal=True,
-        key="radio_phuong_an_loc"
-    )
-    filtered = pd.DataFrame()
-    if filter_option == "Mã HSTS":
-        ma_hsts_input = st.text_input("Nhập Mã HSTS để sửa hồ sơ:", value=st.session_state.get("ma_hsts", ""), key="update_ma_hsts")
-        st.session_state["ma_hsts"] = ma_hsts_input
-        if ma_hsts_input:
-            filtered = df_nam_tuyensinh[df_nam_tuyensinh[df_nam_tuyensinh.columns[0]] == ma_hsts_input]
-    elif filter_option == "10 Hồ sơ mới nhất":
-        filtered = df_nam_tuyensinh.tail(10)
-    elif filter_option == "Người nhập hồ sơ":
-        nguoi_nhap_list = sorted(df_nam_tuyensinh[df_nam_tuyensinh.columns[50]].unique())
-        nguoi_nhap = st.selectbox("Chọn người nhập hồ sơ:", nguoi_nhap_list, key="nguoi_nhap_selector")
-        filtered = df_nam_tuyensinh[df_nam_tuyensinh[df_nam_tuyensinh.columns[50]] == nguoi_nhap]
+        # --- PHẦN LỌC DỮ LIỆU ---
+        filter_option = st.radio(
+            "Chọn phương án lọc dữ liệu:",
+            ["10 Hồ sơ mới nhất", "Mã HSTS", "Người nhập hồ sơ"],
+            horizontal=True,
+            key="radio_phuong_an_loc"
+        )
+        filtered = pd.DataFrame()
+        if filter_option == "Mã HSTS":
+            ma_hsts_input = st.text_input("Nhập Mã HSTS để sửa hồ sơ:", value=st.session_state.get("ma_hsts", ""), key="update_ma_hsts")
+            st.session_state["ma_hsts"] = ma_hsts_input
+            if ma_hsts_input:
+                filtered = df_nam_tuyensinh[df_nam_tuyensinh[df_nam_tuyensinh.columns[0]] == ma_hsts_input]
+        elif filter_option == "10 Hồ sơ mới nhất":
+            filtered = df_nam_tuyensinh.tail(10)
+        elif filter_option == "Người nhập hồ sơ":
+            nguoi_nhap_list = sorted(df_nam_tuyensinh[df_nam_tuyensinh.columns[50]].unique())
+            nguoi_nhap = st.selectbox("Chọn người nhập hồ sơ:", nguoi_nhap_list, key="nguoi_nhap_selector")
+            filtered = df_nam_tuyensinh[df_nam_tuyensinh[df_nam_tuyensinh.columns[50]] == nguoi_nhap]
     # --- HIỂN THỊ VÀ CHỌN DÒNG ---
     selected_row = None
     if not filtered.empty:
