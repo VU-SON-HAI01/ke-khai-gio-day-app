@@ -316,19 +316,19 @@ def update_dialog():
     # --- PHẦN LỌC DỮ LIỆU ---
     filter_option = st.radio(
         "Chọn phương án lọc dữ liệu:",
-        ["Lọc theo Mã HSTS", "10 dòng cuối cùng", "Lọc theo người nhập hồ sơ"],
+        ["10 Hồ sơ mới nhất", "Mã HSTS", "Người nhập hồ sơ"],
         horizontal=True,
         key="radio_phuong_an_loc"
     )
     filtered = pd.DataFrame()
-    if filter_option == "Lọc theo Mã HSTS":
+    if filter_option == "Mã HSTS":
         ma_hsts_input = st.text_input("Nhập Mã HSTS để sửa hồ sơ:", value=st.session_state.get("ma_hsts", ""), key="update_ma_hsts")
         st.session_state["ma_hsts"] = ma_hsts_input
         if ma_hsts_input:
             filtered = df_nam_tuyensinh[df_nam_tuyensinh[df_nam_tuyensinh.columns[0]] == ma_hsts_input]
-    elif filter_option == "10 dòng cuối cùng":
+    elif filter_option == "10 Hồ sơ mới nhất":
         filtered = df_nam_tuyensinh.tail(10)
-    elif filter_option == "Lọc theo người nhập hồ sơ":
+    elif filter_option == "Người nhập hồ sơ":
         nguoi_nhap_list = sorted(df_nam_tuyensinh[df_nam_tuyensinh.columns[50]].unique())
         nguoi_nhap = st.selectbox("Chọn người nhập hồ sơ:", nguoi_nhap_list, key="nguoi_nhap_selector")
         filtered = df_nam_tuyensinh[df_nam_tuyensinh[df_nam_tuyensinh.columns[50]] == nguoi_nhap]
