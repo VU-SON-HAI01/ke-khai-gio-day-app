@@ -427,7 +427,7 @@ def update_dialog():
                     # --- Xóa dòng ---
                     worksheet.delete_rows(row_index)
                     st.success("Đã xóa hồ sơ khỏi Google Sheet và lưu lịch sử thành công!")
-                    st.rerun()
+                    #st.rerun()
                 except Exception as e:
                     st.error(f"Lỗi khi xóa hồ sơ: {e}")
         
