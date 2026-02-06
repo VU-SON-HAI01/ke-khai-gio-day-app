@@ -1,14 +1,3 @@
-def get_float_value(key, default=0.0):
-    val = st.session_state.get(key, default)
-    try:
-        if val is None or val == "":
-            return default
-        if isinstance(val, str):
-            val = val.replace(",", ".")
-        return float(val)
-    except Exception:
-        st.warning(f"Giá trị không hợp lệ cho trường '{key}', đã đặt về {default}")
-        return default
 import streamlit as st
 import os
 import gspread
@@ -27,6 +16,17 @@ st.markdown(
 
 style_box = "border:1px solid #1E90FF; border-radius:8px; padding:4px; margin-bottom:10px; text-align:center;"
 style_font_muc = 'font-size:20px; color:#1E90FF; font-weight:normal;'
+def get_float_value(key, default=0.0):
+    val = st.session_state.get(key, default)
+    try:
+        if val is None or val == "":
+            return default
+        if isinstance(val, str):
+            val = val.replace(",", ".")
+        return float(val)
+    except Exception:
+        st.warning(f"Giá trị không hợp lệ cho trường '{key}', đã đặt về {default}")
+        return default
 @st.dialog("Xem thông tin đã nhập", width="medium")
 def show_review_dialog():
     # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key và báo lỗi chi tiết
@@ -241,12 +241,8 @@ def show_review_dialog():
                 style = style_cam if is_empty else style_xanh
             st.markdown(f"<div style='line-height:1.8;font-size:15px;padding:0;margin:0'><span style='{style}'>{k}: </span><span style='{style_macdinh}'>{value}</span></div>", unsafe_allow_html=True)
     st.info(f":red[Màu đỏ] là dữ liệu bắt buộc phải nhập, :orange[Màu cam] là dữ liệu không bắt buộc. Nếu thông tin đã chính xác, hãy nhấn 'Lưu tất cả thông tin' để hoàn tất.")
-@st.dialog("Chọn hồ sơ để sửa", width="medium")
+@st.dialog("LỌC HỒ SƠ TUYỂN SINH", width="medium")
 def update_dialog():
-    import gspread
-    from google.oauth2.service_account import Credentials
-    import streamlit as st
-    import pandas as pd
     # Lấy cấu hình Google Sheet từ secrets
     google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
     thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
@@ -263,7 +259,15 @@ def update_dialog():
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0]) if len(data) > 1 else pd.DataFrame()
 
-    
+    # Bộ lọc bắt buộc theo Năm tuyển sinh (lọc theo 2 số đầu của Mã HSTS)
+    # Lấy danh sách năm từ dữ liệu, mặc định lấy từ 2020 đến năm hiện tại
+    current_year = datetime.datetime.now().year
+    years = list(range(2020, current_year + 1))
+    years_str = [str(y) for y in years]
+    nam_tuyensinh = st.selectbox("Chọn năm tuyển sinh:", years_str, index=len(years_str)-1, key="nam_tuyensinh_filter")
+    # Lọc theo 2 số đầu của Mã HSTS (mã có thể là chuỗi, lấy 2 số đầu)
+    df_nam_tuyensinh = df[df[df.columns[0]].astype(str).str[:2] == nam_tuyensinh[-2:]]
+
     # --- PHẦN LỌC DỮ LIỆU ---
     filter_option = st.radio(
         "Chọn phương án lọc dữ liệu:",
@@ -276,13 +280,13 @@ def update_dialog():
         ma_hsts_input = st.text_input("Nhập Mã HSTS để sửa hồ sơ:", value=st.session_state.get("ma_hsts", ""), key="update_ma_hsts")
         st.session_state["ma_hsts"] = ma_hsts_input
         if ma_hsts_input:
-            filtered = df[df[df.columns[0]] == ma_hsts_input]
+            filtered = df_nam_tuyensinh[df_nam_tuyensinh[df_nam_tuyensinh.columns[0]] == ma_hsts_input]
     elif filter_option == "10 dòng cuối cùng":
-        filtered = df.tail(10)
+        filtered = df_nam_tuyensinh.tail(10)
     elif filter_option == "Lọc theo người nhập hồ sơ":
-        nguoi_nhap_list = sorted(df[df.columns[50]].unique())
+        nguoi_nhap_list = sorted(df_nam_tuyensinh[df_nam_tuyensinh.columns[50]].unique())
         nguoi_nhap = st.selectbox("Chọn người nhập hồ sơ:", nguoi_nhap_list, key="nguoi_nhap_selector")
-        filtered = df[df[df.columns[50]] == nguoi_nhap]
+        filtered = df_nam_tuyensinh[df_nam_tuyensinh[df_nam_tuyensinh.columns[50]] == nguoi_nhap]
     # --- HIỂN THỊ VÀ CHỌN DÒNG ---
     selected_row = None
     if not filtered.empty:
