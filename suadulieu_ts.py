@@ -421,7 +421,9 @@ def update_dialog():
                     # Ghi vào sheet LICH_SU_DATA
                     try:
                         ws_history = sh.worksheet("LICH_SU_DATA")
-                        ws_history.append_row(row_data)
+                        st.write(f"[DEBUG] row_data: {row_data}")
+                        st.write(f"[DEBUG] Số cột: {len(row_data)}")
+                        ws_history.append_row(row_data, value_input_option="USER_ENTERED")
                     except Exception as e:
                         st.warning(f"Không thể ghi lịch sử vào sheet LICH_SU_DATA: {e}")
                     # --- Xóa dòng ---
