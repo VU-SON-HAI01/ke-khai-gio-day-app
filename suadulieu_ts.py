@@ -41,6 +41,19 @@ def dinh_dang_chuan_date(dinh_dang_dd_mm_yyyy):
         return dinh_dang_dd_mm_yyyy
     else:
         return ""
+def parse_date_str(val):
+    if not val or str(val).strip() == "":
+        return None
+    try:
+        # Thử parse theo ISO
+        return datetime.date.fromisoformat(val)
+    except Exception:
+        try:
+            # Thử parse dd/mm/yyyy
+            d, m, y = [int(x) for x in val.split("/")]
+            return datetime.date(y, m, d)
+        except Exception:
+            return None
 @st.dialog("Xem thông tin đã nhập", width="medium")
 def show_review_dialog():
     # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key và báo lỗi chi tiết
@@ -316,78 +329,94 @@ def update_dialog():
             selected_row = None
     else:
         st.warning("Không tìm thấy dữ liệu theo tiêu chí lọc!")
-    st.write(selected_row)
     # Gán dữ liệu vào session_state để hiển thị lên các widget khi nhấn nút Xác nhận
     if selected_row is not None:
-        if st.button("Xác nhận lấy dữ liệu này", key="btn_xac_nhan_selected_row"):
-            # Mapping session_state theo đúng thứ tự row lưu vào Google Sheet
-            st.session_state["ma_hsts"] = selected_row.get(df.columns[0], "")
-            st.session_state["ho_ten"] = f"{selected_row.get(df.columns[1], "")} {selected_row.get(df.columns[2], "")}".strip()
-
-            def parse_date_str(val):
-                if not val or str(val).strip() == "":
-                    return None
+        col_xacnhan, col_xoa = st.columns(2)
+        with col_xacnhan:
+            if st.button("Xác nhận lấy dữ liệu này", key="btn_xac_nhan_selected_row"):
+                # Mapping session_state theo đúng thứ tự row lưu vào Google Sheet
+                st.session_state["ma_hsts"] = selected_row.get(df.columns[0], "")
+                st.session_state["ho_ten"] = f"{selected_row.get(df.columns[1], "")} {selected_row.get(df.columns[2], "")}".strip()
+                st.session_state["ngay_sinh"] = parse_date_str(selected_row.get(df.columns[3], ""))
+                st.session_state["gioi_tinh"] = selected_row.get(df.columns[4], "Nam")
+                st.session_state["cccd"] = selected_row.get(df.columns[5], "")
+                st.session_state["so_dien_thoai"] = selected_row.get(df.columns[6], "")
+                st.session_state["noi_sinh_cu"] = selected_row.get(df.columns[8], "")
+                st.session_state["noi_sinh_moi"] = selected_row.get(df.columns[9], "")
+                st.session_state["que_quan_cu"] = selected_row.get(df.columns[10], "")
+                st.session_state["que_quan_moi"] = selected_row.get(df.columns[11], "")
+                st.session_state["dan_toc"] = selected_row.get(df.columns[12], "")
+                st.session_state["ton_giao"] = selected_row.get(df.columns[13], "")
+                st.session_state["bo"] = selected_row.get(df.columns[14], "")
+                st.session_state["me"] = selected_row.get(df.columns[15], "")
+                st.session_state["diachi_chitiet_cu"] = selected_row.get(df.columns[16], "")
+                st.session_state["tinh_tp_cu"] = selected_row.get(df.columns[17], "")
+                st.session_state["quan_huyen_cu"] = selected_row.get(df.columns[18], "")
+                st.session_state["xa_phuong_cu"] = selected_row.get(df.columns[19], "")
+                st.session_state["tinh_tp_moi"] = selected_row.get(df.columns[20], "")
+                st.session_state["xa_phuong_moi"] = selected_row.get(df.columns[21], "")
+                st.session_state["trinhdo_totnghiep"] = selected_row.get(df.columns[22], "")
+                st.session_state["nv1"] = selected_row.get(df.columns[23], "")
+                st.session_state["nv2"] = selected_row.get(df.columns[24], "")
+                st.session_state["nv3"] = selected_row.get(df.columns[25], "")
+                st.session_state["trinhdo_totnghiep_vh"] = selected_row.get(df.columns[26], "")
+                st.session_state["co_so"] = selected_row.get(df.columns[27], "")
+                st.session_state["ngay_nop_hs"] = parse_date_str(selected_row.get(df.columns[28], ""))
+                st.session_state["trinh_do"] = selected_row.get(df.columns[29], "")
+                st.session_state["diachi_chitiet_full_cu"] = selected_row.get(df.columns[30], "")
+                st.session_state["diachi_chitiet_full_moi"] = selected_row.get(df.columns[31], "")
+                st.session_state["diem_toan"] = selected_row.get(df.columns[32], "")
+                st.session_state["diem_van"] = selected_row.get(df.columns[33], "")
+                st.session_state["diem_tieng_anh"] = selected_row.get(df.columns[34], "")
+                st.session_state["diem_gdcd"] = selected_row.get(df.columns[35], "")
+                st.session_state["diem_cong_nghe"] = selected_row.get(df.columns[36], "")
+                st.session_state["diem_tin_hoc"] = selected_row.get(df.columns[37], "")
+                st.session_state["diem_kh_tn"] = selected_row.get(df.columns[38], "")
+                st.session_state["diem_ls_dl"] = selected_row.get(df.columns[39], "")
+                st.session_state["tong_diem_8_mon"] = selected_row.get(df.columns[40], "")
+                st.session_state["tong_diem_2_mon"] = selected_row.get(df.columns[41], "")
+                st.session_state["hanh_kiem"] = selected_row.get(df.columns[42], "")
+                st.session_state["nam_tot_nghiep"] = selected_row.get(df.columns[43], "")
+                st.session_state["diem_uu_tien_doi_tuong"] = selected_row.get(df.columns[44], "")
+                st.session_state["diem_uu_tien_khu_vuc"] = selected_row.get(df.columns[45], "")
+                st.session_state["tong_diem_uu_tien"] = selected_row.get(df.columns[46], "")
+                st.session_state["tong_diem"] = selected_row.get(df.columns[47], "")
+                st.session_state["ngay_cap_cccd"] = parse_date_str(selected_row.get(df.columns[48], ""))
+                st.session_state["noi_cap_cccd"] = selected_row.get(df.columns[49], "")
+                st.session_state["ten_user"] = selected_row.get(df.columns[50], "")
+                st.session_state["so_dien_thoai_gd"] = selected_row.get(df.columns[51], "")
+                st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
+                st.rerun()
+        with col_xoa:
+            if st.button("Xóa hồ sơ", key="btn_xoa_hoso_selected_row"):
                 try:
-                    # Thử parse theo ISO
-                    return datetime.date.fromisoformat(val)
-                except Exception:
+                    # Xác định vị trí dòng trong sheet (index + 2 vì header là dòng 1)
+                    row_index = selected_rows.index[0] + 2
+                    # --- Lưu lịch sử trước khi xóa ---
+                    # Lấy dữ liệu dòng đã chọn (dưới dạng list)
+                    row_data = list(filtered.loc[selected_rows.index[0]].values)
+                    # Thêm 3 cột: Ngày Update, Nội dung Update, Người Update
+                    from datetime import datetime as _dt
+                    ngay_update = _dt.now().strftime("%d/%m/%Y %H:%M:%S")
+                    noi_dung_update = "Xóa"
+                    nguoi_update = st.session_state.get("ten_user", "")
+                    # Đảm bảo đủ 53 cột đầu, thêm 3 cột cuối (nếu thiếu thì bổ sung cho đủ)
+                    while len(row_data) < 53:
+                        row_data.append("")
+                    row_data += [ngay_update, noi_dung_update, nguoi_update]
+                    # Ghi vào sheet LICH_SU_DATA
                     try:
-                        # Thử parse dd/mm/yyyy
-                        d, m, y = [int(x) for x in val.split("/")]
-                        return datetime.date(y, m, d)
-                    except Exception:
-                        return None
-            st.session_state["ngay_sinh"] = parse_date_str(selected_row.get(df.columns[3], ""))
-            st.session_state["gioi_tinh"] = selected_row.get(df.columns[4], "Nam")
-            st.session_state["cccd"] = selected_row.get(df.columns[5], "")
-            st.session_state["so_dien_thoai"] = selected_row.get(df.columns[6], "")
-            st.session_state["noi_sinh_cu"] = selected_row.get(df.columns[8], "")
-            st.session_state["noi_sinh_moi"] = selected_row.get(df.columns[9], "")
-            st.session_state["que_quan_cu"] = selected_row.get(df.columns[10], "")
-            st.session_state["que_quan_moi"] = selected_row.get(df.columns[11], "")
-            st.session_state["dan_toc"] = selected_row.get(df.columns[12], "")
-            st.session_state["ton_giao"] = selected_row.get(df.columns[13], "")
-            st.session_state["bo"] = selected_row.get(df.columns[14], "")
-            st.session_state["me"] = selected_row.get(df.columns[15], "")
-            st.session_state["diachi_chitiet_cu"] = selected_row.get(df.columns[16], "")
-            st.session_state["tinh_tp_cu"] = selected_row.get(df.columns[17], "")
-            st.session_state["quan_huyen_cu"] = selected_row.get(df.columns[18], "")
-            st.session_state["xa_phuong_cu"] = selected_row.get(df.columns[19], "")
-            st.session_state["tinh_tp_moi"] = selected_row.get(df.columns[20], "")
-            st.session_state["xa_phuong_moi"] = selected_row.get(df.columns[21], "")
-            st.session_state["trinhdo_totnghiep"] = selected_row.get(df.columns[22], "")
-            st.session_state["nv1"] = selected_row.get(df.columns[23], "")
-            st.session_state["nv2"] = selected_row.get(df.columns[24], "")
-            st.session_state["nv3"] = selected_row.get(df.columns[25], "")
-            st.session_state["trinhdo_totnghiep_vh"] = selected_row.get(df.columns[26], "")
-            st.session_state["co_so"] = selected_row.get(df.columns[27], "")
-            st.session_state["ngay_nop_hs"] = parse_date_str(selected_row.get(df.columns[28], ""))
-            st.session_state["trinh_do"] = selected_row.get(df.columns[29], "")
-            st.session_state["diachi_chitiet_full_cu"] = selected_row.get(df.columns[30], "")
-            st.session_state["diachi_chitiet_full_moi"] = selected_row.get(df.columns[31], "")
-            st.session_state["diem_toan"] = selected_row.get(df.columns[32], "")
-            st.session_state["diem_van"] = selected_row.get(df.columns[33], "")
-            st.session_state["diem_tieng_anh"] = selected_row.get(df.columns[34], "")
-            st.session_state["diem_gdcd"] = selected_row.get(df.columns[35], "")
-            st.session_state["diem_cong_nghe"] = selected_row.get(df.columns[36], "")
-            st.session_state["diem_tin_hoc"] = selected_row.get(df.columns[37], "")
-            st.session_state["diem_kh_tn"] = selected_row.get(df.columns[38], "")
-            st.session_state["diem_ls_dl"] = selected_row.get(df.columns[39], "")
-            st.session_state["tong_diem_8_mon"] = selected_row.get(df.columns[40], "")
-            st.session_state["tong_diem_2_mon"] = selected_row.get(df.columns[41], "")
-            st.session_state["hanh_kiem"] = selected_row.get(df.columns[42], "")
-            st.session_state["nam_tot_nghiep"] = selected_row.get(df.columns[43], "")
-            st.session_state["diem_uu_tien_doi_tuong"] = selected_row.get(df.columns[44], "")
-            st.session_state["diem_uu_tien_khu_vuc"] = selected_row.get(df.columns[45], "")
-            st.session_state["tong_diem_uu_tien"] = selected_row.get(df.columns[46], "")
-            st.session_state["tong_diem"] = selected_row.get(df.columns[47], "")
-            st.session_state["ngay_cap_cccd"] = parse_date_str(selected_row.get(df.columns[48], ""))
-            st.session_state["noi_cap_cccd"] = selected_row.get(df.columns[49], "")
-            st.session_state["ten_user"] = selected_row.get(df.columns[50], "")
-            st.session_state["so_dien_thoai_gd"] = selected_row.get(df.columns[51], "")
-            st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
-            st.rerun()
-
+                        ws_history = sh.worksheet("LICH_SU_DATA")
+                        ws_history.append_row(row_data)
+                    except Exception as e:
+                        st.warning(f"Không thể ghi lịch sử vào sheet LICH_SU_DATA: {e}")
+                    # --- Xóa dòng ---
+                    worksheet.delete_rows(row_index)
+                    st.success("Đã xóa hồ sơ khỏi Google Sheet và lưu lịch sử thành công!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Lỗi khi xóa hồ sơ: {e}")
+        
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
 with col1:
