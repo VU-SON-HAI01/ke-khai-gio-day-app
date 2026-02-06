@@ -1269,6 +1269,7 @@ with col3:
                 """,
                 unsafe_allow_html=True
             )
+            st.write(st.session_state["ma_hsts"])
             trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
             st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
             nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
