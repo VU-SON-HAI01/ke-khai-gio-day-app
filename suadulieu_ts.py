@@ -78,9 +78,19 @@ def show_review_dialog():
             ma_hsts_new = str(max(col1_numbers) + 1)
         else:
             ma_hsts_new = "250001"  # Giá trị mặc định nếu chưa có dữ liệu
-        chonhinhthuc_capnhat = st.radio("Cập nhật/Thêm hồ sơ mới", options=["Cập nhật", "Thêm mới"], index=0 if st.session_state.get("ma_hsts", "") else 1)
-        if chonhinhthuc_capnhat == "Cập nhật":
-            pass
+        # Nếu có ma_hsts_load thì không cho chọn 'Cập nhật'
+        ma_hsts_load = st.session_state.get("ma_hsts_load", "")
+        if ma_hsts_load:
+            chonhinhthuc_capnhat = st.radio(
+                "Cập nhật hay Thêm hồ sơ mới",
+                options=["Cập nhật", "Thêm mới"],
+                width = "content",
+                index=0,
+            )
+            if chonhinhthuc_capnhat == "Cập nhật":
+                st.session_state["ma_hsts"] = ma_hsts_load
+            else:
+                st.session_state["ma_hsts"] = ma_hsts_new
         else:
             st.session_state["ma_hsts"] = ma_hsts_new
     except Exception as e:
@@ -339,7 +349,7 @@ def update_dialog():
         with col_xacnhan:
             if st.button("Xác nhận lấy dữ liệu này", key="btn_xac_nhan_selected_row"):
                 # Mapping session_state theo đúng thứ tự row lưu vào Google Sheet
-                st.session_state["ma_hsts"] = selected_row.get(df.columns[0], "")
+                st.session_state["ma_hsts_load"] = selected_row.get(df.columns[0], "")
                 st.session_state["ho_ten"] = f"{selected_row.get(df.columns[1], "")} {selected_row.get(df.columns[2], "")}".strip()
                 st.session_state["ngay_sinh"] = parse_date_str(selected_row.get(df.columns[3], ""))
                 st.session_state["gioi_tinh"] = selected_row.get(df.columns[4], "Nam")
