@@ -405,7 +405,7 @@ def update_dialog():
             if st.button("Xóa hồ sơ", key="btn_xoa_hoso_selected_row"):
                 try:
                     # Xác định vị trí dòng trong sheet (index + 2 vì header là dòng 1)
-                    row_index = selected_rows.index[0] + 2
+                    row_index = int(selected_rows.index[0]) + 2
                     # --- Lưu lịch sử trước khi xóa ---
                     # Lấy dữ liệu dòng đã chọn (dưới dạng list)
                     row_data = [str(x) for x in list(filtered.loc[selected_rows.index[0]].values)]
