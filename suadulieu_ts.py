@@ -408,7 +408,7 @@ def update_dialog():
                     row_index = selected_rows.index[0] + 2
                     # --- Lưu lịch sử trước khi xóa ---
                     # Lấy dữ liệu dòng đã chọn (dưới dạng list)
-                    row_data = list(filtered.loc[selected_rows.index[0]].values)
+                    row_data = [str(x) for x in list(filtered.loc[selected_rows.index[0]].values)]
                     # Thêm 3 cột: Ngày Update, Nội dung Update, Người Update
                     from datetime import datetime as _dt
                     ngay_update = _dt.now().strftime("%d/%m/%Y %H:%M:%S")
