@@ -402,12 +402,18 @@ def update_dialog():
                 st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
                 st.rerun()
         with col_xoa:
-            if st.button("Kiểm tra sheet LICH_SU_DATA", key="btn_kiemtra_lichsu_data"):
+            if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data"):
                 try:
                     ws_history = sh.worksheet("LICH_SU_DATA")
                     preview = ws_history.get_all_values()[:5]
-                    st.write("Nội dung 5 dòng đầu của sheet LICH_SU_DATA:")
-                    st.write(preview)
+                    # Chỉ lấy các cột 1,2,3,4,54,55,56 (index 0,1,2,3,53,54,55)
+                    preview_selected = []
+                    for row in preview:
+                        while len(row) < 56:
+                            row.append("")
+                        preview_selected.append([row[0], row[1], row[2], row[3], row[53], row[54], row[55]])
+                    df_preview = pd.DataFrame(preview_selected, columns=["Cột 1", "Cột 2", "Cột 3", "Cột 4", "Ngày Update", "Nội dung Update", "Người Update"])
+                    st.dataframe(df_preview)
                 except Exception as e:
                     st.error(f"Không truy cập được sheet LICH_SU_DATA: {e}")
             if st.button("Xóa hồ sơ", key="btn_xoa_hoso_selected_row"):
@@ -429,11 +435,7 @@ def update_dialog():
                     # Ghi vào sheet LICH_SU_DATA
                     try:
                         ws_history = sh.worksheet("LICH_SU_DATA")
-                        st.write(f"[DEBUG] row_data: {row_data}")
-                        st.write(f"[DEBUG] Số cột: {len(row_data)}")
-                        # Thử dùng insert_row thay vì append_row
-                        ws_history.insert_row(row_data, index=ws_history.row_count+1, value_input_option="USER_ENTERED")
-                        st.success("Đã ghi lịch sử vào sheet LICH_SU_DATA bằng insert_row!")
+                        ws_history.append_row(row_data, value_input_option="USER_ENTERED")
                     except Exception as e:
                         st.warning(f"Không thể ghi lịch sử vào sheet LICH_SU_DATA: {e}")
                     # --- Xóa dòng ---
