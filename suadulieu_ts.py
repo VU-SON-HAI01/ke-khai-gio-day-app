@@ -1040,7 +1040,7 @@ with col2:
             st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
             with st.popover("Ký tự đặc biệt",icon="🔣"):
                 st.markdown("<b>Chọn nhanh từ đặc biệt cho Thôn/Xóm:</b>", unsafe_allow_html=True)
-                special_labels = ["Thôn", "Buôn", "Xóm", "Tổ dân phố", "Khối", "Ấp", "Bản", "Làng", "Khu phố", "Khối phố"]
+                special_labels = ["Thôn", "Buôn", "Xóm", "TDP", "Khối", "Ấp", "Bản", "Làng", "Khu phố", "Khối phố"]
                 # Hiển thị 5 cột x 2 dòng
                 for row_idx in range(2):
                     cols = st.columns(5)
@@ -1049,7 +1049,7 @@ with col2:
                         if idx < len(special_labels):
                             label = special_labels[idx]
                             with cols[col_idx]:
-                                if st.button(label, key=f"btn_thon_{label}", type="secondary"):
+                                if st.button(label, key=f"btn_thon_{label}", type="tertiary"):
                                     current_thon = st.session_state.get("thon_xom", "")
                                     if current_thon and not current_thon.endswith(" "):
                                         current_thon += " "
