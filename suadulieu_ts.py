@@ -1038,8 +1038,8 @@ with col2:
             else:
                 ward_code = None
             st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
-            with st.popover("Ký tự đặc biệt",icon="🔣"):
-                st.markdown("<b>Chọn nhanh từ đặc biệt cho Thôn/Xóm:</b>", unsafe_allow_html=True)
+            with st.popover("Chọn tên gọi cấp nhỏ hơn xã",icon="🔡"):
+                st.markdown("<b>Chọn nhanh Thôn/Xóm/Khối ...:</b>", unsafe_allow_html=True)
                 special_labels = ["Thôn", "Buôn", "Xóm", "Khối", "Ấp", "Bản", "Làng","Tổ dân phố","Khu phố", "Khối phố"]
                 # Hiển thị 5 cột x 2 dòng
                 for row_idx in range(2):
