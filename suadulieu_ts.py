@@ -1041,14 +1041,19 @@ with col2:
             with st.popover("Ký tự đặc biệt",icon="🔣"):
                 st.markdown("<b>Chọn nhanh từ đặc biệt cho Thôn/Xóm:</b>", unsafe_allow_html=True)
                 special_labels = ["Thôn", "Buôn", "Xóm", "Tổ dân phố", "Khối", "Ấp", "Bản", "Làng", "Khu phố", "Khối phố"]
-                row_special = st.columns(len(special_labels))
-                for i, label in enumerate(special_labels):
-                    with row_special[i]:
-                        if st.button(label, key=f"btn_thon_{label}", type="secondary"):
-                            current_thon = st.session_state.get("thon_xom", "")
-                            if current_thon and not current_thon.endswith(" "):
-                                current_thon += " "
-                            st.session_state["thon_xom"] = current_thon + label
+                # Hiển thị 5 cột x 2 dòng
+                for row_idx in range(2):
+                    cols = st.columns(5)
+                    for col_idx in range(5):
+                        idx = row_idx * 5 + col_idx
+                        if idx < len(special_labels):
+                            label = special_labels[idx]
+                            with cols[col_idx]:
+                                if st.button(label, key=f"btn_thon_{label}", type="secondary"):
+                                    current_thon = st.session_state.get("thon_xom", "")
+                                    if current_thon and not current_thon.endswith(" "):
+                                        current_thon += " "
+                                    st.session_state["thon_xom"] = current_thon + label
             duong_pho = ""
             thon_xom = ""
             thon_xom = st.text_input("Thôn/Xóm/Buôn/Ấp ...", value=st.session_state.get("thon_xom", ""))
