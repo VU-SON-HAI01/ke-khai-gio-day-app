@@ -1246,7 +1246,11 @@ with col3:
                 hanh_kiem_value = "Tốt"
             hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", hanh_kiem_options, index=hanh_kiem_options.index(hanh_kiem_value))
             st.session_state["hanh_kiem"] = hanh_kiem
-            nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
+            nam_tot_nghiep_options = [str(y) for y in range(2010, 2031)]
+            nam_tot_nghiep_value = st.session_state.get("nam_tot_nghiep", str(2010))
+            if nam_tot_nghiep_value not in nam_tot_nghiep_options:
+                nam_tot_nghiep_value = str(2010)
+            nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", nam_tot_nghiep_options, index=nam_tot_nghiep_options.index(nam_tot_nghiep_value))
             st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
             with st.expander("Nhập điểm 2 môn", expanded=False):
                 diem_toan = st.number_input(":green[ĐIỂM TOÁN]", min_value=0.0, max_value=10.0, step=1.0, value=get_float_value("diem_toan", 0.0))
@@ -1331,7 +1335,11 @@ with col3:
                 hanh_kiem_value = "Tốt"
             hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", hanh_kiem_options, index=hanh_kiem_options.index(hanh_kiem_value))
             st.session_state["hanh_kiem"] = hanh_kiem
-            nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
+            nam_tot_nghiep_options = [str(y) for y in range(2010, 2031)]
+            nam_tot_nghiep_value = st.session_state.get("nam_tot_nghiep", str(2010))
+            if nam_tot_nghiep_value not in nam_tot_nghiep_options:
+                nam_tot_nghiep_value = str(2010)
+            nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", nam_tot_nghiep_options, index=nam_tot_nghiep_options.index(nam_tot_nghiep_value))
             st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
             # Nhập điểm các 8 môn
             with st.expander("Nhập điểm 8 môn", expanded=False):
