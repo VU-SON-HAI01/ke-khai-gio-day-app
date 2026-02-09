@@ -1240,7 +1240,11 @@ with col3:
             mapped_trinhdo = trinhdo_totnghiep_map.get(trinhdo_totnghiep, trinhdo_totnghiep)
             st.session_state["trinhdo_totnghiep"] = mapped_trinhdo
 
-            hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
+            hanh_kiem_options = ["Tốt", "Khá", "Trung bình", "Yếu"]
+            hanh_kiem_value = st.session_state.get("hanh_kiem", "Tốt")
+            if hanh_kiem_value not in hanh_kiem_options:
+                hanh_kiem_value = "Tốt"
+            hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", hanh_kiem_options, index=hanh_kiem_options.index(hanh_kiem_value))
             st.session_state["hanh_kiem"] = hanh_kiem
             nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
             st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
@@ -1321,7 +1325,11 @@ with col3:
             mapped_trinhdo = trinhdo_totnghiep_map.get(trinhdo_totnghiep, trinhdo_totnghiep)
             st.session_state["trinhdo_totnghiep"] = mapped_trinhdo
 
-            hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", ["Tốt", "Khá", "Trung bình", "Yếu"], index=["Tốt", "Khá", "Trung bình", "Yếu"].index(st.session_state.get("hanh_kiem", "Tốt")))
+            hanh_kiem_options = ["Tốt", "Khá", "Trung bình", "Yếu"]
+            hanh_kiem_value = st.session_state.get("hanh_kiem", "Tốt")
+            if hanh_kiem_value not in hanh_kiem_options:
+                hanh_kiem_value = "Tốt"
+            hanh_kiem = st.selectbox(":green[HẠNH KIỂM]", hanh_kiem_options, index=hanh_kiem_options.index(hanh_kiem_value))
             st.session_state["hanh_kiem"] = hanh_kiem
             nam_tot_nghiep = st.selectbox(":green[NĂM TỐT NGHIỆP]", [str(y) for y in range(2010, 2031)], index=[str(y) for y in range(2010, 2031)].index(st.session_state.get("nam_tot_nghiep", str(2010))))
             st.session_state["nam_tot_nghiep"] = nam_tot_nghiep
