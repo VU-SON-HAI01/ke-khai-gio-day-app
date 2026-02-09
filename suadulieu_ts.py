@@ -123,6 +123,7 @@ def show_review_dialog():
         "Họ tên bố": st.session_state.get("bo", ""),
         "Họ tên mẹ": st.session_state.get("me", ""),
         "Số ĐT gia đình": st.session_state.get("so_dien_thoai_gd", ""),
+        "Địa chỉ chi tiết cũ": st.session_state.get("diachi_chitiet_cu", ""),
         "Tỉnh/TP cũ": st.session_state.get("tinh_tp_cu", ""),
         "Quận/Huyện cũ": st.session_state.get("quan_huyen_cu", ""),
         "Xã/Phường cũ": st.session_state.get("xa_phuong_cu", ""),
@@ -1037,35 +1038,34 @@ with col2:
             else:
                 ward_code = None
             st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
-            thon_xom_loai = st.radio(
-                "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
-                ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
-                horizontal=True,
-            )
+            with st.popover("Ký tự đặc biệt",icon="🔣"):
+                st.markdown("<b>Chọn nhanh từ đặc biệt cho Thôn/Xóm:</b>", unsafe_allow_html=True)
+                special_labels = ["Thôn", "Buôn", "Xóm", "Tổ dân phố", "Khối", "Ấp", "Bản", "Làng", "Khu phố", "Khối phố"]
+                row_special = st.columns(len(special_labels))
+                for i, label in enumerate(special_labels):
+                    with row_special[i]:
+                        if st.button(label, key=f"btn_thon_{label}", type="secondary"):
+                            current_thon = st.session_state.get("thon_xom", "")
+                            if current_thon and not current_thon.endswith(" "):
+                                current_thon += " "
+                            st.session_state["thon_xom"] = current_thon + label
             duong_pho = ""
             thon_xom = ""
-            if thon_xom_loai == "Không":
-                duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-                thon_xom = ""
-            else:
-                thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
-                duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-            if thon_xom == "":
-                st.session_state["thon_xom"] = ""
-            else:    
-                st.session_state["thon_xom"] = f"{thon_xom_loai} {thon_xom}"
+            thon_xom = st.text_input("Thôn/Xóm/Buôn/Ấp ...", value=st.session_state.get("thon_xom", ""))
+            duong_pho = st.text_input("Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value=st.session_state.get("duong_pho", ""))
+            st.session_state["thon_xom"] = thon_xom
             st.session_state["duong_pho"] = duong_pho
-            if thon_xom =="" and duong_pho !="":
+            if thon_xom == "" and duong_pho != "":
                 diachi_chitiet_cu = duong_pho
                 st.write(f"Địa chỉ cũ: :blue[{duong_pho}, {ward_idx}, {district_idx}, {province_idx}]")
-            elif duong_pho =="" and thon_xom !="":
-                diachi_chitiet_cu = f"{thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else ""
+            elif duong_pho == "" and thon_xom != "":
+                diachi_chitiet_cu = thon_xom
                 st.write(f"Địa chỉ cũ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
-            elif duong_pho =="" and thon_xom =="" :
+            elif duong_pho == "" and thon_xom == "":
                 diachi_chitiet_cu = ""
                 st.write(f"Địa chỉ cũ: :blue[{ward_idx}, {district_idx}, {province_idx}]")
             else:
-                diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
+                diachi_chitiet_cu = f"{duong_pho}, {thon_xom}"
                 st.write(f"Địa chỉ cũ: :blue[{diachi_chitiet_cu}, {ward_idx}, {district_idx}, {province_idx}]")
             st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
             st.session_state["diachi_chitiet_full_cu"] = f"{st.session_state['diachi_chitiet_cu']}, {ward_idx}, {district_idx}, {province_idx}"
