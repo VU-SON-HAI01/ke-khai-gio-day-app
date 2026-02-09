@@ -481,6 +481,8 @@ def reset_form_session_state():
         "xa_phuong_cu": "",
         "tinh_tp_moi": "",
         "xa_phuong_moi": "",
+        "thon_xom": "",
+        "duong_pho": "",
         # Học tập
         "trinhdo_totnghiep": "",
         "trinhdo_totnghiep_vh": "",
@@ -502,6 +504,8 @@ def reset_form_session_state():
         "diem_ls_dl": "",
         "tong_diem_8_mon": "",
         "tong_diem_2_mon": "",
+        "tong_diem_2_mon_uu_tien": "",
+        "tong_diem_8_mon_uu_tien": "",
         "hanh_kiem": "",
         "nam_tot_nghiep": "",
         "diem_uu_tien_doi_tuong": "",
