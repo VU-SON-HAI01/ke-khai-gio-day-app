@@ -887,7 +887,7 @@ with col2:
     so_dien_thoai_gd = st.text_input(":green[SỐ ĐIỆN THOẠI GIA ĐÌNH]", value=st.session_state.get("so_dien_thoai_gd", ""))
     st.session_state["so_dien_thoai_gd"] = so_dien_thoai_gd
     with st.expander("Địa chỉ nơi cư trú", expanded=False):
-        st.button("Nhập địa chỉ nơi cư trú",type="primary", disabled=True)
+        st.button("Nhập địa chỉ nơi cư trú",type="primary",use_container_width=True)
         show_diachi_cu = st.toggle("Nhập theo địa chỉ cũ", value=True)
         if show_diachi_cu:
             # --- ĐỊA CHỈ NƠI Ở: TỈNH, HUYỆN, XÃ (CŨ) động từ API ---
