@@ -82,17 +82,26 @@ def show_review_dialog():
         ma_hsts_load = st.session_state.get("ma_hsts_load", "")
         if ma_hsts_load:
             chonhinhthuc_capnhat = st.radio(
-                    "Chọn Cập nhật/Thêm hồ sơ mới",
+                "Chọn Cập nhật/Thêm hồ sơ mới",
                 options=["Cập nhật", "Thêm mới"],
                 index=0,
                 horizontal=True,
-                )
+            )
             if chonhinhthuc_capnhat == "Cập nhật":
                 st.session_state["ma_hsts"] = ma_hsts_load
+                # Tìm lại vị trí dòng có mã HSTS này (bỏ header, index bắt đầu từ 2)
+                row_index_to_update = None
+                for idx, v in enumerate(col1_values[1:], start=2):
+                    if v.strip() == str(ma_hsts_load).strip():
+                        row_index_to_update = idx
+                        break
+                st.session_state["row_index_to_update"] = row_index_to_update
             else:
                 st.session_state["ma_hsts"] = ma_hsts_new
+                st.session_state["row_index_to_update"] = None
         else:
             st.session_state["ma_hsts"] = ma_hsts_new
+            st.session_state["row_index_to_update"] = None
     except Exception as e:
         import traceback
         st.error(f"Lỗi truy cập Google Sheet (lấy mã HSTS mới): {e}\n{traceback.format_exc()}")
@@ -181,7 +190,6 @@ def show_review_dialog():
             dinh_dang_chuan_date(st.session_state.get("ngay_sinh", None)),  # 4: NGÀY SINH
             st.session_state.get("gioi_tinh", "Nam"),  # 5: GIỚI TÍNH
             st.session_state.get("cccd", ""),  # 6: CCCD
-
             st.session_state.get("so_dien_thoai", ""),  # 7: Số điện thoại
             "",  # 8: Email
             st.session_state.get("noi_sinh_cu", ""),  # 9: NƠI SINH (Cũ)
@@ -229,17 +237,31 @@ def show_review_dialog():
             st.session_state.get("ten_user", ""),  # 51: Tên người nhập hs
             st.session_state.get("so_dien_thoai_gd", ""),  # 52: Số điện thoại gia đình
         ]
-
         col_names = [str(i+1) for i in range(len(row))]
         df = pd.DataFrame([row], columns=col_names)
-        # Thêm dữ liệu vào cuối sheet 'TUYENSINH'
         try:
-            # Chuyển toàn bộ giá trị DataFrame sang string để tránh lỗi serialize
-            data_to_append = df.astype(str).values.tolist()
-            worksheet.append_rows(data_to_append)
-            st.success("Đã thêm dữ liệu vào cuối danh sách 'TUYENSINH' thành công!")
+            row_index_to_update = st.session_state.get("row_index_to_update")
+            if row_index_to_update:
+                # Ghi đè lên dòng cũ (row_index_to_update)
+                # Google Sheets API: update_cells hoặc update
+                # Chuẩn bị dữ liệu dạng list
+                data_to_update = df.astype(str).values.tolist()[0]
+                cell_range = f"A{row_index_to_update}:AZ{row_index_to_update}"
+                cell_list = worksheet.range(cell_range)
+                for i, cell in enumerate(cell_list):
+                    if i < len(data_to_update):
+                        cell.value = data_to_update[i]
+                    else:
+                        cell.value = ""
+                worksheet.update_cells(cell_list)
+                st.success(f"Đã cập nhật dữ liệu cho HSTS {st.session_state.get('ma_hsts','')} thành công!")
+            else:
+                # Thêm mới vào cuối sheet
+                data_to_append = df.astype(str).values.tolist()
+                worksheet.append_rows(data_to_append)
+                st.success("Đã thêm dữ liệu vào cuối danh sách 'TUYENSINH' thành công!")
         except Exception as e:
-            st.error(f"Lỗi khi thêm dữ liệu vào Google Sheet: {e}")
+            st.error(f"Lỗi khi lưu dữ liệu vào Google Sheet: {e}")
     keys = list(du_lieu.keys())
     n = len(keys)
     col1, col2 = st.columns(2)
