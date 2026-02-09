@@ -1313,7 +1313,59 @@ with col3:
             st.session_state["nv3"] = nv3
             if st.button("💾 Xem lại X thông tin và lưu",type="primary",key="btn_review_info",use_container_width=True):
                 show_review_dialog()
-            if st.button("📤Lấy hồ sơ ra để sửa",type="primary",key="btn_fix_info",use_container_width=True):
+            if st.button("📤 Lấy hồ sơ ra để sửa",type="primary",key="btn_fix_info",use_container_width=True):
                 update_dialog()
-            if st.button("❌ Xóa hồ sơ",type="primary",key="btn_delete_info",use_container_width=True):
-                pass
+            if st.button("📑 Nhập hồ sơ mới",type="primary",key="btn_delete_info",use_container_width=True):
+                # Reset các trường nhập về mặc định
+                st.session_state["ma_hsts_load"] = ""
+                st.session_state["ma_hsts"] = ""
+                st.session_state["ho_ten"] = ""
+                st.session_state["ngay_sinh"] = None
+                st.session_state["gioi_tinh"] = "Nam"
+                st.session_state["cccd"] = ""
+                st.session_state["so_dien_thoai"] = ""
+                st.session_state["noi_sinh_cu"] = ""
+                st.session_state["noi_sinh_moi"] = ""
+                st.session_state["que_quan_cu"] = ""
+                st.session_state["que_quan_moi"] = ""
+                st.session_state["dan_toc"] = ""
+                st.session_state["ton_giao"] = ""
+                st.session_state["bo"] = ""
+                st.session_state["me"] = ""
+                st.session_state["diachi_chitiet_cu"] = ""
+                st.session_state["tinh_tp_cu"] = ""
+                st.session_state["quan_huyen_cu"] = ""
+                st.session_state["xa_phuong_cu"] = ""
+                st.session_state["tinh_tp_moi"] = ""
+                st.session_state["xa_phuong_moi"] = ""
+                st.session_state["trinhdo_totnghiep"] = ""
+                st.session_state["nv1"] = ""
+                st.session_state["nv2"] = ""
+                st.session_state["nv3"] = ""
+                st.session_state["trinhdo_totnghiep_vh"] = ""
+                st.session_state["co_so"] = "Cơ sở chính (594 Lê Duẩn)"
+                st.session_state["ngay_nop_hs"] = datetime.date.today()
+                st.session_state["trinh_do"] = "Cao đẳng"
+                st.session_state["diachi_chitiet_full_cu"] = ""
+                st.session_state["diachi_chitiet_full_moi"] = ""
+                st.session_state["diem_toan"] = ""
+                st.session_state["diem_van"] = ""
+                st.session_state["diem_tieng_anh"] = ""
+                st.session_state["diem_gdcd"] = ""
+                st.session_state["diem_cong_nghe"] = ""
+                st.session_state["diem_tin_hoc"] = ""
+                st.session_state["diem_kh_tn"] = ""
+                st.session_state["diem_ls_dl"] = ""
+                st.session_state["tong_diem_8_mon"] = ""
+                st.session_state["tong_diem_2_mon"] = ""
+                st.session_state["hanh_kiem"] = ""
+                st.session_state["nam_tot_nghiep"] = ""
+                st.session_state["diem_uu_tien_doi_tuong"] = ""
+                st.session_state["diem_uu_tien_khu_vuc"] = ""
+                st.session_state["tong_diem_uu_tien"] = ""
+                st.session_state["tong_diem"] = ""
+                st.session_state["ngay_cap_cccd"] = None
+                st.session_state["noi_cap_cccd"] = ""
+                st.session_state["ten_user"] = ""
+                st.session_state["so_dien_thoai_gd"] = ""
+                st.rerun()
