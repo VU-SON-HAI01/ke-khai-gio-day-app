@@ -1098,17 +1098,17 @@ with col2:
                         diachi_moi = f"{diachi_chitiet_cu}, {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}"
                         st.session_state["tinh_tp_moi"] = f"{province_type} {province_new.get('name', '')}"
                         st.session_state["xa_phuong_moi"] = f"{ward_type} {ward_new.get('name', '')}"
-                        if thon_xom =="" and duong_pho !="":
+                        if thon_xom == "" and duong_pho != "":
                             diachi_chitiet_cu = duong_pho
                             st.success(f"Địa chỉ mới: {duong_pho}, {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}")
-                        elif duong_pho =="" and thon_xom !="":
-                            diachi_chitiet_cu = f"{thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else ""
+                        elif duong_pho == "" and thon_xom != "":
+                            diachi_chitiet_cu = thon_xom
                             st.success(f"Địa chỉ mới: {diachi_chitiet_cu}, {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}")
-                        elif duong_pho =="" and thon_xom =="" :
+                        elif duong_pho == "" and thon_xom == "":
                             diachi_chitiet_cu = ""
                             st.success(f"Địa chỉ mới: {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}")
                         else:
-                            diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
+                            diachi_chitiet_cu = f"{duong_pho}, {thon_xom}"
                             st.success(f"Địa chỉ mới: {diachi_chitiet_cu}, {ward_type} {ward_new.get('name', '')}, {province_type} {province_new.get('name', '')}")
                         st.session_state["diachi_chitiet_full_moi"] = f"{diachi_chitiet_cu}, {st.session_state['xa_phuong_moi']}, {st.session_state['tinh_tp_moi']}"
                     else:
