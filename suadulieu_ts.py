@@ -1473,5 +1473,5 @@ with col3:
             if st.button("📑 Nhập hồ sơ mới",type="primary",key="btn_delete_info",use_container_width=True):
                 reset_form_session_state()
                 st.rerun()
-            if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True,type="secondary"):
+            if st.button("📜 Lịch sử sửa hoặc xóa", key="btn_kiemtra_lichsu_data",use_container_width=True,type="secondary"):
                 xem_lichsu_thaydoi("LICH_SU_DATA")
