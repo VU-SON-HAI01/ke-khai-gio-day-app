@@ -54,6 +54,37 @@ def parse_date_str(val):
             return datetime.date(y, m, d)
         except Exception:
             return None
+# Xem dữ liệu lịch sử thay đổi (LICH_SU_DATA)
+def xem_lichsu_thaydoi(key, default=0.0):
+    try:
+        # Lấy cấu hình Google Sheet từ secrets
+        google_sheet_cfg = st.secrets["google_sheet"] if "google_sheet" in st.secrets else {}
+        thong_tin_hssv_id = google_sheet_cfg.get("thong_tin_hssv_id", "1VjIqwT026nbTJxP1d99x1H9snIH6nQoJJ_EFSmtXS_k")
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
+        gc = gspread.authorize(credentials)
+        sh = gc.open_by_key(thong_tin_hssv_id)
+        ws_history = sh.worksheet("LICH_SU_DATA")
+        preview = ws_history.get_all_values()[:5]
+        # Lấy dòng thứ 2 làm header, dòng 3 trở đi là data
+        if len(preview) >= 2:
+            header = preview[1]
+            data = preview[2:]
+            # Đảm bảo mỗi row đủ số cột như header
+            data_fixed = []
+            for row in data:
+                while len(row) < len(header):
+                    row.append("")
+                data_fixed.append(row[:len(header)])
+            df_preview = pd.DataFrame(data_fixed, columns=header)
+            st.dataframe(df_preview)
+        else:
+            st.warning("Không đủ dữ liệu để hiển thị (cần ít nhất 2 dòng)")
+    except Exception as e:
+        st.error(f"Không truy cập được sheet LICH_SU_DATA: {e}")
 @st.dialog("Xem thông tin đã nhập", width="medium")
 def show_review_dialog():
     # Lấy cấu hình Google Sheet từ secrets, chống lỗi thiếu key và báo lỗi chi tiết
@@ -324,27 +355,6 @@ def update_dialog():
     # Đọc toàn bộ dữ liệu
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0]) if len(data) > 1 else pd.DataFrame()
-     # Xem dữ liệu lich sử thay đổi (LICH_SU_DATA)
-    def xem_lichsu_thaydoi(key, default=0.0):
-        try:
-            ws_history = sh.worksheet("LICH_SU_DATA")
-            preview = ws_history.get_all_values()[:5]
-            # Lấy dòng thứ 2 làm header, dòng 3 trở đi là data
-            if len(preview) >= 2:
-                header = preview[1]
-                data = preview[2:]
-                # Đảm bảo mỗi row đủ số cột như header
-                data_fixed = []
-                for row in data:
-                    while len(row) < len(header):
-                        row.append("")
-                    data_fixed.append(row[:len(header)])
-                df_preview = pd.DataFrame(data_fixed, columns=header)
-                st.dataframe(df_preview)
-            else:
-                st.warning("Không đủ dữ liệu để hiển thị (cần ít nhất 2 dòng)")
-        except Exception as e:
-            st.error(f"Không truy cập được sheet LICH_SU_DATA: {e}")
     # Bộ lọc bắt buộc theo Năm tuyển sinh (lọc theo 2 số đầu của Mã HSTS)
     # Lấy danh sách năm từ dữ liệu, mặc định lấy từ 2020 đến năm hiện tại
     current_year = datetime.date.today().year
@@ -493,8 +503,6 @@ def update_dialog():
                     #st.rerun()
                 except Exception as e:
                     st.error(f"Lỗi khi xóa hồ sơ: {e}")
-    if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True,type="secondary"):
-        xem_lichsu_thaydoi("LICH_SU_DATA")
 # Reset các trường nhập về mặc định (ngắn gọn, khoa học, dùng lại cho cả hai nhánh)
 def reset_form_session_state():
     reset_fields = {
@@ -1465,3 +1473,5 @@ with col3:
             if st.button("📑 Nhập hồ sơ mới",type="primary",key="btn_delete_info",use_container_width=True):
                 reset_form_session_state()
                 st.rerun()
+            if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True,type="secondary"):
+                xem_lichsu_thaydoi("LICH_SU_DATA")
