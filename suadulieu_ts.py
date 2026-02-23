@@ -9,7 +9,7 @@ st.set_page_config(page_title="Quản lý HSSV", layout="wide")
 st.markdown(
 # Hiển thị tiêu đề lớn
     """
-     <span style='font-size:24px; font-weight:bold;'>📝 Thêm, Sửa hoặc Xóa dữ liệu hồ sơ Tuyển sinh</span><br>
+     <span style='font-size:24px; font-weight:bold;'>📝 THÊM, SỬA HOẶC XÓA DỮ LIỆU HỒ SƠ TUYỂN SINH</span><br>
     """,
     unsafe_allow_html=True
 )
@@ -548,7 +548,7 @@ def reset_form_session_state():
     for k, v in reset_fields.items():
         st.session_state[k] = v
 if st.session_state.get("ma_hsts_xem"):
-    st.info(f"Thông báo: Bạn Đang xem dữ liệu Hồ Sơ: green:{st.session_state['ma_hsts_xem']}")
+    st.info(f"Thông báo: Bạn Đang xem dữ liệu Hồ Sơ: {st.session_state['ma_hsts_xem']}", icon="ℹ️")
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
 with col1:
