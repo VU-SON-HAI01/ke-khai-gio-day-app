@@ -442,7 +442,7 @@ def update_dialog():
                 st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
                 st.rerun()
         with col_xoa:
-            if st.button("Xóa hồ sơ", key="btn_xoa_hoso_selected_row",use_container_width=True):
+            if st.button("Xóa hồ sơ", key="btn_xoa_hoso_selected_row",use_container_width=True,type="primary"):
                 try:
                     # Xác định vị trí dòng trong sheet (index + 2 vì header là dòng 1)
                     row_index = int(selected_rows.index[0]) + 2
