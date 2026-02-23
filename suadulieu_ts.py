@@ -1038,10 +1038,9 @@ with col2:
             else:
                 ward_code = None
             st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
-            with st.popover("Chọn tên gọi cấp nhỏ hơn xã",icon="🔡"):
+            def render_special_thon_buttons():
                 st.markdown("<b>Chọn nhanh Thôn/Xóm/Khối ...:</b>", unsafe_allow_html=True)
                 special_labels = ["Thôn", "Buôn", "Xóm", "Khối", "Ấp", "Bản", "Làng","Tổ dân phố","Khu phố", "Khối phố"]
-                # Hiển thị 5 cột x 2 dòng
                 for row_idx in range(2):
                     cols = st.columns(5)
                     for col_idx in range(5):
@@ -1054,6 +1053,9 @@ with col2:
                                     if current_thon and not current_thon.endswith(" "):
                                         current_thon += " "
                                     st.session_state["thon_xom"] = current_thon + label
+
+            with st.popover("Chọn tên gọi cấp nhỏ hơn xã",icon="🔡"):
+                render_special_thon_buttons()
             duong_pho = ""
             thon_xom = ""
             thon_xom = st.text_input("Thôn/Xóm/Buôn/Ấp ...", value=st.session_state.get("thon_xom", ""))
@@ -1179,38 +1181,22 @@ with col2:
 
             st.markdown(":green[ĐỊA CHỈ NƠI Ở CHI TIẾT]")
 
-            thon_xom_loai = st.radio(
-                "Địa chỉ chi tiết (Thôn, Xóm, Khối, Số nhà ...)",
-                ["Thôn","Buôn","Xóm", "Tổ dân phố", "Khối", "Không"],
-                horizontal=True,
-            )
-            duong_pho = ""
-            thon_xom = ""
-            if thon_xom_loai == "Không":
-                duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-                thon_xom = ""
-            else:
-                thon_xom = st.text_input(f"{thon_xom_loai}:", value="")
-                duong_pho= st.text_input(f"Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value="")
-            if thon_xom == "":
-                st.session_state["thon_xom"] = ""
-            else:    
-                st.session_state["thon_xom"] = f"{thon_xom_loai} {thon_xom}"
+            thon_xom = st.text_input("Thôn/Xóm/Buôn/Ấp ...", value=st.session_state.get("thon_xom", ""))
+            duong_pho = st.text_input("Số nhà + Đường: (Ví dụ: 30 Y Ngông)", value=st.session_state.get("duong_pho", ""))
+            st.session_state["thon_xom"] = thon_xom
             st.session_state["duong_pho"] = duong_pho
-            if thon_xom =="" and duong_pho !="":
+            if thon_xom == "" and duong_pho != "":
                 diachi_chitiet_cu = duong_pho
                 st.write(f"Địa chỉ cũ: :blue[{duong_pho}, {xa_phuong_moi}, {tinh_tp_moi}]")
-            elif duong_pho =="" and thon_xom !="":
-                diachi_chitiet_cu = f"{thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else ""
+            elif duong_pho == "" and thon_xom != "":
+                diachi_chitiet_cu = thon_xom
                 st.write(f"Địa chỉ cũ: :blue[{diachi_chitiet_cu}, {xa_phuong_moi}, {tinh_tp_moi}]")
-            elif duong_pho =="" and thon_xom =="" :
+            elif duong_pho == "" and thon_xom == "":
                 diachi_chitiet_cu = ""
                 st.write(f"Địa chỉ cũ: :blue[{xa_phuong_moi}, {tinh_tp_moi}]")
             else:
-                diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
+                diachi_chitiet_cu = f"{duong_pho}, {thon_xom}"
                 st.write(f"Địa chỉ cũ: :blue[{diachi_chitiet_cu}, {xa_phuong_moi}, {tinh_tp_moi}]")
-
-            diachi_chitiet_cu = f"{duong_pho}, {thon_xom_loai} {thon_xom}" if thon_xom_loai != "Không" else f"{duong_pho}"
 
             st.session_state["diachi_chitiet_cu"] = diachi_chitiet_cu
             st.session_state["diachi_chitiet_full_moi"] = f"{diachi_chitiet_cu}, {xa_phuong_moi}, {tinh_tp_moi}"
