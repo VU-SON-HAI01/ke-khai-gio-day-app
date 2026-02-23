@@ -247,6 +247,22 @@ def show_review_dialog():
                 # Google Sheets API: update_cells hoặc update
                 # Chuẩn bị dữ liệu dạng list
                 data_to_update = df.astype(str).values.tolist()[0]
+                # --- Lưu lịch sử cập nhật vào sheet LICH_SU_DATA ---
+                try:
+                    ws_history = sh.worksheet("LICH_SU_DATA")
+                    from datetime import datetime as _dt
+                    ngay_update = _dt.now().strftime("%d/%m/%Y %H:%M:%S")
+                    noi_dung_update = "Sửa"
+                    nguoi_update = st.session_state.get("ten_user", "")
+                    # Đảm bảo đủ 53 cột đầu, thêm 3 cột cuối (nếu thiếu thì bổ sung cho đủ)
+                    row_history = list(data_to_update)
+                    while len(row_history) < 53:
+                        row_history.append("")
+                    row_history += [ngay_update, noi_dung_update, nguoi_update]
+                    ws_history.append_row(row_history, value_input_option="USER_ENTERED")
+                except Exception as e:
+                    st.warning(f"Không thể ghi lịch sử vào sheet LICH_SU_DATA: {e}")
+                # --- Cập nhật dòng chính ---
                 cell_range = f"A{row_index_to_update}:AZ{row_index_to_update}"
                 cell_list = worksheet.range(cell_range)
                 for i, cell in enumerate(cell_list):
