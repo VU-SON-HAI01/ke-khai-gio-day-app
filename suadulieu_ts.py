@@ -1370,8 +1370,25 @@ with col3:
                 ]
                 tong_diem_mon = 0.0
                 for ten_mon, key_mon in mon_list:
-                    diem = st.number_input(f":green[{ten_mon}]", min_value=0.0, max_value=10.0, step=1.0 ,value=get_float_value(key_mon, 0.0), key=key_mon)
+                    diem_raw = st.session_state.get(key_mon, None)
+                    # Nếu dữ liệu trống, None, rỗng, hoặc không hợp lệ, gán 0.0
+                    try:
+                        if diem_raw is None or diem_raw == '' or (isinstance(diem_raw, str) and not diem_raw.replace('.', '', 1).isdigit()):
+                            diem_default = 0.0
+                        else:
+                            diem_default = float(diem_raw)
+                    except Exception:
+                        diem_default = 0.0
+                    diem_default = min(max(diem_default, 0.0), 10.0)
+                    diem = st.number_input(
+                        f":green[{ten_mon}]",
+                        min_value=0.0,
+                        max_value=10.0,
+                        step=1.0,
+                        value=diem_default,
+                    )
                     diem = round(diem, 1)
+                    st.session_state[key_mon] = diem
                     tong_diem_mon += diem
                 tong_diem_mon = round(tong_diem_mon, 1)
                 st.session_state["tong_diem_8_mon"] = tong_diem_mon
