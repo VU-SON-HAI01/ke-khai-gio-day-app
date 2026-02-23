@@ -446,7 +446,7 @@ def update_dialog():
                 st.session_state["ten_user"] = selected_row.get(df.columns[50], "")
                 st.session_state["so_dien_thoai_gd"] = selected_row.get(df.columns[51], "")
                 ma_hsts_xem = selected_row.get(df.columns[0], "")
-                st.info(f"Đang xem dữ liệu Hồ Sơ: {ma_hsts_xem}")
+                st.session_state["ma_hsts_xem"] = ma_hsts_xem
                 st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
                 st.rerun()
         with col_xoa:
@@ -548,6 +548,8 @@ def reset_form_session_state():
     }
     for k, v in reset_fields.items():
         st.session_state[k] = v
+if st.session_state.get("ma_hsts_xem"):
+    st.info(f"Đang xem dữ liệu Hồ Sơ: {st.session_state['ma_hsts_xem']}")
 # Hiển thị 3 form trên 3 cột song song
 col1, col2,col3 = st.columns(3)
 with col1:
