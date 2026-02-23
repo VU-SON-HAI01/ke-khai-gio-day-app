@@ -387,7 +387,7 @@ def update_dialog():
     if selected_row is not None:
         col_xacnhan, col_xoa = st.columns(2)
         with col_xacnhan:
-            if st.button("Xác nhận lấy dữ liệu này", key="btn_xac_nhan_selected_row"):
+            if st.button("Xác nhận lấy dữ liệu này", key="btn_xac_nhan_selected_row",use_container_width=True):
                 # Mapping session_state theo đúng thứ tự row lưu vào Google Sheet
                 st.session_state["ma_hsts_load"] = selected_row.get(df.columns[0], "")
                 st.session_state["ho_ten"] = f"{selected_row.get(df.columns[1], "")} {selected_row.get(df.columns[2], "")}".strip()
@@ -442,7 +442,7 @@ def update_dialog():
                 st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
                 st.rerun()
         with col_xoa:
-            if st.button("Xóa hồ sơ", key="btn_xoa_hoso_selected_row"):
+            if st.button("Xóa hồ sơ", key="btn_xoa_hoso_selected_row",use_container_width=True):
                 try:
                     # Xác định vị trí dòng trong sheet (index + 2 vì header là dòng 1)
                     row_index = int(selected_rows.index[0]) + 2
