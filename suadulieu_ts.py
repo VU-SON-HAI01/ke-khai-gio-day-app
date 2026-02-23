@@ -328,8 +328,6 @@ def update_dialog():
     current_year = datetime.date.today().year
     years = list(range(2023, current_year + 1))
     years_str = [str(y) for y in years]
-    if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
-        xem_lichsu_thaydoi("LICH_SU_DATA")
     colfx1, colfx2, colfx3 = st.columns([2,7,2])
     with colfx1:
         nam_tuyensinh = st.selectbox("Chọn năm TS:", years_str, index=len(years_str)-1, key="nam_tuyensinh_filter")
@@ -472,7 +470,8 @@ def update_dialog():
                     #st.rerun()
                 except Exception as e:
                     st.error(f"Lỗi khi xóa hồ sơ: {e}")
-        
+        if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
+            xem_lichsu_thaydoi("LICH_SU_DATA")
 # Reset các trường nhập về mặc định (ngắn gọn, khoa học, dùng lại cho cả hai nhánh)
 def reset_form_session_state():
     reset_fields = {
@@ -1307,7 +1306,7 @@ with col3:
             st.session_state["nv2"] = nv2
             nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
             st.session_state["nv3"] = nv3
-            if st.button("💾 Xem lại X thông tin và lưu",type="primary",key="btn_review_info",use_container_width=True):
+            if st.button("💾 Kiểm tra thông tin và lưu",type="primary",key="btn_review_info",use_container_width=True):
                 show_review_dialog()
             if st.button("📤 Lấy hồ sơ ra để sửa",type="primary",key="btn_fix_info",use_container_width=True):
                 update_dialog()
