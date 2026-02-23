@@ -1416,7 +1416,16 @@ with col3:
                 """,
                 unsafe_allow_html=True
             )
-            trinhdo_totnghiep = st.radio(":green[ĐĂNG KÝ HỌC VĂN HÓA]", ["Có","Không"], horizontal=True, index=["Có","Không"].index(st.session_state.get("trinhdo_totnghiep_vh", "Có")))
+            trinhdo_totnghiep_vh_options = ["Có", "Không"]
+            trinhdo_totnghiep_vh_value = st.session_state.get("trinhdo_totnghiep_vh", "Có")
+            if trinhdo_totnghiep_vh_value not in trinhdo_totnghiep_vh_options or not trinhdo_totnghiep_vh_value:
+                trinhdo_totnghiep_vh_value = "Có"
+            trinhdo_totnghiep = st.radio(
+                ":green[ĐĂNG KÝ HỌC VĂN HÓA]",
+                trinhdo_totnghiep_vh_options,
+                horizontal=True,
+                index=trinhdo_totnghiep_vh_options.index(trinhdo_totnghiep_vh_value)
+            )
             st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
             nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
             st.session_state["nv1"] = nv1
