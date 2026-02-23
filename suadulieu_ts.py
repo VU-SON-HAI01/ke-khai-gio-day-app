@@ -470,8 +470,8 @@ def update_dialog():
                     #st.rerun()
                 except Exception as e:
                     st.error(f"Lỗi khi xóa hồ sơ: {e}")
-        if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
-            xem_lichsu_thaydoi("LICH_SU_DATA")
+    if st.button("Xem lịch sử thay đổi", key="btn_kiemtra_lichsu_data",use_container_width=True):
+        xem_lichsu_thaydoi("LICH_SU_DATA")
 # Reset các trường nhập về mặc định (ngắn gọn, khoa học, dùng lại cho cả hai nhánh)
 def reset_form_session_state():
     reset_fields = {
