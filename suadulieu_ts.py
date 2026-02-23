@@ -1346,6 +1346,8 @@ with col3:
             if st.button("📑 Nhập hồ sơ mới",type="primary",key="btn_delete_info",use_container_width=True):
                 reset_form_session_state()
                 st.rerun()
+            if st.button("📜 Lịch sử sửa hoặc xóa", type="primary",key="btn_kiemtra_lichsu_data",use_container_width=True):
+                xem_lichsu_thaydoi("LICH_SU_DATA")
     else:
         colx1, colx2 = st.columns(2)
         with colx1:
