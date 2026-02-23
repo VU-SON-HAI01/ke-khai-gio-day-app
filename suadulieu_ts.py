@@ -1416,6 +1416,13 @@ with col3:
                 """,
                 unsafe_allow_html=True
             )
+            st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
+            nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
+            st.session_state["nv1"] = nv1
+            nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])) if st.session_state.get("nv2", nganh_options[0]) in nganh_options else 0)
+            st.session_state["nv2"] = nv2
+            nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
+            st.session_state["nv3"] = nv3
             trinhdo_totnghiep_vh_options = ["Có", "Không"]
             trinhdo_totnghiep_vh_value = st.session_state.get("trinhdo_totnghiep_vh", "Có")
             if trinhdo_totnghiep_vh_value not in trinhdo_totnghiep_vh_options or not trinhdo_totnghiep_vh_value:
@@ -1426,13 +1433,6 @@ with col3:
                 horizontal=True,
                 index=trinhdo_totnghiep_vh_options.index(trinhdo_totnghiep_vh_value)
             )
-            st.session_state["trinhdo_totnghiep_vh"] = trinhdo_totnghiep
-            nv1 = st.selectbox(":green[NGUYỆN VỌNG 1]", nganh_options, index=nganh_options.index(st.session_state.get("nv1", nganh_options[0])) if st.session_state.get("nv1", nganh_options[0]) in nganh_options else 0)
-            st.session_state["nv1"] = nv1
-            nv2 = st.selectbox(":green[NGUYỆN VỌNG 2]", nganh_options, index=nganh_options.index(st.session_state.get("nv2", nganh_options[0])) if st.session_state.get("nv2", nganh_options[0]) in nganh_options else 0)
-            st.session_state["nv2"] = nv2
-            nv3 = st.selectbox(":green[NGUYỆN VỌNG 3]", nganh_options, index=nganh_options.index(st.session_state.get("nv3", nganh_options[0])) if st.session_state.get("nv3", nganh_options[0]) in nganh_options else 0)
-            st.session_state["nv3"] = nv3
             if st.button("💾 Xem lại X thông tin và lưu",type="primary",key="btn_review_info",use_container_width=True):
                 show_review_dialog()
             if st.button("📤 Lấy hồ sơ ra để sửa",type="primary",key="btn_fix_info",use_container_width=True):
