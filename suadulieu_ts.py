@@ -313,14 +313,20 @@ def update_dialog():
         try:
             ws_history = sh.worksheet("LICH_SU_DATA")
             preview = ws_history.get_all_values()[:5]
-            # Chỉ lấy các cột 1,2,3,4,54,55,56 (index 0,1,2,3,53,54,55)
-            preview_selected = []
-            for row in preview:
-                while len(row) < 56:
-                    row.append("")
-                preview_selected.append([row[0], row[1], row[2], row[3], row[53], row[54], row[55]])
-            df_preview = pd.DataFrame(preview_selected, columns=["Cột 1", "Cột 2", "Cột 3", "Cột 4", "Ngày Update", "Nội dung Update", "Người Update"])
-            st.dataframe(df_preview)
+            # Lấy dòng thứ 2 làm header, dòng 3 trở đi là data
+            if len(preview) >= 2:
+                header = preview[1]
+                data = preview[2:]
+                # Đảm bảo mỗi row đủ số cột như header
+                data_fixed = []
+                for row in data:
+                    while len(row) < len(header):
+                        row.append("")
+                    data_fixed.append(row[:len(header)])
+                df_preview = pd.DataFrame(data_fixed, columns=header)
+                st.dataframe(df_preview)
+            else:
+                st.warning("Không đủ dữ liệu để hiển thị (cần ít nhất 2 dòng)")
         except Exception as e:
             st.error(f"Không truy cập được sheet LICH_SU_DATA: {e}")
     # Bộ lọc bắt buộc theo Năm tuyển sinh (lọc theo 2 số đầu của Mã HSTS)
