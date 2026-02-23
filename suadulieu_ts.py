@@ -445,6 +445,8 @@ def update_dialog():
                 st.session_state["noi_cap_cccd"] = selected_row.get(df.columns[49], "")
                 st.session_state["ten_user"] = selected_row.get(df.columns[50], "")
                 st.session_state["so_dien_thoai_gd"] = selected_row.get(df.columns[51], "")
+                ma_hsts_xem = selected_row.get(df.columns[0], "")
+                st.info(f"Đang xem dữ liệu Hồ Sơ: {ma_hsts_xem}")
                 st.success("Đã gán dữ liệu vào các trường nhập. Đang cập nhật giao diện...")
                 st.rerun()
         with col_xoa:
