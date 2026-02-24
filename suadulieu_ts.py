@@ -289,7 +289,9 @@ def show_review_dialog():
                 try:
                     ws_history = sh.worksheet("LICH_SU_DATA")
                     from datetime import datetime as _dt
-                    ngay_update = _dt.now().strftime("%Hh%M, %d/%m/%Y")
+                    import pytz
+                    tz_vn = pytz.timezone("Asia/Ho_Chi_Minh")
+                    ngay_update = _dt.now(tz_vn).strftime("%Hh%M, %d/%m/%Y")
                     noi_dung_update = "Sửa"
                     nguoi_update = st.session_state.get("ten_user", "")
                     # Đảm bảo đủ 53 cột đầu, thêm 3 cột cuối (nếu thiếu thì bổ sung cho đủ)
@@ -491,7 +493,9 @@ def update_dialog():
                     row_data = [str(x) for x in list(filtered.loc[selected_rows.index[0]].values)]
                     # Thêm 3 cột: Ngày Update, Nội dung Update, Người Update
                     from datetime import datetime as _dt
-                    ngay_update = _dt.now().strftime("%Hh%M, %d/%m/%Y")
+                    import pytz
+                    tz_vn = pytz.timezone("Asia/Ho_Chi_Minh")
+                    ngay_update = _dt.now(tz_vn).strftime("%Hh%M, %d/%m/%Y")
                     noi_dung_update = "Xóa"
                     nguoi_update = st.session_state.get("ten_user", "")
                     # Đảm bảo đủ 53 cột đầu, thêm 3 cột cuối (nếu thiếu thì bổ sung cho đủ)
