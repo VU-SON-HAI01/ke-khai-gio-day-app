@@ -87,7 +87,7 @@ def xem_lichsu_thaydoi(key, default=0.0):
                     other_cols = [col for i, col in enumerate(header) if i not in [53,54,55]]
                     new_order = cols_update + other_cols
                     df_preview = df_preview[new_order]
-                st.dataframe(df_preview)
+            st.dataframe(df_preview)
         else:
             st.warning("Không đủ dữ liệu để hiển thị (cần ít nhất 2 dòng)")
     except Exception as e:
