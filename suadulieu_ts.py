@@ -300,10 +300,19 @@ def show_review_dialog():
                     row_history = []
                     for idx, new_val in enumerate(data_to_update):
                         old_val = old_row[idx] if idx < len(old_row) else ""
-                        if str(new_val) != str(old_val):
-                            row_history.append(new_val)
-                        else:
-                            row_history.append("")
+                        # So sánh số nếu có thể
+                        try:
+                            new_num = float(new_val)
+                            old_num = float(old_val)
+                            if new_num != old_num:
+                                row_history.append(new_val)
+                            else:
+                                row_history.append("")
+                        except Exception:
+                            if str(new_val) != str(old_val):
+                                row_history.append(new_val)
+                            else:
+                                row_history.append("")
                     while len(row_history) < 53:
                         row_history.append("")
                     row_history += [ngay_update, noi_dung_update, nguoi_update]
