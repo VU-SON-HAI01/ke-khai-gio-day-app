@@ -69,27 +69,27 @@ def xem_lichsu_thaydoi(key, default=0.0):
         gc = gspread.authorize(credentials)
         sh = gc.open_by_key(thong_tin_hssv_id)
         ws_history = sh.worksheet("LICH_SU_DATA")
-        preview = ws_history.get_all_values()[:5]
-        # Lấy dòng thứ 2 làm header, dòng 3 trở đi là data
-        if len(preview) >= 2:
-            header = preview[1]
-            data = preview[2:]
-            # Đảm bảo mỗi row đủ số cột như header
+        all_rows = ws_history.get_all_values()
+        if len(all_rows) >= 3:
+            header = all_rows[1]
+            data = all_rows[2:]
+            # Lấy 20 dòng mới nhất từ dưới lên (trừ header và dòng 1)
+            data = data[-20:]
             data_fixed = []
             for row in data:
                 while len(row) < len(header):
                     row.append("")
                 data_fixed.append(row[:len(header)])
-                df_preview = pd.DataFrame(data_fixed, columns=header)
-                # Đưa các cột 54,55,56 lên đầu nếu đủ cột
-                if len(header) >= 56:
-                    cols_update = [header[53], header[54], header[55]]
-                    other_cols = [col for i, col in enumerate(header) if i not in [53,54,55]]
-                    new_order = cols_update + other_cols
-                    df_preview = df_preview[new_order]
+            df_preview = pd.DataFrame(data_fixed, columns=header)
+            # Đưa các cột 54,55,56 lên đầu nếu đủ cột
+            if len(header) >= 56:
+                cols_update = [header[53], header[54], header[55]]
+                other_cols = [col for i, col in enumerate(header) if i not in [53,54,55]]
+                new_order = cols_update + other_cols
+                df_preview = df_preview[new_order]
             st.dataframe(df_preview)
         else:
-            st.warning("Không đủ dữ liệu để hiển thị (cần ít nhất 2 dòng)")
+            st.warning("Không đủ dữ liệu để hiển thị (cần ít nhất 3 dòng)")
     except Exception as e:
         st.error(f"Không truy cập được sheet LICH_SU_DATA: {e}")
 @st.dialog("Xem thông tin đã nhập", width="medium")
