@@ -80,8 +80,14 @@ def xem_lichsu_thaydoi(key, default=0.0):
                 while len(row) < len(header):
                     row.append("")
                 data_fixed.append(row[:len(header)])
-            df_preview = pd.DataFrame(data_fixed, columns=header)
-            st.dataframe(df_preview)
+                df_preview = pd.DataFrame(data_fixed, columns=header)
+                # Đưa các cột 54,55,56 lên đầu nếu đủ cột
+                if len(header) >= 56:
+                    cols_update = [header[53], header[54], header[55]]
+                    other_cols = [col for i, col in enumerate(header) if i not in [53,54,55]]
+                    new_order = cols_update + other_cols
+                    df_preview = df_preview[new_order]
+                st.dataframe(df_preview)
         else:
             st.warning("Không đủ dữ liệu để hiển thị (cần ít nhất 2 dòng)")
     except Exception as e:
