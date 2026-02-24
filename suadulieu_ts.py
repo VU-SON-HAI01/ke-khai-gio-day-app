@@ -55,7 +55,7 @@ def parse_date_str(val):
         except Exception:
             return None
 # Xem dữ liệu lịch sử thay đổi (LICH_SU_DATA)
-@st.dialog("Lịch sử thay đổi hồ sơ tuyển sinh", width="medium")
+@st.dialog("Lịch sử thay đổi hồ sơ tuyển sinh", width="large")
 def xem_lichsu_thaydoi(key, default=0.0):
     try:
         # Lấy cấu hình Google Sheet từ secrets
