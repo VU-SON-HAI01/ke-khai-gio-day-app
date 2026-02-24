@@ -294,8 +294,16 @@ def show_review_dialog():
                     ngay_update = _dt.now(tz_vn).strftime("%Hh%M, %d/%m/%Y")
                     noi_dung_update = "Sửa"
                     nguoi_update = st.session_state.get("ten_user", "")
-                    # Đảm bảo đủ 53 cột đầu, thêm 3 cột cuối (nếu thiếu thì bổ sung cho đủ)
-                    row_history = list(data_to_update)
+                    # Lấy dữ liệu cũ từ worksheet (dòng cũ)
+                    old_row = worksheet.row_values(row_index_to_update)
+                    # So sánh từng trường, nếu khác thì lưu giá trị mới, nếu giống thì để trống
+                    row_history = []
+                    for idx, new_val in enumerate(data_to_update):
+                        old_val = old_row[idx] if idx < len(old_row) else ""
+                        if str(new_val) != str(old_val):
+                            row_history.append(new_val)
+                        else:
+                            row_history.append("")
                     while len(row_history) < 53:
                         row_history.append("")
                     row_history += [ngay_update, noi_dung_update, nguoi_update]
