@@ -300,10 +300,16 @@ def show_review_dialog():
                     row_history = []
                     for idx, new_val in enumerate(data_to_update):
                         old_val = old_row[idx] if idx < len(old_row) else ""
-                        # So sánh số nếu có thể
+                        # Nếu là trường tổng điểm, chuẩn hóa giá trị cũ về 0 nếu rỗng
+                        tong_diem_keys = ["tong_diem", "tong_diem_2_mon", "tong_diem_8_mon", "tong_diem_2_mon_uu_tien", "tong_diem_8_mon_uu_tien"]
+                        col_name = df.columns[idx] if idx < len(df.columns) else ""
                         try:
                             new_num = float(new_val)
-                            old_num = float(old_val)
+                            # Nếu là trường tổng điểm và old_val rỗng, coi như 0
+                            if col_name in tong_diem_keys and (old_val is None or old_val == ""):
+                                old_num = 0.0
+                            else:
+                                old_num = float(old_val)
                             if new_num != old_num:
                                 row_history.append(new_val)
                             else:

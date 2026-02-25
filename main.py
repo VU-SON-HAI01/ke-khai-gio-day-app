@@ -442,8 +442,8 @@ else:
                 st.Page("suadulieu_ts.py", title="Sửa hoặc xóa hồ sơ TS", icon="🛠️"),
                 st.Page("tonghop_dulieu_ts.py", title="Tổng hợp phân tích dữ liệu TS", icon="📊"),
                 st.Page("lap_ds_trungtuyen.py", title="Lập danh sách trúng tuyển", icon="✍️"),
-                st.Page("xemdulieu_hssv.py", title="Xem dữ liệu HSSV", icon="🔎"),
-                st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
+                #st.Page("xemdulieu_hssv.py", title="Xem dữ liệu HSSV", icon="🔎"),
+                #st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
                 st.Page(page_diachi, title="Nhập địa chỉ", icon="🗒️")
             ]
         }
