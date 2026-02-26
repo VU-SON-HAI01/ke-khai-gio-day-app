@@ -277,7 +277,10 @@ else:
             "Báo cáo": [
                 st.Page("tonghop_kegio.py", title="Tổng hợp & Xuất file", icon="📄")
             ],
-            "Trợ giúp": [st.Page("huongdan.py", title="Hướng dẫn", icon="❓")],
+            "Trợ giúp": [
+                st.Page("huongdan.py", title="Hướng dẫn", icon="❓"),
+                st.Page("phieu_danhgia.py", title="Phiếu đánh giá", icon="📝"),
+                ],
             "Quản trị": [
                 st.Page("quanlyhssv.py", title="Nhập thông tin HSSV", icon="🛠️"),
                 st.Page("tao_bangdiem.py", title="Tạo bảng điểm", icon="🗒️"),
