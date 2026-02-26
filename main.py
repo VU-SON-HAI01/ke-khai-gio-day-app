@@ -279,7 +279,7 @@ else:
             ],
             "Trợ giúp": [
                 st.Page("huongdan.py", title="Hướng dẫn", icon="❓"),
-                st.Page("phieu_danhgia.py", title="Phiếu đánh giá", icon="📝"),
+                st.Page("phieu_danh_gia.py", title="Phiếu đánh giá", icon="📝"),
                 ],
             "Quản trị": [
                 st.Page("quanlyhssv.py", title="Nhập thông tin HSSV", icon="🛠️"),
